@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package oidc.registration.v1;
+
+import "google/protobuf/wrappers.proto";
+
+message Client {
+  repeated string redirect_uris = 1;
+  repeated string response_types = 2;
+  repeated string grant_types = 3;
+  google.protobuf.StringValue application_type = 4;
+  repeated string contacts = 5;
+  google.protobuf.StringValue client_name = 6;
+  google.protobuf.StringValue logo_uri = 7;
+  google.protobuf.StringValue client_uri = 8;
+  google.protobuf.StringValue policy_uri = 9;
+  google.protobuf.StringValue tos_uri = 10;
+  google.protobuf.StringValue jwks_uri = 11;
+  google.protobuf.BytesValue jwks = 12;
+
+}

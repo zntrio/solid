@@ -1,10 +1,12 @@
 syntax = "proto3";
 
-package solid.oidc.v1;
+package oidc.discovery.v1;
+
+option go_package = "oidc/discovery/v1;discoveryv1";
 
 // https://tools.ietf.org/html/rfc8414
 
-message AuthorizationServerMetadata {
+message ServerMetadata {
   // REQUIRED.  The authorization server's issuer identifier, which is
   // a URL that uses the "https" scheme and has no query or fragment
   // components.  Authorization server metadata is published at a

@@ -1,0 +1,52 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package oidc.par.v1;
+
+option go_package = "oidc/par/v1;parv1";
+
+import "oidc/core/v1/core_api.proto";
+import "oidc/core/v1/error.proto";
+
+// -----------------------------------------------------------------------------
+
+service PushedAuthorizationRequest {
+  // Create a authentication request and returns an identifier.
+  rpc Create(CreateRequest) returns (CreateResponse) {};
+  // Get an registered PAR.
+  rpc Get(GetRequest) returns (GetResponse) {};
+}
+
+// -----------------------------------------------------------------------------
+
+message CreateRequest {
+  oidc.core.v1.AuthorizationRequest request = 1;
+}
+
+message CreateResponse {
+  string request_uri = 1;
+  fixed64 expires_in = 2;
+}
+
+message GetRequest {
+  string request_uri = 1;
+}
+
+message GetResponse {
+  oidc.core.v1.Error error = 1;
+  oidc.core.v1.AuthorizationRequest request = 2;
+}

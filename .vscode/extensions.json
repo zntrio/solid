@@ -1,0 +1,10 @@
+{
+  "recommendations": [
+    "ms-vscode.Go",
+    "ms-vscode-remote.remote-containers",
+    "davidanson.vscode-markdownlint",
+    "shardulm94.trailing-spaces",
+    "eamodio.gitlens",
+    "mutantdino.resourcemonitor"
+  ]
+}

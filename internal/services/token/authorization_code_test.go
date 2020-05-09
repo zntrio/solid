@@ -22,16 +22,16 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
+	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	storagemock "go.zenithar.org/solid/pkg/storage/mock"
 	tokenmock "go.zenithar.org/solid/pkg/token/mock"
 
 	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -53,7 +53,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
@@ -84,7 +84,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				ctx:    context.Background(),
 				client: &registrationv1.Client{},
 				req: &corev1.TokenRequest{
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 				},
 			},
 			wantErr: true,
@@ -97,7 +97,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeClientCredentials},
+					GrantTypes:    []string{oidc.GrantTypeClientCredentials},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -105,7 +105,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
@@ -124,7 +124,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -132,7 +132,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
@@ -151,7 +151,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -159,7 +159,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:        "1234567891234567890",
@@ -178,7 +178,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -186,7 +186,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -205,7 +205,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -213,7 +213,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -236,7 +236,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -244,7 +244,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -267,7 +267,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -275,7 +275,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -306,7 +306,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -314,7 +314,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -345,7 +345,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -353,7 +353,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -384,7 +384,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -392,7 +392,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -424,7 +424,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -432,7 +432,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -464,7 +464,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -472,7 +472,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
@@ -506,7 +506,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &registrationv1.Client{
-					GrantTypes:    []string{grantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -514,7 +514,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Client: &corev1.ClientAuthentication{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType: grantTypeAuthorizationCode,
+					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",

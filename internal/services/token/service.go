@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/internal/services"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
@@ -34,13 +35,6 @@ type service struct {
 	clients               storage.ClientReader
 	authorizationRequests storage.AuthorizationRequestReader
 }
-
-const (
-	grantTypeAuthorizationCode = "authorization_code"
-	grantTypeClientCredentials = "client_credentials"
-	grantTypeDeviceCode        = "device_code"
-	grantTypeRefreshToken      = "refresh_token"
-)
 
 // New build and returns an authorization service implementation.
 func New(accessTokenGenerator token.AccessTokenGenerator, idTokenGenerator token.IDTokenGenerator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader) services.Token {
@@ -58,7 +52,7 @@ func (s *service) Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.
 	res := &corev1.TokenResponse{}
 
 	// Validate request
-	if err := ValidateRequest(ctx, req); err != nil {
+	if err := validateRequest(ctx, req); err != nil {
 		res.Error = err
 		return res, fmt.Errorf("unable to validate token request")
 	}
@@ -76,14 +70,18 @@ func (s *service) Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.
 
 	// Dispatch request according to grant_type
 	switch req.GrantType {
-	case grantTypeClientCredentials:
+	case oidc.GrantTypeClientCredentials:
 		res, err = s.clientCredentials(ctx, client, req)
-	case grantTypeAuthorizationCode:
+	case oidc.GrantTypeAuthorizationCode:
 		res, err = s.authorizationCode(ctx, client, req)
-	case grantTypeDeviceCode:
+	case oidc.GrantTypeDeviceCode:
 		res, err = s.deviceCode(ctx, client, req)
-	case grantTypeRefreshToken:
+	case oidc.GrantTypeRefreshToken:
 		res, err = s.refreshToken(ctx, client, req)
+	default:
+		// Validated by the front validator but added for defensive principle.
+		res.Error = rfcerrors.InvalidGrant("")
+		err = fmt.Errorf("invalid grant_type in request '%s'", req.GrantType)
 	}
 
 	// No error

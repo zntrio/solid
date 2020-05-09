@@ -30,6 +30,8 @@ type CodeGenerator func(context.Context) (string, error)
 type Authorization interface {
 	// Authorize a request.
 	Authorize(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.AuthorizationResponse, error)
+	// Register a request.
+	Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error)
 }
 
 // Token describes token requet processor.

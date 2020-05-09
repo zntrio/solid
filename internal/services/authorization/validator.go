@@ -19,39 +19,33 @@ package authorization
 
 import (
 	"context"
-
-	"go.zenithar.org/solid/pkg/rfcerrors"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"fmt"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	"go.zenithar.org/solid/api/oidc"
+	"go.zenithar.org/solid/pkg/rfcerrors"
 )
 
 // ValidateAuthorization validates authorization request.
-func ValidateAuthorization(ctx context.Context, req *corev1.AuthorizationRequest) *corev1.Error {
+func validateAuthorization(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.Error, error) {
 	// Check req nullity
 	if req == nil {
-		return &corev1.Error{
-			Err: "invalid_request",
-			ErrorDescription: &wrappers.StringValue{
-				Value: "request is nil",
-			},
-		}
+		return rfcerrors.InvalidRequest(""), fmt.Errorf("unable to process nil request")
 	}
 
 	// Validate request attributes
 	if req.State == "" {
-		return rfcerrors.InvalidRequest("<missing>")
+		return rfcerrors.InvalidRequest("<missing>"), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
 
 	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" {
-		return rfcerrors.InvalidRequest(req.State)
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
 
-	if req.CodeChallengeMethod != "S256" {
-		return rfcerrors.InvalidRequest(req.State)
+	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("invalid or unsupported code_challenge_method '%s'", req.CodeChallengeMethod)
 	}
 
 	// Return result
-	return nil
+	return nil, nil
 }

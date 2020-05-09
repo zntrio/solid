@@ -47,18 +47,18 @@ simple and solid implementations of 4 OAuth flows :
 
 * Storage
   * Client
-    * [ ] Confidential client
-    * [ ] Public client
+    * [x] Confidential client
+    * [x] Public client
   * Requests
-    * [ ] Authorization request
+    * [x] Authorization request
 * [ ] Dynamic client registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
 * OAuth Grant Types
   * [ ] `client_credentials` flow
     * [ ] `private_key_jwt` client authentication
     * [ ] `tls_client_auth` client authentication
-  * [ ] `authorization_code` flow
-    * [ ] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
-    * [ ] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
+  * [x] `authorization_code` flow
+    * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
+    * [x] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
   * [ ] `device_code` flow
   * [ ] `refresh_token` flow
 * Token

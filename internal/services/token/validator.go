@@ -20,14 +20,15 @@ package token
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
+
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 // ValidateRequest validates token request.
-func ValidateRequest(ctx context.Context, req *corev1.TokenRequest) *corev1.Error {
+var validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev1.Error {
 	// Check req nullity
 	if req == nil {
 		return &corev1.Error{
@@ -45,19 +46,19 @@ func ValidateRequest(ctx context.Context, req *corev1.TokenRequest) *corev1.Erro
 
 	// Check assigned grant_type
 	switch req.GrantType {
-	case "authorization_code":
+	case oidc.GrantTypeAuthorizationCode:
 		if req.GetAuthorizationCode() == nil {
 			return rfcerrors.InvalidGrant("")
 		}
-	case "client_credentials":
+	case oidc.GrantTypeClientCredentials:
 		if req.GetClientCredentials() == nil {
 			return rfcerrors.InvalidGrant("")
 		}
-	case "device_code":
+	case oidc.GrantTypeDeviceCode:
 		if req.GetDeviceCode() == nil {
 			return rfcerrors.InvalidGrant("")
 		}
-	case "refresh_token":
+	case oidc.GrantTypeRefreshToken:
 		if req.GetRefreshToken() == nil {
 			return rfcerrors.InvalidGrant("")
 		}

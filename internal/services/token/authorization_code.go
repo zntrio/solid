@@ -24,14 +24,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
+	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
+	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func (s *service) authorizationCode(ctx context.Context, client *registrationv1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
@@ -53,7 +53,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 	}
 
 	// Validate client capabilities
-	if !types.StringArray(client.GrantTypes).Contains(grantTypeAuthorizationCode) {
+	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeAuthorizationCode) {
 		res.Error = rfcerrors.UnsupportedGrantType("")
 		return res, fmt.Errorf("client doesn't support 'authorization_code' as grant type")
 	}
@@ -88,7 +88,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 	// Check PKCE verifier
 	// https://www.rfc-editor.org/rfc/rfc7636.txt
 	switch ar.CodeChallengeMethod {
-	case "S256", "s256":
+	case oidc.CodeChallengeMethodSha256:
 		h := sha256.Sum256([]byte(grant.CodeVerifier))
 		computedVerifier := base64.RawURLEncoding.EncodeToString(h[:])
 		if computedVerifier != ar.CodeChallenge {
@@ -104,7 +104,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 	scopes := types.StringArray(strings.Fields(ar.Scope))
 
 	// Generate OpenID tokens (AT / RT / IDT)
-	if scopes.Contains("openid") {
+	if scopes.Contains(oidc.ScopeOpenID) {
 		// Create openid token holder
 		var (
 			err      error
@@ -119,7 +119,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 		}
 
 		// Check for offline_access token, it means refresh token generation
-		if scopes.Contains("offline_access") {
+		if scopes.Contains(oidc.ScopeOfflineAccess) {
 			// Generate an access token
 			rt, err := s.accessTokenGenerator.Generate(ctx)
 			if err != nil {

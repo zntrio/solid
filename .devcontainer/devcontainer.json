@@ -12,7 +12,7 @@
 	"extensions": [
 		"ms-vscode.go",
 		"eamodio.gitlens",
-    	"mutantdino.resourcemonitor"
+    "mutantdino.resourcemonitor"
 	],
 	"remoteUser": "vscode"
 }

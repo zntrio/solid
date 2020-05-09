@@ -58,3 +58,11 @@ type AuthorizationRequestWriter interface {
 	Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, error)
 	Delete(ctx context.Context, requestURI string) error
 }
+
+//go:generate mockgen -destination mock/authorization_request.gen.go -package mock go.zenithar.org/solid/pkg/storage AuthorizationRequest
+
+// AuthorizationRequest describes complete authorization request storage operation contract.
+type AuthorizationRequest interface {
+	AuthorizationRequestReader
+	AuthorizationRequestWriter
+}

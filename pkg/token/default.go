@@ -15,30 +15,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package authorization
+package token
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dchest/uniuri"
 )
 
 const (
-	// DefaultAuthorizationCodeLen defines default auhtorization code length.
-	DefaultAuthorizationCodeLen = 64
+	// DefaultAccessTokenLen defines default authorization code length.
+	DefaultAccessTokenLen = 60
 )
 
-// Default returns the default authorization code generator.
-func Default() CodeGenerator {
-	return &codeGenerator{}
+// DefaultAccessTokenGenerator returns the default authorization code generator.
+func DefaultAccessTokenGenerator() AccessTokenGenerator {
+	return &accessTokenGenerator{}
 }
 
 // -----------------------------------------------------------------------------
 
-type codeGenerator struct {
+type accessTokenGenerator struct {
 }
 
-func (c *codeGenerator) Generate(_ context.Context) (string, error) {
-	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
+func (c *accessTokenGenerator) Generate(_ context.Context) (string, error) {
+	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
 	return code, nil
 }

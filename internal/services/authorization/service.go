@@ -70,6 +70,16 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 			return res, fmt.Errorf("unable to retrieve request by uri: %w", err)
 		}
 
+		// Burn after read
+		if err := s.authorizationRequests.Delete(ctx, req.RequestUri.Value); err != nil {
+			if err != storage.ErrNotFound {
+				res.Error = rfcerrors.ServerError("")
+			} else {
+				res.Error = rfcerrors.InvalidRequest("")
+			}
+			return res, fmt.Errorf("unable to retrieve request by uri: %w", err)
+		}
+
 		// Override request
 		req = ar
 	}
@@ -81,6 +91,12 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 
 func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error) {
 	res := &corev1.RegistrationResponse{}
+
+	// Check req nullity
+	if req == nil {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to process nil request")
+	}
 
 	// Delegate to real authorize process
 	requestURI, authRes, err := s.authorize(ctx, true, req.Request)

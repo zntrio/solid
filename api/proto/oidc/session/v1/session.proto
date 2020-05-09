@@ -15,12 +15,17 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package features
+syntax = "proto3";
 
-import (
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/reactor"
-)
+package oidc.session.v1;
 
-// Feature represents authorization server feature enabler.
-type Feature func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token)
+option go_package = "oidc/session/v1;sessionv1";
+
+import "oidc/core/v1/core_api.proto";
+import "oidc/registration/v1/client.proto";
+
+message Session {
+  string subject = 1;
+  .oidc.core.v1.AuthorizationRequest request = 2;
+  .oidc.registration.v1.Client client = 3;
+}

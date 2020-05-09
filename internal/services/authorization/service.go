@@ -23,26 +23,26 @@ import (
 	"strings"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/authorization"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
 )
 
 type service struct {
-	codeGenerator         authorization.CodeGenerator
 	clients               storage.ClientReader
 	authorizationRequests storage.AuthorizationRequest
+	sessions              storage.SessionWriter
 }
 
 // New build and returns an authorization service implementation.
-func New(codeGenerator authorization.CodeGenerator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest) services.Authorization {
+func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, sessions storage.SessionWriter) services.Authorization {
 	return &service{
-		codeGenerator:         codeGenerator,
 		clients:               clients,
 		authorizationRequests: authorizationRequests,
+		sessions:              sessions,
 	}
 }
 
@@ -60,7 +60,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 	// Check request reference usage
 	if req.RequestUri != nil {
 		// Check if request uri exists in storage
-		ar, err := s.authorizationRequests.GetByRequestURI(ctx, req.RequestUri.Value)
+		ar, err := s.authorizationRequests.Get(ctx, req.RequestUri.Value)
 		if err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError("")
@@ -85,7 +85,28 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 	}
 
 	// Delegate to real authorize process
-	_, res, err := s.authorize(ctx, false, req)
+	publicErr, err := s.validate(ctx, req)
+	if err != nil {
+		res.Error = publicErr
+		return res, err
+	}
+
+	// Create an authorization session
+	code, err := s.sessions.Register(ctx, &sessionv1.Session{
+		Subject: "",
+		Request: req,
+	})
+	if err != nil {
+		res.Error = rfcerrors.ServerError(req.State)
+		return res, fmt.Errorf("unable to generate authorization code: %w", err)
+	}
+
+	// Assign code to response
+	res.Code = code
+
+	// Assign state to response
+	res.State = req.State
+
 	return res, err
 }
 
@@ -98,11 +119,18 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
-	// Delegate to real authorize process
-	requestURI, authRes, err := s.authorize(ctx, true, req.Request)
+	// Validate authorization request
+	publicErr, err := s.validate(ctx, req.Request)
 	if err != nil {
-		res.Error = authRes.Error
+		res.Error = publicErr
 		return res, err
+	}
+
+	// Register the authorization request
+	requestURI, err := s.authorizationRequests.Register(ctx, req.Request)
+	if err != nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("unable to register authorization request: %w", err)
 	}
 
 	// Assemble result
@@ -115,52 +143,48 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 
 // -----------------------------------------------------------------------------
 
-func (s *service) authorize(ctx context.Context, par bool, req *corev1.AuthorizationRequest) (string, *corev1.AuthorizationResponse, error) {
-	res := &corev1.AuthorizationResponse{}
+func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.Error, error) {
+	// Check req nullity
+	if req == nil {
+		return rfcerrors.InvalidRequest(""), fmt.Errorf("unable to process nil request")
+	}
 
-	// Validate request
-	var err error
-	if res.Error, err = validateAuthorization(ctx, req); err != nil {
-		return "", res, fmt.Errorf("unable to validate authorization request: %w", err)
+	// Validate request attributes
+	if req.State == "" {
+		return rfcerrors.InvalidRequest("<missing>"), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
+	}
+
+	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
+	}
+
+	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("invalid or unsupported code_challenge_method '%s'", req.CodeChallengeMethod)
 	}
 
 	// Check client ID
 	client, err := s.clients.Get(ctx, req.ClientId)
 	if err != nil {
 		if err != storage.ErrNotFound {
-			res.Error = rfcerrors.ServerError(req.State)
-		} else {
-			res.Error = rfcerrors.InvalidRequest(req.State)
+			return rfcerrors.ServerError(req.State), fmt.Errorf("unable to retrieve client details: %w", err)
 		}
-		return "", res, fmt.Errorf("unable to retrieve client details: %w", err)
+
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("unable to retrieve client details: %w", err)
 	}
 
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeAuthorizationCode) {
-		res.Error = rfcerrors.UnsupportedGrantType(req.State)
-		return "", res, fmt.Errorf("client doesn't support 'authorization_code' as grant type")
+		return rfcerrors.UnsupportedGrantType(req.State), fmt.Errorf("client doesn't support 'authorization_code' as grant type")
 	}
 
 	// Validate client response_type
 	if !types.StringArray(client.ResponseTypes).Contains(req.ResponseType) {
-		res.Error = rfcerrors.InvalidRequest(req.State)
-		return "", res, fmt.Errorf("client doesn't support `%s` as response type", req.ResponseType)
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("client doesn't support `%s` as response type", req.ResponseType)
 	}
 
 	// Validate client response_types
 	if !types.StringArray(client.RedirectUris).Contains(req.RedirectUri) {
-		res.Error = rfcerrors.InvalidRequest(req.State)
-		return "", res, fmt.Errorf("client doesn't support `%s` as redirect_uri type", req.RedirectUri)
-	}
-
-	// Generate authorization code
-	var code string
-	// Skip code generation in registration mode
-	if !par {
-		if code, err = s.codeGenerator.Generate(ctx); err != nil {
-			res.Error = rfcerrors.ServerError(req.State)
-			return "", res, fmt.Errorf("unable to generate authorization code: %w", err)
-		}
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("client doesn't support `%s` as redirect_uri type", req.RedirectUri)
 	}
 
 	// Check scopes
@@ -185,22 +209,6 @@ func (s *service) authorize(ctx context.Context, par bool, req *corev1.Authoriza
 		req.Scope = strings.Join(scopes, " ")
 	}
 
-	// Store authorization request
-	requestURI, err := s.authorizationRequests.Register(ctx, req)
-	if err != nil {
-		res.Error = rfcerrors.ServerError(req.State)
-		return "", res, fmt.Errorf("unable to generate authorization code: %w", err)
-	}
-
-	// Skip assignation is registration mode
-	if !par {
-		// Assign code to response
-		res.Code = code
-
-		// Assign state to response
-		res.State = req.State
-	}
-
 	// No error
-	return requestURI, res, nil
+	return nil, nil
 }

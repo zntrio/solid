@@ -3,6 +3,7 @@ module go.zenithar.org/solid
 go 1.14
 
 require (
+	github.com/allegro/bigcache v1.2.1
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/fatih/color v1.9.0
 	github.com/golang/mock v1.4.3

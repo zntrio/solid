@@ -24,12 +24,13 @@
 package parv1
 
 import (
-	proto "github.com/golang/protobuf/proto"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	v1 "oidc/core/v1"
 	reflect "reflect"
 	sync "sync"
+
+	proto "github.com/golang/protobuf/proto"
+	v1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (

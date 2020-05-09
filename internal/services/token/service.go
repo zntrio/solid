@@ -34,15 +34,17 @@ type service struct {
 	idTokenGenerator      token.IDTokenGenerator
 	clients               storage.ClientReader
 	authorizationRequests storage.AuthorizationRequestReader
+	sessions              storage.Session
 }
 
 // New build and returns an authorization service implementation.
-func New(accessTokenGenerator token.AccessTokenGenerator, idTokenGenerator token.IDTokenGenerator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader) services.Token {
+func New(accessTokenGenerator token.AccessTokenGenerator, idTokenGenerator token.IDTokenGenerator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, sessions storage.Session) services.Token {
 	return &service{
 		accessTokenGenerator:  accessTokenGenerator,
 		idTokenGenerator:      idTokenGenerator,
 		clients:               clients,
 		authorizationRequests: authorizationRequests,
+		sessions:              sessions,
 	}
 }
 

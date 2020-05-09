@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 
+	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
+
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 
 	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
@@ -47,8 +49,7 @@ type Client interface {
 
 // AuthorizationRequestReader describes authorization request storage read-only operation contract.
 type AuthorizationRequestReader interface {
-	GetByRequestURI(ctx context.Context, requestURI string) (*corev1.AuthorizationRequest, error)
-	GetByCode(ctx context.Context, code string) (*corev1.AuthorizationRequest, error)
+	Get(ctx context.Context, requestURI string) (*corev1.AuthorizationRequest, error)
 }
 
 //go:generate mockgen -destination mock/authorization_request_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage AuthorizationRequestWriter
@@ -65,4 +66,27 @@ type AuthorizationRequestWriter interface {
 type AuthorizationRequest interface {
 	AuthorizationRequestReader
 	AuthorizationRequestWriter
+}
+
+//go:generate mockgen -destination mock/session_reader.gen.go -package mock go.zenithar.org/solid/pkg/storage SessionReader
+
+// SessionReader describes read-only storage operation contract.
+type SessionReader interface {
+	Get(ctx context.Context, code string) (*sessionv1.Session, error)
+}
+
+//go:generate mockgen -destination mock/session_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage SessionWriter
+
+// SessionWriter describes write-only operation contract.
+type SessionWriter interface {
+	Register(ctx context.Context, s *sessionv1.Session) (string, error)
+	Delete(ctx context.Context, code string) error
+}
+
+//go:generate mockgen -destination mock/session.gen.go -package mock go.zenithar.org/solid/pkg/storage Session
+
+// Session describes user session operation contract.
+type Session interface {
+	SessionReader
+	SessionWriter
 }

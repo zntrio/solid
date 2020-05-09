@@ -21,9 +21,9 @@ import (
 	"context"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
-	"go.zenithar.org/solid/samples/server/storage"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -46,8 +46,9 @@ func main() {
 	// Prepare the authorization server
 	as := authorizationserver.New(ctx,
 		"http://localhost", // Issuer
-		authorizationserver.ClientReader(storage.Clients()),
-		authorizationserver.AuthorizationRequestManager(storage.AuthorizationRequests()),
+		authorizationserver.ClientReader(inmemory.Clients()),
+		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
+		authorizationserver.SessionManager(inmemory.Sessions()),
 	)
 
 	// Enable Core OIDC features

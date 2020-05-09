@@ -18,13 +18,20 @@
 package authorizationserver
 
 import (
+	"go.zenithar.org/solid/pkg/authorization"
 	"go.zenithar.org/solid/pkg/storage"
+	"go.zenithar.org/solid/pkg/token"
 )
 
 // Builder options holder
 type options struct {
+	authorizationCodeGenerator  authorization.CodeGenerator
 	clientReader                storage.ClientReader
 	authorizationRequestManager storage.AuthorizationRequest
+	accessTokenGenerator        token.AccessTokenGenerator
+	idTokenGenerator            token.IDTokenGenerator
+	phantomTokenGenerator       token.PhantomTokenGenerator
+	sessionManager              storage.Session
 }
 
 // Option defines functional pattern function type contract.
@@ -41,5 +48,12 @@ func ClientReader(store storage.ClientReader) Option {
 func AuthorizationRequestManager(store storage.AuthorizationRequest) Option {
 	return func(opts *options) {
 		opts.authorizationRequestManager = store
+	}
+}
+
+// SessionManager defines the implementation for managing authorization sessions.
+func SessionManager(store storage.Session) Option {
+	return func(opts *options) {
+		opts.sessionManager = store
 	}
 }

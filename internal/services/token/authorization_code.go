@@ -65,7 +65,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 	}
 
 	// Retrieve authorization request from code
-	ar, err := s.authorizationRequests.GetByCode(ctx, grant.Code)
+	ar, err := s.sessions.Get(ctx, grant.Code)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError("")
@@ -75,33 +75,46 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 		return res, fmt.Errorf("unable to retrieve authorization request from code '%s': %w", grant.Code, err)
 	}
 
+	// Check if not nil
+	if ar.Request == nil {
+		res.Error = rfcerrors.InvalidGrant("")
+		return res, fmt.Errorf("retrieve authorization request is invalid '%s': %w", grant.Code, err)
+	}
+
+	// Delete session
+	err = s.sessions.Delete(ctx, grant.Code)
+	if err != nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("unable to remove authorization session from code '%s': %w", grant.Code, err)
+	}
+
 	// Validate redirectUri
-	if ar.RedirectUri != grant.RedirectUri {
-		res.Error = rfcerrors.InvalidGrant(ar.State)
-		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and token '%s' must be identic", ar.RedirectUri, grant.RedirectUri)
+	if ar.Request.RedirectUri != grant.RedirectUri {
+		res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and token '%s' must be identic", ar.Request.RedirectUri, grant.RedirectUri)
 	}
 	if !types.StringArray(client.RedirectUris).Contains(grant.RedirectUri) {
-		res.Error = rfcerrors.InvalidGrant(ar.State)
+		res.Error = rfcerrors.InvalidGrant(ar.Request.State)
 		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and client '%s' must be validated", grant.RedirectUri, client.RedirectUris)
 	}
 
 	// Check PKCE verifier
 	// https://www.rfc-editor.org/rfc/rfc7636.txt
-	switch ar.CodeChallengeMethod {
+	switch ar.Request.CodeChallengeMethod {
 	case oidc.CodeChallengeMethodSha256:
 		h := sha256.Sum256([]byte(grant.CodeVerifier))
 		computedVerifier := base64.RawURLEncoding.EncodeToString(h[:])
-		if computedVerifier != ar.CodeChallenge {
-			res.Error = rfcerrors.InvalidGrant(ar.State)
-			return res, fmt.Errorf("unable to validate PKCE code_verifier `%s` and code_challenge `%s`", computedVerifier, ar.CodeChallenge)
+		if computedVerifier != ar.Request.CodeChallenge {
+			res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+			return res, fmt.Errorf("unable to validate PKCE code_verifier `%s` and code_challenge `%s`", computedVerifier, ar.Request.CodeChallenge)
 		}
 	default:
-		res.Error = rfcerrors.InvalidGrant(ar.State)
-		return res, fmt.Errorf("invalid code_challenge_method in request `%s`", ar.CodeChallengeMethod)
+		res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+		return res, fmt.Errorf("invalid code_challenge_method in request `%s`", ar.Request.CodeChallengeMethod)
 	}
 
 	// Validate scopes
-	scopes := types.StringArray(strings.Fields(ar.Scope))
+	scopes := types.StringArray(strings.Fields(ar.Request.Scope))
 
 	// Generate OpenID tokens (AT / RT / IDT)
 	if scopes.Contains(oidc.ScopeOpenID) {
@@ -114,7 +127,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 		// Generate an access token
 		oidToken.AccessToken, err = s.accessTokenGenerator.Generate(ctx)
 		if err != nil {
-			res.Error = rfcerrors.ServerError(ar.State)
+			res.Error = rfcerrors.ServerError(ar.Request.State)
 			return res, fmt.Errorf("unbale to generate an accessToken: %w", err)
 		}
 
@@ -123,7 +136,7 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 			// Generate an access token
 			rt, err := s.accessTokenGenerator.Generate(ctx)
 			if err != nil {
-				res.Error = rfcerrors.ServerError(ar.State)
+				res.Error = rfcerrors.ServerError(ar.Request.State)
 				return res, fmt.Errorf("unbale to generate an accessToken: %w", err)
 			}
 

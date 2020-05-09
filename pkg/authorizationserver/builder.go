@@ -21,6 +21,9 @@ import (
 	"context"
 
 	"go.zenithar.org/solid/internal/services"
+	"go.zenithar.org/solid/internal/services/authorization"
+	"go.zenithar.org/solid/internal/services/token"
+	pkgauthorization "go.zenithar.org/solid/pkg/authorization"
 	"go.zenithar.org/solid/pkg/authorizationserver/features"
 	"go.zenithar.org/solid/pkg/reactor"
 )
@@ -35,13 +38,33 @@ type AuthorizationServer interface {
 
 // New assemble all given options to instanciate an authorization server.
 func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer {
-	return &authorizationServer{}
+	// Default options
+	defaultOptions := &options{
+		authorizationCodeGenerator: pkgauthorization.Default(),
+		clientReader:               nil,
+	}
+
+	// Parse options
+	for _, o := range opts {
+		o(defaultOptions)
+	}
+
+	// Initialize services
+	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager)
+	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager)
+
+	return &authorizationServer{
+		authorizations: authorizations,
+		tokens:         tokens,
+		dopts:          defaultOptions,
+	}
 }
 
 type authorizationServer struct {
 	authorizations services.Authorization
 	tokens         services.Token
 	r              reactor.Reactor
+	dopts          *options
 }
 
 func (as *authorizationServer) Enable(f features.Feature) {

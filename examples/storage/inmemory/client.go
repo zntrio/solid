@@ -61,7 +61,7 @@ func Clients() storage.Client {
 				},
 				// Authentication RSA public key
 				Jwks: &wrappers.BytesValue{
-					Value: []byte(`{"keys":[{"kty":"RSA","kid":"P5sIiu4hoe66dwCLLUZA3gnSsV7QCldlcU4NTSNoF7I=","n":"yCLi3sNbEIkHJkaIwHQfCqJ77KsiNYfy8tgjGKuXVdve317xCCnlgORUN0QpiYU04OKmUbg6MO3sJsv3qVRol0A7feWD6cfmCus9kcU4Pq26RE03Hy5h6g1G4Z08OSAa4TVdcsH2RF4c85xFRjT2Dii90HJYLXPH7un86RLC3i3ClEch5sg5hKFn0ncSZyHm_qaciGTDcC-8GOLx4w5FfD8qMIMjS_Wt5v1pe8lNewCgXPTWnGGFniq6f1dmASYHyi5BOWDiLUKC1sGL_9CXDi520hseYfe3HK9qenJPwE3hzMw6oUN5-bT3FptwAe9iIYoDpliPeHGTY56t0tcQzQ","e":"AQAB"}]}`),
+					Value: []byte(`{"keys": [{"kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`),
 				},
 			},
 		},

@@ -29,7 +29,7 @@ import (
 
 func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
 	res := &corev1.TokenResponse{}
-	grant := req.GetAuthorizationCode()
+	grant := req.GetClientCredentials()
 
 	// Check parameters
 	if client == nil {

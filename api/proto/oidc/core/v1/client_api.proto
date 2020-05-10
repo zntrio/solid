@@ -17,38 +17,30 @@
 
 syntax = "proto3";
 
-package oidc.par.v1;
+package oidc.core.v1;
 
-option go_package = "oidc/par/v1;parv1";
+option go_package = "oidc/core/v1;corev1";
 
-import "oidc/core/v1/core_api.proto";
+import "oidc/core/v1/client.proto";
 import "oidc/core/v1/error.proto";
+import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
 
-service PushedAuthorizationRequest {
-  // Create a authentication request and returns an identifier.
-  rpc Create(CreateRequest) returns (CreateResponse) {};
-  // Get an registered PAR.
-  rpc Get(GetRequest) returns (GetResponse) {};
+service ClientAPI {
+  rpc Authenticate(ClientAuthenticationRequest) returns (ClientAuthenticationResponse) {};
 }
 
 // -----------------------------------------------------------------------------
 
-message CreateRequest {
-  oidc.core.v1.AuthorizationRequest request = 1;
+message ClientAuthenticationRequest {
+  google.protobuf.StringValue client_id = 1;
+  google.protobuf.StringValue client_secret = 2;
+  google.protobuf.StringValue client_assertion_type = 3;
+  google.protobuf.StringValue client_assertion = 4;
 }
 
-message CreateResponse {
-  string request_uri = 1;
-  fixed64 expires_in = 2;
-}
-
-message GetRequest {
-  string request_uri = 1;
-}
-
-message GetResponse {
-  oidc.core.v1.Error error = 1;
-  oidc.core.v1.AuthorizationRequest request = 2;
+message ClientAuthenticationResponse {
+  Error error = 1;
+  Client client = 2;
 }

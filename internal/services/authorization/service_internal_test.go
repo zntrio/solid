@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
@@ -341,7 +340,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{"client_credentials"},
 				}, nil)
 			},
@@ -364,7 +363,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"id_token"},
 				}, nil)
@@ -388,7 +387,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"http://foo.com"},
@@ -415,7 +414,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},

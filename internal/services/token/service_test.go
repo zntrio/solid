@@ -23,8 +23,6 @@ import (
 	"testing"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
-	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
@@ -49,7 +47,7 @@ var (
 		cmpopts.IgnoreUnexported(corev1.TokenResponse{}),
 		cmpopts.IgnoreUnexported(corev1.Error{}),
 		cmpopts.IgnoreUnexported(corev1.OpenIDToken{}),
-		cmpopts.IgnoreUnexported(sessionv1.Session{}),
+		cmpopts.IgnoreUnexported(corev1.Session{}),
 	}
 )
 
@@ -119,7 +117,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: "",
@@ -135,7 +133,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: "foo",
@@ -151,7 +149,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -167,7 +165,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
@@ -183,7 +181,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
@@ -199,7 +197,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
@@ -216,7 +214,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -242,7 +240,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -268,7 +266,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: "foo",
@@ -282,7 +280,7 @@ func Test_service_Token(t *testing.T) {
 					// Disable request validator
 					return nil
 				}
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
 			},
@@ -297,7 +295,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
@@ -307,7 +305,7 @@ func Test_service_Token(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
 			},
@@ -320,7 +318,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -334,12 +332,12 @@ func Test_service_Token(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -371,7 +369,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
@@ -381,7 +379,7 @@ func Test_service_Token(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
 			},
@@ -394,7 +392,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
@@ -404,7 +402,7 @@ func Test_service_Token(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
 			},

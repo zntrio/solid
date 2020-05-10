@@ -22,20 +22,22 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/storage"
 )
 
 type clientStorage struct {
-	backend map[string]*registrationv1.Client
+	backend map[string]*corev1.Client
 }
 
 // Clients returns a client manager.
 func Clients() storage.Client {
 	return &clientStorage{
-		backend: map[string]*registrationv1.Client{
-			"6779ef20e75817b79602": &registrationv1.Client{
+		backend: map[string]*corev1.Client{
+			"6779ef20e75817b79602": &corev1.Client{
+				ClientId:   "6779ef20e75817b79602",
+				ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 				ApplicationType: &wrappers.StringValue{
 					Value: "web",
 				},
@@ -68,7 +70,7 @@ func Clients() storage.Client {
 
 // -----------------------------------------------------------------------------
 
-func (s *clientStorage) Get(ctx context.Context, id string) (*registrationv1.Client, error) {
+func (s *clientStorage) Get(ctx context.Context, id string) (*corev1.Client, error) {
 	// Check is client exists
 	client, ok := s.backend[id]
 	if !ok {

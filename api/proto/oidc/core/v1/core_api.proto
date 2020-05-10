@@ -23,6 +23,7 @@ option go_package = "oidc/core/v1;corev1";
 
 import "oidc/core/v1/core.proto";
 import "oidc/core/v1/error.proto";
+import "oidc/core/v1/client.proto";
 import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
@@ -187,6 +188,7 @@ message AuthorizationResponse {
 
 message RegistrationRequest {
   AuthorizationRequest request = 1;
+  Client client = 2;
 }
 
 message RegistrationResponse {
@@ -211,7 +213,7 @@ message RegistrationResponse {
 
 message TokenRequest {
   string grant_type = 1;
-  ClientAuthentication client = 2;
+  Client client = 2;
   google.protobuf.StringValue scope = 3;
   oneof grant {
     // tools.ietf.org/html/rfc6749#section-1.3.1

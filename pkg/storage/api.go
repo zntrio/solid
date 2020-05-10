@@ -21,11 +21,7 @@ import (
 	"context"
 	"errors"
 
-	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
 )
 
 // ErrNotFound is returned when the query return no result.
@@ -35,7 +31,7 @@ var ErrNotFound = errors.New("no result found")
 
 // ClientReader defines client storage read-only operation contract.
 type ClientReader interface {
-	Get(ctx context.Context, id string) (*registrationv1.Client, error)
+	Get(ctx context.Context, id string) (*corev1.Client, error)
 }
 
 //go:generate mockgen -destination mock/client.gen.go -package mock go.zenithar.org/solid/pkg/storage Client
@@ -72,14 +68,14 @@ type AuthorizationRequest interface {
 
 // SessionReader describes read-only storage operation contract.
 type SessionReader interface {
-	Get(ctx context.Context, code string) (*sessionv1.Session, error)
+	Get(ctx context.Context, code string) (*corev1.Session, error)
 }
 
 //go:generate mockgen -destination mock/session_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage SessionWriter
 
 // SessionWriter describes write-only operation contract.
 type SessionWriter interface {
-	Register(ctx context.Context, s *sessionv1.Session) (string, error)
+	Register(ctx context.Context, s *corev1.Session) (string, error)
 	Delete(ctx context.Context, code string) error
 }
 

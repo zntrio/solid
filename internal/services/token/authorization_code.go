@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
@@ -40,7 +39,7 @@ const (
 	desiredCodeVerifiedMaxValueLength      = 128
 )
 
-func (s *service) authorizationCode(ctx context.Context, client *registrationv1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
+func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
 	res := &corev1.TokenResponse{}
 	grant := req.GetAuthorizationCode()
 

@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/internal/services"
 	"go.zenithar.org/solid/pkg/rfcerrors"
@@ -110,7 +109,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 	}
 
 	// Create an authorization session
-	code, err := s.sessions.Register(ctx, &sessionv1.Session{
+	code, err := s.sessions.Register(ctx, &corev1.Session{
 		Subject: "",
 		Request: req,
 	})
@@ -137,11 +136,36 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
+	// Check client authentication context
+	if req.Client == nil {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("client must not be nil")
+	}
+
+	// Check client_id
+	if req.Client.ClientId == "" {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("client_id must not be empty")
+	}
+
+	// Check client existence
+	client, err := s.clients.Get(ctx, req.Client.ClientId)
+	if err != nil {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to retrieve client details: %w", err)
+	}
+
 	// Validate authorization request
 	publicErr, err := s.validate(ctx, req.Request)
 	if err != nil {
 		res.Error = publicErr
 		return res, err
+	}
+
+	// Check registration / client association
+	if req.Request.ClientId != client.ClientId {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to register request for another client")
 	}
 
 	// Register the authorization request

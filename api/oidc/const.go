@@ -45,3 +45,10 @@ const (
 	// CodeChallengeMethodSha256 represents sha256 code challenge method name.
 	CodeChallengeMethodSha256 = "S256"
 )
+
+// Assertion Types -------------------------------------------------------------
+
+const (
+	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
+	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)

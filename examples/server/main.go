@@ -11,6 +11,7 @@ import (
 	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	oidc_feature "go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
+	"go.zenithar.org/solid/pkg/client"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
@@ -32,6 +33,9 @@ func main() {
 	as.Enable(oidc_feature.Core())
 	as.Enable(oidc_feature.PushedAuthorizationRequest())
 
+	// Prepare client authentication
+	clientAuth := client.PrivateKeyJWT(inmemory.Clients())
+
 	// Create router
 	http.HandleFunc("/par", func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
@@ -40,11 +44,30 @@ func main() {
 		}
 
 		var (
-			q = r.URL.Query()
+			ctx = r.Context()
+			q   = r.URL.Query()
 		)
 
+		// Process authentication
+		resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+			ClientAssertionType: &wrappers.StringValue{
+				Value: q.Get("client_assertion_type"),
+			},
+			ClientAssertion: &wrappers.StringValue{
+				Value: q.Get("client_assertion"),
+			},
+		})
+		if err != nil {
+			log.Println("unable to authenticate client:", err)
+			json.NewEncoder(w).Encode(resAuth.GetError())
+			return
+		}
+
 		// Send request to reactor
-		res, err := as.Do(r.Context(), &corev1.RegistrationRequest{
+		res, err := as.Do(ctx, &corev1.RegistrationRequest{
+			Client: &corev1.Client{
+				ClientId: "6779ef20e75817b79602",
+			},
 			Request: &corev1.AuthorizationRequest{
 				State:               q.Get("state"),
 				Nonce:               q.Get("nonce"),
@@ -95,11 +118,25 @@ func main() {
 			q = r.URL.Query()
 		)
 
+		// Process authentication
+		resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+			ClientAssertionType: &wrappers.StringValue{
+				Value: q.Get("client_assertion_type"),
+			},
+			ClientAssertion: &wrappers.StringValue{
+				Value: q.Get("client_assertion"),
+			},
+		})
+		if err != nil {
+			log.Println("unable to authenticate client:", err)
+			json.NewEncoder(w).Encode(resAuth.GetError())
+			return
+		}
+
 		// Prepare msg
 		msg := &corev1.TokenRequest{
 			GrantType: q.Get("grant_type"),
-			Client: &corev1.ClientAuthentication{
-				// Force client id while no client authentication yet
+			Client: &corev1.Client{
 				ClientId: "6779ef20e75817b79602",
 			},
 		}

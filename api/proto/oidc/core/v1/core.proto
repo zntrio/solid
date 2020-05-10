@@ -21,8 +21,6 @@ package oidc.core.v1;
 
 option go_package = "oidc/core/v1;corev1";
 
-import "google/protobuf/wrappers.proto";
-
 // Display defines values to set how to displays the authentication and consent
 // user interface pages to the End-User.
 enum Display {
@@ -77,13 +75,6 @@ enum Prompt {
     // choice made by the End-User, it MUST return an error, typically
     // account_selection_required.
     PROMPT_SELECT_ACCOUNT = 5;
-}
-
-message ClientAuthentication {
-  string client_id = 1;
-  google.protobuf.StringValue client_secret = 2;
-  google.protobuf.StringValue client_assertion_type = 3;
-  google.protobuf.StringValue client_assertion = 4;
 }
 
 message GrantAuthorizationCode {

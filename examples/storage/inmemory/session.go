@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/pkg/storage"
 
 	"github.com/allegro/bigcache"
@@ -49,7 +49,7 @@ func Sessions() storage.Session {
 
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) Register(ctx context.Context, req *sessionv1.Session) (string, error) {
+func (s *sessionStorage) Register(ctx context.Context, req *corev1.Session) (string, error) {
 	// Authorization Code Generator
 	code := uniuri.NewLen(16)
 
@@ -77,7 +77,7 @@ func (s *sessionStorage) Delete(ctx context.Context, code string) error {
 	return nil
 }
 
-func (s *sessionStorage) Get(ctx context.Context, code string) (*sessionv1.Session, error) {
+func (s *sessionStorage) Get(ctx context.Context, code string) (*corev1.Session, error) {
 	// Retrieve from cache
 	body, err := s.backend.Get(code)
 	if err != nil {
@@ -85,7 +85,7 @@ func (s *sessionStorage) Get(ctx context.Context, code string) (*sessionv1.Sessi
 	}
 
 	// Unmarshal message
-	var m sessionv1.Session
+	var m corev1.Session
 	if err := proto.Unmarshal(body, &m); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal '%s' from cache: %w", code, err)
 	}

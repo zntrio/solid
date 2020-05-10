@@ -21,10 +21,9 @@ import (
 	"context"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
 )
 
-func (s *service) refreshToken(ctx context.Context, client *registrationv1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
+func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
 	res := &corev1.TokenResponse{}
 
 	// No error

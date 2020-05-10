@@ -22,17 +22,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/dchest/uniuri"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
-	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	storagemock "go.zenithar.org/solid/pkg/storage/mock"
 	tokenmock "go.zenithar.org/solid/pkg/token/mock"
 
+	"github.com/dchest/uniuri"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
@@ -41,7 +38,7 @@ import (
 func Test_service_authorizationCode(t *testing.T) {
 	type args struct {
 		ctx    context.Context
-		client *registrationv1.Client
+		client *corev1.Client
 		req    *corev1.TokenRequest
 	}
 	tests := []struct {
@@ -74,7 +71,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "nil request",
 			args: args{
 				ctx:    context.Background(),
-				client: &registrationv1.Client{},
+				client: &corev1.Client{},
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -85,7 +82,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "nil grant",
 			args: args{
 				ctx:    context.Background(),
-				client: &registrationv1.Client{},
+				client: &corev1.Client{},
 				req: &corev1.TokenRequest{
 					GrantType: oidc.GrantTypeAuthorizationCode,
 				},
@@ -99,13 +96,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "client not support code response_type",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeClientCredentials},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -126,13 +123,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing code",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -153,13 +150,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "code too long",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -181,13 +178,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing code_verifier",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -208,13 +205,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "code_verifier too short",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -236,13 +233,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "code_verifier too short",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -264,13 +261,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing redirect_uri",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -291,13 +288,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "authorization request not found",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -322,13 +319,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "authorization request storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -353,13 +350,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "nil authorization request",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -373,7 +370,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, _ *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: nil,
 				}, nil)
 			},
@@ -386,13 +383,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "session deletion error",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -406,7 +403,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, _ *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -428,13 +425,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "redirect_uri mismatch",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -448,7 +445,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, _ *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -470,13 +467,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "redirect_uri mismatch: client changes between request",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -490,7 +487,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, _ *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -512,13 +509,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "invalid code_verifier",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -532,7 +529,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, _ *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -554,13 +551,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "invalid code_challenge_method",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -574,7 +571,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, _ *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -597,13 +594,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: generate access token error",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -617,7 +614,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, at *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -640,13 +637,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: generate refresh token error",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -660,7 +657,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, at *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -686,13 +683,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: valid",
 			args: args{
 				ctx: context.Background(),
-				client: &registrationv1.Client{
+				client: &corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
-					Client: &corev1.ClientAuthentication{
+					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -706,7 +703,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockSession, at *tokenmock.MockAccessTokenGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&sessionv1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",

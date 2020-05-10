@@ -301,7 +301,6 @@ func Test_service_Authorize(t *testing.T) {
 				Error: rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 			},
 		},
-
 		// ---------------------------------------------------------------------
 		{
 			name: "with valid request_uri exist",
@@ -309,12 +308,12 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
 					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						Value: "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac",
 					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(&corev1.AuthorizationRequest{
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
@@ -325,7 +324,7 @@ func Test_service_Authorize(t *testing.T) {
 					CodeChallengeMethod: "S256",
 					Prompt:              &wrappers.StringValue{Value: "consent"},
 				}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
+				ar.EXPECT().Delete(gomock.Any(), "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},

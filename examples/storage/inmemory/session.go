@@ -37,7 +37,7 @@ type sessionStorage struct {
 // Sessions returns an authorization session manager.
 func Sessions() storage.Session {
 	// Initialize in-memory caches
-	backendCache, err := bigcache.NewBigCache(bigcache.DefaultConfig(2 * time.Minute))
+	backendCache, err := bigcache.NewBigCache(bigcache.DefaultConfig(30 * time.Second))
 	if err != nil {
 		panic(err)
 	}

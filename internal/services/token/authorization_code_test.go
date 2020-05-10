@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/dchest/uniuri"
+
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	registrationv1 "go.zenithar.org/solid/api/gen/go/oidc/registration/v1"
 	sessionv1 "go.zenithar.org/solid/api/gen/go/oidc/session/v1"
@@ -148,6 +150,34 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
+			name: "code too long",
+			args: args{
+				ctx: context.Background(),
+				client: &registrationv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.ClientAuthentication{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{
+							Code:         uniuri.NewLen(1025),
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.InvalidGrant(""),
+			},
+		},
+		{
 			name: "missing code_verifier",
 			args: args{
 				ctx: context.Background(),
@@ -165,6 +195,62 @@ func Test_service_authorizationCode(t *testing.T) {
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:        "1234567891234567890",
 							RedirectUri: "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.InvalidGrant(""),
+			},
+		},
+		{
+			name: "code_verifier too short",
+			args: args{
+				ctx: context.Background(),
+				client: &registrationv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.ClientAuthentication{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "foo",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.InvalidGrant(""),
+			},
+		},
+		{
+			name: "code_verifier too short",
+			args: args{
+				ctx: context.Background(),
+				client: &registrationv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.ClientAuthentication{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: uniuri.NewLen(129),
+							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
 				},
@@ -439,7 +525,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Grant: &corev1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &corev1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
-							CodeVerifier: "foo",
+							CodeVerifier: "foofoofoofoofoofoofoofoofoofoofoofoofoofoofoo",
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},

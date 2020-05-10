@@ -196,6 +196,24 @@ func Test_service_validate(t *testing.T) {
 			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 		},
 		{
+			name: "nonce too short",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					ResponseType:        "code",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+		},
+		{
 			name: "missing code_challenge",
 			args: args{
 				ctx: context.Background(),
@@ -206,6 +224,24 @@ func Test_service_validate(t *testing.T) {
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
+					CodeChallengeMethod: "S256",
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+		},
+		{
+			name: "code_challenge too short",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					ResponseType:        "code",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9",
 					CodeChallengeMethod: "S256",
 				},
 			},

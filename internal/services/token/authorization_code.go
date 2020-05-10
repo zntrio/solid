@@ -34,6 +34,12 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
+const (
+	desiredAuthorizationCodeMaxValueLength = 1024
+	desiredCodeVerifiedMinValueLength      = 43
+	desiredCodeVerifiedMaxValueLength      = 128
+)
+
 func (s *service) authorizationCode(ctx context.Context, client *registrationv1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
 	res := &corev1.TokenResponse{}
 	grant := req.GetAuthorizationCode()
@@ -62,6 +68,22 @@ func (s *service) authorizationCode(ctx context.Context, client *registrationv1.
 	if grant.Code == "" || grant.CodeVerifier == "" || grant.RedirectUri == "" {
 		res.Error = rfcerrors.InvalidGrant("")
 		return res, fmt.Errorf("invalid authorization request: code, code_verifier and redirect_uri are mandatory")
+	}
+
+	// Validate code length
+	if len(grant.Code) > desiredAuthorizationCodeMaxValueLength {
+		res.Error = rfcerrors.InvalidGrant("")
+		return res, fmt.Errorf("invalid authorization request: code is too long")
+	}
+
+	// Validate code verifier
+	if len(grant.CodeVerifier) < desiredCodeVerifiedMinValueLength {
+		res.Error = rfcerrors.InvalidGrant("")
+		return res, fmt.Errorf("invalid authorization request: code_verifier is too short")
+	}
+	if len(grant.CodeVerifier) > desiredCodeVerifiedMaxValueLength {
+		res.Error = rfcerrors.InvalidGrant("")
+		return res, fmt.Errorf("invalid authorization request: code_verifier is too long")
 	}
 
 	// Retrieve authorization request from code

@@ -33,12 +33,14 @@ import (
 )
 
 var (
-	requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Z0-9]{32}`)
+	requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Za-z0-9]{32}`)
 )
 
 const (
-	desiredMinStateValueLength  = 32
-	desiredMinStateValueEntropy = 4
+	desiredMinStateValueLength         = 32
+	desiredMinNonceValueLength         = 8
+	desiredMinCodeChallengeValueLength = 43
+	desiredMaxCodeChallengeValueLength = 128
 )
 
 type service struct {
@@ -177,8 +179,16 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state, nonce, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
 
+	if len(req.Nonce) < desiredMinNonceValueLength {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("nonce too short")
+	}
+
 	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {
 		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("invalid or unsupported code_challenge_method '%s'", req.CodeChallengeMethod)
+	}
+
+	if len(req.CodeChallenge) != desiredMinCodeChallengeValueLength {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("code_challenge too short")
 	}
 
 	// Check client ID

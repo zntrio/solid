@@ -20,6 +20,7 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
@@ -29,6 +30,15 @@ import (
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
+)
+
+var (
+	requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Z0-9]{32}`)
+)
+
+const (
+	desiredMinStateValueLength  = 32
+	desiredMinStateValueEntropy = 4
 )
 
 type service struct {
@@ -59,6 +69,12 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 
 	// Check request reference usage
 	if req.RequestUri != nil {
+		// Check request_uri syntax
+		if !requestURIMatcher.MatchString(req.RequestUri.Value) {
+			res.Error = rfcerrors.InvalidRequest("")
+			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.RequestUri.Value)
+		}
+
 		// Check if request uri exists in storage
 		ar, err := s.authorizationRequests.Get(ctx, req.RequestUri.Value)
 		if err != nil {
@@ -153,9 +169,12 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 	if req.State == "" {
 		return rfcerrors.InvalidRequest("<missing>"), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
+	if len(req.State) < desiredMinStateValueLength {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state too short")
+	}
 
-	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
+	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" || req.Nonce == "" {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state, nonce, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
 
 	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {

@@ -64,7 +64,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 		},
 		{
-			name: "with request_uri not found error",
+			name: "with invalid request_uri",
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
@@ -73,8 +73,23 @@ func Test_service_Authorize(t *testing.T) {
 					},
 				},
 			},
+			wantErr: true,
+			want: &corev1.AuthorizationResponse{
+				Error: rfcerrors.InvalidRequest(""),
+			},
+		},
+		{
+			name: "with request_uri not found error",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					RequestUri: &wrappers.StringValue{
+						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+					},
+				},
+			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "123-456-789").Return(nil, storage.ErrNotFound)
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationResponse{
@@ -87,12 +102,12 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
 					RequestUri: &wrappers.StringValue{
-						Value: "123-456-789",
+						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "123-456-789").Return(nil, fmt.Errorf("foo"))
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationResponse{
@@ -105,13 +120,13 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
 					RequestUri: &wrappers.StringValue{
-						Value: "123-456-789",
+						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "123-456-789").Return(&corev1.AuthorizationRequest{}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "123-456-789").Return(storage.ErrNotFound)
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{}, nil)
+				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationResponse{
@@ -124,13 +139,13 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
 					RequestUri: &wrappers.StringValue{
-						Value: "123-456-789",
+						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "123-456-789").Return(&corev1.AuthorizationRequest{}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "123-456-789").Return(fmt.Errorf("foo"))
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{}, nil)
+				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationResponse{
@@ -145,7 +160,8 @@ func Test_service_Authorize(t *testing.T) {
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -161,7 +177,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationResponse{
-				Error: rfcerrors.ServerError("af0ifjsldkj"),
+				Error: rfcerrors.ServerError("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 			},
 		},
 		{
@@ -172,7 +188,8 @@ func Test_service_Authorize(t *testing.T) {
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -191,7 +208,8 @@ func Test_service_Authorize(t *testing.T) {
 						ResponseType:        "code",
 						Scope:               "openid profile email",
 						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -203,7 +221,7 @@ func Test_service_Authorize(t *testing.T) {
 			want: &corev1.AuthorizationResponse{
 				Error: nil,
 				Code:  "1234567891234567890",
-				State: "af0ifjsldkj",
+				State: "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 			},
 		},
 		{
@@ -214,7 +232,8 @@ func Test_service_Authorize(t *testing.T) {
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -235,7 +254,8 @@ func Test_service_Authorize(t *testing.T) {
 						ResponseType:        "code",
 						Scope:               "openid profile email",
 						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -249,7 +269,7 @@ func Test_service_Authorize(t *testing.T) {
 			want: &corev1.AuthorizationResponse{
 				Error: nil,
 				Code:  "1234567891234567890",
-				State: "af0ifjsldkj",
+				State: "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 			},
 		},
 
@@ -259,25 +279,26 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
 					RequestUri: &wrappers.StringValue{
-						Value: "123-456-789",
+						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "123-456-789").Return(&corev1.AuthorizationRequest{
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallengeMethod: "S256",
 					Prompt:              &wrappers.StringValue{Value: "consent"},
 				}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "123-456-789").Return(nil)
+				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationResponse{
-				Error: rfcerrors.InvalidRequest("af0ifjsldkj"),
+				Error: rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 			},
 		},
 
@@ -288,22 +309,23 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
 					RequestUri: &wrappers.StringValue{
-						Value: "123-456-789",
+						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockSessionWriter) {
-				ar.EXPECT().Get(gomock.Any(), "123-456-789").Return(&corev1.AuthorizationRequest{
+				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 					Prompt:              &wrappers.StringValue{Value: "consent"},
 				}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "123-456-789").Return(nil)
+				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&registrationv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -315,7 +337,8 @@ func Test_service_Authorize(t *testing.T) {
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -327,7 +350,7 @@ func Test_service_Authorize(t *testing.T) {
 			want: &corev1.AuthorizationResponse{
 				Error: nil,
 				Code:  "1234567891234567890",
-				State: "af0ifjsldkj",
+				State: "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 			},
 		},
 	}
@@ -410,7 +433,8 @@ func Test_service_Register(t *testing.T) {
 						ResponseType:        "code",
 						Scope:               "openid profile email",
 						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -424,7 +448,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.UnsupportedGrantType("af0ifjsldkj"),
+				Error: rfcerrors.UnsupportedGrantType("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 			},
 		},
 		{
@@ -436,7 +460,8 @@ func Test_service_Register(t *testing.T) {
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -454,7 +479,8 @@ func Test_service_Register(t *testing.T) {
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -475,7 +501,8 @@ func Test_service_Register(t *testing.T) {
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -493,7 +520,8 @@ func Test_service_Register(t *testing.T) {
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
-					State:               "af0ifjsldkj",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",

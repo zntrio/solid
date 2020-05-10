@@ -47,6 +47,7 @@ func main() {
 		res, err := as.Do(r.Context(), &corev1.RegistrationRequest{
 			Request: &corev1.AuthorizationRequest{
 				State:               q.Get("state"),
+				Nonce:               q.Get("nonce"),
 				ClientId:            q.Get("client_id"),
 				Scope:               q.Get("scope"),
 				RedirectUri:         q.Get("redirect_uri"),

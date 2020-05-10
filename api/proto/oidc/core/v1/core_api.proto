@@ -80,7 +80,8 @@ message AuthorizationRequest {
   // and to mitigate replay attacks. The value is passed through unmodified from
   // the Authentication Request to the ID Token. Sufficient entropy MUST be
   // present in the nonce values used to prevent attackers from guessing values.
-  google.protobuf.StringValue nonce = 7;
+  // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-15#section-4.5.3
+  string nonce = 7;
 
   // OPTIONAL. ASCII string value that specifies how the Authorization Server
   // displays the authentication and consent user interface pages to the End-User.

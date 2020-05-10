@@ -51,7 +51,7 @@ func AuthorizationRequests() storage.AuthorizationRequest {
 
 func (s *authorizationRequestStorage) Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, error) {
 	// Generate request uri
-	requestURI := fmt.Sprintf("urn:solid:%s", uniuri.NewLen(16))
+	requestURI := fmt.Sprintf("urn:solid:%s", uniuri.NewLen(32))
 
 	// Marshall proto
 	body, err := proto.Marshal(req)

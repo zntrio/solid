@@ -310,4 +310,21 @@ message ServerMetadata {
   // [IANA.OAuth.Parameters].  If omitted, the authorization server
   // does not support PKCE.
   repeated string code_challenge_methods_supported = 42;
+
+  // The URL of the pushed authorization request endpoint at which the client
+  // can post an authorization request and get a request URI in exchange.
+  // https://tools.ietf.org/html/draft-lodderstedt-oauth-par-01#section-5
+  string pushed_authorization_request_endpoint = 43;
+
+  // https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html#endpointAliases
+  MTLSEndpoints mtls_endpoint_aliases = 44;
+}
+
+// MTLSEndpoints contains endpoints for mTLS Client Authentication
+// https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html
+message MTLSEndpoints {
+  string token_endpoint = 1;
+  string revocation_endpoint = 2;
+  string introspection_endpoint = 3;
+  string pushed_authorization_request_endpoint = 4;
 }

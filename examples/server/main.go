@@ -3,41 +3,88 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	discoveryv1 "go.zenithar.org/solid/api/gen/go/oidc/discovery/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	oidc_feature "go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
 	"go.zenithar.org/solid/pkg/client"
+	"go.zenithar.org/solid/pkg/storage"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
-func main() {
-	var (
-		ctx = context.Background()
-	)
+// Adapter defines http middleware contract.
+// https://medium.com/@matryer/writing-middleware-in-golang-and-how-go-makes-it-so-much-fun-4375c1246e81
+type Adapter func(http.Handler) http.Handler
 
-	// Prepare the authorization server
-	as := authorizationserver.New(ctx,
-		"http://localhost", // Issuer
-		authorizationserver.ClientReader(inmemory.Clients()),
-		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
-		authorizationserver.SessionManager(inmemory.Sessions()),
-	)
+// Adapt h with all specified adapters.
+func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
+	for _, adapter := range adapters {
+		h = adapter(h)
+	}
+	return h
+}
 
-	// Enable Core OIDC features
-	as.Enable(oidc_feature.Core())
-	as.Enable(oidc_feature.PushedAuthorizationRequest())
-
+// ClientAuthentication is a middleware to handle client authentication.
+func ClientAuthentication(clients storage.ClientReader) Adapter {
 	// Prepare client authentication
-	clientAuth := client.PrivateKeyJWT(inmemory.Clients())
+	clientAuth := client.PrivateKeyJWT(clients)
 
-	// Create router
-	http.HandleFunc("/par", func(w http.ResponseWriter, r *http.Request) {
+	// Return middleware
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var (
+				ctx = r.Context()
+				q   = r.URL.Query()
+			)
+
+			// Process authentication
+			resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+				ClientAssertionType: &wrappers.StringValue{
+					Value: q.Get("client_assertion_type"),
+				},
+				ClientAssertion: &wrappers.StringValue{
+					Value: q.Get("client_assertion"),
+				},
+			})
+			if err != nil {
+				log.Println("unable to authenticate client:", err)
+				json.NewEncoder(w).Encode(resAuth.GetError())
+				return
+			}
+
+			// Delegate to next handler
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func metadataHandler(issuer string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewEncoder(w).Encode(&discoveryv1.ServerMetadata{
+			Issuer:                             issuer,
+			AuthorizationEndpoint:              fmt.Sprintf("%s/authorize", issuer),
+			ResponseTypesSupported:             []string{"code"},
+			GrantTypesSupported:                []string{oidc.GrantTypeClientCredentials, oidc.GrantTypeAuthorizationCode},
+			TokenEndpoint:                      fmt.Sprintf("%s/token", issuer),
+			TokenEndpointAuthMethodsSupported:  []string{"private_key_jwt"},
+			CodeChallengeMethodsSupported:      []string{"S256"},
+			PushedAuthorizationRequestEndpoint: fmt.Sprintf("%s/par", issuer),
+		}); err != nil {
+			http.Error(w, "unable to generate server metadata", http.StatusInternalServerError)
+			return
+		}
+	})
+}
+
+func parHandler(as authorizationserver.AuthorizationServer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
 		if r.Method != http.MethodPost {
 			http.Error(w, "invalid request method", http.StatusMethodNotAllowed)
@@ -47,21 +94,6 @@ func main() {
 			ctx = r.Context()
 			q   = r.URL.Query()
 		)
-
-		// Process authentication
-		resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-			ClientAssertionType: &wrappers.StringValue{
-				Value: q.Get("client_assertion_type"),
-			},
-			ClientAssertion: &wrappers.StringValue{
-				Value: q.Get("client_assertion"),
-			},
-		})
-		if err != nil {
-			log.Println("unable to authenticate client:", err)
-			json.NewEncoder(w).Encode(resAuth.GetError())
-			return
-		}
 
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.RegistrationRequest{
@@ -87,8 +119,10 @@ func main() {
 
 		json.NewEncoder(w).Encode(res)
 	})
+}
 
-	http.HandleFunc("/authorize", func(w http.ResponseWriter, r *http.Request) {
+func authorizeHandler(as authorizationserver.AuthorizationServer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
 			http.Error(w, "invalid request method", http.StatusMethodNotAllowed)
@@ -112,26 +146,13 @@ func main() {
 
 		json.NewEncoder(w).Encode(res)
 	})
+}
 
-	http.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+func tokenHandler(as authorizationserver.AuthorizationServer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			q = r.URL.Query()
 		)
-
-		// Process authentication
-		resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-			ClientAssertionType: &wrappers.StringValue{
-				Value: q.Get("client_assertion_type"),
-			},
-			ClientAssertion: &wrappers.StringValue{
-				Value: q.Get("client_assertion"),
-			},
-		})
-		if err != nil {
-			log.Println("unable to authenticate client:", err)
-			json.NewEncoder(w).Encode(resAuth.GetError())
-			return
-		}
 
 		// Prepare msg
 		msg := &corev1.TokenRequest{
@@ -176,6 +197,30 @@ func main() {
 
 		json.NewEncoder(w).Encode(res.(*corev1.TokenResponse).GetOpenid())
 	})
+}
+
+func main() {
+	var (
+		ctx = context.Background()
+	)
+
+	// Prepare the authorization server
+	as := authorizationserver.New(ctx,
+		"http://localhost:8080", // Issuer
+		authorizationserver.ClientReader(inmemory.Clients()),
+		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
+		authorizationserver.SessionManager(inmemory.Sessions()),
+	)
+
+	// Enable Core OIDC features
+	as.Enable(oidc_feature.Core())
+	as.Enable(oidc_feature.PushedAuthorizationRequest())
+
+	// Create router
+	http.Handle("/.well-known/openid-configuration", metadataHandler("http://localhost:8080"))
+	http.Handle("/par", Adapt(parHandler(as), ClientAuthentication(inmemory.Clients())))
+	http.Handle("/authorize", authorizeHandler(as))
+	http.Handle("/token", Adapt(tokenHandler(as), ClientAuthentication(inmemory.Clients())))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

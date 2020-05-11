@@ -29,8 +29,6 @@ import (
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 const (
@@ -162,9 +160,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 			}
 
 			// Assing refresh token
-			oidToken.RefreshToken = &wrappers.StringValue{
-				Value: rt,
-			}
+			oidToken.RefreshToken = rt
 		}
 
 		// Set "Bearer" token type

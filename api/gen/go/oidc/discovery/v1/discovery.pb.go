@@ -24,11 +24,12 @@
 package discoveryv1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -938,11 +939,14 @@ func file_oidc_discovery_v1_discovery_proto_rawDescGZIP() []byte {
 	return file_oidc_discovery_v1_discovery_proto_rawDescData
 }
 
-var file_oidc_discovery_v1_discovery_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_oidc_discovery_v1_discovery_proto_goTypes = []interface{}{
-	(*ServerMetadata)(nil), // 0: oidc.discovery.v1.ServerMetadata
-	(*MTLSEndpoints)(nil),  // 1: oidc.discovery.v1.MTLSEndpoints
-}
+var (
+	file_oidc_discovery_v1_discovery_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_oidc_discovery_v1_discovery_proto_goTypes  = []interface{}{
+		(*ServerMetadata)(nil), // 0: oidc.discovery.v1.ServerMetadata
+		(*MTLSEndpoints)(nil),  // 1: oidc.discovery.v1.MTLSEndpoints
+	}
+)
+
 var file_oidc_discovery_v1_discovery_proto_depIdxs = []int32{
 	1, // 0: oidc.discovery.v1.ServerMetadata.mtls_endpoint_aliases:type_name -> oidc.discovery.v1.MTLSEndpoints
 	1, // [1:1] is the sub-list for method output_type

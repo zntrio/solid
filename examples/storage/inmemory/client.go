@@ -20,8 +20,6 @@ package inmemory
 import (
 	"context"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/storage"
@@ -35,15 +33,11 @@ type clientStorage struct {
 func Clients() storage.Client {
 	return &clientStorage{
 		backend: map[string]*corev1.Client{
-			"6779ef20e75817b79602": &corev1.Client{
-				ClientId:   "6779ef20e75817b79602",
-				ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
-				ApplicationType: &wrappers.StringValue{
-					Value: "web",
-				},
-				ClientName: &wrappers.StringValue{
-					Value: "foo-test-client",
-				},
+			"6779ef20e75817b79602": {
+				ClientId:        "6779ef20e75817b79602",
+				ClientType:      corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				ApplicationType: "web",
+				ClientName:      "foo-test-client",
 				GrantTypes: []string{
 					oidc.GrantTypeAuthorizationCode, // User interaction
 					oidc.GrantTypeClientCredentials, // Machine-to-machine
@@ -60,9 +54,7 @@ func Clients() storage.Client {
 					"foo@bar.com",
 				},
 				// Authentication RSA public key
-				Jwks: &wrappers.BytesValue{
-					Value: []byte(`{"keys": [{"kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`),
-				},
+				Jwks: []byte(`{"keys": [{"kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`),
 			},
 		},
 	}

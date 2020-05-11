@@ -304,13 +304,21 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
+				at.EXPECT().Generate(gomock.Any()).Return("1/fFAGRNJru1FTz70BzhT3Zg", nil)
 			},
 			wantErr: false,
-			want:    &corev1.TokenResponse{},
+			want: &corev1.TokenResponse{
+				Error: nil,
+				Openid: &corev1.OpenIDToken{
+					AccessToken: "1/fFAGRNJru1FTz70BzhT3Zg",
+					ExpiresIn:   3600,
+					TokenType:   "Bearer",
+				},
+			},
 		},
 		// ---------------------------------------------------------------------
 		{
@@ -358,7 +366,7 @@ func Test_service_Token(t *testing.T) {
 				Openid: &corev1.OpenIDToken{
 					AccessToken:  "1/fFAGRNJru1FTz70BzhT3Zg",
 					ExpiresIn:    3600,
-					RefreshToken: &wrappers.StringValue{Value: "5ZsdF6h/sQAghJFRD"},
+					RefreshToken: "5ZsdF6h/sQAghJFRD",
 					TokenType:    "Bearer",
 				},
 			},

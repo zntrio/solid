@@ -13,7 +13,7 @@ import (
 	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	oidc_feature "go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
-	"go.zenithar.org/solid/pkg/client"
+	"go.zenithar.org/solid/pkg/clientauthentication"
 	"go.zenithar.org/solid/pkg/storage"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -34,7 +34,7 @@ func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
 // ClientAuthentication is a middleware to handle client authentication.
 func ClientAuthentication(clients storage.ClientReader) Adapter {
 	// Prepare client authentication
-	clientAuth := client.PrivateKeyJWT(clients)
+	clientAuth := clientauthentication.PrivateKeyJWT(clients)
 
 	// Return middleware
 	return func(h http.Handler) http.Handler {
@@ -59,8 +59,11 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				return
 			}
 
+			// Assign client to context
+			ctx = clientauthentication.Inject(ctx, resAuth.Client)
+
 			// Delegate to next handler
-			h.ServeHTTP(w, r)
+			h.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -95,11 +98,16 @@ func parHandler(as authorizationserver.AuthorizationServer) http.Handler {
 			q   = r.URL.Query()
 		)
 
+		// Retrieve client front context
+		client, ok := clientauthentication.FromContext(ctx)
+		if !ok {
+			http.Error(w, "unable to retrieve client authentication", http.StatusUnauthorized)
+			return
+		}
+
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.RegistrationRequest{
-			Client: &corev1.Client{
-				ClientId: "6779ef20e75817b79602",
-			},
+			Client: client,
 			Request: &corev1.AuthorizationRequest{
 				State:               q.Get("state"),
 				Nonce:               q.Get("nonce"),
@@ -154,12 +162,17 @@ func tokenHandler(as authorizationserver.AuthorizationServer) http.Handler {
 			q = r.URL.Query()
 		)
 
+		// Retrieve client front context
+		client, ok := clientauthentication.FromContext(ctx)
+		if !ok {
+			http.Error(w, "unable to retrieve client authentication", http.StatusUnauthorized)
+			return
+		}
+
 		// Prepare msg
 		msg := &corev1.TokenRequest{
+			Client:    client,
 			GrantType: q.Get("grant_type"),
-			Client: &corev1.Client{
-				ClientId: "6779ef20e75817b79602",
-			},
 		}
 
 		switch q.Get("grant_type") {

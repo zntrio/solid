@@ -31,7 +31,6 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -93,7 +92,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
-			name: "client not support code response_type",
+			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
 				client: &corev1.Client{
@@ -724,7 +723,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				Openid: &corev1.OpenIDToken{
 					AccessToken:  "1/fFAGRNJru1FTz70BzhT3Zg",
 					ExpiresIn:    3600,
-					RefreshToken: &wrappers.StringValue{Value: "5ZsdF6h/sQAghJFRD"},
+					RefreshToken: "5ZsdF6h/sQAghJFRD",
 					TokenType:    "Bearer",
 				},
 			},

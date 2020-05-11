@@ -24,11 +24,12 @@
 package corev1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -140,12 +141,15 @@ func file_oidc_core_v1_session_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_session_proto_rawDescData
 }
 
-var file_oidc_core_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_oidc_core_v1_session_proto_goTypes = []interface{}{
-	(*Session)(nil),              // 0: oidc.core.v1.Session
-	(*AuthorizationRequest)(nil), // 1: oidc.core.v1.AuthorizationRequest
-	(*Client)(nil),               // 2: oidc.core.v1.Client
-}
+var (
+	file_oidc_core_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_oidc_core_v1_session_proto_goTypes  = []interface{}{
+		(*Session)(nil),              // 0: oidc.core.v1.Session
+		(*AuthorizationRequest)(nil), // 1: oidc.core.v1.AuthorizationRequest
+		(*Client)(nil),               // 2: oidc.core.v1.Client
+	}
+)
+
 var file_oidc_core_v1_session_proto_depIdxs = []int32{
 	1, // 0: oidc.core.v1.Session.request:type_name -> oidc.core.v1.AuthorizationRequest
 	2, // 1: oidc.core.v1.Session.client:type_name -> oidc.core.v1.Client

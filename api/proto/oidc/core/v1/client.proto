@@ -21,8 +21,6 @@ package oidc.core.v1;
 
 option go_package = "oidc/core/v1;corev1";
 
-import "google/protobuf/wrappers.proto";
-
 // ClientType describes OIDC Client type enumeration.
 // https://tools.ietf.org/html/rfc6749#section-2.1
 enum ClientType {
@@ -50,13 +48,14 @@ message Client {
   repeated string redirect_uris = 3;
   repeated string response_types = 4;
   repeated string grant_types = 5;
-  google.protobuf.StringValue application_type = 6;
+  string application_type = 6;
   repeated string contacts = 7;
-  google.protobuf.StringValue client_name = 8;
-  google.protobuf.StringValue logo_uri = 9;
-  google.protobuf.StringValue client_uri = 10;
-  google.protobuf.StringValue policy_uri = 11;
-  google.protobuf.StringValue tos_uri = 12;
-  google.protobuf.StringValue jwks_uri = 13;
-  google.protobuf.BytesValue jwks = 14;
+  string client_name = 8;
+  string logo_uri = 9;
+  string client_uri = 10;
+  string policy_uri = 11;
+  string tos_uri = 12;
+  string jwks_uri = 13;
+  bytes jwks = 14;
+  bytes client_secret = 15;
 }

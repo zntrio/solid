@@ -1,4 +1,21 @@
-package client
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package clientauthentication
 
 import (
 	"context"
@@ -8,8 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"go.zenithar.org/solid/pkg/rfcerrors"
-
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/square/go-jose/v3"
@@ -17,6 +32,7 @@ import (
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
+	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	storagemock "go.zenithar.org/solid/pkg/storage/mock"
 )
@@ -426,7 +442,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
-					Jwks: &wrappers.BytesValue{},
+					Jwks: []byte{},
 				}, nil)
 			},
 			wantErr: true,
@@ -456,9 +472,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
-					Jwks: &wrappers.BytesValue{
-						Value: []byte(`{"fo:"bar"}`),
-					},
+					Jwks: []byte(`{"fo:"bar"}`),
 				}, nil)
 			},
 			wantErr: true,
@@ -488,9 +502,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
-					Jwks: &wrappers.BytesValue{
-						Value: []byte(`{"foo":"bar"}`),
-					},
+					Jwks: []byte(`{"foo":"bar"}`),
 				}, nil)
 			},
 			wantErr: true,
@@ -520,9 +532,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
-					Jwks: &wrappers.BytesValue{
-						Value: clientJWKSWithENC,
-					},
+					Jwks: clientJWKSWithENC,
 				}, nil)
 			},
 			wantErr: true,
@@ -553,9 +563,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
-					Jwks: &wrappers.BytesValue{
-						Value: clientJWKSWithSIG,
-					},
+					Jwks: clientJWKSWithSIG,
 				}, nil)
 			},
 			wantErr: false,

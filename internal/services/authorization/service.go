@@ -31,9 +31,7 @@ import (
 	"go.zenithar.org/solid/pkg/types"
 )
 
-var (
-	requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Za-z0-9]{32}`)
-)
+var requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Za-z0-9]{32}`)
 
 const (
 	desiredMinStateValueLength         = 32

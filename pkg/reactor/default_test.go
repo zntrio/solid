@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"go.zenithar.org/solid/pkg/reactor"
 )
 
 func TestDefaultReactor_Do(t *testing.T) {
-
 	testCases := []struct {
 		name    string
 		prepare func(reactor.Reactor)
@@ -72,7 +72,6 @@ func TestDefaultReactor_Do(t *testing.T) {
 }
 
 func TestDefaultReactor_Send(t *testing.T) {
-
 	testCases := []struct {
 		name    string
 		prepare func(reactor.Reactor)
@@ -132,7 +131,6 @@ func TestDefaultReactor_Send(t *testing.T) {
 			if !tt.wantErr && err != nil {
 				t.Fatalf("error must not be raised, got %v", err)
 			}
-
 		})
 	}
 }

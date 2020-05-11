@@ -1,4 +1,21 @@
-package client
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+package clientauthentication
 
 import (
 	"context"
@@ -6,10 +23,9 @@ import (
 	"fmt"
 	"time"
 
-	"go.zenithar.org/solid/pkg/rfcerrors"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
+	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 
 	"github.com/square/go-jose/v3"
@@ -102,18 +118,14 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 	}
 
 	// Retrieve JWK associated to the client
-	if client.Jwks == nil {
+	if len(client.Jwks) == 0 {
 		res.Error = rfcerrors.InvalidClient("")
 		return res, fmt.Errorf("client jwks is nil")
-	}
-	if len(client.Jwks.Value) == 0 {
-		res.Error = rfcerrors.InvalidClient("")
-		return res, fmt.Errorf("client jwks is empty")
 	}
 
 	// Parse JWKS
 	var jwks jose.JSONWebKeySet
-	if err := json.Unmarshal(client.Jwks.Value, &jwks); err != nil {
+	if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
 		res.Error = rfcerrors.InvalidClient("")
 		return res, fmt.Errorf("client jwks is invalid: %w", err)
 	}

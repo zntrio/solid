@@ -15,33 +15,29 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package pkce
+package clientauthentication
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
+	"context"
+
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 
-const (
-	codeVerifierLen = 96
-)
+type contextKey string
 
-// CodeVerifier genrates and returns code_verifier and code_challenge.
-func CodeVerifier() (string, string, error) {
-	// Generate random string
-	random := make([]byte, codeVerifierLen)
-	if _, err := rand.Read(random); err != nil {
-		return "", "", err
-	}
+func (c contextKey) String() string {
+	return "go.zenithar.org/solid/pkg/clientauthentication/" + string(c)
+}
 
-	// Encode verifier
-	verifier := base64.RawURLEncoding.EncodeToString(random)
+var contextKeyClientAuth = contextKey("client")
 
-	// Compute and encode challenge
-	hash := sha256.Sum256([]byte(verifier))
-	challenge := base64.RawURLEncoding.EncodeToString(hash[:])
+// FromContext returns the client authentication bound to the context.
+func FromContext(ctx context.Context) (*corev1.Client, bool) {
+	client, ok := ctx.Value(contextKeyClientAuth).(*corev1.Client)
+	return client, ok
+}
 
-	// No error
-	return verifier, challenge, nil
+// Inject client instance in context.
+func Inject(ctx context.Context, client *corev1.Client) context.Context {
+	return context.WithValue(ctx, contextKeyClientAuth, client)
 }

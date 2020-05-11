@@ -6,6 +6,12 @@
 export JWT_ASSERTION=$(go run ../assertionbuilder/main.go)
 ```
 
+It will generate a JWT Token, signed with tthe bundled private key, this token
+will be sent to the AS as a `client_assertion` to be verified using registered
+client public key.
+
+> Proof of possession should be added to proof private key ownership.
+
 ## Protocol
 
 ### Authorization Code (Online User)
@@ -13,6 +19,10 @@ export JWT_ASSERTION=$(go run ../assertionbuilder/main.go)
 Client:
 
 Registers a new authorization request using its client credentials.
+
+> No authorization fliw could be started without this initial client
+> authentication. The client have to complete control of the authorization
+> request.
 
 ```sh
 $ curl -XPOST http://127.0.0.1:8080/par\?state\=1234\&scope\=openid%20email\&response_type\=code\&client_id\=6779ef20e75817b79602\&redirect_uri\=http%3A%2F%2Flocalhost%3A8080%2Fcb\&code_challenge\=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM\&code_challenge_method\=S256\&
@@ -24,11 +34,11 @@ Send the response back to user agent.
 
 User Agent:
 
-> Pusher Authorization Requests remove authorization requests from user agent
+> Pushed Authorization Requests remove authorization requests from user agent
 > so that it reduces the threats from user_agent to only accessible threats
 > from the redirect_uri parameter.
 
-Redirected to AS, User Agent must identify himself using authentication method.
+Redirected to AS, User must identify himself using authentication method.
 He has to send the `request_uri` to continue the `authorization_code` flow
 without the knowledge of initial authorization request parameters.
 

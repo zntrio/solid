@@ -21,8 +21,6 @@ languages and environments. `People generally don't understand` OIDC flows.
 
 > It's like driving a car that requires you to know how engine work and how
 > the car is built. But the only thing you want is to drive your car.
->
-> I don't like this idea to be honest.
 
 OIDC is offered as a developer framework, but it's true to say that not all
 developers are aware of security problems. Also, OIDC is often criticized in
@@ -37,6 +35,8 @@ In addition to that many OIDC providers give you a lot of features that you have
 to understand and choose to maximize your security posture. So that your
 security posture is correlated to your understanding of OAuth and OIDC and
 their implementations in the product.
+
+> I don't like this idea to be honest.
 
 As examples:
 

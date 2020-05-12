@@ -19,12 +19,15 @@ settings according to your use cases :
 OIDC is offered as a developer framework, but it's true to say that not all
 developers are aware of security problems. Also, OIDC is often criticized in
 favor of SAML, but implementations are vulnerables not necessarily protocol,
-and implemetations done by developers that don't have the time to browse the
-specification maze.
+and implementations are done by developers that don't have the time to browse
+the specification maze.
+
+> Also because security products are often associated with [NIH](https://en.wikipedia.org/wiki/Not_invented_here) syndrom.
 
 In addition to that many OIDC providers give you a lot of features that you have
 to understand and choose to maximize your security posture. So that your
-security posture is correlated to your understanding of OAuth and OIDC.
+security posture is correlated to your understanding of OAuth and OIDC and
+their implementations in the product.
 
 > It's like if driving a car requires you to know how engine work.
 > I don't like this idea to be honest.

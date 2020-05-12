@@ -1,33 +1,52 @@
 # SolID
 
-Integrated end-to-end identity provider and authorization server based on OIDC
-with security and privacy by design philosophy.
+Integrated end-to-end authorization server based on OIDC with security and
+privacy by design philosophy.
 
 This will not provide a full-featured OIDC Server but a limited and secure
-settings according to your use cases.
+settings according to your use cases :
 
-Many OIDC providers give you a lot of features that you have to understand and
-choose to maximize your security posture. So that your security posture is correlated
-to your understanding of OAuth and OIDC. I don't like this idea to be honnest.
+* `online users` using `authorization_code` flow with mandatory PKCE via Pushed
+  Authorization Request with state enforcement;
+* `machine-to-machine` using `client_credentials` based on asymetric
+  authentication schemes;
+* `devices and constrained environments`, you know for IO(v)T (Internet Of vulnerable Thing);
+* `offline users` using `refresh_token` flow for application that need to
+  `act as an online user but without its online interaction`.
 
-I'm developing OAuth provider since 8 years now, in multiple languages and
-environments, and I saw each time the same thing: `people don't understand
-flows`.
+## What and Why
 
-I understand the requirements of commercial products to have a wide compatibilty
+OIDC is offered as a developer framework, but it's true to say that not all
+developers are aware of security problems. Also, OIDC is often criticized in
+favor of SAML, but implementations are vulnerables not necessarily protocol,
+and implemetations done by developers that don't have the time to browse the
+specification maze.
+
+In addition to that many OIDC providers give you a lot of features that you have
+to understand and choose to maximize your security posture. So that your
+security posture is correlated to your understanding of OAuth and OIDC.
+
+> It's like if driving a car requires you to know how engine work.
+> I don't like this idea to be honest.
+
+I'm developing OAuth/OIDC/UMA providers for 8 years now, in multiple languages
+and environments and I saw each time the same thing: `people don't understand`
+and they integrate because they have to.
+
+As examples:
+
+* Not using `authorization_code` because it doesn't have user/password;
+* `client_credentials` grant type to be used as `customer credentials` like
+  `password` grant type;
+* Authentication based on the fact the you can retrieve the token ... not
+  validating token content;
+
+I understand the requirements of commercial products to have a wide compatibility
 matrix, but by allowing insecure settings for one client you can compromise the
-whole platform, and also lose the customer inside the features fog.
+the whole platform, and also lose the customer inside the `feature fog`.
 
 That's the reason why I've started this project as an OSS project, to provide a
-simple and solid implementations of 4 OAuth flows :
-
-* online users using `authorization_code` flow with mandatory PKCE via Pushed
-  Authorization Request with state enforcement;
-* service account using `client_credentials` based on asymetric authentication
-  schemes;
-* devices and constrained environments, you know for IO(v)T (Internet Of vulnerable Thing);
-* offline users using `refresh_token` flow for application that need to act as
-  an online user but without its online interaction.
+simple and solid implementations of 4 OAuth flows.
 
 ## Objectives
 
@@ -37,6 +56,8 @@ simple and solid implementations of 4 OAuth flows :
 * Enhance security posture based on security objectives not the understand of
   security protocols;
 * Provide a battle-tested framework;
+* Provide a wire protocol decoupled framework, OIDC is tighly coupled to HTTP but
+  it can be easily decoupled to become portable between other wire protocols (CoAP);
 
 ## What is not
 
@@ -45,30 +66,59 @@ simple and solid implementations of 4 OAuth flows :
 
 ## Features
 
-* Storage
-  * Client
-    * [x] Confidential client
-    * [x] Public client
-  * Requests
-    * [x] Authorization request
-* [ ] Dynamic client registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
-* OAuth Grant Types
-  * [x] `client_credentials` flow
+### Framework
+
+* OAuth
+  * Client authentication
     * [x] `private_key_jwt` client authentication
     * [ ] `tls_client_auth` client authentication
-  * [x] `authorization_code` flow
-    * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
-    * [x] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
-  * [ ] `device_code` flow
-  * [ ] `refresh_token` flow
-* Token
-  * [ ] Generic key manager
-  * [ ] JWT support
-  * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
+  * Core
+    * [x] `client_credentials` grant type
+    * [x] `authorization_code` grant type
+      * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
+      * [x] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
+    * [ ] `device_code` grant type
+    * [ ] `refresh_token` grant type
+    * [ ] Pairwise subject identifier
+  * Client
+    * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
+    * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
+  * Token
+    * [ ] API
+    * [ ] JWT
+    * [ ] CWT
+    * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
+* Storage
+  * [x] API
+    * Client
+      * [x] Confidential client
+      * [x] Public client
+    * Requests
+      * [x] Authorization request
+    * Tokens
+      * [ ] AccessToken
+      * [ ] IDToken
+  * [x] in-memory storage
+  * [ ] gRPC driven storage
 * Privacy
-  * [ ] Pairwise subject identifier
   * [ ] Phantom token flow
-  * [ ] Consent
+  * [ ] Consent management
+  * [ ] Scope details publication protocol
+
+### Integrations
+
+* HTTP
+  * Authorization Server
+    * [ ] Standalone
+    * [ ] Caddy plugin
+  * Reverse Proxy
+    * [ ] Caddy plugin
+* CoAP
+  * Authorization Server
+    * [ ] Standalone
+* AWS
+  * Auhtorization Server
+    * [x] AWS Lambda
 
 ## References
 

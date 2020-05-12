@@ -1,10 +1,10 @@
 # SolID
 
-Integrated end-to-end authorization server based on OIDC with security and
-privacy by design philosophy.
+An OIDC authorization server building blocks with security and privacy by design
+philosophy.
 
-This will not provide a full-featured OIDC Server but a limited and secure
-settings according to your use cases :
+This will not provide a full-featured standalone OIDC Server but a limited and
+secure settings according to your use cases :
 
 * `online users` using `authorization_code` flow with mandatory PKCE via Pushed
   Authorization Request with state enforcement;
@@ -16,25 +16,27 @@ settings according to your use cases :
 
 ## What and Why
 
+I have been developing OAuth/OIDC/UMA providers for 8 years now, in multiple
+languages and environments. `People generally don't understand` OIDC flows.
+
+> It's like driving a car that requires you to know how engine work and how
+> the car is built. But the only thing you want is to drive your car.
+>
+> I don't like this idea to be honest.
+
 OIDC is offered as a developer framework, but it's true to say that not all
 developers are aware of security problems. Also, OIDC is often criticized in
-favor of SAML, but implementations are vulnerables not necessarily protocol,
-and implementations are done by developers that don't have the time to browse
-the specification maze.
+favor of SAML, but implementations are vulnerables and not necessarily the
+protocol itself. In addition, implementations are done by developers that don't
+have the time to browse the specification maze, or read them with their own belief
+in mind. As a consequence the specifications are not understood but interpreted.
 
-> Also because security products are often associated with [NIH](https://en.wikipedia.org/wiki/Not_invented_here) syndrom.
+> Also security products are often associated with [NIH](https://en.wikipedia.org/wiki/Not_invented_here) syndrom.
 
 In addition to that many OIDC providers give you a lot of features that you have
 to understand and choose to maximize your security posture. So that your
 security posture is correlated to your understanding of OAuth and OIDC and
 their implementations in the product.
-
-> It's like if driving a car requires you to know how engine work.
-> I don't like this idea to be honest.
-
-I'm developing OAuth/OIDC/UMA providers for 8 years now, in multiple languages
-and environments and I saw each time the same thing: `people don't understand`
-and they integrate because they have to.
 
 As examples:
 

@@ -91,4 +91,6 @@ message GrantDeviceCode {
 }
 
 message GrantClientCredentials {
+  string audience = 1;
+  string scope = 2;
 }

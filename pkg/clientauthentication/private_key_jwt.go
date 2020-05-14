@@ -155,6 +155,9 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 		return res, fmt.Errorf("no valid signature found")
 	}
 
+	// Assign client to result
+	res.Client = client
+
 	// No error
 	return res, nil
 }

@@ -20,7 +20,9 @@ package token
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/dchest/uniuri"
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
@@ -51,25 +53,37 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 		return res, fmt.Errorf("client doesn't support 'client_credentials' as grant type")
 	}
 
-	// Create openid token holder
-	var (
-		err      error
-		oidToken = &corev1.OpenIDToken{}
-	)
-
-	// Generate an access token
-	oidToken.AccessToken, err = s.accessTokenGenerator.Generate(ctx)
-	if err != nil {
-		res.Error = rfcerrors.ServerError("")
-		return res, fmt.Errorf("unbale to generate an accessToken: %w", err)
+	// Create access token spec
+	now := timeFunc()
+	at := &corev1.Token{
+		TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+		TokenId:   uniuri.NewLen(jtiLength),
+		Metadata: &corev1.TokenMeta{
+			ClientId:  client.ClientId,
+			IssuedAt:  uint64(now.Unix()),
+			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()),
+			Scope:     grant.Scope,
+			Audience:  grant.Audience,
+		},
+		Status: corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
-	// Set "Bearer" token type
-	oidToken.TokenType = "Bearer"
-	oidToken.ExpiresIn = 3600
+	var err error
+	// Generate an access token
+	at.Value, err = s.accessTokenGenerator.Generate(ctx, at.TokenId, at.Metadata)
+	if err != nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("unable to generate an accessToken: %w", err)
+	}
 
-	// Assign openid tokens to result.
-	res.Openid = oidToken
+	// Store the token spec
+	if err := s.tokens.Create(ctx, at); err != nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("unable to register access token spec in token storage: %w", err)
+	}
+
+	// Assign response
+	res.AccessToken = at
 
 	// No error
 	return res, nil

@@ -24,6 +24,7 @@ option go_package = "oidc/core/v1;corev1";
 import "oidc/core/v1/core.proto";
 import "oidc/core/v1/error.proto";
 import "oidc/core/v1/client.proto";
+import "oidc/core/v1/token.proto";
 import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
@@ -239,13 +240,10 @@ message TokenRequest {
 
 message TokenResponse {
   Error error = 1;
-  OpenIDToken openid = 2;
-}
-
-message OpenIDToken {
-  string access_token = 1;
-  string token_type = 2;
-  fixed64 expires_in = 3;
-  string refresh_token = 4;
-  string id_token = 5;
+  // REQUIRED. Access token information used to generate the final one.
+  Token access_token = 2;
+  // OPTIONAL. Refresh token information used to generate the final one.
+  Token refresh_token = 3;
+  // OPTIONAL. ID Token information.
+  Token id_token = 4;
 }

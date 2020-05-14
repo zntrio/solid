@@ -44,6 +44,8 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 		authorizationCodeGenerator: pkgauthorization.Default(),
 		accessTokenGenerator:       pkgtoken.DefaultAccessTokenGenerator(),
 		clientReader:               nil,
+		tokenManager:               nil,
+		sessionManager:             nil,
 	}
 
 	// Parse options
@@ -53,7 +55,7 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 
 	// Initialize services
 	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager)
-	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager)
+	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager, defaultOptions.tokenManager)
 
 	return &authorizationServer{
 		authorizations: authorizations,

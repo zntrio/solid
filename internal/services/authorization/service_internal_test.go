@@ -80,10 +80,10 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					ClientId:            "s6BhdRkqt3",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -97,10 +97,10 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -114,10 +114,10 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -131,6 +131,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -147,11 +148,11 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
 					RedirectUri:         "https://client.example.org/cb",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 				},
@@ -164,12 +165,12 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
 					RedirectUri:         "https://client.example.org/cb",
 					State:               "oESIiuoybVxAJ",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 				},
@@ -178,7 +179,7 @@ func Test_service_validate(t *testing.T) {
 			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ"),
 		},
 		{
-			name: "missing nonce",
+			name: "missing audience",
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
@@ -186,24 +187,6 @@ func Test_service_validate(t *testing.T) {
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-					CodeChallengeMethod: "S256",
-				},
-			},
-			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
-		},
-		{
-			name: "nonce too short",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					ResponseType:        "code",
-					Scope:               "openid profile email",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -217,6 +200,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -234,6 +218,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -252,6 +237,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:      "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:  "code",
 					Scope:         "openid profile email",
 					ClientId:      "s6BhdRkqt3",
@@ -269,6 +255,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -287,6 +274,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -308,6 +296,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -329,6 +318,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -352,6 +342,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -376,6 +367,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -402,6 +394,7 @@ func Test_service_validate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",

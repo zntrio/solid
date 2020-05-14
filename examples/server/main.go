@@ -1,3 +1,20 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package main
 
 import (
@@ -6,6 +23,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
+
+	"go.zenithar.org/solid/pkg/rfcerrors"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	discoveryv1 "go.zenithar.org/solid/api/gen/go/oidc/discovery/v1"
@@ -100,8 +120,8 @@ func parHandler(as authorizationserver.AuthorizationServer) http.Handler {
 
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
-		if !ok {
-			http.Error(w, "unable to retrieve client authentication", http.StatusUnauthorized)
+		if client == nil || !ok {
+			json.NewEncoder(w).Encode(rfcerrors.InvalidClient(""))
 			return
 		}
 
@@ -109,8 +129,8 @@ func parHandler(as authorizationserver.AuthorizationServer) http.Handler {
 		res, err := as.Do(ctx, &corev1.RegistrationRequest{
 			Client: client,
 			Request: &corev1.AuthorizationRequest{
+				Audience:            q.Get("audience"),
 				State:               q.Get("state"),
-				Nonce:               q.Get("nonce"),
 				ClientId:            q.Get("client_id"),
 				Scope:               q.Get("scope"),
 				RedirectUri:         q.Get("redirect_uri"),
@@ -159,13 +179,14 @@ func authorizeHandler(as authorizationserver.AuthorizationServer) http.Handler {
 func tokenHandler(as authorizationserver.AuthorizationServer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			q = r.URL.Query()
+			q   = r.URL.Query()
+			ctx = r.Context()
 		)
 
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
-		if !ok {
-			http.Error(w, "unable to retrieve client authentication", http.StatusUnauthorized)
+		if client == nil || !ok {
+			json.NewEncoder(w).Encode(rfcerrors.InvalidClient(""))
 			return
 		}
 
@@ -186,7 +207,10 @@ func tokenHandler(as authorizationserver.AuthorizationServer) http.Handler {
 			}
 		case oidc.GrantTypeClientCredentials:
 			msg.Grant = &corev1.TokenRequest_ClientCredentials{
-				ClientCredentials: &corev1.GrantClientCredentials{},
+				ClientCredentials: &corev1.GrantClientCredentials{
+					Audience: q.Get("audience"),
+					Scope:    q.Get("scope"),
+				},
 			}
 		case oidc.GrantTypeDeviceCode:
 			msg.Grant = &corev1.TokenRequest_DeviceCode{
@@ -208,7 +232,19 @@ func tokenHandler(as authorizationserver.AuthorizationServer) http.Handler {
 			return
 		}
 
-		json.NewEncoder(w).Encode(res.(*corev1.TokenResponse).GetOpenid())
+		// Prepare response
+		oauthRes := res.(*corev1.TokenResponse)
+		jsonResponse := &corev1.OAuthTokenResponse{
+			AccessToken: oauthRes.AccessToken.Value,
+			ExpiresIn:   oauthRes.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()),
+			TokenType:   "Bearer",
+		}
+		if oauthRes.RefreshToken != nil {
+			jsonResponse.RefreshToken = oauthRes.RefreshToken.Value
+		}
+
+		// Send json reponse
+		json.NewEncoder(w).Encode(jsonResponse)
 	})
 }
 
@@ -223,6 +259,7 @@ func main() {
 		authorizationserver.ClientReader(inmemory.Clients()),
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		authorizationserver.SessionManager(inmemory.Sessions()),
+		authorizationserver.TokenManager(inmemory.Tokens()),
 	)
 
 	// Enable Core OIDC features

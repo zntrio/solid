@@ -24,12 +24,11 @@
 package corev1
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -329,15 +328,12 @@ func file_oidc_core_v1_client_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_client_proto_rawDescData
 }
 
-var (
-	file_oidc_core_v1_client_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_oidc_core_v1_client_proto_msgTypes  = make([]protoimpl.MessageInfo, 1)
-	file_oidc_core_v1_client_proto_goTypes   = []interface{}{
-		(ClientType)(0), // 0: oidc.core.v1.ClientType
-		(*Client)(nil),  // 1: oidc.core.v1.Client
-	}
-)
-
+var file_oidc_core_v1_client_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_oidc_core_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_oidc_core_v1_client_proto_goTypes = []interface{}{
+	(ClientType)(0), // 0: oidc.core.v1.ClientType
+	(*Client)(nil),  // 1: oidc.core.v1.Client
+}
 var file_oidc_core_v1_client_proto_depIdxs = []int32{
 	0, // 0: oidc.core.v1.Client.client_type:type_name -> oidc.core.v1.ClientType
 	1, // [1:1] is the sub-list for method output_type

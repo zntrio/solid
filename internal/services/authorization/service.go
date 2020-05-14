@@ -35,7 +35,6 @@ var requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Za-z0-9]{32}`)
 
 const (
 	desiredMinStateValueLength         = 32
-	desiredMinNonceValueLength         = 8
 	desiredMinCodeChallengeValueLength = 43
 	desiredMaxCodeChallengeValueLength = 128
 )
@@ -197,12 +196,8 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state too short")
 	}
 
-	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" || req.Nonce == "" {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state, nonce, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
-	}
-
-	if len(req.Nonce) < desiredMinNonceValueLength {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("nonce too short")
+	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" || req.Audience == "" {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("audience, state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
 
 	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {

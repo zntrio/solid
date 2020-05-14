@@ -567,7 +567,11 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				}, nil)
 			},
 			wantErr: false,
-			want:    &corev1.ClientAuthenticationResponse{},
+			want: &corev1.ClientAuthenticationResponse{
+				Client: &corev1.Client{
+					Jwks: clientJWKSWithSIG,
+				},
+			},
 		},
 	}
 	for _, tt := range tests {

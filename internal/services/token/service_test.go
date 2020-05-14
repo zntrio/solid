@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
@@ -38,6 +39,7 @@ import (
 
 var (
 	cmpOpts = []cmp.Option{
+		cmpopts.IgnoreFields(corev1.Token{}, "TokenId"),
 		cmpopts.IgnoreUnexported(wrappers.StringValue{}),
 		cmpopts.IgnoreUnexported(corev1.TokenRequest{}),
 		cmpopts.IgnoreUnexported(corev1.TokenRequest_AuthorizationCode{}),
@@ -46,7 +48,8 @@ var (
 		cmpopts.IgnoreUnexported(corev1.TokenRequest_RefreshToken{}),
 		cmpopts.IgnoreUnexported(corev1.TokenResponse{}),
 		cmpopts.IgnoreUnexported(corev1.Error{}),
-		cmpopts.IgnoreUnexported(corev1.OpenIDToken{}),
+		cmpopts.IgnoreUnexported(corev1.Token{}),
+		cmpopts.IgnoreUnexported(corev1.TokenMeta{}),
 		cmpopts.IgnoreUnexported(corev1.Session{}),
 	}
 )
@@ -67,7 +70,7 @@ func Test_service_Token(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*storagemock.MockClientReader, *storagemock.MockAuthorizationRequestReader, *tokenmock.MockAccessTokenGenerator, *storagemock.MockSession)
+		prepare func(*storagemock.MockClientReader, *storagemock.MockAuthorizationRequestReader, *tokenmock.MockAccessTokenGenerator, *storagemock.MockSession, *storagemock.MockTokenWriter)
 		want    *corev1.TokenResponse
 		wantErr bool
 	}{
@@ -227,7 +230,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -253,7 +256,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -275,7 +278,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
 				validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev1.Error {
 					// Disable request validator
 					return nil
@@ -304,19 +307,25 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
-				at.EXPECT().Generate(gomock.Any()).Return("1/fFAGRNJru1FTz70BzhT3Zg", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
 				Error: nil,
-				Openid: &corev1.OpenIDToken{
-					AccessToken: "1/fFAGRNJru1FTz70BzhT3Zg",
-					ExpiresIn:   3600,
-					TokenType:   "Bearer",
+				AccessToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						IssuedAt:  1,
+						ExpiresAt: 3601,
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
 		},
@@ -339,7 +348,8 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -347,6 +357,7 @@ func Test_service_Token(t *testing.T) {
 				}, nil)
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
@@ -357,17 +368,35 @@ func Test_service_Token(t *testing.T) {
 					},
 				}, nil)
 				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
-				accessTokenSuccess := at.EXPECT().Generate(gomock.Any()).Return("1/fFAGRNJru1FTz70BzhT3Zg", nil)
-				at.EXPECT().Generate(gomock.Any()).Return("5ZsdF6h/sQAghJFRD", nil).After(accessTokenSuccess)
+				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil).After(atGen)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
 				Error: nil,
-				Openid: &corev1.OpenIDToken{
-					AccessToken:  "1/fFAGRNJru1FTz70BzhT3Zg",
-					ExpiresIn:    3600,
-					RefreshToken: "5ZsdF6h/sQAghJFRD",
-					TokenType:    "Bearer",
+				AccessToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 3601,
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+				RefreshToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 604801,
+					},
+					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 				},
 			},
 		},
@@ -386,7 +415,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
@@ -409,7 +438,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession, tokens *storagemock.MockTokenWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
@@ -429,14 +458,15 @@ func Test_service_Token(t *testing.T) {
 			accessTokens := tokenmock.NewMockAccessTokenGenerator(ctrl)
 			idTokens := tokenmock.NewMockIDTokenGenerator(ctrl)
 			sessions := storagemock.NewMockSession(ctrl)
+			tokens := storagemock.NewMockTokenWriter(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(clients, authorizationRequests, accessTokens, sessions)
+				tt.prepare(clients, authorizationRequests, accessTokens, sessions, tokens)
 			}
 
 			// Instanciate service
-			underTest := New(accessTokens, idTokens, clients, authorizationRequests, sessions)
+			underTest := New(accessTokens, idTokens, clients, authorizationRequests, sessions, tokens)
 
 			// Under test
 			got, err := underTest.Token(tt.args.ctx, tt.args.req)

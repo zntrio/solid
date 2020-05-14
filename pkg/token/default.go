@@ -22,6 +22,8 @@ import (
 	"fmt"
 
 	"github.com/dchest/uniuri"
+
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 
 const (
@@ -39,7 +41,7 @@ func DefaultAccessTokenGenerator() AccessTokenGenerator {
 type accessTokenGenerator struct {
 }
 
-func (c *accessTokenGenerator) Generate(_ context.Context) (string, error) {
+func (c *accessTokenGenerator) Generate(_ context.Context, _ string, _ *corev1.TokenMeta) (string, error) {
 	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
 	return code, nil
 }

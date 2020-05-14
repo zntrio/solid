@@ -156,11 +156,11 @@ func Test_service_Authorize(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -184,11 +184,11 @@ func Test_service_Authorize(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -204,11 +204,11 @@ func Test_service_Authorize(t *testing.T) {
 				sessions.EXPECT().Register(gomock.Any(), &corev1.Session{
 					Subject: "",
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
 						ClientId:            "s6BhdRkqt3",
 						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -228,11 +228,11 @@ func Test_service_Authorize(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
@@ -250,11 +250,11 @@ func Test_service_Authorize(t *testing.T) {
 				sessions.EXPECT().Register(gomock.Any(), &corev1.Session{
 					Subject: "",
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
 						ClientId:            "s6BhdRkqt3",
 						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-						Nonce:               "XDwbBH4MokU8BmrZ",
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
@@ -284,6 +284,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
@@ -313,6 +314,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(&corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
@@ -332,6 +334,7 @@ func Test_service_Authorize(t *testing.T) {
 				sessions.EXPECT().Register(gomock.Any(), &corev1.Session{
 					Subject: "",
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
@@ -475,6 +478,7 @@ func Test_service_Register(t *testing.T) {
 						ClientId: "s6BhdRkqt3",
 					},
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
 						ClientId:            "s6BhdRkqt3",
@@ -506,6 +510,7 @@ func Test_service_Register(t *testing.T) {
 						ClientId: "foooo",
 					},
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
@@ -546,6 +551,7 @@ func Test_service_Register(t *testing.T) {
 						ClientId: "s6BhdRkqt3",
 					},
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
@@ -566,6 +572,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil).Times(2)
 				ar.EXPECT().Register(gomock.Any(), &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",
@@ -591,6 +598,7 @@ func Test_service_Register(t *testing.T) {
 						ClientId: "s6BhdRkqt3",
 					},
 					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
 						ClientId:            "s6BhdRkqt3",
@@ -611,6 +619,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil).Times(2)
 				ar.EXPECT().Register(gomock.Any(), &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
 					ClientId:            "s6BhdRkqt3",

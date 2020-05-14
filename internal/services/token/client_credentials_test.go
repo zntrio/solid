@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
@@ -41,7 +42,7 @@ func Test_service_clientCredentials(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockSession, *tokenmock.MockAccessTokenGenerator)
+		prepare func(*storagemock.MockSession, *storagemock.MockTokenWriter, *tokenmock.MockAccessTokenGenerator)
 		want    *corev1.TokenResponse
 		wantErr bool
 	}{
@@ -111,7 +112,7 @@ func Test_service_clientCredentials(t *testing.T) {
 		},
 		// ---------------------------------------------------------------------
 		{
-			name: "openid: generate access token error",
+			name: "openid: access token generation error",
 			args: args{
 				ctx: context.Background(),
 				client: &corev1.Client{
@@ -127,8 +128,34 @@ func Test_service_clientCredentials(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockSession, at *tokenmock.MockAccessTokenGenerator) {
-				at.EXPECT().Generate(gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockTokenWriter, at *tokenmock.MockAccessTokenGenerator) {
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "openid: access token storage error",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeClientCredentials},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeClientCredentials,
+					Grant: &corev1.TokenRequest_ClientCredentials{
+						ClientCredentials: &corev1.GrantClientCredentials{},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockTokenWriter, at *tokenmock.MockAccessTokenGenerator) {
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -153,16 +180,22 @@ func Test_service_clientCredentials(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockSession, at *tokenmock.MockAccessTokenGenerator) {
-				at.EXPECT().Generate(gomock.Any()).Return("1/fFAGRNJru1FTz70BzhT3Zg", nil)
+			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockTokenWriter, at *tokenmock.MockAccessTokenGenerator) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
 				Error: nil,
-				Openid: &corev1.OpenIDToken{
-					AccessToken: "1/fFAGRNJru1FTz70BzhT3Zg",
-					ExpiresIn:   3600,
-					TokenType:   "Bearer",
+				AccessToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						IssuedAt:  1,
+						ExpiresAt: 3601,
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
 		},
@@ -176,14 +209,16 @@ func Test_service_clientCredentials(t *testing.T) {
 			sessions := storagemock.NewMockSession(ctrl)
 			accessTokens := tokenmock.NewMockAccessTokenGenerator(ctrl)
 			idTokens := tokenmock.NewMockIDTokenGenerator(ctrl)
+			tokens := storagemock.NewMockTokenWriter(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(sessions, accessTokens)
+				tt.prepare(sessions, tokens, accessTokens)
 			}
 
 			s := &service{
 				sessions:             sessions,
+				tokens:               tokens,
 				accessTokenGenerator: accessTokens,
 				idTokenGenerator:     idTokens,
 			}

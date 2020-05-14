@@ -17,22 +17,12 @@
 
 package token
 
-import (
-	"context"
+import "time"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+const (
+	jtiLength = 8
 )
 
-//go:generate mockgen -destination mock/access_token_generator.gen.go -package mock go.zenithar.org/solid/pkg/token AccessTokenGenerator
-
-// AccessTokenGenerator describes accessToken generator contract.
-type AccessTokenGenerator interface {
-	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta) (string, error)
-}
-
-//go:generate mockgen -destination mock/id_token_generator.gen.go -package mock go.zenithar.org/solid/pkg/token IDTokenGenerator
-
-// IDTokenGenerator describes idToken generator contract.
-type IDTokenGenerator interface {
-	Generate(ctx context.Context) (string, error)
-}
+var (
+	timeFunc = time.Now
+)

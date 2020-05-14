@@ -86,3 +86,27 @@ type Session interface {
 	SessionReader
 	SessionWriter
 }
+
+//go:generate mockgen -destination mock/token_reader.gen.go -package mock go.zenithar.org/solid/pkg/storage TokenReader
+
+// TokenReader describes accessToken read-only operation storage contract.
+type TokenReader interface {
+	Get(ctx context.Context, id string) (*corev1.Token, error)
+	GetByValue(ctx context.Context, value string) (*corev1.Token, error)
+}
+
+//go:generate mockgen -destination mock/token_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage TokenWriter
+
+// TokenWriter describes accessToken write-only operation contract.
+type TokenWriter interface {
+	Create(ctx context.Context, t *corev1.Token) error
+	Delete(ctx context.Context, id string) error
+}
+
+//go:generate mockgen -destination mock/token.gen.go -package mock go.zenithar.org/solid/pkg/storage Token
+
+// Token describes accessToken operation contract.
+type Token interface {
+	TokenReader
+	TokenWriter
+}

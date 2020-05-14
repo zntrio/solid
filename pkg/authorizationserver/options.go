@@ -30,8 +30,8 @@ type options struct {
 	authorizationRequestManager storage.AuthorizationRequest
 	accessTokenGenerator        token.AccessTokenGenerator
 	idTokenGenerator            token.IDTokenGenerator
-	phantomTokenGenerator       token.PhantomTokenGenerator
 	sessionManager              storage.Session
+	tokenManager                storage.Token
 }
 
 // Option defines functional pattern function type contract.
@@ -55,5 +55,12 @@ func AuthorizationRequestManager(store storage.AuthorizationRequest) Option {
 func SessionManager(store storage.Session) Option {
 	return func(opts *options) {
 		opts.sessionManager = store
+	}
+}
+
+// TokenManager defines the implementation for managing tokens.
+func TokenManager(store storage.Token) Option {
+	return func(opts *options) {
+		opts.tokenManager = store
 	}
 }

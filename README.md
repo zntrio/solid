@@ -69,7 +69,33 @@ simple and solid implementations of 4 OAuth flows.
 * A complete OIDC compliant server. By making some **optional** and **recommended**
   parameters as **required**, `solid` can't pass the OIDC compliance tests;
 
+## Getting started
+
+I made sample server and various integrations inside `examples/` folder.
+
 ## Features
+
+### Protocol changes
+
+* `PKCE` is enforced by default for all client types during `authorization_code`
+  flow;
+* `authorization_code` flow could not be started by the `user-agent`, as the
+  default behavior, the `client` must use PAR protocol to retrieve a `request_uri`
+  that will qualify the `authorization_code` flow;
+* Asymetric authentication methods are enforced by default;
+* No `HSxxx` / `RSxxx` support as JOSE signature algorithms;
+  * `HSxxx` doesn't provide digital signature;
+  * `RSxxx` uses RSA algorithms that needs to have high computation to improve
+    security protection level so that it will be more difficult for constrained
+    environment (IoT) to have same secruity protection level as a normal application;
+  * Only `elliptical curves` involved algorithms will be used;
+* `access_token` / `refresh_token` are `hybrid` tokens so that they embed protocol
+  validation details (expiration, etc.) without any privacy related info (sub).
+  These informations are referenced via an embeded `jti` claim that will address
+  an AS-only accessbile record that will contains extra data;
+* `audience` parameter is mandatory for request that need `scope` in order to
+  target the corresponding application. This will allow various validations between
+  `client` and `application`, and `consent` management.
 
 ### Framework
 
@@ -88,10 +114,13 @@ simple and solid implementations of 4 OAuth flows.
   * Client
     * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
     * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
+  * Token Management
+    * [x] Generic API
+    * [ ] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
+    * [ ] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
   * Token
-    * [ ] API
-    * [ ] JWT
-    * [ ] CWT
+    * [ ] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
+    * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
     * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
 * Storage
   * [x] API
@@ -101,14 +130,11 @@ simple and solid implementations of 4 OAuth flows.
     * Requests
       * [x] Authorization request
     * Tokens
-      * [ ] AccessToken
-      * [ ] IDToken
+      * [x] Storage
   * [x] in-memory storage
   * [ ] gRPC driven storage
 * Privacy
-  * [ ] Phantom token flow
   * [ ] Consent management
-  * [ ] Scope details publication protocol
 
 ### Integrations
 

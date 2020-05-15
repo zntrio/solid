@@ -16,39 +16,50 @@ secure settings according to your use cases :
 
 ## What and Why
 
-I have been developing OAuth/OIDC/UMA providers for 8 years now, in multiple
+I have been developing OAuth/OIDC/UMA providers since 2012, in multiple
 languages and environments. `People generally don't understand` OIDC flows.
 
 > It's like driving a car that requires you to know how engine work and how
 > the car is built. But the only thing you want is to drive your car.
 
-OIDC is offered as a developer framework, but it's true to say that not all
-developers are aware of security problems. Also, OIDC is often criticized in
-favor of SAML, but implementations are vulnerables and not necessarily the
-protocol itself. In addition, implementations are done by developers that don't
-have the time to browse the specification maze, or read them with their own belief
-in mind. As a consequence the specifications are not understood but interpreted.
+OAuth / OIDC is often criticized in favor of SAML, but implementations are more
+vulnerables than the protocol itself. OAuth is just offered as a developer
+framework, but it's true to say that not all developers are aware of security
+problems.
+
+Implementations are done by developers that don't have/take the time to browse
+the specification maze, they read them quickly with their own belief in mind.
+As a consequence the specifications are not understood but barely interpreted,
+that will produce faulty implementations.
 
 > Also security products are often associated with [NIH](https://en.wikipedia.org/wiki/Not_invented_here) syndrom.
 
-In addition to that many OIDC providers give you a lot of features that you have
-to understand and choose to maximize your security posture. So that your
-security posture is correlated to your understanding of OAuth and OIDC and
-their implementations in the product.
+What I observed in real life:
+
+* Not using `authorization_code` because it doesn't have user/password in the
+  flow;
+* `client_credentials` grant type to be used as `customer credentials` like
+  `password` grant type but for external customer user access (login form with
+  client credentials);
+* Using `client_credentials` from a JS public UI (hardcoded client_secret);
+* Dynamic authorization application based on token claims without signature
+  checks;
+* Authentication based on the fact the you can retrieve the token ... not
+  validating token content (Token is here => You are admin);
+
+Many OIDC providers give you a lot of features that you have to understand and
+choose to maximize your security posture. So that your security posture is
+correlated to your understanding of OAuth and OIDC and their implementations
+in the product.
 
 > I don't like this idea to be honest.
-
-As examples:
-
-* Not using `authorization_code` because it doesn't have user/password;
-* `client_credentials` grant type to be used as `customer credentials` like
-  `password` grant type;
-* Authentication based on the fact the you can retrieve the token ... not
-  validating token content;
 
 I understand the requirements of commercial products to have a wide compatibility
 matrix, but by allowing insecure settings for one client you can compromise the
 the whole platform, and also lose the customer inside the `feature fog`.
+
+But OAuth / OIDC specification are only tools in a toolbox, and they need to be
+orchestrated in a proper way to provide a simple, efficient and secure service.
 
 That's the reason why I've started this project as an OSS project, to provide a
 simple and solid implementations of 4 OAuth flows.

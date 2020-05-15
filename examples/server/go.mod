@@ -1,4 +1,4 @@
-module go.zenithar.org/solid/samples/server
+module go.zenithar.org/solid/examples/server
 
 replace go.zenithar.org/solid => ../../
 

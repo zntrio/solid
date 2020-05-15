@@ -22,10 +22,10 @@ import (
 	"log"
 	"net/http"
 
+	"go.zenithar.org/solid/examples/server/handlers"
+	"go.zenithar.org/solid/examples/server/middleware"
 	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/samples/server/handlers"
-	"go.zenithar.org/solid/samples/server/middleware"
 )
 
 func main() {

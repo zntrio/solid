@@ -77,6 +77,9 @@ I made sample server and various integrations inside `examples/` folder.
 
 ### Protocol changes
 
+* `hybrid` flow is not and will be supported; Web applications must use server
+  side component (or lambda) to negociate authorizations; By design, your
+  client-side application code (JS) should not be exposed until you are identified;
 * `PKCE` is enforced by default for all client types during `authorization_code`
   flow;
 * `authorization_code` flow could not be started by the `user-agent`, as the
@@ -158,3 +161,5 @@ I made sample server and various integrations inside `examples/` folder.
 * [OAuth 2.0 Security Best Current Practice](https://tools.ietf.org/html/draft-ietf-oauth-security-topics-15)
 * [Why you should stop using the OAuth implicit grant!](https://medium.com/@torsten_lodderstedt/why-you-should-stop-using-the-oauth-implicit-grant-2436ced1c926)
 * [OAuth 2.0 for Browser-Based Apps](https://tools.ietf.org/id/draft-parecki-oauth-browser-based-apps-02.html)
+* [Financial-grade API - Part 1: Read-Only API Security Profile](https://openid.net/specs/openid-financial-api-part-1.html)
+* [Financial-grade API - Part 2: Read and Write API Security Profile](https://openid.net/specs/openid-financial-api-part-2.html)

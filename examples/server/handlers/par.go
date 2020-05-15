@@ -70,7 +70,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 		}
 
 		// Send json response
-		withJSON(w, r, http.StatusOK, &response{
+		withJSON(w, r, http.StatusCreated, &response{
 			RequestURI: parRes.RequestUri,
 			ExpiresIn:  parRes.ExpiresIn,
 		})

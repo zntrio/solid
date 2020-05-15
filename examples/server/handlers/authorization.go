@@ -18,8 +18,10 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 
 	"go.zenithar.org/solid/pkg/rfcerrors"
 
@@ -39,7 +41,7 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
-			http.Error(w, "invalid request method", http.StatusMethodNotAllowed)
+			withJSON(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
 		}
 
 		// Parameters
@@ -66,10 +68,18 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 			return
 		}
 
-		// Return JSON response
-		withJSON(w, r, http.StatusOK, &response{
-			Code:  authRes.Code,
-			State: authRes.State,
-		})
+		// Build redirection uri
+		u, err := url.ParseRequestURI(authRes.RedirectUri)
+		if err != nil {
+			log.Println("unable to process redirect uri:", err)
+			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			return
+		}
+
+		// Assemble final uri
+		u.RawQuery = fmt.Sprintf("code=%s&state=%s", authRes.Code, authRes.State)
+
+		// Redirect to application
+		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
 	})
 }

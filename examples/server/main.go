@@ -44,11 +44,12 @@ func main() {
 
 	// Create client authentication middleware
 	clientAuth := middleware.ClientAuthentication(inmemory.Clients())
+	secHeaders := middleware.SecurityHaders()
 
 	// Create router
 	http.Handle("/.well-known/openid-configuration", handlers.Metadata("http://localhost:8080"))
 	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as), clientAuth))
-	http.Handle("/authorize", handlers.Authorization(as))
+	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as), secHeaders))
 	http.Handle("/token", middleware.Adapt(handlers.Token(as), clientAuth))
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))

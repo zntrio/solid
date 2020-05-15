@@ -185,6 +185,9 @@ message AuthorizationResponse {
   // authorization request.  The exact value received from the
   // client.
   string state = 3;
+
+  // REQUIRED. Assembled redirection uri to application.
+  string redirect_uri = 4;
 }
 
 message RegistrationRequest {

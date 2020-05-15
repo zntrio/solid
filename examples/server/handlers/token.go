@@ -36,6 +36,7 @@ func Token(as authorizationserver.AuthorizationServer) http.Handler {
 		ExpiresIn    uint64 `json:"expires_in"`
 		TokenType    string `json:"token_type"`
 		RefreshToken string `json:"refresh_token,omitempty"`
+		Scope        string `json:"scope"`
 	}
 
 	messageBuilder := func(r *http.Request, client *corev1.Client) *corev1.TokenRequest {
@@ -111,6 +112,7 @@ func Token(as authorizationserver.AuthorizationServer) http.Handler {
 			AccessToken: tokenRes.AccessToken.Value,
 			ExpiresIn:   tokenRes.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()),
 			TokenType:   "Bearer",
+			Scope:       tokenRes.AccessToken.Metadata.Scope,
 		}
 		if tokenRes.RefreshToken != nil {
 			jsonResponse.RefreshToken = tokenRes.RefreshToken.Value

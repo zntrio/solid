@@ -20,6 +20,7 @@ package authorization
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -117,9 +118,10 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 
 	// Assign code to response
 	res.Code = code
-
 	// Assign state to response
 	res.State = req.State
+	// Assign redirectUri to response
+	res.RedirectUri = req.RedirectUri
 
 	return res, err
 }
@@ -206,6 +208,12 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 
 	if len(req.CodeChallenge) != desiredMinCodeChallengeValueLength {
 		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("code_challenge too short")
+	}
+
+	// Prepare redirection uri
+	_, err := url.ParseRequestURI(req.RedirectUri)
+	if err != nil {
+		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("redirect_uri has an invalid syntax: %w", err)
 	}
 
 	// Check client ID

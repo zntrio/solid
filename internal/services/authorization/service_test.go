@@ -218,9 +218,10 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationResponse{
-				Error: nil,
-				Code:  "1234567891234567890",
-				State: "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				Error:       nil,
+				Code:        "1234567891234567890",
+				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri: "https://client.example.org/cb",
 			},
 		},
 		{
@@ -266,9 +267,10 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationResponse{
-				Error: nil,
-				Code:  "1234567891234567890",
-				State: "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				Error:       nil,
+				Code:        "1234567891234567890",
+				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri: "https://client.example.org/cb",
 			},
 		},
 
@@ -349,9 +351,10 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationResponse{
-				Error: nil,
-				Code:  "1234567891234567890",
-				State: "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				Error:       nil,
+				Code:        "1234567891234567890",
+				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri: "https://client.example.org/cb",
 			},
 		},
 	}

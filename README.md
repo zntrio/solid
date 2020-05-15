@@ -122,8 +122,8 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `authorization_code` grant type
       * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
       * [x] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
-    * [ ] `device_code` grant type
     * [ ] `refresh_token` grant type
+    * [ ] `device_code` grant type
     * [ ] Pairwise subject identifier
   * Client
     * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)

@@ -34,3 +34,19 @@ func Core() features.Feature {
 		r.RegisterHandler(&corev1.TokenRequest{}, core.GetTokenHandler(tokens))
 	}
 }
+
+// Introspection enable token introspection features.
+func Introspection() features.Feature {
+	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token) {
+		// Register intropection request handler.
+		r.RegisterHandler(&corev1.TokenIntrospectionRequest{}, core.IntrospectionHandler(tokens))
+	}
+}
+
+// Revocation enable token revocation features.
+func Revocation() features.Feature {
+	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token) {
+		// Register revocation request handler.
+		r.RegisterHandler(&corev1.TokenRevocationRequest{}, core.RevocationHandler(tokens))
+	}
+}

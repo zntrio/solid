@@ -50,7 +50,7 @@ func (s *tokenStorage) Create(ctx context.Context, t *corev1.Token) error {
 
 	s.mutex.Lock()
 	s.idIndex[t.TokenId] = t
-	s.valueIndex[t.TokenId] = t
+	s.valueIndex[t.Value] = t
 	s.mutex.Unlock()
 
 	// No error
@@ -90,6 +90,26 @@ func (s *tokenStorage) Delete(ctx context.Context, id string) error {
 	s.mutex.Lock()
 	delete(s.idIndex, t.TokenId)
 	delete(s.idIndex, t.Value)
+	s.mutex.Unlock()
+
+	// No error
+	return nil
+}
+
+func (s *tokenStorage) Revoke(ctx context.Context, id string) error {
+	// Retrieve token
+	t, err := s.Get(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Set as revoked
+	t.Status = corev1.TokenStatus_TOKEN_STATUS_REVOKED
+
+	// Update maps
+	s.mutex.Lock()
+	s.idIndex[t.TokenId] = t
+	s.valueIndex[t.Value] = t
 	s.mutex.Unlock()
 
 	// No error

@@ -25,6 +25,7 @@ import (
 	"go.zenithar.org/solid/internal/services/token"
 	pkgauthorization "go.zenithar.org/solid/pkg/authorization"
 	"go.zenithar.org/solid/pkg/authorizationserver/features"
+	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
 	"go.zenithar.org/solid/pkg/reactor"
 	pkgtoken "go.zenithar.org/solid/pkg/token"
 )
@@ -57,12 +58,22 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager, defaultOptions.tokenManager)
 
-	return &authorizationServer{
+	// Wire message
+	as := &authorizationServer{
 		authorizations: authorizations,
 		tokens:         tokens,
 		r:              reactor.New(issuer),
 		dopts:          defaultOptions,
 	}
+
+	// Enable default features
+	as.Enable(oidc.Core())
+	as.Enable(oidc.Introspection())
+	as.Enable(oidc.PushedAuthorizationRequest())
+	as.Enable(oidc.Revocation())
+
+	// Return Authorization Server instance
+	return as
 }
 
 type authorizationServer struct {

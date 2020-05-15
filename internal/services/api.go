@@ -38,4 +38,8 @@ type Authorization interface {
 type Token interface {
 	// Token handles token retrieval.
 	Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.TokenResponse, error)
+	// Introspect handles token introspection.
+	Introspect(ctx context.Context, req *corev1.TokenIntrospectionRequest) (*corev1.TokenIntrospectionResponse, error)
+	// Revoke given token.
+	Revoke(ctx context.Context, req *corev1.TokenRevocationRequest) (*corev1.TokenRevocationResponse, error)
 }

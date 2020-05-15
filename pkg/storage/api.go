@@ -101,6 +101,7 @@ type TokenReader interface {
 type TokenWriter interface {
 	Create(ctx context.Context, t *corev1.Token) error
 	Delete(ctx context.Context, id string) error
+	Revoke(ctx context.Context, id string) error
 }
 
 //go:generate mockgen -destination mock/token.gen.go -package mock go.zenithar.org/solid/pkg/storage Token

@@ -316,8 +316,10 @@ message ServerMetadata {
   // https://tools.ietf.org/html/draft-lodderstedt-oauth-par-01#section-5
   string pushed_authorization_request_endpoint = 43;
 
+  repeated string pushed_authorization_request_endpoint_auth_methods_supported = 44;
+
   // https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html#endpointAliases
-  MTLSEndpoints mtls_endpoint_aliases = 44;
+  MTLSEndpoints mtls_endpoint_aliases = 45;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

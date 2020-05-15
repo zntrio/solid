@@ -116,8 +116,8 @@ I made sample server and various integrations inside `examples/` folder.
     * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
   * Token Management
     * [x] Generic API
-    * [ ] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
-    * [ ] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
+    * [x] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
+    * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
   * Token
     * [ ] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
     * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)

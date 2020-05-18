@@ -25,22 +25,18 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/pkg/storage"
 
-	"github.com/allegro/bigcache"
 	"github.com/dchest/uniuri"
-	"google.golang.org/protobuf/proto"
+	"github.com/patrickmn/go-cache"
 )
 
 type authorizationRequestStorage struct {
-	backend *bigcache.BigCache
+	backend *cache.Cache
 }
 
 // AuthorizationRequests returns an authorization request manager.
 func AuthorizationRequests() storage.AuthorizationRequest {
 	// Initialize in-memory caches
-	backendCache, err := bigcache.NewBigCache(bigcache.DefaultConfig(2 * time.Minute))
-	if err != nil {
-		panic(err)
-	}
+	backendCache := cache.New(1*time.Minute, 10*time.Minute)
 
 	return &authorizationRequestStorage{
 		backend: backendCache,
@@ -53,46 +49,25 @@ func (s *authorizationRequestStorage) Register(ctx context.Context, req *corev1.
 	// Generate request uri
 	requestURI := fmt.Sprintf("urn:solid:%s", uniuri.NewLen(32))
 
-	// Marshall proto
-	body, err := proto.Marshal(req)
-	if err != nil {
-		return "", fmt.Errorf("unable to marshal authorization request: %w", err)
-	}
-
 	// Insert in cache
-	if err := s.backend.Set(requestURI, body); err != nil {
-		return "", fmt.Errorf("unable to set authorization request cache: %w", err)
-	}
+	s.backend.Set(requestURI, req, cache.DefaultExpiration)
 
 	// No error
 	return requestURI, nil
 }
 
 func (s *authorizationRequestStorage) Delete(ctx context.Context, requestURI string) error {
-	if err := s.backend.Delete(requestURI); err != nil {
-		return fmt.Errorf("unable to remove '%s': %w", requestURI, err)
-	}
-
+	s.backend.Delete(requestURI)
 	// No error
 	return nil
 }
 
 func (s *authorizationRequestStorage) Get(ctx context.Context, requestURI string) (*corev1.AuthorizationRequest, error) {
 	// Retrieve from cache
-	body, err := s.backend.Get(requestURI)
-	if err != nil {
-		if err == bigcache.ErrEntryNotFound {
-			return nil, storage.ErrNotFound
-		}
-		return nil, fmt.Errorf("unable to retrieve '%s' from cache: %w", requestURI, err)
+	if x, found := s.backend.Get(requestURI); found {
+		req := x.(*corev1.AuthorizationRequest)
+		return req, nil
 	}
 
-	// Unmarshal message
-	var m corev1.AuthorizationRequest
-	if err := proto.Unmarshal(body, &m); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal '%s' from cache: %w", requestURI, err)
-	}
-
-	// No error
-	return &m, nil
+	return nil, storage.ErrNotFound
 }

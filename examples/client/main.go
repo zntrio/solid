@@ -69,7 +69,7 @@ func intention(solidClient client.Client, config *session.Config) http.Handler {
 		}
 
 		// Redirect to authentication URL
-		http.Redirect(w, r, authURL, http.StatusMovedPermanently)
+		http.Redirect(w, r, authURL, http.StatusFound)
 	})
 }
 
@@ -114,7 +114,7 @@ func callback(solidClient client.Client, config *session.Config) http.Handler {
 		}
 
 		// Dump token
-		http.Redirect(w, r, fmt.Sprintf("/#_access_token=%s", t.AccessToken), http.StatusMovedPermanently)
+		http.Redirect(w, r, fmt.Sprintf("/#_access_token=%s", t.AccessToken), http.StatusFound)
 	})
 }
 
@@ -125,7 +125,7 @@ func main() {
 		ClientID:    "6779ef20e75817b79602",
 		Issuer:      "http://127.0.0.1:8080",
 		JWK:         clientPrivateKey,
-		RedirectURI: "http://localhost:8085/cb",
+		RedirectURI: "http://127.0.0.1:8085/cb",
 		Scopes:      []string{"user profile email offline_access"},
 	})
 

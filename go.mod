@@ -13,6 +13,7 @@ require (
 	github.com/gotestyourself/gotestyourself v1.4.0 // indirect
 	github.com/kr/session v0.1.0
 	github.com/magefile/mage v1.9.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/square/go-jose v2.5.1+incompatible

@@ -19,28 +19,23 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/pkg/storage"
 
-	"github.com/allegro/bigcache"
 	"github.com/dchest/uniuri"
-	"google.golang.org/protobuf/proto"
+	"github.com/patrickmn/go-cache"
 )
 
 type sessionStorage struct {
-	backend *bigcache.BigCache
+	backend *cache.Cache
 }
 
 // Sessions returns an authorization session manager.
 func Sessions() storage.Session {
 	// Initialize in-memory caches
-	backendCache, err := bigcache.NewBigCache(bigcache.DefaultConfig(30 * time.Second))
-	if err != nil {
-		panic(err)
-	}
+	backendCache := cache.New(1*time.Minute, 10*time.Minute)
 
 	return &sessionStorage{
 		backend: backendCache,
@@ -53,46 +48,25 @@ func (s *sessionStorage) Register(ctx context.Context, req *corev1.Session) (str
 	// Authorization Code Generator
 	code := uniuri.NewLen(16)
 
-	// Marshall proto
-	body, err := proto.Marshal(req)
-	if err != nil {
-		return "", fmt.Errorf("unable to marshal authorization session: %w", err)
-	}
-
 	// Insert in cache
-	if err := s.backend.Set(code, body); err != nil {
-		return "", fmt.Errorf("unable to set authorization session cache: %w", err)
-	}
+	s.backend.Set(code, req, cache.DefaultExpiration)
 
 	// No error
 	return code, nil
 }
 
 func (s *sessionStorage) Delete(ctx context.Context, code string) error {
-	if err := s.backend.Delete(code); err != nil {
-		return fmt.Errorf("unable to remove '%s': %w", code, err)
-	}
-
+	s.backend.Delete(code)
 	// No error
 	return nil
 }
 
 func (s *sessionStorage) Get(ctx context.Context, code string) (*corev1.Session, error) {
 	// Retrieve from cache
-	body, err := s.backend.Get(code)
-	if err != nil {
-		if err == bigcache.ErrEntryNotFound {
-			return nil, storage.ErrNotFound
-		}
-		return nil, fmt.Errorf("unable to retrieve '%s' from cache: %w", code, err)
+	if x, found := s.backend.Get(code); found {
+		req := x.(*corev1.Session)
+		return req, nil
 	}
 
-	// Unmarshal message
-	var m corev1.Session
-	if err := proto.Unmarshal(body, &m); err != nil {
-		return nil, fmt.Errorf("unable to unmarshal '%s' from cache: %w", code, err)
-	}
-
-	// No error
-	return &m, nil
+	return nil, storage.ErrNotFound
 }

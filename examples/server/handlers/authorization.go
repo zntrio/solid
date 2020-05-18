@@ -80,6 +80,6 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		u.RawQuery = fmt.Sprintf("code=%s&state=%s", authRes.Code, authRes.State)
 
 		// Redirect to application
-		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+		http.Redirect(w, r, u.String(), http.StatusFound)
 	})
 }

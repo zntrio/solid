@@ -438,17 +438,47 @@ func Test_service_Token(t *testing.T) {
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
 					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{},
+						RefreshToken: &corev1.GrantRefreshToken{
+							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+						},
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, sessions *storagemock.MockSession, tokens *storagemock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
-					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+					TokenId:   "0123456789",
+					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 604801,
+					},
+				}, nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,
-			want:    &corev1.TokenResponse{},
+			want: &corev1.TokenResponse{
+				AccessToken: &corev1.Token{
+					Value:     "xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM",
+					TokenId:   "0123456789",
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 3601,
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {

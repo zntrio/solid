@@ -137,6 +137,31 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 		},
 		{
+			name: "openid: empty access token generation",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeClientCredentials},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeClientCredentials,
+					Grant: &corev1.TokenRequest_ClientCredentials{
+						ClientCredentials: &corev1.GrantClientCredentials{},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
 			name: "openid: access token storage error",
 			args: args{
 				ctx: context.Background(),

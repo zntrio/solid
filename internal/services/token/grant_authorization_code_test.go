@@ -640,6 +640,50 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
+			name: "openid: empty generated access token",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
+					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email",
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
 			name: "openid: access token storage error",
 			args: args{
 				ctx: context.Background(),
@@ -724,6 +768,52 @@ func Test_service_authorizationCode(t *testing.T) {
 				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo")).After(atGen)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "openid: empty generated refresh token",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
+					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email offline_access",
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
+				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).After(atGen)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{

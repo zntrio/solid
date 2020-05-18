@@ -99,3 +99,13 @@ func UnsupportedGrantType(state string) *corev1.Error {
 		},
 	}
 }
+
+// InvalidToken returns a compliant `invalid_token` error.
+func InvalidToken() *corev1.Error {
+	return &corev1.Error{
+		Err: "invalid_token",
+		ErrorDescription: &wrappers.StringValue{
+			Value: "The access token provided is expired, revoked, malformed, or invalid for other reasons.",
+		},
+	}
+}

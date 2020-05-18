@@ -23,9 +23,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/dchest/uniuri"
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
@@ -139,65 +137,26 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 
 	// Generate OpenID tokens (AT / RT / IDT)
 	if scopes.Contains(oidc.ScopeOpenID) {
-		// Retrieve timestamp
-		now := timeFunc()
-
-		// Create access token spec
-		at := &corev1.Token{
-			TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-			TokenId:   uniuri.NewLen(jtiLength),
-			Metadata: &corev1.TokenMeta{
-				ClientId:  client.ClientId,
-				IssuedAt:  uint64(now.Unix()),
-				ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()), // 1 hour
-				Scope:     ar.Request.Scope,
-				Audience:  ar.Request.Audience,
-			},
-			Status: corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-		}
-
-		var err error
-		// Generate an access token
-		at.Value, err = s.accessTokenGenerator.Generate(ctx, at.TokenId, at.Metadata)
+		// Generate access token
+		at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
+			Audience: ar.Request.Audience,
+			Scope:    ar.Request.Scope,
+		})
 		if err != nil {
 			res.Error = rfcerrors.ServerError("")
-			return res, fmt.Errorf("unbale to generate an accessToken: %w", err)
-		}
-
-		// Store the token spec
-		if err := s.tokens.Create(ctx, at); err != nil {
-			res.Error = rfcerrors.ServerError("")
-			return res, fmt.Errorf("unbale to register access token spec in token storage: %w", err)
+			return res, fmt.Errorf("unable to generate access token: %w", err)
 		}
 
 		// Check if request has offline_access to generate refresh_token
 		if scopes.Contains(oidc.ScopeOfflineAccess) {
-			// Create access token spec
-			rt := &corev1.Token{
-				TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-				TokenId:   uniuri.NewLen(jtiLength),
-				Metadata: &corev1.TokenMeta{
-					ClientId:  client.ClientId,
-					IssuedAt:  uint64(now.Unix()),
-					ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()), // 7 days
-					Scope:     ar.Request.Scope,
-					Audience:  ar.Request.Audience,
-				},
-				Status: corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-			}
-
-			var err error
-			// Generate an access token
-			rt.Value, err = s.accessTokenGenerator.Generate(ctx, rt.TokenId, rt.Metadata)
+			// Generate refresh token
+			rt, err := s.generateRefreshToken(ctx, client, &corev1.TokenMeta{
+				Audience: ar.Request.Audience,
+				Scope:    ar.Request.Scope,
+			})
 			if err != nil {
 				res.Error = rfcerrors.ServerError("")
-				return res, fmt.Errorf("unbale to generate a refreshToken: %w", err)
-			}
-
-			// Store the token spec
-			if err := s.tokens.Create(ctx, rt); err != nil {
-				res.Error = rfcerrors.ServerError("")
-				return res, fmt.Errorf("unbale to register refresh token spec in token storage: %w", err)
+				return res, fmt.Errorf("unable to generate refresh token: %w", err)
 			}
 
 			// Assign response

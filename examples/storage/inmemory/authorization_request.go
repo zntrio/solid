@@ -81,6 +81,9 @@ func (s *authorizationRequestStorage) Get(ctx context.Context, requestURI string
 	// Retrieve from cache
 	body, err := s.backend.Get(requestURI)
 	if err != nil {
+		if err == bigcache.ErrEntryNotFound {
+			return nil, storage.ErrNotFound
+		}
 		return nil, fmt.Errorf("unable to retrieve '%s' from cache: %w", requestURI, err)
 	}
 

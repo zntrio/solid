@@ -25,10 +25,10 @@ import (
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
+	generatormock "go.zenithar.org/solid/pkg/generator/mock"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	storagemock "go.zenithar.org/solid/pkg/storage/mock"
-	tokenmock "go.zenithar.org/solid/pkg/token/mock"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -43,7 +43,7 @@ func Test_service_refreshToken(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockToken, *tokenmock.MockAccessTokenGenerator)
+		prepare func(*storagemock.MockToken, *generatormock.MockToken)
 		want    *corev1.TokenResponse
 		wantErr bool
 	}{
@@ -153,7 +153,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -180,7 +180,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -207,7 +207,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
@@ -239,7 +239,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
@@ -271,7 +271,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
@@ -303,7 +303,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(100, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -342,7 +342,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, _ *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -383,7 +383,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -423,7 +423,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -463,7 +463,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -504,7 +504,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -547,7 +547,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -592,7 +592,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -644,7 +644,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -700,8 +700,8 @@ func Test_service_refreshToken(t *testing.T) {
 
 			// Arm mocks
 			sessions := storagemock.NewMockSession(ctrl)
-			accessTokens := tokenmock.NewMockAccessTokenGenerator(ctrl)
-			idTokens := tokenmock.NewMockIDTokenGenerator(ctrl)
+			accessTokens := generatormock.NewMockToken(ctrl)
+			idTokens := generatormock.NewMockIdentity(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
 
 			// Prepare them
@@ -710,10 +710,10 @@ func Test_service_refreshToken(t *testing.T) {
 			}
 
 			s := &service{
-				sessions:             sessions,
-				tokens:               tokens,
-				accessTokenGenerator: accessTokens,
-				idTokenGenerator:     idTokens,
+				sessions: sessions,
+				tokens:   tokens,
+				tokenGen: accessTokens,
+				idGen:    idTokens,
 			}
 			got, err := s.refreshToken(tt.args.ctx, tt.args.client, tt.args.req)
 			if (err != nil) != tt.wantErr {

@@ -15,24 +15,4 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package token
-
-import (
-	"context"
-
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-)
-
-//go:generate mockgen -destination mock/access_token_generator.gen.go -package mock go.zenithar.org/solid/pkg/token AccessTokenGenerator
-
-// AccessTokenGenerator describes accessToken generator contract.
-type AccessTokenGenerator interface {
-	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta) (string, error)
-}
-
-//go:generate mockgen -destination mock/id_token_generator.gen.go -package mock go.zenithar.org/solid/pkg/token IDTokenGenerator
-
-// IDTokenGenerator describes idToken generator contract.
-type IDTokenGenerator interface {
-	Generate(ctx context.Context) (string, error)
-}
+package mock

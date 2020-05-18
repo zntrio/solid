@@ -15,30 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package authorization
+package generator
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dchest/uniuri"
+
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 
 const (
-	// DefaultAuthorizationCodeLen defines default auhtorization code length.
-	DefaultAuthorizationCodeLen = 64
+	// DefaultAccessTokenLen defines default token code length.
+	DefaultAccessTokenLen = 28
 )
 
-// Default returns the default authorization code generator.
-func Default() CodeGenerator {
-	return &codeGenerator{}
+// DefaultToken returns the default token generator.
+func DefaultToken() Token {
+	return &tokenGenerator{}
 }
 
 // -----------------------------------------------------------------------------
 
-type codeGenerator struct {
+type tokenGenerator struct {
 }
 
-func (c *codeGenerator) Generate(_ context.Context) (string, error) {
-	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
+func (c *tokenGenerator) Generate(_ context.Context, _ string, _ *corev1.TokenMeta) (string, error) {
+	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
 	return code, nil
 }

@@ -24,14 +24,14 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/internal/services"
+	"go.zenithar.org/solid/pkg/generator"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
-	"go.zenithar.org/solid/pkg/token"
 )
 
 type service struct {
-	accessTokenGenerator  token.AccessTokenGenerator
-	idTokenGenerator      token.IDTokenGenerator
+	tokenGen              generator.Token
+	idGen                 generator.Identity
 	clients               storage.ClientReader
 	authorizationRequests storage.AuthorizationRequestReader
 	sessions              storage.Session
@@ -39,10 +39,10 @@ type service struct {
 }
 
 // New build and returns an authorization service implementation.
-func New(accessTokenGenerator token.AccessTokenGenerator, idTokenGenerator token.IDTokenGenerator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, sessions storage.Session, tokens storage.Token) services.Token {
+func New(tokenGen generator.Token, idGen generator.Identity, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, sessions storage.Session, tokens storage.Token) services.Token {
 	return &service{
-		accessTokenGenerator:  accessTokenGenerator,
-		idTokenGenerator:      idTokenGenerator,
+		tokenGen:              tokenGen,
+		idGen:                 idGen,
 		clients:               clients,
 		authorizationRequests: authorizationRequests,
 		sessions:              sessions,

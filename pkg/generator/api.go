@@ -15,33 +15,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package token
+package generator
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/dchest/uniuri"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 
-const (
-	// DefaultAccessTokenLen defines default authorization code length.
-	DefaultAccessTokenLen = 60
-)
+//go:generate mockgen -destination mock/authorization_code.gen.go -package mock go.zenithar.org/solid/pkg/generator AuthorizationCode
 
-// DefaultAccessTokenGenerator returns the default authorization code generator.
-func DefaultAccessTokenGenerator() AccessTokenGenerator {
-	return &accessTokenGenerator{}
+// AuthorizationCode describes authorization code generator contract.
+type AuthorizationCode interface {
+	Generate(ctx context.Context) (string, error)
 }
 
-// -----------------------------------------------------------------------------
+//go:generate mockgen -destination mock/token.gen.go -package mock go.zenithar.org/solid/pkg/generator Token
 
-type accessTokenGenerator struct {
+// Token describes accessToken / refreshToken generator contract.
+type Token interface {
+	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta) (string, error)
 }
 
-func (c *accessTokenGenerator) Generate(_ context.Context, _ string, _ *corev1.TokenMeta) (string, error) {
-	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
-	return code, nil
+//go:generate mockgen -destination mock/identity.gen.go -package mock go.zenithar.org/solid/pkg/generator Identity
+
+// Identity describes idToken generator contract.
+type Identity interface {
+	Generate(ctx context.Context) (string, error)
 }

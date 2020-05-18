@@ -24,10 +24,10 @@ import (
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
+	generatormock "go.zenithar.org/solid/pkg/generator/mock"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	storagemock "go.zenithar.org/solid/pkg/storage/mock"
-	tokenmock "go.zenithar.org/solid/pkg/token/mock"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
@@ -41,7 +41,7 @@ func Test_service_Revoke(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockClientReader, *storagemock.MockAuthorizationRequestReader, *tokenmock.MockAccessTokenGenerator, *storagemock.MockSession, *storagemock.MockToken)
+		prepare func(*storagemock.MockClientReader, *storagemock.MockAuthorizationRequestReader, *generatormock.MockToken, *storagemock.MockSession, *storagemock.MockToken)
 		want    *corev1.TokenRevocationResponse
 		wantErr bool
 	}{
@@ -105,7 +105,7 @@ func Test_service_Revoke(t *testing.T) {
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -124,7 +124,7 @@ func Test_service_Revoke(t *testing.T) {
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -144,7 +144,7 @@ func Test_service_Revoke(t *testing.T) {
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
@@ -164,7 +164,7 @@ func Test_service_Revoke(t *testing.T) {
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
@@ -184,7 +184,7 @@ func Test_service_Revoke(t *testing.T) {
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{}, nil)
 				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
 					Status:  corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -208,7 +208,7 @@ func Test_service_Revoke(t *testing.T) {
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockAccessTokenGenerator, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{}, nil)
 				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
 					Status:  corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -229,8 +229,8 @@ func Test_service_Revoke(t *testing.T) {
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationRequests := storagemock.NewMockAuthorizationRequestReader(ctrl)
-			accessTokens := tokenmock.NewMockAccessTokenGenerator(ctrl)
-			idTokens := tokenmock.NewMockIDTokenGenerator(ctrl)
+			accessTokens := generatormock.NewMockToken(ctrl)
+			idTokens := generatormock.NewMockIdentity(ctrl)
 			sessions := storagemock.NewMockSession(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
 

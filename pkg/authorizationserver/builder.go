@@ -23,11 +23,10 @@ import (
 	"go.zenithar.org/solid/internal/services"
 	"go.zenithar.org/solid/internal/services/authorization"
 	"go.zenithar.org/solid/internal/services/token"
-	pkgauthorization "go.zenithar.org/solid/pkg/authorization"
 	"go.zenithar.org/solid/pkg/authorizationserver/features"
 	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
+	"go.zenithar.org/solid/pkg/generator"
 	"go.zenithar.org/solid/pkg/reactor"
-	pkgtoken "go.zenithar.org/solid/pkg/token"
 )
 
 // AuthorizationServer represents global authorization features enabled at-runtime.
@@ -42,8 +41,8 @@ type AuthorizationServer interface {
 func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer {
 	// Default options
 	defaultOptions := &options{
-		authorizationCodeGenerator: pkgauthorization.Default(),
-		accessTokenGenerator:       pkgtoken.DefaultAccessTokenGenerator(),
+		authorizationCodeGenerator: generator.DefaultAuthorizationCode(),
+		accessTokenGenerator:       generator.DefaultToken(),
 		clientReader:               nil,
 		tokenManager:               nil,
 		sessionManager:             nil,

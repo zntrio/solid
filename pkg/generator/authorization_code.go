@@ -15,20 +15,30 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package authorization
+package generator
 
 import (
 	"context"
-	"testing"
+
+	"github.com/dchest/uniuri"
 )
 
-func Test_codeGenerator_Generate(t *testing.T) {
-	c := Default()
-	got, err := c.Generate(context.Background())
-	if err != nil {
-		t.Fatalf("unexpected error occurs, got %v", err)
-	}
-	if len(got) != DefaultAuthorizationCodeLen {
-		t.Errorf("generated value has not the required length (%d)", DefaultAuthorizationCodeLen)
-	}
+const (
+	// DefaultAuthorizationCodeLen defines default authorization code length.
+	DefaultAuthorizationCodeLen = 64
+)
+
+// DefaultAuthorizationCode returns the default authorization code generator.
+func DefaultAuthorizationCode() AuthorizationCode {
+	return &authorizationCodeGenerator{}
+}
+
+// -----------------------------------------------------------------------------
+
+type authorizationCodeGenerator struct {
+}
+
+func (c *authorizationCodeGenerator) Generate(_ context.Context) (string, error) {
+	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
+	return code, nil
 }

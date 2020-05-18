@@ -55,7 +55,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 	}
 
 	// Generate an access token
-	at.Value, err = s.accessTokenGenerator.Generate(ctx, at.TokenId, at.Metadata)
+	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate an accessToken: %w", err)
 	}
@@ -93,7 +93,7 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 	}
 
 	// Generate an access token
-	at.Value, err = s.accessTokenGenerator.Generate(ctx, at.TokenId, at.Metadata)
+	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate an refresh token: %w", err)
 	}

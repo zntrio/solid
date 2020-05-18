@@ -18,18 +18,17 @@
 package authorizationserver
 
 import (
-	"go.zenithar.org/solid/pkg/authorization"
+	"go.zenithar.org/solid/pkg/generator"
 	"go.zenithar.org/solid/pkg/storage"
-	"go.zenithar.org/solid/pkg/token"
 )
 
 // Builder options holder
 type options struct {
-	authorizationCodeGenerator  authorization.CodeGenerator
+	authorizationCodeGenerator  generator.AuthorizationCode
 	clientReader                storage.ClientReader
 	authorizationRequestManager storage.AuthorizationRequest
-	accessTokenGenerator        token.AccessTokenGenerator
-	idTokenGenerator            token.IDTokenGenerator
+	accessTokenGenerator        generator.Token
+	idTokenGenerator            generator.Identity
 	sessionManager              storage.Session
 	tokenManager                storage.Token
 }

@@ -15,13 +15,20 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package authorization
+package generator
 
-import "context"
+import (
+	"context"
+	"testing"
+)
 
-//go:generate mockgen -destination mock/codegenerator.gen.go -package mock go.zenithar.org/solid/pkg/authorization CodeGenerator
-
-// CodeGenerator describes authorization code generator contract.
-type CodeGenerator interface {
-	Generate(ctx context.Context) (string, error)
+func Test_codeGenerator_Generate(t *testing.T) {
+	c := DefaultAuthorizationCode()
+	got, err := c.Generate(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error occurs, got %v", err)
+	}
+	if len(got) != DefaultAuthorizationCodeLen {
+		t.Errorf("generated value has not the required length (%d)", DefaultAuthorizationCodeLen)
+	}
 }

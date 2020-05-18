@@ -81,6 +81,9 @@ func (s *sessionStorage) Get(ctx context.Context, code string) (*corev1.Session,
 	// Retrieve from cache
 	body, err := s.backend.Get(code)
 	if err != nil {
+		if err == bigcache.ErrEntryNotFound {
+			return nil, storage.ErrNotFound
+		}
 		return nil, fmt.Errorf("unable to retrieve '%s' from cache: %w", code, err)
 	}
 

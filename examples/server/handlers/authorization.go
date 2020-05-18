@@ -23,11 +23,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"go.zenithar.org/solid/pkg/rfcerrors"
-
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/pkg/authorizationserver"
+	"go.zenithar.org/solid/pkg/rfcerrors"
 )
 
 // Authorization handles authorization HTTP requests.
@@ -80,6 +80,6 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		u.RawQuery = fmt.Sprintf("code=%s&state=%s", authRes.Code, authRes.State)
 
 		// Redirect to application
-		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
+		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
 	})
 }

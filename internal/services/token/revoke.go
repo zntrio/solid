@@ -43,20 +43,25 @@ func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest
 		return res, fmt.Errorf("token parameter is mandatory")
 	}
 
-	// Retrieve token by value
-	t, err := s.tokens.GetByValue(ctx, req.Token)
+	// Retrieve client information
+	_, err := s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError("")
 		} else {
-			res.Error = rfcerrors.InvalidRequest("")
+			res.Error = rfcerrors.InvalidClient("")
 		}
+		return res, fmt.Errorf("unable to retrieve client details: %w", err)
+	}
+
+	// Retrieve token by value
+	t, err := s.tokens.GetByValue(ctx, req.Token)
+	if err != nil {
 		return res, fmt.Errorf("unable to retrieve token '%s': %w", req.Token, err)
 	}
 
 	// Update token status
 	if err := s.tokens.Revoke(ctx, t.TokenId); err != nil {
-		res.Error = rfcerrors.InvalidRequest("")
 		return res, fmt.Errorf("unable to revoke token '%s': %w", req.Token, err)
 	}
 

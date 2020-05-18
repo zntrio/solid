@@ -23,6 +23,7 @@ import (
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/pkg/rfcerrors"
+	"go.zenithar.org/solid/pkg/storage"
 )
 
 func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospectionRequest) (*corev1.TokenIntrospectionResponse, error) {
@@ -42,9 +43,24 @@ func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospection
 		return res, fmt.Errorf("token parameter is mandatory")
 	}
 
+	// Retrieve client information
+	_, err := s.clients.Get(ctx, req.Client.ClientId)
+	if err != nil {
+		if err != storage.ErrNotFound {
+			res.Error = rfcerrors.ServerError("")
+		} else {
+			res.Error = rfcerrors.InvalidClient("")
+		}
+		return res, fmt.Errorf("unable to retrieve client details: %w", err)
+	}
+
 	// Retrieve token by value
 	t, err := s.tokens.GetByValue(ctx, req.Token)
 	if err != nil {
+		res.Token = &corev1.Token{
+			Value:  req.Token,
+			Status: corev1.TokenStatus_TOKEN_STATUS_INVALID,
+		}
 		return res, fmt.Errorf("unable to retrieve token '%s': %w", req.Token, err)
 	}
 

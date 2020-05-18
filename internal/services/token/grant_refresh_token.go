@@ -21,11 +21,10 @@ import (
 	"context"
 	"fmt"
 
-	"go.zenithar.org/solid/pkg/storage"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
+	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
 )
 
@@ -109,6 +108,12 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 		if err != nil {
 			res.Error = rfcerrors.ServerError("")
 			return res, fmt.Errorf("unable to generate refresh token: %w", err)
+		}
+
+		// Revoke old refresh token
+		if err := s.tokens.Revoke(ctx, rt.TokenId); err != nil {
+			res.Error = rfcerrors.ServerError("")
+			return res, fmt.Errorf("unable to revoke old refresh token '%s': %w", rt.Value, err)
 		}
 
 		// Assign new refresh token

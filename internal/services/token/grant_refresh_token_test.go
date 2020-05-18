@@ -528,6 +528,50 @@ func Test_service_refreshToken(t *testing.T) {
 				Error: rfcerrors.ServerError(""),
 			},
 		},
+		{
+			name: "rt revocation error",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeRefreshToken},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeRefreshToken,
+					Grant: &corev1.TokenRequest_RefreshToken{
+						RefreshToken: &corev1.GrantRefreshToken{
+							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+						},
+					},
+				},
+			},
+			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockAccessTokenGenerator) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+					TokenId:   "0123456789",
+					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 2,
+					},
+				}, nil)
+				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil).After(atGen)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Revoke(gomock.Any(), "0123456789").Return(fmt.Errorf("foo"))
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
 		// ---------------------------------------------------------------------
 		{
 			name: "valid",
@@ -618,6 +662,7 @@ func Test_service_refreshToken(t *testing.T) {
 				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil).After(atGen)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Revoke(gomock.Any(), "0123456789").Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{

@@ -25,7 +25,7 @@ const (
 	// GrantTypeClientCredentials repesents ClientCredentials grant type name.
 	GrantTypeClientCredentials = "client_credentials"
 	// GrantTypeDeviceCode repesents DeviceCode grant type name.
-	GrantTypeDeviceCode = "device_code"
+	GrantTypeDeviceCode = "urn:ietf:params:oauth:grant-type:device_code"
 	// GrantTypeRefreshToken repesents RefreshToken grant type name.
 	GrantTypeRefreshToken = "refresh_token"
 )

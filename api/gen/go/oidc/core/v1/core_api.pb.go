@@ -756,6 +756,176 @@ func (x *TokenResponse) GetIdToken() *Token {
 	return nil
 }
 
+// https://tools.ietf.org/html/rfc8628#section-3.1
+type DeviceAuthorizationRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// REQUIRED if the client is not authenticating with the
+	// authorization server as described in Section 3.2.1. of [RFC6749].
+	// The client identifier as described in Section 2.2 of [RFC6749].
+	ClientId string `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	// OPTIONAL.  The scope of the access request as defined by
+	// Section 3.3 of [RFC6749].
+	Scope *wrappers.StringValue `protobuf:"bytes,2,opt,name=scope,proto3" json:"scope,omitempty"`
+}
+
+func (x *DeviceAuthorizationRequest) Reset() {
+	*x = DeviceAuthorizationRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_oidc_core_v1_core_api_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DeviceAuthorizationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeviceAuthorizationRequest) ProtoMessage() {}
+
+func (x *DeviceAuthorizationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_core_v1_core_api_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeviceAuthorizationRequest.ProtoReflect.Descriptor instead.
+func (*DeviceAuthorizationRequest) Descriptor() ([]byte, []int) {
+	return file_oidc_core_v1_core_api_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DeviceAuthorizationRequest) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+func (x *DeviceAuthorizationRequest) GetScope() *wrappers.StringValue {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+// https://tools.ietf.org/html/rfc8628#section-3.2
+type DeviceAuthorizationResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Error *Error `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// REQUIRED.  The device verification code.
+	DeviceCode string `protobuf:"bytes,2,opt,name=device_code,json=deviceCode,proto3" json:"device_code,omitempty"`
+	// REQUIRED.  The end-user verification code.
+	UserCode string `protobuf:"bytes,3,opt,name=user_code,json=userCode,proto3" json:"user_code,omitempty"`
+	// REQUIRED.  The end-user verification URI on the authorization
+	// server.  The URI should be short and easy to remember as end users
+	// will be asked to manually type it into their user agent.
+	VerificationUri string `protobuf:"bytes,4,opt,name=verification_uri,json=verificationUri,proto3" json:"verification_uri,omitempty"`
+	// OPTIONAL.  A verification URI that includes the "user_code" (or
+	// other information with the same function as the "user_code"),
+	// which is designed for non-textual transmission.
+	VerificationUriComplete string `protobuf:"bytes,5,opt,name=verification_uri_complete,json=verificationUriComplete,proto3" json:"verification_uri_complete,omitempty"`
+	// REQUIRED.  The lifetime in seconds of the "device_code" and
+	// "user_code".
+	ExpiresIn uint64 `protobuf:"fixed64,6,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	// OPTIONAL.  The minimum amount of time in seconds that the client
+	// SHOULD wait between polling requests to the token endpoint.  If no
+	// value is provided, clients MUST use 5 as the default.
+	Interval uint64 `protobuf:"fixed64,7,opt,name=interval,proto3" json:"interval,omitempty"`
+}
+
+func (x *DeviceAuthorizationResponse) Reset() {
+	*x = DeviceAuthorizationResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_oidc_core_v1_core_api_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *DeviceAuthorizationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeviceAuthorizationResponse) ProtoMessage() {}
+
+func (x *DeviceAuthorizationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_core_v1_core_api_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeviceAuthorizationResponse.ProtoReflect.Descriptor instead.
+func (*DeviceAuthorizationResponse) Descriptor() ([]byte, []int) {
+	return file_oidc_core_v1_core_api_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DeviceAuthorizationResponse) GetError() *Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *DeviceAuthorizationResponse) GetDeviceCode() string {
+	if x != nil {
+		return x.DeviceCode
+	}
+	return ""
+}
+
+func (x *DeviceAuthorizationResponse) GetUserCode() string {
+	if x != nil {
+		return x.UserCode
+	}
+	return ""
+}
+
+func (x *DeviceAuthorizationResponse) GetVerificationUri() string {
+	if x != nil {
+		return x.VerificationUri
+	}
+	return ""
+}
+
+func (x *DeviceAuthorizationResponse) GetVerificationUriComplete() string {
+	if x != nil {
+		return x.VerificationUriComplete
+	}
+	return ""
+}
+
+func (x *DeviceAuthorizationResponse) GetExpiresIn() uint64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *DeviceAuthorizationResponse) GetInterval() uint64 {
+	if x != nil {
+		return x.Interval
+	}
+	return 0
+}
+
 var File_oidc_core_v1_core_api_proto protoreflect.FileDescriptor
 
 var file_oidc_core_v1_core_api_proto_rawDesc = []byte{
@@ -894,19 +1064,45 @@ var file_oidc_core_v1_core_api_proto_rawDesc = []byte{
 	0x12, 0x2e, 0x0a, 0x08, 0x69, 0x64, 0x5f, 0x74, 0x6f, 0x6b, 0x65, 0x6e, 0x18, 0x04, 0x20, 0x01,
 	0x28, 0x0b, 0x32, 0x13, 0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76,
 	0x31, 0x2e, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x52, 0x07, 0x69, 0x64, 0x54, 0x6f, 0x6b, 0x65, 0x6e,
-	0x32, 0xaa, 0x01, 0x0a, 0x10, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x41, 0x50, 0x49, 0x12, 0x54, 0x0a, 0x09, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69,
-	0x7a, 0x65, 0x12, 0x22, 0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76,
-	0x31, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f,
-	0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x40, 0x0a, 0x05, 0x54,
-	0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1a, 0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65,
-	0x2e, 0x76, 0x31, 0x2e, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x1b, 0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e,
-	0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x15, 0x5a,
-	0x13, 0x6f, 0x69, 0x64, 0x63, 0x2f, 0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x63, 0x6f,
-	0x72, 0x65, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x22, 0x6d, 0x0a, 0x1a, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
+	0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1b,
+	0x0a, 0x09, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x08, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x49, 0x64, 0x12, 0x32, 0x0a, 0x05, 0x73,
+	0x63, 0x6f, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x6f, 0x6f,
+	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x53, 0x74, 0x72,
+	0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x73, 0x63, 0x6f, 0x70, 0x65, 0x22,
+	0xa8, 0x02, 0x0a, 0x1b, 0x44, 0x65, 0x76, 0x69, 0x63, 0x65, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72,
+	0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x29, 0x0a, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13,
+	0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x45, 0x72,
+	0x72, 0x6f, 0x72, 0x52, 0x05, 0x65, 0x72, 0x72, 0x6f, 0x72, 0x12, 0x1f, 0x0a, 0x0b, 0x64, 0x65,
+	0x76, 0x69, 0x63, 0x65, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0a, 0x64, 0x65, 0x76, 0x69, 0x63, 0x65, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x1b, 0x0a, 0x09, 0x75,
+	0x73, 0x65, 0x72, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08,
+	0x75, 0x73, 0x65, 0x72, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x29, 0x0a, 0x10, 0x76, 0x65, 0x72, 0x69,
+	0x66, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x75, 0x72, 0x69, 0x18, 0x04, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x0f, 0x76, 0x65, 0x72, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e,
+	0x55, 0x72, 0x69, 0x12, 0x3a, 0x0a, 0x19, 0x76, 0x65, 0x72, 0x69, 0x66, 0x69, 0x63, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x5f, 0x75, 0x72, 0x69, 0x5f, 0x63, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x17, 0x76, 0x65, 0x72, 0x69, 0x66, 0x69, 0x63, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x55, 0x72, 0x69, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x12,
+	0x1d, 0x0a, 0x0a, 0x65, 0x78, 0x70, 0x69, 0x72, 0x65, 0x73, 0x5f, 0x69, 0x6e, 0x18, 0x06, 0x20,
+	0x01, 0x28, 0x06, 0x52, 0x09, 0x65, 0x78, 0x70, 0x69, 0x72, 0x65, 0x73, 0x49, 0x6e, 0x12, 0x1a,
+	0x0a, 0x08, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x76, 0x61, 0x6c, 0x18, 0x07, 0x20, 0x01, 0x28, 0x06,
+	0x52, 0x08, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x76, 0x61, 0x6c, 0x32, 0xaa, 0x01, 0x0a, 0x10, 0x41,
+	0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x41, 0x50, 0x49, 0x12,
+	0x54, 0x0a, 0x09, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x65, 0x12, 0x22, 0x2e, 0x6f,
+	0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x41, 0x75, 0x74, 0x68,
+	0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x23, 0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e,
+	0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x7a, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x40, 0x0a, 0x05, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x12, 0x1a,
+	0x2e, 0x6f, 0x69, 0x64, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x6f,
+	0x6b, 0x65, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1b, 0x2e, 0x6f, 0x69, 0x64,
+	0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x76, 0x31, 0x2e, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x15, 0x5a, 0x13, 0x6f, 0x69, 0x64, 0x63, 0x2f,
+	0x63, 0x6f, 0x72, 0x65, 0x2f, 0x76, 0x31, 0x3b, 0x63, 0x6f, 0x72, 0x65, 0x76, 0x31, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -921,57 +1117,61 @@ func file_oidc_core_v1_core_api_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_core_api_proto_rawDescData
 }
 
-var file_oidc_core_v1_core_api_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_oidc_core_v1_core_api_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_oidc_core_v1_core_api_proto_goTypes = []interface{}{
-	(*AuthorizationRequest)(nil),   // 0: oidc.core.v1.AuthorizationRequest
-	(*AuthorizationResponse)(nil),  // 1: oidc.core.v1.AuthorizationResponse
-	(*RegistrationRequest)(nil),    // 2: oidc.core.v1.RegistrationRequest
-	(*RegistrationResponse)(nil),   // 3: oidc.core.v1.RegistrationResponse
-	(*TokenRequest)(nil),           // 4: oidc.core.v1.TokenRequest
-	(*TokenResponse)(nil),          // 5: oidc.core.v1.TokenResponse
-	(*wrappers.StringValue)(nil),   // 6: google.protobuf.StringValue
-	(*wrappers.UInt64Value)(nil),   // 7: google.protobuf.UInt64Value
-	(*Error)(nil),                  // 8: oidc.core.v1.Error
-	(*Client)(nil),                 // 9: oidc.core.v1.Client
-	(*GrantAuthorizationCode)(nil), // 10: oidc.core.v1.GrantAuthorizationCode
-	(*GrantClientCredentials)(nil), // 11: oidc.core.v1.GrantClientCredentials
-	(*GrantDeviceCode)(nil),        // 12: oidc.core.v1.GrantDeviceCode
-	(*GrantRefreshToken)(nil),      // 13: oidc.core.v1.GrantRefreshToken
-	(*Token)(nil),                  // 14: oidc.core.v1.Token
+	(*AuthorizationRequest)(nil),        // 0: oidc.core.v1.AuthorizationRequest
+	(*AuthorizationResponse)(nil),       // 1: oidc.core.v1.AuthorizationResponse
+	(*RegistrationRequest)(nil),         // 2: oidc.core.v1.RegistrationRequest
+	(*RegistrationResponse)(nil),        // 3: oidc.core.v1.RegistrationResponse
+	(*TokenRequest)(nil),                // 4: oidc.core.v1.TokenRequest
+	(*TokenResponse)(nil),               // 5: oidc.core.v1.TokenResponse
+	(*DeviceAuthorizationRequest)(nil),  // 6: oidc.core.v1.DeviceAuthorizationRequest
+	(*DeviceAuthorizationResponse)(nil), // 7: oidc.core.v1.DeviceAuthorizationResponse
+	(*wrappers.StringValue)(nil),        // 8: google.protobuf.StringValue
+	(*wrappers.UInt64Value)(nil),        // 9: google.protobuf.UInt64Value
+	(*Error)(nil),                       // 10: oidc.core.v1.Error
+	(*Client)(nil),                      // 11: oidc.core.v1.Client
+	(*GrantAuthorizationCode)(nil),      // 12: oidc.core.v1.GrantAuthorizationCode
+	(*GrantClientCredentials)(nil),      // 13: oidc.core.v1.GrantClientCredentials
+	(*GrantDeviceCode)(nil),             // 14: oidc.core.v1.GrantDeviceCode
+	(*GrantRefreshToken)(nil),           // 15: oidc.core.v1.GrantRefreshToken
+	(*Token)(nil),                       // 16: oidc.core.v1.Token
 }
 var file_oidc_core_v1_core_api_proto_depIdxs = []int32{
-	6,  // 0: oidc.core.v1.AuthorizationRequest.response_mode:type_name -> google.protobuf.StringValue
-	6,  // 1: oidc.core.v1.AuthorizationRequest.display:type_name -> google.protobuf.StringValue
-	6,  // 2: oidc.core.v1.AuthorizationRequest.prompt:type_name -> google.protobuf.StringValue
-	7,  // 3: oidc.core.v1.AuthorizationRequest.max_age:type_name -> google.protobuf.UInt64Value
-	6,  // 4: oidc.core.v1.AuthorizationRequest.ui_locales:type_name -> google.protobuf.StringValue
-	6,  // 5: oidc.core.v1.AuthorizationRequest.id_token_hint:type_name -> google.protobuf.StringValue
-	6,  // 6: oidc.core.v1.AuthorizationRequest.acr_values:type_name -> google.protobuf.StringValue
-	6,  // 7: oidc.core.v1.AuthorizationRequest.request:type_name -> google.protobuf.StringValue
-	6,  // 8: oidc.core.v1.AuthorizationRequest.request_uri:type_name -> google.protobuf.StringValue
-	8,  // 9: oidc.core.v1.AuthorizationResponse.error:type_name -> oidc.core.v1.Error
-	9,  // 10: oidc.core.v1.RegistrationRequest.client:type_name -> oidc.core.v1.Client
+	8,  // 0: oidc.core.v1.AuthorizationRequest.response_mode:type_name -> google.protobuf.StringValue
+	8,  // 1: oidc.core.v1.AuthorizationRequest.display:type_name -> google.protobuf.StringValue
+	8,  // 2: oidc.core.v1.AuthorizationRequest.prompt:type_name -> google.protobuf.StringValue
+	9,  // 3: oidc.core.v1.AuthorizationRequest.max_age:type_name -> google.protobuf.UInt64Value
+	8,  // 4: oidc.core.v1.AuthorizationRequest.ui_locales:type_name -> google.protobuf.StringValue
+	8,  // 5: oidc.core.v1.AuthorizationRequest.id_token_hint:type_name -> google.protobuf.StringValue
+	8,  // 6: oidc.core.v1.AuthorizationRequest.acr_values:type_name -> google.protobuf.StringValue
+	8,  // 7: oidc.core.v1.AuthorizationRequest.request:type_name -> google.protobuf.StringValue
+	8,  // 8: oidc.core.v1.AuthorizationRequest.request_uri:type_name -> google.protobuf.StringValue
+	10, // 9: oidc.core.v1.AuthorizationResponse.error:type_name -> oidc.core.v1.Error
+	11, // 10: oidc.core.v1.RegistrationRequest.client:type_name -> oidc.core.v1.Client
 	0,  // 11: oidc.core.v1.RegistrationRequest.request:type_name -> oidc.core.v1.AuthorizationRequest
-	8,  // 12: oidc.core.v1.RegistrationResponse.error:type_name -> oidc.core.v1.Error
-	9,  // 13: oidc.core.v1.TokenRequest.client:type_name -> oidc.core.v1.Client
-	6,  // 14: oidc.core.v1.TokenRequest.scope:type_name -> google.protobuf.StringValue
-	10, // 15: oidc.core.v1.TokenRequest.authorization_code:type_name -> oidc.core.v1.GrantAuthorizationCode
-	11, // 16: oidc.core.v1.TokenRequest.client_credentials:type_name -> oidc.core.v1.GrantClientCredentials
-	12, // 17: oidc.core.v1.TokenRequest.device_code:type_name -> oidc.core.v1.GrantDeviceCode
-	13, // 18: oidc.core.v1.TokenRequest.refresh_token:type_name -> oidc.core.v1.GrantRefreshToken
-	8,  // 19: oidc.core.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
-	14, // 20: oidc.core.v1.TokenResponse.access_token:type_name -> oidc.core.v1.Token
-	14, // 21: oidc.core.v1.TokenResponse.refresh_token:type_name -> oidc.core.v1.Token
-	14, // 22: oidc.core.v1.TokenResponse.id_token:type_name -> oidc.core.v1.Token
-	0,  // 23: oidc.core.v1.AuthorizationAPI.Authorize:input_type -> oidc.core.v1.AuthorizationRequest
-	4,  // 24: oidc.core.v1.AuthorizationAPI.Token:input_type -> oidc.core.v1.TokenRequest
-	1,  // 25: oidc.core.v1.AuthorizationAPI.Authorize:output_type -> oidc.core.v1.AuthorizationResponse
-	5,  // 26: oidc.core.v1.AuthorizationAPI.Token:output_type -> oidc.core.v1.TokenResponse
-	25, // [25:27] is the sub-list for method output_type
-	23, // [23:25] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	10, // 12: oidc.core.v1.RegistrationResponse.error:type_name -> oidc.core.v1.Error
+	11, // 13: oidc.core.v1.TokenRequest.client:type_name -> oidc.core.v1.Client
+	8,  // 14: oidc.core.v1.TokenRequest.scope:type_name -> google.protobuf.StringValue
+	12, // 15: oidc.core.v1.TokenRequest.authorization_code:type_name -> oidc.core.v1.GrantAuthorizationCode
+	13, // 16: oidc.core.v1.TokenRequest.client_credentials:type_name -> oidc.core.v1.GrantClientCredentials
+	14, // 17: oidc.core.v1.TokenRequest.device_code:type_name -> oidc.core.v1.GrantDeviceCode
+	15, // 18: oidc.core.v1.TokenRequest.refresh_token:type_name -> oidc.core.v1.GrantRefreshToken
+	10, // 19: oidc.core.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
+	16, // 20: oidc.core.v1.TokenResponse.access_token:type_name -> oidc.core.v1.Token
+	16, // 21: oidc.core.v1.TokenResponse.refresh_token:type_name -> oidc.core.v1.Token
+	16, // 22: oidc.core.v1.TokenResponse.id_token:type_name -> oidc.core.v1.Token
+	8,  // 23: oidc.core.v1.DeviceAuthorizationRequest.scope:type_name -> google.protobuf.StringValue
+	10, // 24: oidc.core.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
+	0,  // 25: oidc.core.v1.AuthorizationAPI.Authorize:input_type -> oidc.core.v1.AuthorizationRequest
+	4,  // 26: oidc.core.v1.AuthorizationAPI.Token:input_type -> oidc.core.v1.TokenRequest
+	1,  // 27: oidc.core.v1.AuthorizationAPI.Authorize:output_type -> oidc.core.v1.AuthorizationResponse
+	5,  // 28: oidc.core.v1.AuthorizationAPI.Token:output_type -> oidc.core.v1.TokenResponse
+	27, // [27:29] is the sub-list for method output_type
+	25, // [25:27] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_oidc_core_v1_core_api_proto_init() }
@@ -1056,6 +1256,30 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
+		file_oidc_core_v1_core_api_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeviceAuthorizationRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_oidc_core_v1_core_api_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*DeviceAuthorizationResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	file_oidc_core_v1_core_api_proto_msgTypes[4].OneofWrappers = []interface{}{
 		(*TokenRequest_AuthorizationCode)(nil),
@@ -1069,7 +1293,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_oidc_core_v1_core_api_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

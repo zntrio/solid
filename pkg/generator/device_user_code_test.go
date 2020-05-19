@@ -15,22 +15,28 @@
 // specific language governing permissions and limitations
 // under the License.
 
-syntax = "proto3";
+package generator
 
-package oidc.core.v1;
+import (
+	"context"
+	"fmt"
+	"testing"
+)
 
-option go_package = "oidc/core/v1;corev1";
+func Test_devicecodeAlphaGenerator_Generate(t *testing.T) {
+	c := DefaultDeviceUserCode()
+	got, err := c.Generate(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error occurs, got %v", err)
+	}
+	fmt.Println(got)
+}
 
-// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-message Error {
-  // REQUIRED. Error code.
-  string err = 1;
-  // OPTIONAL. Human-readable ASCII encoded text description of the error.
-  string error_description = 2;
-  // OPTIONAL. URI of a web page that includes additional information about the
-  // error.
-  string error_uri = 3;
-  // OAuth 2.0 state value. REQUIRED if the Authorization Request included the
-  // state parameter. Set to the value received from the Client.
-  string state = 4;
+func Test_devicecodeNumGenerator_Generate(t *testing.T) {
+	c := DefaultNumDeviceUserCode()
+	got, err := c.Generate(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error occurs, got %v", err)
+	}
+	fmt.Println(got)
 }

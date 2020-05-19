@@ -87,7 +87,17 @@ message GrantRefreshToken {
   string refresh_token = 1;
 }
 
+// https://tools.ietf.org/html/rfc8628#section-3.4
 message GrantDeviceCode {
+  // REQUIRED.  The device verification code, "device_code" from the
+  // device authorization response, defined in Section 3.2.
+  string device_code = 1;
+
+  // REQUIRED if the client is not authenticating with the
+  // authorization server as described in Section 3.2.1. of [RFC6749].
+  // The client identifier as described in Section 2.2 of [RFC6749].
+  string client_id = 2;
+
 }
 
 message GrantClientCredentials {

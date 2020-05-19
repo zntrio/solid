@@ -42,7 +42,7 @@ func Test_service_clientCredentials(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockSession, *storagemock.MockToken, *generatormock.MockToken)
+		prepare func(*storagemock.MockToken, *generatormock.MockToken)
 		want    *corev1.TokenResponse
 		wantErr bool
 	}{
@@ -128,7 +128,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -153,7 +153,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
@@ -178,7 +178,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 			},
@@ -205,7 +205,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
@@ -231,18 +231,16 @@ func Test_service_clientCredentials(t *testing.T) {
 			defer ctrl.Finish()
 
 			// Arm mocks
-			sessions := storagemock.NewMockSession(ctrl)
 			accessTokens := generatormock.NewMockToken(ctrl)
 			idTokens := generatormock.NewMockIdentity(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(sessions, tokens, accessTokens)
+				tt.prepare(tokens, accessTokens)
 			}
 
 			s := &service{
-				sessions: sessions,
 				tokens:   tokens,
 				tokenGen: accessTokens,
 				idGen:    idTokens,

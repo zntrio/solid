@@ -54,17 +54,19 @@ var (
 		cmpopts.IgnoreUnexported(corev1.Error{}),
 		cmpopts.IgnoreUnexported(corev1.Token{}),
 		cmpopts.IgnoreUnexported(corev1.TokenMeta{}),
-		cmpopts.IgnoreUnexported(corev1.Session{}),
+		cmpopts.IgnoreUnexported(corev1.AuthorizationCodeSession{}),
+		cmpopts.IgnoreUnexported(corev1.DeviceCodeSession{}),
 	}
 )
 
 func Test_service_Token(t *testing.T) {
 	type fields struct {
-		accessTokenGenerator  generator.Token
-		idTokenGenerator      generator.Identity
-		clients               storage.ClientReader
-		authorizationRequests storage.AuthorizationRequestReader
-		sessions              storage.Session
+		accessTokenGenerator      generator.Token
+		idTokenGenerator          generator.Identity
+		clients                   storage.ClientReader
+		authorizationRequests     storage.AuthorizationRequestReader
+		authorizationCodeSessions storage.AuthorizationCodeSession
+		deviceCodeSessions        storage.DeviceCodeSession
 	}
 	type args struct {
 		ctx context.Context
@@ -74,7 +76,7 @@ func Test_service_Token(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*storagemock.MockClientReader, *storagemock.MockAuthorizationRequestReader, *generatormock.MockToken, *storagemock.MockSession, *storagemock.MockToken)
+		prepare func(*storagemock.MockClientReader, *storagemock.MockAuthorizationRequestReader, *generatormock.MockToken, *storagemock.MockAuthorizationCodeSession, *storagemock.MockToken)
 		want    *corev1.TokenResponse
 		wantErr bool
 	}{
@@ -87,10 +89,8 @@ func Test_service_Token(t *testing.T) {
 			wantErr: true,
 			want: &corev1.TokenResponse{
 				Error: &corev1.Error{
-					Err: "invalid_request",
-					ErrorDescription: &wrappers.StringValue{
-						Value: "request is nil",
-					},
+					Err:              "invalid_request",
+					ErrorDescription: "request is nil",
 				},
 			},
 		},
@@ -234,7 +234,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, _ *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -260,7 +260,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, _ *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -282,7 +282,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev1.Error {
 					// Disable request validator
 					return nil
@@ -311,7 +311,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
@@ -352,14 +352,14 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, sessions *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.Session{
+				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -415,11 +415,14 @@ func Test_service_Token(t *testing.T) {
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{},
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, sessions *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, _ *generatormock.MockToken, sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
@@ -444,7 +447,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, sessions *storagemock.MockSession, tokens *storagemock.MockToken) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
@@ -488,19 +491,20 @@ func Test_service_Token(t *testing.T) {
 
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
-			authorizationRequests := storagemock.NewMockAuthorizationRequestReader(ctrl)
 			accessTokens := generatormock.NewMockToken(ctrl)
 			idTokens := generatormock.NewMockIdentity(ctrl)
-			sessions := storagemock.NewMockSession(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
+			authorizationRequests := storagemock.NewMockAuthorizationRequestReader(ctrl)
+			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSession(ctrl)
+			deviceCodeSessions := storagemock.NewMockDeviceCodeSession(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(clients, authorizationRequests, accessTokens, sessions, tokens)
+				tt.prepare(clients, authorizationRequests, accessTokens, authorizationCodeSessions, tokens)
 			}
 
 			// Instanciate service
-			underTest := New(accessTokens, idTokens, clients, authorizationRequests, sessions, tokens)
+			underTest := New(accessTokens, idTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens)
 
 			// Under test
 			got, err := underTest.Token(tt.args.ctx, tt.args.req)

@@ -250,3 +250,39 @@ message TokenResponse {
   // OPTIONAL. ID Token information.
   Token id_token = 4;
 }
+
+// https://tools.ietf.org/html/rfc8628#section-3.1
+message DeviceAuthorizationRequest {
+  // REQUIRED if the client is not authenticating with the
+  // authorization server as described in Section 3.2.1. of [RFC6749].
+  // The client identifier as described in Section 2.2 of [RFC6749].
+  string client_id = 1;
+
+  // OPTIONAL.  The scope of the access request as defined by
+  // Section 3.3 of [RFC6749].
+  google.protobuf.StringValue scope = 2;
+}
+
+// https://tools.ietf.org/html/rfc8628#section-3.2
+message DeviceAuthorizationResponse {
+  Error error = 1;
+  // REQUIRED.  The device verification code.
+  string device_code = 2;
+  // REQUIRED.  The end-user verification code.
+  string user_code = 3;
+  // REQUIRED.  The end-user verification URI on the authorization
+  // server.  The URI should be short and easy to remember as end users
+  // will be asked to manually type it into their user agent.
+  string verification_uri = 4;
+  // OPTIONAL.  A verification URI that includes the "user_code" (or
+  // other information with the same function as the "user_code"),
+  // which is designed for non-textual transmission.
+  string verification_uri_complete = 5;
+  // REQUIRED.  The lifetime in seconds of the "device_code" and
+  // "user_code".
+  fixed64 expires_in = 6;
+  // OPTIONAL.  The minimum amount of time in seconds that the client
+  // SHOULD wait between polling requests to the token endpoint.  If no
+  // value is provided, clients MUST use 5 as the default.
+  fixed64 interval = 7;
+}

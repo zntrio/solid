@@ -24,8 +24,25 @@ option go_package = "oidc/core/v1;corev1";
 import "oidc/core/v1/core_api.proto";
 import "oidc/core/v1/client.proto";
 
-message Session {
-  string subject = 1;
+message AuthorizationCodeSession {
+  Client client = 1;
   AuthorizationRequest request = 2;
-  Client client = 3;
+  string subject = 3;
+}
+
+enum DeviceCodeStatus {
+  DEVICE_CODE_STATUS_INVALID = 0;
+  DEVICE_CODE_STATUS_UNKNOWN = 1;
+  DEVICE_CODE_STATUS_AUTHORIZATION_PENDING = 2;
+  DEVICE_CODE_STATUS_VALIDATED = 3;
+}
+
+message DeviceCodeSession {
+  Client client = 1;
+  DeviceAuthorizationRequest request = 2;
+  string user_code = 3;
+  fixed64 expires_at = 4;
+  DeviceCodeStatus status = 5;
+  string scope = 6;
+  string audience = 7;
 }

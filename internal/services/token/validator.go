@@ -23,8 +23,6 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/rfcerrors"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 // ValidateRequest validates token request.
@@ -32,10 +30,8 @@ var validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev
 	// Check req nullity
 	if req == nil {
 		return &corev1.Error{
-			Err: "invalid_request",
-			ErrorDescription: &wrappers.StringValue{
-				Value: "request is nil",
-			},
+			Err:              "invalid_request",
+			ErrorDescription: "request is nil",
 		}
 	}
 

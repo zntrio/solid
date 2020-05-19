@@ -64,29 +64,6 @@ type AuthorizationRequest interface {
 	AuthorizationRequestWriter
 }
 
-//go:generate mockgen -destination mock/session_reader.gen.go -package mock go.zenithar.org/solid/pkg/storage SessionReader
-
-// SessionReader describes read-only storage operation contract.
-type SessionReader interface {
-	Get(ctx context.Context, code string) (*corev1.Session, error)
-}
-
-//go:generate mockgen -destination mock/session_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage SessionWriter
-
-// SessionWriter describes write-only operation contract.
-type SessionWriter interface {
-	Register(ctx context.Context, s *corev1.Session) (string, error)
-	Delete(ctx context.Context, code string) error
-}
-
-//go:generate mockgen -destination mock/session.gen.go -package mock go.zenithar.org/solid/pkg/storage Session
-
-// Session describes user session operation contract.
-type Session interface {
-	SessionReader
-	SessionWriter
-}
-
 //go:generate mockgen -destination mock/token_reader.gen.go -package mock go.zenithar.org/solid/pkg/storage TokenReader
 
 // TokenReader describes accessToken read-only operation storage contract.
@@ -110,4 +87,50 @@ type TokenWriter interface {
 type Token interface {
 	TokenReader
 	TokenWriter
+}
+
+//go:generate mockgen -destination mock/authorization_code_session_reader.gen.go -package mock go.zenithar.org/solid/pkg/storage AuthorizationCodeSessionReader
+
+// AuthorizationCodeSessionReader describes read-only storage operation contract.
+type AuthorizationCodeSessionReader interface {
+	Get(ctx context.Context, code string) (*corev1.AuthorizationCodeSession, error)
+}
+
+//go:generate mockgen -destination mock/authorization_code_session_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage AuthorizationCodeSessionWriter
+
+// AuthorizationCodeSessionWriter describes write-only operation contract.
+type AuthorizationCodeSessionWriter interface {
+	Register(ctx context.Context, s *corev1.AuthorizationCodeSession) (string, error)
+	Delete(ctx context.Context, code string) error
+}
+
+//go:generate mockgen -destination mock/authorization_code_session.gen.go -package mock go.zenithar.org/solid/pkg/storage AuthorizationCodeSession
+
+// AuthorizationCodeSession describes user session operation contract.
+type AuthorizationCodeSession interface {
+	AuthorizationCodeSessionReader
+	AuthorizationCodeSessionWriter
+}
+
+//go:generate mockgen -destination mock/device_code_session_writer.gen.go -package mock go.zenithar.org/solid/pkg/storage DeviceCodeSessionWriter
+
+// DeviceCodeSessionWriter describes deviceCode write-only operation contract.
+type DeviceCodeSessionWriter interface {
+	Register(ctx context.Context, r *corev1.DeviceCodeSession) (string, string, error)
+	Delete(ctx context.Context, id string) error
+}
+
+//go:generate mockgen -destination mock/device_code_session_reader.gen.go -package mock go.zenithar.org/solid/pkg/storage DeviceCodeSessionReader
+
+// DeviceCodeSessionReader describes deviceCode read-only operation contract.
+type DeviceCodeSessionReader interface {
+	Get(ctx context.Context, id string) (*corev1.DeviceCodeSession, error)
+}
+
+//go:generate mockgen -destination mock/device_code_session.gen.go -package mock go.zenithar.org/solid/pkg/storage DeviceCodeSession
+
+// DeviceCodeSession describes deviceCode operation contract.
+type DeviceCodeSession interface {
+	DeviceCodeSessionReader
+	DeviceCodeSessionWriter
 }

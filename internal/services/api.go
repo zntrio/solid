@@ -23,15 +23,14 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 
-// CodeGenerator is the function contract used by authorization_code generator.
-type CodeGenerator func(context.Context) (string, error)
-
 // Authorization describes authorization request processor.
 type Authorization interface {
 	// Authorize a request.
 	Authorize(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.AuthorizationResponse, error)
 	// Register a request.
 	Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error)
+	// Device process device authorization request.
+	Device(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error)
 }
 
 // Token describes token requet processor.

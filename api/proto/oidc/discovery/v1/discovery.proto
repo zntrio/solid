@@ -320,6 +320,9 @@ message ServerMetadata {
 
   // https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html#endpointAliases
   MTLSEndpoints mtls_endpoint_aliases = 45;
+
+  // https://tools.ietf.org/html/rfc8628#section-4
+  string device_authorization_endpoint = 46;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication
@@ -329,4 +332,5 @@ message MTLSEndpoints {
   string revocation_endpoint = 2;
   string introspection_endpoint = 3;
   string pushed_authorization_request_endpoint = 4;
+  string device_authorization_endpoint = 5;
 }

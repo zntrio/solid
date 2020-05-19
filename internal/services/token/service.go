@@ -30,23 +30,25 @@ import (
 )
 
 type service struct {
-	tokenGen              generator.Token
-	idGen                 generator.Identity
-	clients               storage.ClientReader
-	authorizationRequests storage.AuthorizationRequestReader
-	sessions              storage.Session
-	tokens                storage.Token
+	tokenGen                  generator.Token
+	idGen                     generator.Identity
+	clients                   storage.ClientReader
+	authorizationRequests     storage.AuthorizationRequestReader
+	authorizationCodeSessions storage.AuthorizationCodeSession
+	deviceCodeSessions        storage.DeviceCodeSession
+	tokens                    storage.Token
 }
 
 // New build and returns an authorization service implementation.
-func New(tokenGen generator.Token, idGen generator.Identity, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, sessions storage.Session, tokens storage.Token) services.Token {
+func New(tokenGen generator.Token, idGen generator.Identity, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token) services.Token {
 	return &service{
-		tokenGen:              tokenGen,
-		idGen:                 idGen,
-		clients:               clients,
-		authorizationRequests: authorizationRequests,
-		sessions:              sessions,
-		tokens:                tokens,
+		tokenGen:                  tokenGen,
+		idGen:                     idGen,
+		clients:                   clients,
+		authorizationRequests:     authorizationRequests,
+		authorizationCodeSessions: authorizationCodeSessions,
+		deviceCodeSessions:        deviceCodeSessions,
+		tokens:                    tokens,
 	}
 }
 

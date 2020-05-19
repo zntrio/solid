@@ -43,3 +43,10 @@ type Token interface {
 type Identity interface {
 	Generate(ctx context.Context) (string, error)
 }
+
+//go:generate mockgen -destination mock/device_user_code.gen.go -package mock go.zenithar.org/solid/pkg/generator DeviceUserCode
+
+// DeviceUserCode describes device user code generator contract.
+type DeviceUserCode interface {
+	Generate(ctx context.Context) (string, error)
+}

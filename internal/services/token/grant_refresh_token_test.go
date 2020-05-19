@@ -699,9 +699,7 @@ func Test_service_refreshToken(t *testing.T) {
 			defer ctrl.Finish()
 
 			// Arm mocks
-			sessions := storagemock.NewMockSession(ctrl)
 			accessTokens := generatormock.NewMockToken(ctrl)
-			idTokens := generatormock.NewMockIdentity(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
 
 			// Prepare them
@@ -710,10 +708,8 @@ func Test_service_refreshToken(t *testing.T) {
 			}
 
 			s := &service{
-				sessions: sessions,
 				tokens:   tokens,
 				tokenGen: accessTokens,
-				idGen:    idTokens,
 			}
 			got, err := s.refreshToken(tt.args.ctx, tt.args.client, tt.args.req)
 			if (err != nil) != tt.wantErr {

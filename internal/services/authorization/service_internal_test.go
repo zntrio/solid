@@ -470,7 +470,7 @@ func Test_service_validate(t *testing.T) {
 			// Arm mocks
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
-			sessions := storagemock.NewMockSessionWriter(ctrl)
+			sessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -478,9 +478,9 @@ func Test_service_validate(t *testing.T) {
 			}
 
 			s := &service{
-				clients:               clients,
-				authorizationRequests: authorizationRequests,
-				sessions:              sessions,
+				clients:                   clients,
+				authorizationRequests:     authorizationRequests,
+				authorizationCodeSessions: sessions,
 			}
 			got, err := s.validate(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

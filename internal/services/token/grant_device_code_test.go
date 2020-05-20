@@ -19,12 +19,15 @@ package token
 
 import (
 	"context"
+	"fmt"
 	"testing"
+	"time"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	generatormock "go.zenithar.org/solid/pkg/generator/mock"
 	"go.zenithar.org/solid/pkg/rfcerrors"
+	"go.zenithar.org/solid/pkg/storage"
 	storagemock "go.zenithar.org/solid/pkg/storage/mock"
 
 	"github.com/golang/mock/gomock"
@@ -129,6 +132,415 @@ func Test_service_deviceCode(t *testing.T) {
 			wantErr: true,
 			want: &corev1.TokenResponse{
 				Error: rfcerrors.InvalidRequest(""),
+			},
+		},
+		// ---------------------------------------------------------------------
+		{
+			name: "device_code not found",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, storage.ErrNotFound)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.InvalidRequest(""),
+			},
+		},
+		{
+			name: "device_code storage error",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, fmt.Errorf("foo"))
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "retrieved nil session",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "foo",
+					},
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "retrieved session with nil request",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "foo",
+					},
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{}, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "retrieved session with nil client",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "foo",
+					},
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Request: &corev1.DeviceAuthorizationRequest{},
+				}, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "client_id mismatch",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &corev1.TokenRequest{
+					Client: &corev1.Client{
+						ClientId: "foo",
+					},
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.InvalidRequest(""),
+			},
+		},
+		{
+			name: "session is expired",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 0,
+				}, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.TokenExpired(),
+			},
+		},
+		{
+			name: "authorization pending",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+				}, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.AuthorizationPending(),
+			},
+		},
+		{
+			name: "session invalid status",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_INVALID,
+				}, nil)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.InvalidToken(),
+			},
+		},
+		{
+			name: "session validated with at generation error",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, at *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+				}, nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "session validated with at storage error",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+				}, nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		// ---------------------------------------------------------------------
+		{
+			name: "valid",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+				}, nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+			},
+			wantErr: false,
+			want: &corev1.TokenResponse{
+				Error: nil,
+				AccessToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						IssuedAt:  1,
+						ExpiresAt: 3601,
+						ClientId:  "s6BhdRkqt3",
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
 			},
 		},
 	}

@@ -91,17 +91,18 @@ I made sample server and various integrations inside `examples/` folder.
 * `hybrid` flow is not and will be supported; Web applications must use server
   side component (or lambda) to negociate authorizations; By design, your
   client-side application code (JS) should not be exposed until you are identified;
-* `PKCE` is enforced by default for all client types during `authorization_code`
+* Only response_type `code` will be supported to enforce server-side negociation;
+* `PKCE+Nonce` is enforced by default for all client types during `authorization_code`
   flow;
 * `authorization_code` flow could not be started by the `user-agent`, as the
   default behavior, the `client` must use PAR protocol to retrieve a `request_uri`
-  that will qualify the `authorization_code` flow;
+  that will qualify and start the `authorization_code` flow;
 * Asymetric authentication methods are enforced by default;
 * No `HSxxx` / `RSxxx` support as JOSE signature algorithms;
   * `HSxxx` doesn't provide digital signature;
   * `RSxxx` uses RSA algorithms that needs to have high computation to improve
     security protection level so that it will be more difficult for constrained
-    environment (IoT) to have same secruity protection level as a normal application;
+    environment (IoT) to have same security protection level as a normal application;
   * Only `elliptical curves` involved algorithms will be used;
 * `access_token` / `refresh_token` are `hybrid` tokens so that they embed protocol
   validation details (expiration, etc.) without any privacy related info (sub).
@@ -133,9 +134,15 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
     * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
   * Token
-    * [ ] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
-    * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
-    * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
+    * Scheme
+      * [x] Bearer
+      * [ ] DPoP - [draft-fett-oauth-dpop-04](https://tools.ietf.org/html/draft-fett-oauth-dpop-04)
+      * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
+    * Authentication by reference
+      * [x] Random string
+    * Authentication by value
+      * [ ] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
+      * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
 * Storage
   * [x] API
     * Client
@@ -145,6 +152,9 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] Authorization request
     * Tokens
       * [x] Storage
+    * Sessions
+      * [x] AuthorizationCode
+      * [x] DeviceCode
   * [x] in-memory storage
   * [ ] gRPC driven storage
 * Privacy
@@ -174,3 +184,4 @@ I made sample server and various integrations inside `examples/` folder.
 * [OAuth 2.0 for Browser-Based Apps](https://tools.ietf.org/id/draft-parecki-oauth-browser-based-apps-02.html)
 * [Financial-grade API - Part 1: Read-Only API Security Profile](https://openid.net/specs/openid-financial-api-part-1.html)
 * [Financial-grade API - Part 2: Read and Write API Security Profile](https://openid.net/specs/openid-financial-api-part-2.html)
+* [PKCE vs. Nonce: Equivalent or Not?](https://danielfett.de/2020/05/16/pkce-vs-nonce-equivalent-or-not/)

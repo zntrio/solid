@@ -69,6 +69,20 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 		return res, fmt.Errorf("session is invalid")
 	}
 
+	// Check session
+	if session == nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("retrieved nil session for '%s'", grant.DeviceCode)
+	}
+	if session.Request == nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("session has nil request for '%s'", grant.DeviceCode)
+	}
+	if session.Client == nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("session has nil client for '%s'", grant.DeviceCode)
+	}
+
 	// Check client match
 	if session.Request.ClientId != client.ClientId {
 		res.Error = rfcerrors.InvalidRequest("")
@@ -78,7 +92,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	// Check expiration
 	if session.ExpiresAt < uint64(timeFunc().Unix()) {
 		res.Error = rfcerrors.TokenExpired()
-		return res, fmt.Errorf("toekn '%s' is expired", grant.DeviceCode)
+		return res, fmt.Errorf("token '%s' is expired", grant.DeviceCode)
 	}
 
 	// Check if it validated
@@ -95,8 +109,8 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 
 	// Generate access token
 	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
-		Scope:    session.Scope,
-		Audience: session.Audience,
+		Scope:    "",
+		Audience: "",
 	})
 	if err != nil {
 		res.Error = rfcerrors.ServerError("")

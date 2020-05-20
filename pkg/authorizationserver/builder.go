@@ -41,11 +41,13 @@ type AuthorizationServer interface {
 func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer {
 	// Default options
 	defaultOptions := &options{
-		authorizationCodeGenerator: generator.DefaultAuthorizationCode(),
-		accessTokenGenerator:       generator.DefaultToken(),
-		clientReader:               nil,
-		tokenManager:               nil,
-		sessionManager:             nil,
+		authorizationCodeGenerator:      generator.DefaultAuthorizationCode(),
+		accessTokenGenerator:            generator.DefaultToken(),
+		refreshTokenGenerator:           generator.DefaultToken(),
+		clientReader:                    nil,
+		tokenManager:                    nil,
+		authorizationCodeSessionManager: nil,
+		deviceCodeSessionManager:        nil,
 	}
 
 	// Parse options
@@ -54,8 +56,8 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 	}
 
 	// Initialize services
-	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager)
-	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.sessionManager, defaultOptions.tokenManager)
+	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager)
+	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
 
 	// Wire message
 	as := &authorizationServer{

@@ -24,13 +24,15 @@ import (
 
 // Builder options holder
 type options struct {
-	authorizationCodeGenerator  generator.AuthorizationCode
-	clientReader                storage.ClientReader
-	authorizationRequestManager storage.AuthorizationRequest
-	accessTokenGenerator        generator.Token
-	idTokenGenerator            generator.Identity
-	sessionManager              storage.Session
-	tokenManager                storage.Token
+	authorizationCodeGenerator      generator.AuthorizationCode
+	clientReader                    storage.ClientReader
+	authorizationRequestManager     storage.AuthorizationRequest
+	accessTokenGenerator            generator.Token
+	refreshTokenGenerator           generator.Token
+	idTokenGenerator                generator.Identity
+	authorizationCodeSessionManager storage.AuthorizationCodeSession
+	deviceCodeSessionManager        storage.DeviceCodeSession
+	tokenManager                    storage.Token
 }
 
 // Option defines functional pattern function type contract.
@@ -50,10 +52,17 @@ func AuthorizationRequestManager(store storage.AuthorizationRequest) Option {
 	}
 }
 
-// SessionManager defines the implementation for managing authorization sessions.
-func SessionManager(store storage.Session) Option {
+// AuthorizationCodeSessionManager defines the implementation for managing authorization code sessions.
+func AuthorizationCodeSessionManager(store storage.AuthorizationCodeSession) Option {
 	return func(opts *options) {
-		opts.sessionManager = store
+		opts.authorizationCodeSessionManager = store
+	}
+}
+
+// DeviceCodeSessionManager defines the implementation for managing device code sessions.
+func DeviceCodeSessionManager(store storage.DeviceCodeSession) Option {
+	return func(opts *options) {
+		opts.deviceCodeSessionManager = store
 	}
 }
 
@@ -61,5 +70,19 @@ func SessionManager(store storage.Session) Option {
 func TokenManager(store storage.Token) Option {
 	return func(opts *options) {
 		opts.tokenManager = store
+	}
+}
+
+// AccessTokenGenerator defines the implementation used to generate access tokens.
+func AccessTokenGenerator(g generator.Token) Option {
+	return func(opts *options) {
+		opts.accessTokenGenerator = g
+	}
+}
+
+// RefreshTokenGenerator defines the implementation used to generate refresh tokens.
+func RefreshTokenGenerator(g generator.Token) Option {
+	return func(opts *options) {
+		opts.refreshTokenGenerator = g
 	}
 }

@@ -141,7 +141,7 @@ I made sample server and various integrations inside `examples/` folder.
     * Authentication by reference
       * [x] Random string
     * Authentication by value
-      * [ ] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
+      * [x] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
       * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
 * Storage
   * [x] API

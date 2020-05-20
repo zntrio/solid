@@ -46,6 +46,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 			q                   = r.URL.Query()
 			audience            = q.Get("audience")
 			state               = q.Get("state")
+			nonce               = q.Get("nonce")
 			clientID            = q.Get("client_id")
 			scope               = q.Get("scope")
 			redirectURI         = q.Get("redirect_uri")
@@ -67,6 +68,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 			Request: &corev1.AuthorizationRequest{
 				Audience:            audience,
 				State:               state,
+				Nonce:               nonce,
 				ClientId:            clientID,
 				Scope:               scope,
 				RedirectUri:         redirectURI,

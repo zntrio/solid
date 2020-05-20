@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -26,7 +27,38 @@ import (
 	"go.zenithar.org/solid/examples/server/middleware"
 	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
+	"go.zenithar.org/solid/pkg/generator/jwt"
+
+	"github.com/square/go-jose/v3"
 )
+
+var (
+	jwkPrivateKey = []byte(`{
+		"kty": "EC",
+		"d": "sE5nIdk-_Gx0oqkx8DzjupcM0ZrsUf8BmScklNUBOkE",
+		"use": "sig",
+		"crv": "P-256",
+		"kid": "123456789",
+		"x": "qBhWJvJtiFrY79XYzAicp4d5-06EVhZkfbRKKgxaeJM",
+		"y": "SIUn7kqzlPFGADcu-YsxBUbqbFXsj89Ecgo4Y4UauBM",
+		"alg": "ES256"
+	}`)
+)
+
+func keyProvider() jwt.KeyProviderFunc {
+	var privateKey jose.JSONWebKey
+
+	// Decode JWK
+	err := json.Unmarshal(jwkPrivateKey, &privateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	return func() (*jose.JSONWebKey, error) {
+		// No error
+		return &privateKey, nil
+	}
+}
 
 func main() {
 	var (
@@ -38,8 +70,9 @@ func main() {
 		"http://localhost:8080", // Issuer
 		authorizationserver.ClientReader(inmemory.Clients()),
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
-		authorizationserver.SessionManager(inmemory.Sessions()),
+		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
 		authorizationserver.TokenManager(inmemory.Tokens()),
+		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES256, keyProvider())),
 	)
 
 	// Create client authentication middleware

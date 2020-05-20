@@ -32,8 +32,8 @@ type sessionStorage struct {
 	backend *cache.Cache
 }
 
-// Sessions returns an authorization session manager.
-func Sessions() storage.Session {
+// AuthorizationCodeSessions returns an authorization session manager.
+func AuthorizationCodeSessions() storage.AuthorizationCodeSession {
 	// Initialize in-memory caches
 	backendCache := cache.New(1*time.Minute, 10*time.Minute)
 
@@ -44,9 +44,9 @@ func Sessions() storage.Session {
 
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) Register(ctx context.Context, req *corev1.Session) (string, error) {
+func (s *sessionStorage) Register(ctx context.Context, req *corev1.AuthorizationCodeSession) (string, error) {
 	// Authorization Code Generator
-	code := uniuri.NewLen(16)
+	code := uniuri.NewLen(32)
 
 	// Insert in cache
 	s.backend.Set(code, req, cache.DefaultExpiration)
@@ -61,10 +61,10 @@ func (s *sessionStorage) Delete(ctx context.Context, code string) error {
 	return nil
 }
 
-func (s *sessionStorage) Get(ctx context.Context, code string) (*corev1.Session, error) {
+func (s *sessionStorage) Get(ctx context.Context, code string) (*corev1.AuthorizationCodeSession, error) {
 	// Retrieve from cache
 	if x, found := s.backend.Get(code); found {
-		req := x.(*corev1.Session)
+		req := x.(*corev1.AuthorizationCodeSession)
 		return req, nil
 	}
 

@@ -25,7 +25,7 @@ import (
 
 const (
 	// DefaultAuthorizationCodeLen defines default authorization code length.
-	DefaultAuthorizationCodeLen = 64
+	DefaultAuthorizationCodeLen = 32
 )
 
 // DefaultAuthorizationCode returns the default authorization code generator.

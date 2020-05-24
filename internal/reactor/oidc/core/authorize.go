@@ -36,7 +36,7 @@ var AuthorizeHandler = func(authorization services.Authorization) reactor.Handle
 		}
 
 		// Check request type
-		req, ok := r.(*corev1.AuthorizationRequest)
+		req, ok := r.(*corev1.AuthorizationCodeRequest)
 		if !ok {
 			return nil, fmt.Errorf("invalid request type %T", req)
 		}

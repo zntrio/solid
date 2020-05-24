@@ -62,8 +62,8 @@ func New(clients storage.ClientReader, authorizationRequests storage.Authorizati
 
 // -----------------------------------------------------------------------------
 
-func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.AuthorizationResponse, error) {
-	res := &corev1.AuthorizationResponse{}
+func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRequest) (*corev1.AuthorizationCodeResponse, error) {
+	res := &corev1.AuthorizationCodeResponse{}
 
 	// Check req nullity
 	if req == nil {
@@ -71,16 +71,28 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
+	// Check subject
+	if req.Subject == "" {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to process empty subject")
+	}
+
+	// Check authoriaztion request
+	if req.Request == nil {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to process empty authorization request")
+	}
+
 	// Check request reference usage
-	if req.RequestUri != nil {
+	if req.Request.RequestUri != nil {
 		// Check request_uri syntax
-		if !requestURIMatcher.MatchString(req.RequestUri.Value) {
+		if !requestURIMatcher.MatchString(req.Request.RequestUri.Value) {
 			res.Error = rfcerrors.InvalidRequest("")
-			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.RequestUri.Value)
+			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.Request.RequestUri.Value)
 		}
 
 		// Check if request uri exists in storage
-		ar, err := s.authorizationRequests.Get(ctx, req.RequestUri.Value)
+		ar, err := s.authorizationRequests.Get(ctx, req.Request.RequestUri.Value)
 		if err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError("")
@@ -91,7 +103,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 		}
 
 		// Burn after read
-		if err := s.authorizationRequests.Delete(ctx, req.RequestUri.Value); err != nil {
+		if err := s.authorizationRequests.Delete(ctx, req.Request.RequestUri.Value); err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError("")
 			} else {
@@ -101,11 +113,11 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 		}
 
 		// Override request
-		req = ar
+		req.Request = ar
 	}
 
 	// Delegate to real authorize process
-	publicErr, err := s.validate(ctx, req)
+	publicErr, err := s.validate(ctx, req.Request)
 	if err != nil {
 		res.Error = publicErr
 		return res, err
@@ -113,20 +125,20 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationReques
 
 	// Create an authorization session
 	code, err := s.authorizationCodeSessions.Register(ctx, &corev1.AuthorizationCodeSession{
-		Subject: "",
-		Request: req,
+		Subject: req.Subject,
+		Request: req.Request,
 	})
 	if err != nil {
-		res.Error = rfcerrors.ServerError(req.State)
+		res.Error = rfcerrors.ServerError(req.Request.State)
 		return res, fmt.Errorf("unable to generate authorization code: %w", err)
 	}
 
 	// Assign code to response
 	res.Code = code
 	// Assign state to response
-	res.State = req.State
+	res.State = req.Request.State
 	// Assign redirectUri to response
-	res.RedirectUri = req.RedirectUri
+	res.RedirectUri = req.Request.RedirectUri
 
 	return res, err
 }

@@ -29,7 +29,7 @@ import (
 func Core() features.Feature {
 	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token) {
 		// Register authorization request handler.
-		r.RegisterHandler(&corev1.AuthorizationRequest{}, core.AuthorizeHandler(authorizations))
+		r.RegisterHandler(&corev1.AuthorizationCodeRequest{}, core.AuthorizeHandler(authorizations))
 		// REgister token request handler.
 		r.RegisterHandler(&corev1.TokenRequest{}, core.GetTokenHandler(tokens))
 	}

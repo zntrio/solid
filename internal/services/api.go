@@ -26,7 +26,7 @@ import (
 // Authorization describes authorization request processor.
 type Authorization interface {
 	// Authorize a request.
-	Authorize(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.AuthorizationResponse, error)
+	Authorize(ctx context.Context, req *corev1.AuthorizationCodeRequest) (*corev1.AuthorizationCodeResponse, error)
 	// Register a request.
 	Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error)
 	// Device process device authorization request.

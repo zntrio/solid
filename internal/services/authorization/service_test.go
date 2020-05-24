@@ -42,13 +42,13 @@ func Test_service_Authorize(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		req *corev1.AuthorizationRequest
+		req *corev1.AuthorizationCodeRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockAuthorizationRequest, *storagemock.MockClientReader, *storagemock.MockAuthorizationCodeSessionWriter)
-		want    *corev1.AuthorizationResponse
+		want    *corev1.AuthorizationCodeResponse
 		wantErr bool
 	}{
 		{
@@ -58,7 +58,25 @@ func Test_service_Authorize(t *testing.T) {
 				req: nil,
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
+				Error: rfcerrors.InvalidRequest(""),
+			},
+		},
+		{
+			name: "empty subject",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.InvalidRequest(""),
 			},
 		},
@@ -66,14 +84,17 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with invalid request_uri",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "123-456-789",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "123-456-789",
+						},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.InvalidRequest(""),
 			},
 		},
@@ -81,9 +102,12 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with request_uri not found error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						},
 					},
 				},
 			},
@@ -91,7 +115,7 @@ func Test_service_Authorize(t *testing.T) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.InvalidRequest(""),
 			},
 		},
@@ -99,9 +123,12 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with request_uri storage error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						},
 					},
 				},
 			},
@@ -109,7 +136,7 @@ func Test_service_Authorize(t *testing.T) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.ServerError(""),
 			},
 		},
@@ -117,9 +144,12 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with request_uri exist with not found error during deletion",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						},
 					},
 				},
 			},
@@ -128,7 +158,7 @@ func Test_service_Authorize(t *testing.T) {
 				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.InvalidRequest(""),
 			},
 		},
@@ -136,9 +166,12 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with request_uri exist but deletion error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						},
 					},
 				},
 			},
@@ -147,7 +180,7 @@ func Test_service_Authorize(t *testing.T) {
 				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.ServerError(""),
 			},
 		},
@@ -155,16 +188,19 @@ func Test_service_Authorize(t *testing.T) {
 			name: "authorization session registration error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-					ResponseType:        "code",
-					Scope:               "openid profile email",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-					CodeChallengeMethod: "S256",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email",
+						ClientId:            "s6BhdRkqt3",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+						CodeChallengeMethod: "S256",
+					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
@@ -176,7 +212,7 @@ func Test_service_Authorize(t *testing.T) {
 				sessions.EXPECT().Register(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.ServerError("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 			},
 		},
@@ -184,17 +220,20 @@ func Test_service_Authorize(t *testing.T) {
 			name: "offline_access scope with nil prompt",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-					ResponseType:        "code",
-					Scope:               "openid profile email offline_access",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-					CodeChallengeMethod: "S256",
-					Prompt:              nil,
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email offline_access",
+						ClientId:            "s6BhdRkqt3",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+						CodeChallengeMethod: "S256",
+						Prompt:              nil,
+					},
 				},
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
@@ -204,7 +243,7 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				sessions.EXPECT().Register(gomock.Any(), &corev1.AuthorizationCodeSession{
-					Subject: "",
+					Subject: "foo",
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -220,7 +259,7 @@ func Test_service_Authorize(t *testing.T) {
 				}).Return("1234567891234567890", nil)
 			},
 			wantErr: false,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error:       nil,
 				Code:        "1234567891234567890",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
@@ -231,18 +270,21 @@ func Test_service_Authorize(t *testing.T) {
 			name: "offline_access scope with invalid prompt",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-					ResponseType:        "code",
-					Scope:               "openid profile email offline_access",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-					CodeChallengeMethod: "S256",
-					Prompt: &wrappers.StringValue{
-						Value: "login",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email offline_access",
+						ClientId:            "s6BhdRkqt3",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+						CodeChallengeMethod: "S256",
+						Prompt: &wrappers.StringValue{
+							Value: "login",
+						},
 					},
 				},
 			},
@@ -253,7 +295,7 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				sessions.EXPECT().Register(gomock.Any(), &corev1.AuthorizationCodeSession{
-					Subject: "",
+					Subject: "foo",
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -271,7 +313,7 @@ func Test_service_Authorize(t *testing.T) {
 				}).Return("1234567891234567890", nil)
 			},
 			wantErr: false,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error:       nil,
 				Code:        "1234567891234567890",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
@@ -283,9 +325,12 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with invalid request",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+						},
 					},
 				},
 			},
@@ -304,7 +349,7 @@ func Test_service_Authorize(t *testing.T) {
 				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error: rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
 			},
 		},
@@ -313,9 +358,12 @@ func Test_service_Authorize(t *testing.T) {
 			name: "with valid request_uri exist",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
-					RequestUri: &wrappers.StringValue{
-						Value: "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac",
+				req: &corev1.AuthorizationCodeRequest{
+					Subject: "foo",
+					Request: &corev1.AuthorizationRequest{
+						RequestUri: &wrappers.StringValue{
+							Value: "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac",
+						},
 					},
 				},
 			},
@@ -339,7 +387,7 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				sessions.EXPECT().Register(gomock.Any(), &corev1.AuthorizationCodeSession{
-					Subject: "",
+					Subject: "foo",
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -355,7 +403,7 @@ func Test_service_Authorize(t *testing.T) {
 				}).Return("1234567891234567890", nil)
 			},
 			wantErr: false,
-			want: &corev1.AuthorizationResponse{
+			want: &corev1.AuthorizationCodeResponse{
 				Error:       nil,
 				Code:        "1234567891234567890",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",

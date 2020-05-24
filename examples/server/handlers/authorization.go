@@ -18,7 +18,6 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -26,6 +25,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	"go.zenithar.org/solid/examples/server/middleware"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 )
@@ -42,6 +42,7 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		// Only GET verb
 		if r.Method != http.MethodGet {
 			withJSON(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
+			return
 		}
 
 		// Parameters
@@ -51,13 +52,23 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 			requestURI = q.Get("request_uri")
 		)
 
+		// Retrieve subject form context
+		sub, ok := middleware.Subject(ctx)
+		if !ok || sub == "" {
+			withJSON(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
+			return
+		}
+
 		// Send request to reactor
-		res, err := as.Do(ctx, &corev1.AuthorizationRequest{
-			RequestUri: &wrappers.StringValue{
-				Value: requestURI,
+		res, err := as.Do(ctx, &corev1.AuthorizationCodeRequest{
+			Subject: sub,
+			Request: &corev1.AuthorizationRequest{
+				RequestUri: &wrappers.StringValue{
+					Value: requestURI,
+				},
 			},
 		})
-		authRes, ok := res.(*corev1.AuthorizationResponse)
+		authRes, ok := res.(*corev1.AuthorizationCodeResponse)
 		if !ok {
 			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
 			return
@@ -77,7 +88,12 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		}
 
 		// Assemble final uri
-		u.RawQuery = fmt.Sprintf("code=%s&state=%s", authRes.Code, authRes.State)
+		var params url.Values
+		params.Set("code", authRes.Code)
+		params.Set("state", authRes.State)
+
+		// Assign new params
+		u.RawQuery = params.Encode()
 
 		// Redirect to application
 		http.Redirect(w, r, u.String(), http.StatusFound)

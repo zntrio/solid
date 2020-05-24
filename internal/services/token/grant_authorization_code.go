@@ -139,6 +139,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	if scopes.Contains(oidc.ScopeOpenID) {
 		// Generate access token
 		at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
+			Subject:  ar.Subject,
 			Audience: ar.Request.Audience,
 			Scope:    ar.Request.Scope,
 		})
@@ -151,6 +152,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 		if scopes.Contains(oidc.ScopeOfflineAccess) {
 			// Generate refresh token
 			rt, err := s.generateRefreshToken(ctx, client, &corev1.TokenMeta{
+				Subject:  ar.Subject,
 				Audience: ar.Request.Audience,
 				Scope:    ar.Request.Scope,
 			})

@@ -54,7 +54,18 @@ func Clients() storage.Client {
 					"foo@bar.com",
 				},
 				// Authentication RSA public key
-				Jwks: []byte(`{"keys": [{"kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`),
+				Jwks: []byte(`{
+					"keys": [
+						{
+							"kty": "EC",
+							"use": "sig",
+							"crv": "P-384",
+							"x": "m2NDaWfRRGlCkUa4FK949uLtMqitX1lYgi8UCIMtsuR60ux3d00XBlsC6j_YDOTe",
+							"y": "6vxuUq3V1aoWi4FQ_h9ZNwUsmcGP8Uuqq_YN5dhP0U8lchdmZJbLF9mPiimo_6p4",
+							"alg": "ES384"
+						}
+					]
+				}`),
 			},
 		},
 	}

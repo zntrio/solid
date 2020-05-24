@@ -73,7 +73,7 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 	}
 
 	// Preapre JWT header
-	options := (&jose.SignerOptions{}).WithType("at+JWT")
+	options := (&jose.SignerOptions{}).WithType("at+jwt")
 	options = options.WithHeader(jose.HeaderKey("kid"), key.KeyID)
 
 	// Prepare a signer
@@ -84,16 +84,17 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 
 	// Sign the assertion
 	raw, err := jwt.Signed(sig).Claims(map[string]interface{}{
-		"iss":   meta.Issuer,
-		"exp":   meta.ExpiresAt,
-		"aud":   meta.Audience,
-		"iat":   meta.IssuedAt,
-		"sub":   meta.ClientId,
-		"jti":   jti,
-		"scope": meta.Scope,
+		"iss":       meta.Issuer,
+		"exp":       meta.ExpiresAt,
+		"aud":       meta.Audience,
+		"iat":       meta.IssuedAt,
+		"sub":       meta.Subject,
+		"client_id": meta.ClientId,
+		"jti":       jti,
+		"scope":     meta.Scope,
 	}).CompactSerialize()
 	if err != nil {
-		return "", fmt.Errorf("unable to sign client assertion: %w", err)
+		return "", fmt.Errorf("unable to sign access token: %w", err)
 	}
 
 	// No error

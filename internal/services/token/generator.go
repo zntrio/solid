@@ -45,6 +45,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 		TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
 		Metadata: &corev1.TokenMeta{
+			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
 			IssuedAt:  uint64(now.Unix()),
 			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()),
@@ -83,6 +84,7 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 		TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
 		Metadata: &corev1.TokenMeta{
+			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
 			IssuedAt:  uint64(now.Unix()),
 			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()),

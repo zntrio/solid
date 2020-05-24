@@ -35,13 +35,13 @@ import (
 var (
 	jwkPrivateKey = []byte(`{
 		"kty": "EC",
-		"d": "sE5nIdk-_Gx0oqkx8DzjupcM0ZrsUf8BmScklNUBOkE",
+		"d": "-3yrGLfHTjuvcpG8gZzwQoz9P6uWgBW6HTmYTb-f6u4HxK05PpTdheKBdQ1nXkV-",
 		"use": "sig",
-		"crv": "P-256",
+		"crv": "P-384",
 		"kid": "123456789",
-		"x": "qBhWJvJtiFrY79XYzAicp4d5-06EVhZkfbRKKgxaeJM",
-		"y": "SIUn7kqzlPFGADcu-YsxBUbqbFXsj89Ecgo4Y4UauBM",
-		"alg": "ES256"
+		"x": "De4LLFSUCTAAU8O7_ew0VkNR03_kTH9SNCFuhbpi8D1JUbhABRLpNygSDLf2waQt",
+		"y": "cEXPFElY6-qb-5xsFu875_58D3lKZlcOzD99ulje6CAh4D_rJjYU7quxf82xCAUZ",
+		"alg": "ES384"
 	}`)
 )
 
@@ -72,7 +72,7 @@ func main() {
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
 		authorizationserver.TokenManager(inmemory.Tokens()),
-		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES256, keyProvider())),
+		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
 	)
 
 	// Create client authentication middleware

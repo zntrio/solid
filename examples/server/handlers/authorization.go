@@ -88,7 +88,7 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		}
 
 		// Assemble final uri
-		var params url.Values
+		params := url.Values{}
 		params.Set("code", authRes.Code)
 		params.Set("state", authRes.State)
 

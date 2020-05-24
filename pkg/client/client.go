@@ -84,7 +84,7 @@ func (c *client) Assertion() (string, error) {
 	}
 
 	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES256, Key: privateKey}, (&jose.SignerOptions{}).WithType("JWT"))
+	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES384, Key: privateKey}, (&jose.SignerOptions{}).WithType("JWT"))
 	if err != nil {
 		return "", fmt.Errorf("unable to prepare signer: %w", err)
 	}

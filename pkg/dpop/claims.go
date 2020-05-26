@@ -15,33 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package generator
+package dpop
 
-import (
-	"context"
-	"fmt"
-
-	"github.com/dchest/uniuri"
-
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-)
-
-const (
-	// DefaultAccessTokenLen defines default token code length.
-	DefaultAccessTokenLen = 28
-)
-
-// DefaultToken returns the default token generator.
-func DefaultToken() Token {
-	return &tokenGenerator{}
-}
-
-// -----------------------------------------------------------------------------
-
-type tokenGenerator struct {
-}
-
-func (c *tokenGenerator) Generate(_ context.Context, _ string, _ *corev1.TokenMeta, _ *corev1.TokenConfirmation) (string, error) {
-	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
-	return code, nil
+type proofClaims struct {
+	JTI        string `json:"jti"`
+	HTTPMethod string `json:"htm"`
+	HTTPURL    string `json:"htu"`
+	IssuedAt   uint64 `json:"iat"`
 }

@@ -79,12 +79,12 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 		})
 		parRes, ok := res.(*corev1.RegistrationResponse)
 		if !ok {
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
 			return
 		}
 		if err != nil {
 			log.Println("unable to register authorization request:", err)
-			withJSON(w, r, http.StatusBadRequest, parRes.Error)
+			withError(w, r, http.StatusBadRequest, parRes.Error)
 			return
 		}
 

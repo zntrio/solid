@@ -42,7 +42,7 @@ func TokenRevocation(as authorizationserver.AuthorizationServer) http.Handler {
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withJSON(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
 			return
 		}
 
@@ -61,12 +61,12 @@ func TokenRevocation(as authorizationserver.AuthorizationServer) http.Handler {
 		res, err := as.Do(r.Context(), msg)
 		revoRes, ok := res.(*corev1.TokenRevocationResponse)
 		if !ok {
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
 			return
 		}
 		if err != nil {
 			log.Println("unable to process revocation request: %w", err)
-			withJSON(w, r, http.StatusBadRequest, revoRes.Error)
+			withError(w, r, http.StatusBadRequest, revoRes.Error)
 			return
 		}
 	})

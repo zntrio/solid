@@ -18,6 +18,9 @@
 package dpop
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"fmt"
 	"net/url"
 	"time"
@@ -27,31 +30,48 @@ import (
 	"github.com/square/go-jose/v3/jwt"
 )
 
-// {
-// 	"typ":"dpop+jwt",
-// 	"alg":"ES256",
-// 	"jwk": {
-// 	  "kty":"EC",
-// 	  "x":"l8tFrhx-34tV3hRICRDY9zCkDlpBhF42UQUfWVAWBFs",
-// 	  "y":"9VE4jf_Ok_o64zbTTlcuNJajHmt6v9TDVrU0CdvGRDA",
-// 	  "crv":"P-256"
-// 	}
-// }.{
-//   "jti":"-BwC3ESc6acc2lTc",
-//   "htm":"POST",
-//   "htu":"https://server.example.com/token",
-//   "iat":1562262616
-// }
+// Prover describes prover contract
+type Prover interface {
+	Prove(htm string, htu *url.URL) (string, error)
+}
 
-// Proof while generate a dpop proof JWT encoded.
-func Proof(privateKey *jose.JSONWebKey, htm string, htu *url.URL) (string, error) {
+// -----------------------------------------------------------------------------
+
+// DefaultProver returns a prover instance with a generated key.
+func DefaultProver() (Prover, error) {
+	// Generate an ephemeral key
+	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate P-256 private key: %w", err)
+	}
+
+	// Delegate to other constructor
+	return KeyProver(jose.SigningKey{
+		Algorithm: jose.ES256,
+		Key: &jose.JSONWebKey{
+			Use:   "sig",
+			Key:   pk,
+			KeyID: uniuri.NewLen(8),
+		},
+	})
+}
+
+// KeyProver uses the given key to instanciate a prover.
+func KeyProver(k jose.SigningKey) (Prover, error) {
+	// Build instance
+	return &defaultProver{
+		privateKey: k,
+	}, nil
+}
+
+// -----------------------------------------------------------------------------
+
+type defaultProver struct {
+	privateKey jose.SigningKey
+}
+
+func (p *defaultProver) Prove(htm string, htu *url.URL) (string, error) {
 	// Check parameters
-	if privateKey == nil {
-		return "", fmt.Errorf("unable to generate proof of nil key")
-	}
-	if privateKey.IsPublic() {
-		return "", fmt.Errorf("unable to generate proof for a public key")
-	}
 	if htm == "" {
 		return "", fmt.Errorf("htm must not be blank")
 	}
@@ -60,11 +80,11 @@ func Proof(privateKey *jose.JSONWebKey, htm string, htu *url.URL) (string, error
 	}
 
 	// Create proof claims
-	claims := map[string]interface{}{
-		"jti": uniuri.NewLen(16),
-		"htm": htm,
-		"htu": fmt.Sprintf("%s://%s%s", htu.Scheme, htu.Host, htu.Path),
-		"iat": time.Now().UTC().Unix(),
+	claims := &proofClaims{
+		JTI:        uniuri.NewLen(16),
+		HTTPMethod: htm,
+		HTTPURL:    fmt.Sprintf("%s://%s%s", htu.Scheme, htu.Host, htu.Path),
+		IssuedAt:   uint64(time.Now().UTC().Unix()),
 	}
 
 	// Prepare signer options
@@ -72,7 +92,7 @@ func Proof(privateKey *jose.JSONWebKey, htm string, htu *url.URL) (string, error
 	options.EmbedJWK = true
 
 	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES256, Key: privateKey}, options)
+	sig, err := jose.NewSigner(p.privateKey, options)
 	if err != nil {
 		return "", fmt.Errorf("unable to prepare signer: %w", err)
 	}
@@ -83,6 +103,6 @@ func Proof(privateKey *jose.JSONWebKey, htm string, htu *url.URL) (string, error
 		return "", fmt.Errorf("unable to generate DPoP: %w", err)
 	}
 
-	// No error
+	// Return proof
 	return raw, nil
 }

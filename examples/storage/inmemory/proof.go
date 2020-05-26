@@ -15,33 +15,50 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package generator
+package inmemory
 
 import (
 	"context"
-	"fmt"
+	"time"
 
-	"github.com/dchest/uniuri"
+	"go.zenithar.org/solid/pkg/storage"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	"github.com/patrickmn/go-cache"
 )
 
-const (
-	// DefaultAccessTokenLen defines default token code length.
-	DefaultAccessTokenLen = 28
-)
+type proofCache struct {
+	backend *cache.Cache
+}
 
-// DefaultToken returns the default token generator.
-func DefaultToken() Token {
-	return &tokenGenerator{}
+// DPoPProofs returns an dpop proof cache.
+func DPoPProofs() storage.DPoP {
+	// Initialize in-memory caches
+	backendCache := cache.New(1*time.Minute, 10*time.Minute)
+
+	return &proofCache{
+		backend: backendCache,
+	}
 }
 
 // -----------------------------------------------------------------------------
 
-type tokenGenerator struct {
+func (s *proofCache) Register(ctx context.Context, id string) error {
+	// Insert in cache
+	s.backend.Set(id, id, cache.DefaultExpiration)
+	// No error
+	return nil
 }
 
-func (c *tokenGenerator) Generate(_ context.Context, _ string, _ *corev1.TokenMeta, _ *corev1.TokenConfirmation) (string, error) {
-	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
-	return code, nil
+func (s *proofCache) Delete(ctx context.Context, id string) error {
+	s.backend.Delete(id)
+	// No error
+	return nil
+}
+
+func (s *proofCache) Exists(ctx context.Context, id string) (bool, error) {
+	// Retrieve from cache
+	if _, found := s.backend.Get(id); found {
+		return found, nil
+	}
+	return false, nil
 }

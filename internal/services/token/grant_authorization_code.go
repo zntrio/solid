@@ -142,7 +142,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 			Subject:  ar.Subject,
 			Audience: ar.Request.Audience,
 			Scope:    ar.Request.Scope,
-		})
+		}, req.TokenConfirmation)
 		if err != nil {
 			res.Error = rfcerrors.ServerError("")
 			return res, fmt.Errorf("unable to generate access token: %w", err)
@@ -155,7 +155,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 				Subject:  ar.Subject,
 				Audience: ar.Request.Audience,
 				Scope:    ar.Request.Scope,
-			})
+			}, at.Confirmation)
 			if err != nil {
 				res.Error = rfcerrors.ServerError("")
 				return res, fmt.Errorf("unable to generate refresh token: %w", err)

@@ -95,7 +95,7 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 	}
 
 	// Generate access token
-	at, err := s.generateAccessToken(ctx, client, rt.Metadata)
+	at, err := s.generateAccessToken(ctx, client, rt.Metadata, rt.Confirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError("")
 		return res, fmt.Errorf("unable to generate access token: %w", err)
@@ -104,7 +104,7 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 	// If AT expiration is greater than RT expiration
 	if at.Metadata.ExpiresAt > rt.Metadata.ExpiresAt {
 		// Generate new refresh token
-		newRt, err := s.generateRefreshToken(ctx, client, rt.Metadata)
+		newRt, err := s.generateRefreshToken(ctx, client, rt.Metadata, at.Confirmation)
 		if err != nil {
 			res.Error = rfcerrors.ServerError("")
 			return res, fmt.Errorf("unable to generate refresh token: %w", err)

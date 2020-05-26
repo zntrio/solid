@@ -49,7 +49,7 @@ type accessTokenGenerator struct {
 	keyProvider KeyProviderFunc
 }
 
-func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *corev1.TokenMeta) (string, error) {
+func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error) {
 	// Check arguments
 	if c.keyProvider == nil {
 		return "", fmt.Errorf("unable to use nil key provider")
@@ -71,6 +71,9 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 	if key == nil {
 		return "", fmt.Errorf("key provider returned a nil key")
 	}
+	if key.KeyID == "" {
+		return "", fmt.Errorf("key provider returned a unidentifiable key")
+	}
 
 	// Preapre JWT header
 	options := (&jose.SignerOptions{}).WithType("at+jwt")
@@ -82,8 +85,8 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 		return "", fmt.Errorf("unable to prepare signer: %w", err)
 	}
 
-	// Sign the assertion
-	raw, err := jwt.Signed(sig).Claims(map[string]interface{}{
+	// Prepare claims
+	claims := map[string]interface{}{
 		"iss":       meta.Issuer,
 		"exp":       meta.ExpiresAt,
 		"aud":       meta.Audience,
@@ -92,7 +95,18 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 		"client_id": meta.ClientId,
 		"jti":       jti,
 		"scope":     meta.Scope,
-	}).CompactSerialize()
+	}
+
+	// If token has a confirmation
+	if cnf != nil {
+		// Add jwt key token proof
+		claims["cnf"] = map[string]interface{}{
+			"jkt": cnf.Jkt,
+		}
+	}
+
+	// Sign the assertion
+	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
 	if err != nil {
 		return "", fmt.Errorf("unable to sign access token: %w", err)
 	}

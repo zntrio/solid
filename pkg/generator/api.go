@@ -34,7 +34,7 @@ type AuthorizationCode interface {
 
 // Token describes accessToken / refreshToken generator contract.
 type Token interface {
-	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta) (string, error)
+	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error)
 }
 
 //go:generate mockgen -destination mock/identity.gen.go -package mock go.zenithar.org/solid/pkg/generator Identity

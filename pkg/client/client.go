@@ -26,6 +26,9 @@ import (
 	"strings"
 	"time"
 
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+
+	"go.zenithar.org/solid/pkg/dpop"
 	"go.zenithar.org/solid/pkg/pkce"
 
 	"github.com/dchest/uniuri"
@@ -43,9 +46,10 @@ type Client interface {
 }
 
 // New oidc client.
-func New(opts Options) Client {
+func New(prover dpop.Prover, opts Options) Client {
 	return &client{
 		opts:                               opts,
+		prover:                             prover,
 		httpClient:                         http.DefaultClient,
 		authorizationEndpoint:              fmt.Sprintf("%s/authorize", opts.Issuer),
 		pushedAuthorizationRequestEndpoint: fmt.Sprintf("%s/par", opts.Issuer),
@@ -66,6 +70,7 @@ type Options struct {
 type client struct {
 	opts       Options
 	httpClient *http.Client
+	prover     dpop.Prover
 	// Endpoints
 	authorizationEndpoint              string
 	pushedAuthorizationRequestEndpoint string
@@ -212,7 +217,7 @@ func (c *client) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVeri
 	// Assemple final url
 	tokenURL.RawQuery = params.Encode()
 
-	// Query PAR endpoint
+	// Query token endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL.String(), strings.NewReader(params.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare token request: %w", err)
@@ -221,13 +226,29 @@ func (c *client) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVeri
 	// Set approppriate header value
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
+	// Prepare DPoP
+	proof, err := c.prover.Prove(http.MethodPost, tokenURL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to compute proof of possession: %w", err)
+	}
+
+	// Attach proof as header
+	req.Header.Set("DPoP", proof)
+
 	// Do the query
 	response, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve token: %w", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unable to request for token")
+		var err corev1.Error
+
+		// Decode json error
+		if err := json.NewDecoder(response.Body).Decode(&err); err != nil {
+			return nil, fmt.Errorf("unable to decode json error for token retrieval request: %w", err)
+		}
+
+		return nil, fmt.Errorf("unable to request for token got %s, %s", err.Err, err.ErrorDescription)
 	}
 
 	// Decode payload

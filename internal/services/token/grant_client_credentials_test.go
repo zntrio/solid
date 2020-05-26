@@ -129,7 +129,7 @@ func Test_service_clientCredentials(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -154,7 +154,7 @@ func Test_service_clientCredentials(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -179,7 +179,7 @@ func Test_service_clientCredentials(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -207,7 +207,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *generatormock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,

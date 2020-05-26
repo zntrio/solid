@@ -111,7 +111,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
 		Scope:    "",
 		Audience: "",
-	})
+	}, req.TokenConfirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError("")
 		return res, fmt.Errorf("unable to generate access token: %w", err)

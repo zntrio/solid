@@ -23,6 +23,8 @@ import (
 	"log"
 	"net/http"
 
+	"go.zenithar.org/solid/pkg/dpop"
+
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"
 	"go.zenithar.org/solid/pkg/client"
@@ -98,7 +100,7 @@ func intention(solidClient client.Client, config *session.Config) http.Handler {
 	})
 }
 
-func callback(solidClient client.Client, config *session.Config) http.Handler {
+func callback(solidClient client.Client, config *session.Config, prover dpop.Prover) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			ctx      = r.Context()
@@ -144,8 +146,14 @@ func callback(solidClient client.Client, config *session.Config) http.Handler {
 }
 
 func main() {
+	// Prover
+	prover, err := dpop.DefaultProver()
+	if err != nil {
+		panic(err)
+	}
+
 	// Build client
-	solidClient := client.New(client.Options{
+	solidClient := client.New(prover, client.Options{
 		Audience:    "NYxFyoSuuRGXItTbX",
 		ClientID:    "6779ef20e75817b79602",
 		Issuer:      "http://127.0.0.1:8080",
@@ -162,7 +170,7 @@ func main() {
 		Keys:     secretKeys,
 	}
 	http.Handle("/login", intention(solidClient, sessions))
-	http.Handle("/cb", callback(solidClient, sessions))
+	http.Handle("/cb", callback(solidClient, sessions, prover))
 
 	log.Fatal(http.ListenAndServe(":8085", nil))
 }

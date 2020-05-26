@@ -103,8 +103,8 @@ message TokenRequest {
   // OPTIONAL. Scope to use for token request
   google.protobuf.StringValue scope = 3;
 
-  // OPTIONAL. DPoP value.
-  google.protobuf.StringValue dpop_proof = 4;
+  // OPTIONAL. Token confirmation.
+  TokenConfirmation token_confirmation = 4;
 
   // REQUIRED.
   oneof grant {

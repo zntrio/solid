@@ -18,10 +18,30 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+
+	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 
 	jsoniter "github.com/json-iterator/go"
 )
+
+func withError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {
+	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
+	// Marshal response as json
+	body, _ := json.Marshal(err)
+
+	// Set content type header
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm="%s", error="%s", error_description="%s"`, r.URL.Host, err.Err, err.ErrorDescription))
+
+	// Write status
+	w.WriteHeader(code)
+
+	// Write response
+	w.Write(body)
+}
 
 // JSON serialize the data with matching requested encoding
 func withJSON(w http.ResponseWriter, r *http.Request, code int, data interface{}) {

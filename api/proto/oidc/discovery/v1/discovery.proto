@@ -323,6 +323,11 @@ message ServerMetadata {
 
   // https://tools.ietf.org/html/rfc8628#section-4
   string device_authorization_endpoint = 46;
+
+  // OPTIONAL. JSON array containing a list of the JWS algorithms supported for
+  // DPoP proof JWTs.
+  // https://www.ietf.org/id/draft-ietf-oauth-dpop-01.html#section-10.7
+  repeated string dpop_signing_alg_values_supported = 47;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

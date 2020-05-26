@@ -28,7 +28,7 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 
-var jwtPrivateKey = []byte(`{"kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)
+var jwtPrivateKey = []byte(`{"kid":"foo", "kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)
 
 func Test_accessTokenGenerator_Generate(t *testing.T) {
 	type fields struct {
@@ -39,6 +39,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		ctx  context.Context
 		jti  string
 		meta *corev1.TokenMeta
+		cnf  *corev1.TokenConfirmation
 	}
 	tests := []struct {
 		name    string
@@ -101,6 +102,30 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			fields: fields{
 				keyProvider: func() (*jose.JSONWebKey, error) {
 					return nil, nil
+				},
+			},
+			args: args{
+				jti:  "123456789",
+				meta: &corev1.TokenMeta{},
+			},
+			wantErr: true,
+		},
+		{
+			name: "key without id",
+			fields: fields{
+				keyProvider: func() (*jose.JSONWebKey, error) {
+					var privateKey jose.JSONWebKey
+
+					// Decode JWK
+					err := json.Unmarshal(jwtPrivateKey, &privateKey)
+					if err != nil {
+						return nil, fmt.Errorf("unable to decode JWK: %w", err)
+					}
+					// Erase KeyID
+					privateKey.KeyID = ""
+
+					// Return key
+					return &privateKey, nil
 				},
 			},
 			args: args{
@@ -190,14 +215,41 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "ec256 sign with confirmation",
+			fields: fields{
+				alg: jose.ES256,
+				keyProvider: func() (*jose.JSONWebKey, error) {
+					var privateKey jose.JSONWebKey
+
+					// Decode JWK
+					err := json.Unmarshal(jwtPrivateKey, &privateKey)
+					if err != nil {
+						return nil, fmt.Errorf("unable to decode JWK: %w", err)
+					}
+					return &privateKey, nil
+				},
+			},
+			args: args{
+				jti: "123456789",
+				meta: &corev1.TokenMeta{
+					Issuer:    "http://localhost:8080",
+					Audience:  "azertyuiop",
+					ClientId:  "789456",
+					ExpiresAt: 3601,
+					IssuedAt:  1,
+				},
+				cnf: &corev1.TokenConfirmation{
+					Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &accessTokenGenerator{
-				alg:         tt.fields.alg,
-				keyProvider: tt.fields.keyProvider,
-			}
-			_, err := c.Generate(tt.args.ctx, tt.args.jti, tt.args.meta)
+			c := AccessToken(tt.fields.alg, tt.fields.keyProvider)
+			_, err := c.Generate(tt.args.ctx, tt.args.jti, tt.args.meta, tt.args.cnf)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("accessTokenGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return

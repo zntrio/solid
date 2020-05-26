@@ -18,6 +18,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/square/go-jose v2.5.1+incompatible
 	github.com/square/go-jose/v3 v3.0.0-20200430180204-d84c719419c2
+	golang.org/x/crypto v0.0.0-20190911031432-227b76d455e7
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 	google.golang.org/protobuf v1.21.0
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect

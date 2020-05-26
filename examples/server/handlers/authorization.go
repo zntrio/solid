@@ -41,7 +41,7 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
-			withJSON(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
 			return
 		}
 
@@ -55,7 +55,7 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		// Retrieve subject form context
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
-			withJSON(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
 			return
 		}
 
@@ -70,12 +70,12 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		})
 		authRes, ok := res.(*corev1.AuthorizationCodeResponse)
 		if !ok {
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
 			return
 		}
 		if err != nil {
 			log.Println("unable to process authorization request:", err)
-			withJSON(w, r, http.StatusBadRequest, authRes.Error)
+			withError(w, r, http.StatusBadRequest, authRes.Error)
 			return
 		}
 
@@ -83,7 +83,7 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		u, err := url.ParseRequestURI(authRes.RedirectUri)
 		if err != nil {
 			log.Println("unable to process redirect uri:", err)
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
 			return
 		}
 

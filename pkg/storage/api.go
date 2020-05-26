@@ -134,3 +134,12 @@ type DeviceCodeSession interface {
 	DeviceCodeSessionReader
 	DeviceCodeSessionWriter
 }
+
+//go:generate mockgen -destination mock/dpop.gen.go -package mock go.zenithar.org/solid/pkg/storage DPoP
+
+// DPoP describes dpop proof jti storage to prevent dpop replay attack.
+type DPoP interface {
+	Register(ctx context.Context, id string) error
+	Delete(ctx context.Context, id string) error
+	Exists(ctx context.Context, id string) (bool, error)
+}

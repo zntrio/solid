@@ -62,9 +62,9 @@ func mustURLParse(value string) *url.URL {
 	return u
 }
 
-func TestProof(t *testing.T) {
+func TestProver(t *testing.T) {
 	type args struct {
-		privateKey *jose.JSONWebKey
+		privateKey jose.SigningKey
 		htm        string
 		htu        *url.URL
 	}
@@ -81,7 +81,7 @@ func TestProof(t *testing.T) {
 		{
 			name: "empty key",
 			args: args{
-				privateKey: &jose.JSONWebKey{},
+				privateKey: jose.SigningKey{},
 				htm:        http.MethodPost,
 				htu:        mustURLParse("https://server.example.com/token"),
 			},
@@ -90,7 +90,7 @@ func TestProof(t *testing.T) {
 		{
 			name: "public key",
 			args: args{
-				privateKey: publicKey,
+				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: publicKey},
 				htm:        http.MethodPost,
 				htu:        mustURLParse("https://server.example.com/token"),
 			},
@@ -99,7 +99,7 @@ func TestProof(t *testing.T) {
 		{
 			name: "htm empty",
 			args: args{
-				privateKey: privateKey,
+				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: privateKey},
 				htm:        "",
 				htu:        mustURLParse("https://server.example.com/token"),
 			},
@@ -108,7 +108,7 @@ func TestProof(t *testing.T) {
 		{
 			name: "htu nil",
 			args: args{
-				privateKey: privateKey,
+				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: privateKey},
 				htm:        http.MethodPost,
 				htu:        nil,
 			},
@@ -117,7 +117,7 @@ func TestProof(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				privateKey: privateKey,
+				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: privateKey},
 				htm:        http.MethodPost,
 				htu:        mustURLParse("https://server.example.com/token"),
 			},
@@ -126,7 +126,70 @@ func TestProof(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := Proof(tt.args.privateKey, tt.args.htm, tt.args.htu)
+			underTest, err := KeyProver(tt.args.privateKey)
+			if err != nil {
+				t.Errorf("KeyProver() error = %v", err)
+				return
+			}
+
+			_, err = underTest.Prove(tt.args.htm, tt.args.htu)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Proof() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		})
+	}
+}
+
+func TestProver_Default(t *testing.T) {
+	type args struct {
+		htm string
+		htu *url.URL
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "nil",
+			wantErr: true,
+		},
+		{
+			name: "htm empty",
+			args: args{
+				htm: "",
+				htu: mustURLParse("https://server.example.com/token"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "htu nil",
+			args: args{
+				htm: http.MethodPost,
+				htu: nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid",
+			args: args{
+				htm: http.MethodPost,
+				htu: mustURLParse("https://server.example.com/token"),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			underTest, err := DefaultProver()
+			if err != nil {
+				t.Errorf("Default() error = %v", err)
+				return
+			}
+
+			_, err = underTest.Prove(tt.args.htm, tt.args.htu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Proof() error = %v, wantErr %v", err, tt.wantErr)
 				return

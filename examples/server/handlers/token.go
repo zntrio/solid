@@ -26,11 +26,12 @@ import (
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	"go.zenithar.org/solid/pkg/clientauthentication"
+	"go.zenithar.org/solid/pkg/dpop"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 )
 
 // Token handles token HTTP requests.
-func Token(as authorizationserver.AuthorizationServer) http.Handler {
+func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {
 		AccessToken  string `json:"access_token"`
 		ExpiresIn    uint64 `json:"expires_in"`
@@ -84,34 +85,60 @@ func Token(as authorizationserver.AuthorizationServer) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			ctx = r.Context()
+			ctx       = r.Context()
+			dpopProof = r.Header.Get("DPoP")
 		)
 
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withJSON(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
 			return
 		}
 
+		// Prepare msg
+		msg := messageBuilder(r, client)
+
+		// Check if dpop is used
+		if dpopProof != "" {
+			// Check dpop proof
+			jkt, err := dpopVerifier.Verify(r.Context(), r, dpopProof)
+			if err != nil {
+				log.Println("unable to validate dpop proof:", err)
+				withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof())
+				return
+			}
+
+			// Add confirmation
+			msg.TokenConfirmation = &corev1.TokenConfirmation{
+				Jkt: jkt,
+			}
+		}
+
 		// Send request to reactor
-		res, err := as.Do(r.Context(), messageBuilder(r, client))
+		res, err := as.Do(r.Context(), msg)
 		tokenRes, ok := res.(*corev1.TokenResponse)
 		if !ok {
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
 			return
 		}
 		if err != nil {
 			log.Println("unable to process token request: %w", err)
-			withJSON(w, r, http.StatusBadRequest, tokenRes.Error)
+			withError(w, r, http.StatusBadRequest, tokenRes.Error)
 			return
+		}
+
+		// Change token type according to DPoP usage.
+		tokenType := "Bearer"
+		if dpopProof != "" {
+			tokenType = "DPoP"
 		}
 
 		// Prepare response
 		jsonResponse := &response{
 			AccessToken: tokenRes.AccessToken.Value,
 			ExpiresIn:   tokenRes.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()),
-			TokenType:   "Bearer",
+			TokenType:   tokenType,
 			Scope:       tokenRes.AccessToken.Metadata.Scope,
 		}
 		if tokenRes.RefreshToken != nil {

@@ -36,7 +36,7 @@ var (
 	tokenTypeStrings = strings.Split("invalid|unknown|access_token|refesh_token|id_token", "|")
 )
 
-func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta) (*corev1.Token, error) {
+func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
 	var err error
 
 	// Create access token spec
@@ -52,11 +52,12 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
 		},
-		Status: corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		Confirmation: cnf,
+		Status:       corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
 	// Generate an access token
-	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata)
+	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata, at.Confirmation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate an accessToken: %w", err)
 	}
@@ -75,7 +76,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 	return at, nil
 }
 
-func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta) (*corev1.Token, error) {
+func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
 	var err error
 
 	// Create access token spec
@@ -91,11 +92,12 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
 		},
-		Status: corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		Confirmation: cnf,
+		Status:       corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
 	// Generate an access token
-	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata)
+	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata, at.Confirmation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate an refresh token: %w", err)
 	}

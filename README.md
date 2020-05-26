@@ -135,8 +135,8 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
   * Token
     * Scheme
-      * [x] Bearer
-      * [ ] DPoP - [draft-fett-oauth-dpop-04](https://tools.ietf.org/html/draft-fett-oauth-dpop-04)
+      * [x] Bearer - [rfc6750](https://tools.ietf.org/html/rfc6750)
+      * [x] DPoP - [draft-fett-oauth-dpop-04](https://tools.ietf.org/html/draft-ietf-oauth-dpop-01)
       * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
     * Authentication by reference
       * [x] Random string

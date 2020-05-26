@@ -19,6 +19,8 @@ package authorizationserver
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 
 	"go.zenithar.org/solid/internal/services"
 	"go.zenithar.org/solid/internal/services/authorization"
@@ -31,6 +33,7 @@ import (
 
 // AuthorizationServer represents global authorization features enabled at-runtime.
 type AuthorizationServer interface {
+	Issuer() *url.URL
 	Enable(features.Feature)
 	Do(ctx context.Context, req interface{}) (interface{}, error)
 }
@@ -38,7 +41,7 @@ type AuthorizationServer interface {
 // -----------------------------------------------------------------------------
 
 // New assemble all given options to instanciate an authorization server.
-func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer {
+func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServer, error) {
 	// Default options
 	defaultOptions := &options{
 		authorizationCodeGenerator:      generator.DefaultAuthorizationCode(),
@@ -48,6 +51,12 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 		tokenManager:                    nil,
 		authorizationCodeSessionManager: nil,
 		deviceCodeSessionManager:        nil,
+	}
+
+	// Parse issuer
+	issuerURL, err := url.Parse(issuer)
+	if err != nil {
+		return nil, fmt.Errorf("issuer must be a valid URL")
 	}
 
 	// Parse options
@@ -61,6 +70,7 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 
 	// Wire message
 	as := &authorizationServer{
+		issuer:         issuerURL,
 		authorizations: authorizations,
 		tokens:         tokens,
 		r:              reactor.New(issuer),
@@ -74,14 +84,19 @@ func New(ctx context.Context, issuer string, opts ...Option) AuthorizationServer
 	as.Enable(oidc.Revocation())
 
 	// Return Authorization Server instance
-	return as
+	return as, nil
 }
 
 type authorizationServer struct {
+	issuer         *url.URL
 	authorizations services.Authorization
 	tokens         services.Token
 	r              reactor.Reactor
 	dopts          *options
+}
+
+func (as *authorizationServer) Issuer() *url.URL {
+	return as.issuer
 }
 
 func (as *authorizationServer) Enable(f features.Feature) {

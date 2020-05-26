@@ -123,3 +123,11 @@ func TokenExpired() *corev1.Error {
 		ErrorDescription: "The 'device_code' has expired, and the device authorization session has concluded.",
 	}
 }
+
+// InvalidDPoPProof returns a compliant `invalid_dpop_proof` error.
+func InvalidDPoPProof() *corev1.Error {
+	return &corev1.Error{
+		Err:              "invalid_dpop_proof",
+		ErrorDescription: "The provided DPoP proof is expired, malformed, or invalid for other reasons.",
+	}
+}

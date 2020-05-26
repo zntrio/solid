@@ -65,6 +65,12 @@ message Token {
   TokenStatus status = 4;
   // REQUIRED. Final token value.
   string value = 5;
+  // OPTIONAL. Token confirmation
+  TokenConfirmation confirmation = 6;
+}
+
+message TokenConfirmation {
+  string jkt = 1;
 }
 
 message OAuthTokenResponse {

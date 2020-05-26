@@ -55,7 +55,7 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
 		Scope:    grant.Scope,
 		Audience: grant.Audience,
-	})
+	}, req.TokenConfirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError("")
 		return res, fmt.Errorf("unable to generate access token: %w", err)

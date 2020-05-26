@@ -23,6 +23,8 @@ import (
 	"log"
 	"net/http"
 
+	"go.zenithar.org/solid/pkg/dpop"
+
 	"go.zenithar.org/solid/examples/server/handlers"
 	"go.zenithar.org/solid/examples/server/middleware"
 	"go.zenithar.org/solid/examples/storage/inmemory"
@@ -66,25 +68,36 @@ func main() {
 	)
 
 	// Prepare the authorization server
-	as := authorizationserver.New(ctx,
-		"http://localhost:8080", // Issuer
+	as, err := authorizationserver.New(ctx,
+		"http://127.0.0.1:8080", // Issuer
+		// Client storage
 		authorizationserver.ClientReader(inmemory.Clients()),
+		// Authorization requests
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
+		// Authorization code storage
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
+		// Token storage
 		authorizationserver.TokenManager(inmemory.Tokens()),
+		// Access token generator
 		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
 	)
+	if err != nil {
+		panic(err)
+	}
 
 	// Create client authentication middleware
 	clientAuth := middleware.ClientAuthentication(inmemory.Clients())
 	secHeaders := middleware.SecurityHaders()
 	basicAuth := middleware.BasicAuthentication()
 
+	// Initialize dpop verifier
+	dpopVerifier := dpop.DefaultVerifier(inmemory.DPoPProofs())
+
 	// Create router
-	http.Handle("/.well-known/openid-configuration", handlers.Metadata("http://localhost:8080"))
+	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as))
 	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as), clientAuth))
 	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as), secHeaders, basicAuth))
-	http.Handle("/token", middleware.Adapt(handlers.Token(as), clientAuth))
+	http.Handle("/token", middleware.Adapt(handlers.Token(as, dpopVerifier), clientAuth))
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))
 

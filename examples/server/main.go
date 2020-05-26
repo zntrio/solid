@@ -23,12 +23,12 @@ import (
 	"log"
 	"net/http"
 
-	"go.zenithar.org/solid/pkg/dpop"
-
 	"go.zenithar.org/solid/examples/server/handlers"
 	"go.zenithar.org/solid/examples/server/middleware"
 	"go.zenithar.org/solid/examples/storage/inmemory"
 	"go.zenithar.org/solid/pkg/authorizationserver"
+	"go.zenithar.org/solid/pkg/dpop"
+	"go.zenithar.org/solid/pkg/generator"
 	"go.zenithar.org/solid/pkg/generator/jwt"
 
 	"github.com/square/go-jose/v3"
@@ -80,6 +80,8 @@ func main() {
 		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Access token generator
 		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
+		// Device authorization session storage
+		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 	)
 	if err != nil {
 		panic(err)
@@ -97,9 +99,11 @@ func main() {
 	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as))
 	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as), clientAuth))
 	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as), secHeaders, basicAuth))
+	http.Handle("/device_authorize", middleware.Adapt(handlers.DeviceAuthorization(as), clientAuth))
 	http.Handle("/token", middleware.Adapt(handlers.Token(as, dpopVerifier), clientAuth))
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))
+	http.Handle("/device", middleware.Adapt(handlers.Device(as), secHeaders, basicAuth))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

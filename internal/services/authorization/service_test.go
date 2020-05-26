@@ -25,7 +25,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
-
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/pkg/generator"
@@ -52,10 +51,23 @@ func Test_service_Authorize(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "nil request",
+			name: "nil",
 			args: args{
 				ctx: context.Background(),
 				req: nil,
+			},
+			wantErr: true,
+			want: &corev1.AuthorizationCodeResponse{
+				Error: rfcerrors.InvalidRequest(""),
+			},
+		},
+		{
+			name: "nil request",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationCodeRequest{
+					Request: nil,
+				},
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
@@ -420,7 +432,6 @@ func Test_service_Authorize(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
-			deviceCodeSessions := storagemock.NewMockDeviceCodeSessionWriter(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -428,7 +439,7 @@ func Test_service_Authorize(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions)
 
 			// Do the request
 			got, err := underTest.Authorize(tt.args.ctx, tt.args.req)
@@ -705,7 +716,6 @@ func Test_service_Register(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
-			deviceCodeSessions := storagemock.NewMockDeviceCodeSessionWriter(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -713,7 +723,7 @@ func Test_service_Register(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions)
 
 			// Do the request
 			got, err := underTest.Register(tt.args.ctx, tt.args.req)

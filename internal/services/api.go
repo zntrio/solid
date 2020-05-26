@@ -29,8 +29,6 @@ type Authorization interface {
 	Authorize(ctx context.Context, req *corev1.AuthorizationCodeRequest) (*corev1.AuthorizationCodeResponse, error)
 	// Register a request.
 	Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error)
-	// Device process device authorization request.
-	Device(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error)
 }
 
 // Token describes token requet processor.
@@ -41,4 +39,10 @@ type Token interface {
 	Introspect(ctx context.Context, req *corev1.TokenIntrospectionRequest) (*corev1.TokenIntrospectionResponse, error)
 	// Revoke given token.
 	Revoke(ctx context.Context, req *corev1.TokenRevocationRequest) (*corev1.TokenRevocationResponse, error)
+}
+
+// Device authorization service contract.
+type Device interface {
+	// Authorize process device authorization request.
+	Authorize(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error)
 }

@@ -27,7 +27,6 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/generator"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
@@ -46,17 +45,14 @@ type service struct {
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequest
 	authorizationCodeSessions storage.AuthorizationCodeSessionWriter
-	deviceCodeSessions        storage.DeviceCodeSessionWriter
-	userCodeGen               generator.DeviceUserCode
 }
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, deviceCodeSessions storage.DeviceCodeSessionWriter) services.Authorization {
+func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter) services.Authorization {
 	return &service{
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
-		deviceCodeSessions:        deviceCodeSessions,
 	}
 }
 
@@ -71,16 +67,16 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
+	// Check authoriaztion request
+	if req.Request == nil {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to process nil authorization request")
+	}
+
 	// Check subject
 	if req.Subject == "" {
 		res.Error = rfcerrors.InvalidRequest("")
 		return res, fmt.Errorf("unable to process empty subject")
-	}
-
-	// Check authoriaztion request
-	if req.Request == nil {
-		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("unable to process empty authorization request")
 	}
 
 	// Check request reference usage
@@ -194,51 +190,6 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 	// Assemble result
 	res.ExpiresIn = 90
 	res.RequestUri = requestURI
-
-	// No error
-	return res, nil
-}
-
-func (s *service) Device(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error) {
-	res := &corev1.DeviceAuthorizationResponse{}
-
-	// Check req nullity
-	if req == nil {
-		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("unable to process nil request")
-	}
-
-	// Check client_id
-	if req.ClientId == "" {
-		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("client_id must not be empty")
-	}
-
-	// Check client existence
-	client, err := s.clients.Get(ctx, req.ClientId)
-	if err != nil {
-		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("unable to retrieve client details: %w", err)
-	}
-
-	// Store device code request
-	deviceCode, userCode, err := s.deviceCodeSessions.Register(ctx, &corev1.DeviceCodeSession{
-		Client:  client,
-		Request: req,
-	})
-	if err != nil {
-		res.Error = rfcerrors.ServerError("")
-		return res, fmt.Errorf("unable to create device request: %w", err)
-	}
-
-	// Assign device code
-	res.DeviceCode = deviceCode
-	// Assign user code
-	res.UserCode = userCode
-	// Set expiration
-	res.ExpiresIn = 120 // 2 minutes
-	// Polling interval
-	res.Interval = 5
 
 	// No error
 	return res, nil

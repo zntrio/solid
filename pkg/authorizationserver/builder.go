@@ -24,6 +24,7 @@ import (
 
 	"go.zenithar.org/solid/internal/services"
 	"go.zenithar.org/solid/internal/services/authorization"
+	"go.zenithar.org/solid/internal/services/device"
 	"go.zenithar.org/solid/internal/services/token"
 	"go.zenithar.org/solid/pkg/authorizationserver/features"
 	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
@@ -65,7 +66,8 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	}
 
 	// Initialize services
-	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager)
+	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
+	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
 
 	// Wire message
@@ -73,6 +75,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 		issuer:         issuerURL,
 		authorizations: authorizations,
 		tokens:         tokens,
+		devices:        devices,
 		r:              reactor.New(issuer),
 		dopts:          defaultOptions,
 	}
@@ -82,6 +85,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	as.Enable(oidc.Introspection())
 	as.Enable(oidc.PushedAuthorizationRequest())
 	as.Enable(oidc.Revocation())
+	as.Enable(oidc.Device())
 
 	// Return Authorization Server instance
 	return as, nil
@@ -91,6 +95,7 @@ type authorizationServer struct {
 	issuer         *url.URL
 	authorizations services.Authorization
 	tokens         services.Token
+	devices        services.Device
 	r              reactor.Reactor
 	dopts          *options
 }
@@ -100,7 +105,7 @@ func (as *authorizationServer) Issuer() *url.URL {
 }
 
 func (as *authorizationServer) Enable(f features.Feature) {
-	f(as.r, as.authorizations, as.tokens)
+	f(as.r, as.authorizations, as.tokens, as.devices)
 }
 
 func (as *authorizationServer) Do(ctx context.Context, req interface{}) (interface{}, error) {

@@ -15,12 +15,29 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package features
+package handlers
 
 import (
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/reactor"
+	"net/http"
+
+	"go.zenithar.org/solid/examples/server/middleware"
+	"go.zenithar.org/solid/pkg/authorizationserver"
+	"go.zenithar.org/solid/pkg/rfcerrors"
 )
 
-// Feature represents authorization server feature enabler.
-type Feature func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device)
+// Device handle device code validation.
+func Device(as authorizationserver.AuthorizationServer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var (
+			ctx = r.Context()
+		)
+
+		// Retrieve subject form context
+		sub, ok := middleware.Subject(ctx)
+		if !ok || sub == "" {
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
+			return
+		}
+
+	})
+}

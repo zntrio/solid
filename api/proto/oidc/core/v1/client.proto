@@ -41,6 +41,13 @@ enum ClientType {
   CLIENT_TYPE_PUBLIC = 3;
 }
 
+enum SubjectType {
+  SUBJECT_TYPE_INVALID = 0;
+  SUBJECT_TYPE_UNKNOWN = 1;
+  SUBJECT_TYPE_PUBLIC = 2;
+  SUBJECT_TYPE_PAIRWISE = 3;
+}
+
 // Client defines internal OIDC client properties.
 message Client {
   string client_id = 1;
@@ -58,4 +65,6 @@ message Client {
   string jwks_uri = 13;
   bytes jwks = 14;
   bytes client_secret = 15;
+  SubjectType subject_type = 16;
+  string sector_identifier = 17;
 }

@@ -47,6 +47,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		)
 
 		msg := &corev1.TokenRequest{
+			Issuer:    as.Issuer().String(),
 			Client:    client,
 			GrantType: grantType,
 		}

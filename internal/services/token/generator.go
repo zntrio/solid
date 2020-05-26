@@ -19,9 +19,12 @@ package token
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"time"
+
+	"golang.org/x/crypto/blake2b"
 
 	"github.com/dchest/uniuri"
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
@@ -39,13 +42,21 @@ var (
 func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
 	var err error
 
+	// Process pairwise subject identifier
+	sub := meta.Subject
+	if client.SubjectType == corev1.SubjectType_SUBJECT_TYPE_PAIRWISE {
+		h := blake2b.Sum256([]byte(fmt.Sprintf("%s|%s", meta.Subject, client.SectorIdentifier)))
+		sub = base64.RawURLEncoding.EncodeToString(h[:])
+	}
+
 	// Create access token spec
 	now := timeFunc()
 	at := &corev1.Token{
 		TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
 		Metadata: &corev1.TokenMeta{
-			Subject:   meta.Subject,
+			Issuer:    meta.Issuer,
+			Subject:   sub,
 			ClientId:  client.ClientId,
 			IssuedAt:  uint64(now.Unix()),
 			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()),
@@ -79,13 +90,21 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
 	var err error
 
+	// Process pairwize subject identifier
+	sub := meta.Subject
+	if client.SubjectType == corev1.SubjectType_SUBJECT_TYPE_PAIRWISE {
+		h := blake2b.Sum256([]byte(fmt.Sprintf("%s|%s", meta.Subject, client.SectorIdentifier)))
+		sub = base64.RawURLEncoding.EncodeToString(h[:])
+	}
+
 	// Create access token spec
 	now := timeFunc()
 	at := &corev1.Token{
 		TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
 		Metadata: &corev1.TokenMeta{
-			Subject:   meta.Subject,
+			Issuer:    meta.Issuer,
+			Subject:   sub,
 			ClientId:  client.ClientId,
 			IssuedAt:  uint64(now.Unix()),
 			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()),

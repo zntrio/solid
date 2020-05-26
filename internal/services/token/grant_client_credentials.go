@@ -20,6 +20,7 @@ package token
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
@@ -45,6 +46,18 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
+	// Check issuer syntax
+	if req.Issuer == "" {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("issuer must not be blank")
+	}
+
+	_, err := url.ParseRequestURI(req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("issuer must be a valid url: %w", err)
+	}
+
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeClientCredentials) {
 		res.Error = rfcerrors.UnsupportedGrantType("")
@@ -53,6 +66,7 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 
 	// Generate access token
 	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
+		Issuer:   req.Issuer,
 		Scope:    grant.Scope,
 		Audience: grant.Audience,
 	}, req.TokenConfirmation)

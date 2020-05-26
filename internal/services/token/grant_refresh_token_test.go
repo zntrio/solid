@@ -89,11 +89,50 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 		},
 		{
+			name: "empty issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer:    "",
+					Client:    &corev1.Client{},
+					GrantType: oidc.GrantTypeRefreshToken,
+					Grant: &corev1.TokenRequest_RefreshToken{
+						RefreshToken: &corev1.GrantRefreshToken{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "invalid issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer:    "foo",
+					Client:    &corev1.Client{},
+					GrantType: oidc.GrantTypeRefreshToken,
+					Grant: &corev1.TokenRequest_RefreshToken{
+						RefreshToken: &corev1.GrantRefreshToken{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
 			name: "empty refresh_token",
 			args: args{
 				ctx:    context.Background(),
 				client: &corev1.Client{},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -118,6 +157,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -142,6 +182,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -169,6 +210,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -196,6 +238,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -228,6 +271,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -260,6 +304,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -292,6 +337,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -311,6 +357,7 @@ func Test_service_refreshToken(t *testing.T) {
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -331,6 +378,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -350,6 +398,7 @@ func Test_service_refreshToken(t *testing.T) {
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						ClientId:  "123458",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -372,6 +421,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -391,6 +441,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -412,6 +463,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -431,6 +483,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -452,6 +505,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -471,6 +525,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -493,6 +548,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -512,6 +568,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -536,6 +593,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -555,6 +613,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -581,6 +640,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -600,6 +660,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -617,6 +678,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -633,6 +695,7 @@ func Test_service_refreshToken(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -652,6 +715,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -672,6 +736,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -684,6 +749,7 @@ func Test_service_refreshToken(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,

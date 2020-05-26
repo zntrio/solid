@@ -49,18 +49,11 @@ func Test_service_authorizationCode(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "nil client",
+			name: "nil request",
 			args: args{
-				ctx: context.Background(),
-				req: &corev1.TokenRequest{
-					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
-							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
-							RedirectUri:  "https://client.example.org/cb",
-						},
-					},
-				},
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req:    nil,
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -68,10 +61,11 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
-			name: "nil request",
+			name: "nil client",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
+				client: nil,
+				req:    &corev1.TokenRequest{},
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -84,7 +78,46 @@ func Test_service_authorizationCode(t *testing.T) {
 				ctx:    context.Background(),
 				client: &corev1.Client{},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeAuthorizationCode,
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "missing issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer:    "",
+					Client:    &corev1.Client{},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "invalid issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer:    "foo",
+					Client:    &corev1.Client{},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &corev1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &corev1.GrantAuthorizationCode{},
+					},
 				},
 			},
 			wantErr: true,
@@ -102,6 +135,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -129,6 +163,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -156,6 +191,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -184,6 +220,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -211,6 +248,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -239,6 +277,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -267,6 +306,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -294,6 +334,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -325,6 +366,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -356,6 +398,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -389,6 +432,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -432,6 +476,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -475,6 +520,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -518,6 +564,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -561,6 +608,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -605,6 +653,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -649,6 +698,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -693,6 +743,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -738,6 +789,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -784,6 +836,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -830,6 +883,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -878,6 +932,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -918,6 +973,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -929,6 +985,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,

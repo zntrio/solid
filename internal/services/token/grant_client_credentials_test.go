@@ -78,8 +78,40 @@ func Test_service_clientCredentials(t *testing.T) {
 			args: args{
 				ctx:    context.Background(),
 				client: &corev1.Client{},
+				req:    &corev1.TokenRequest{},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "empty issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
 				req: &corev1.TokenRequest{
-					GrantType: oidc.GrantTypeAuthorizationCode,
+					Issuer: "",
+					Grant: &corev1.TokenRequest_ClientCredentials{
+						ClientCredentials: &corev1.GrantClientCredentials{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "invalid issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer: "123456",
+					Grant: &corev1.TokenRequest_ClientCredentials{
+						ClientCredentials: &corev1.GrantClientCredentials{},
+					},
 				},
 			},
 			wantErr: true,
@@ -96,6 +128,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					RedirectUris: []string{"https://client.example.org/cb"},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -119,6 +152,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -144,6 +178,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -169,6 +204,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -196,6 +232,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -217,6 +254,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
 						ExpiresAt: 3601,
 					},

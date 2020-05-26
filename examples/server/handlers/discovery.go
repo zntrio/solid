@@ -32,6 +32,7 @@ func Metadata(as authorizationserver.AuthorizationServer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		withJSON(w, r, http.StatusOK, &discoveryv1.ServerMetadata{
 			Issuer:                                     issuer,
+			SubjectTypesSupported:                      []string{"pairwise"},
 			AuthorizationEndpoint:                      fmt.Sprintf("%s/authorize", issuer),
 			ResponseTypesSupported:                     []string{"code"},
 			GrantTypesSupported:                        []string{oidc.GrantTypeClientCredentials, oidc.GrantTypeAuthorizationCode},

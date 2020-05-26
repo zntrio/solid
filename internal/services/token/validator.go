@@ -35,6 +35,11 @@ var validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev
 		}
 	}
 
+	// Validate issuer
+	if req.Issuer == "" {
+		return rfcerrors.ServerError("")
+	}
+
 	// Validate client authentication
 	if req.Client == nil {
 		return rfcerrors.InvalidClient("")

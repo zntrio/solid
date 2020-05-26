@@ -102,7 +102,21 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "issuer missing",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.TokenRequest{
+					Client:    nil,
+					GrantType: "authorization_code",
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
 			},
 		},
 		{
@@ -110,6 +124,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					Client:    nil,
 					GrantType: "authorization_code",
 				},
@@ -124,6 +139,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -140,6 +156,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -156,6 +173,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -172,6 +190,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -188,6 +207,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -204,6 +224,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -221,6 +242,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -247,6 +269,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -273,6 +296,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -302,6 +326,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -326,6 +351,7 @@ func Test_service_Token(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
 						ExpiresAt: 3601,
 					},
@@ -339,6 +365,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -355,9 +382,11 @@ func Test_service_Token(t *testing.T) {
 			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-					ResponseTypes: []string{"code"},
-					RedirectUris:  []string{"https://client.example.org/cb"},
+					GrantTypes:       []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes:    []string{"code"},
+					RedirectUris:     []string{"https://client.example.org/cb"},
+					SubjectType:      corev1.SubjectType_SUBJECT_TYPE_PAIRWISE,
+					SectorIdentifier: "https://client.example.org",
 				}, nil)
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
@@ -384,6 +413,8 @@ func Test_service_Token(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Subject:   "BFNSOa3f3zMwuO53izk4i4Wtwbnsrewmz-DSEo26YGQ",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -395,6 +426,8 @@ func Test_service_Token(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Subject:   "BFNSOa3f3zMwuO53izk4i4Wtwbnsrewmz-DSEo26YGQ",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -410,6 +443,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -448,6 +482,7 @@ func Test_service_Token(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
 						ExpiresAt: 3601,
 						ClientId:  "s6BhdRkqt3",
@@ -462,6 +497,7 @@ func Test_service_Token(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -484,6 +520,7 @@ func Test_service_Token(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -501,6 +538,7 @@ func Test_service_Token(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,

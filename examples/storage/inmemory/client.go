@@ -66,6 +66,9 @@ func Clients() storage.Client {
 						}
 					]
 				}`),
+				// Pairwise sector identitier
+				SubjectType:      corev1.SubjectType_SUBJECT_TYPE_PAIRWISE,
+				SectorIdentifier: "http://127.0.0.1:8085",
 			},
 		},
 	}

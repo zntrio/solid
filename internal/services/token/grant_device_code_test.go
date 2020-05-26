@@ -89,6 +89,42 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 		},
 		{
+			name: "empty issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer:    "",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
+			name: "invalid issuer",
+			args: args{
+				ctx:    context.Background(),
+				client: &corev1.Client{},
+				req: &corev1.TokenRequest{
+					Issuer:    "foo",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError(""),
+			},
+		},
+		{
 			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
@@ -96,6 +132,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -118,6 +155,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -143,6 +181,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -171,6 +210,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -199,6 +239,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "foo",
 					},
@@ -227,6 +268,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "foo",
 					},
@@ -255,6 +297,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "foo",
 					},
@@ -285,6 +328,7 @@ func Test_service_deviceCode(t *testing.T) {
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
 				req: &corev1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
 					Client: &corev1.Client{
 						ClientId: "foo",
 					},
@@ -321,6 +365,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 				},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
 						DeviceCode: &corev1.GrantDeviceCode{
@@ -356,6 +401,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 				},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
 						DeviceCode: &corev1.GrantDeviceCode{
@@ -392,6 +438,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 				},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
 						DeviceCode: &corev1.GrantDeviceCode{
@@ -428,6 +475,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 				},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
 						DeviceCode: &corev1.GrantDeviceCode{
@@ -465,6 +513,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 				},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
 						DeviceCode: &corev1.GrantDeviceCode{
@@ -504,6 +553,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 				},
 				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 					Grant: &corev1.TokenRequest_DeviceCode{
 						DeviceCode: &corev1.GrantDeviceCode{
@@ -535,6 +585,7 @@ func Test_service_deviceCode(t *testing.T) {
 					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
 						ExpiresAt: 3601,
 						ClientId:  "s6BhdRkqt3",

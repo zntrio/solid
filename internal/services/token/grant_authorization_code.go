@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"strings"
 
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
@@ -53,6 +54,18 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	if grant == nil {
 		res.Error = rfcerrors.ServerError("")
 		return res, fmt.Errorf("unable to process with nil grant")
+	}
+
+	// Check issuer syntax
+	if req.Issuer == "" {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("issuer must not be blank")
+	}
+
+	_, err := url.ParseRequestURI(req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.ServerError("")
+		return res, fmt.Errorf("issuer must be a valid url: %w", err)
 	}
 
 	// Validate client capabilities
@@ -139,6 +152,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	if scopes.Contains(oidc.ScopeOpenID) {
 		// Generate access token
 		at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
+			Issuer:   req.Issuer,
 			Subject:  ar.Subject,
 			Audience: ar.Request.Audience,
 			Scope:    ar.Request.Scope,
@@ -152,6 +166,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 		if scopes.Contains(oidc.ScopeOfflineAccess) {
 			// Generate refresh token
 			rt, err := s.generateRefreshToken(ctx, client, &corev1.TokenMeta{
+				Issuer:   req.Issuer,
 				Subject:  ar.Subject,
 				Audience: ar.Request.Audience,
 				Scope:    ar.Request.Scope,

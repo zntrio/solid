@@ -94,17 +94,20 @@ message RegistrationResponse {
 }
 
 message TokenRequest {
+  // REQUIRED. Issuer url.
+  string issuer = 1;
+
   // REQUIRED. The client that request token generation.
-  Client client = 1;
+  Client client = 2;
 
   // REQUIRED. The grant_type value to use.
-  string grant_type = 2;
+  string grant_type = 3;
 
   // OPTIONAL. Scope to use for token request
-  google.protobuf.StringValue scope = 3;
+  google.protobuf.StringValue scope = 4;
 
   // OPTIONAL. Token confirmation.
-  TokenConfirmation token_confirmation = 4;
+  TokenConfirmation token_confirmation = 5;
 
   // REQUIRED.
   oneof grant {

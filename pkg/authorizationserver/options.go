@@ -19,6 +19,7 @@ package authorizationserver
 
 import (
 	"go.zenithar.org/solid/pkg/generator"
+	"go.zenithar.org/solid/pkg/request"
 	"go.zenithar.org/solid/pkg/storage"
 )
 
@@ -33,6 +34,7 @@ type options struct {
 	authorizationCodeSessionManager storage.AuthorizationCodeSession
 	deviceCodeSessionManager        storage.DeviceCodeSession
 	tokenManager                    storage.Token
+	authorizationRequestDecoder     request.AuthorizationDecoder
 }
 
 // Option defines functional pattern function type contract.
@@ -84,5 +86,12 @@ func AccessTokenGenerator(g generator.Token) Option {
 func RefreshTokenGenerator(g generator.Token) Option {
 	return func(opts *options) {
 		opts.refreshTokenGenerator = g
+	}
+}
+
+// AuthorizationRequestDecoder defines the implementation for authorization request decoding (JAR).
+func AuthorizationRequestDecoder(decoder request.AuthorizationDecoder) Option {
+	return func(opts *options) {
+		opts.authorizationRequestDecoder = decoder
 	}
 }

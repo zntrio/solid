@@ -22,6 +22,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/pkg/authorizationserver"
 	"go.zenithar.org/solid/pkg/clientauthentication"
@@ -42,17 +44,9 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 		}
 
 		var (
-			ctx                 = r.Context()
-			q                   = r.URL.Query()
-			audience            = q.Get("audience")
-			state               = q.Get("state")
-			nonce               = q.Get("nonce")
-			clientID            = q.Get("client_id")
-			scope               = q.Get("scope")
-			redirectURI         = q.Get("redirect_uri")
-			responseType        = q.Get("response_type")
-			codeChallenge       = q.Get("code_challenge")
-			codeChallengeMethod = q.Get("code_challenge_method")
+			ctx        = r.Context()
+			q          = r.URL.Query()
+			requestRaw = q.Get("request")
 		)
 
 		// Retrieve client front context
@@ -65,16 +59,10 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.RegistrationRequest{
 			Client: client,
-			Request: &corev1.AuthorizationRequest{
-				Audience:            audience,
-				State:               state,
-				Nonce:               nonce,
-				ClientId:            clientID,
-				Scope:               scope,
-				RedirectUri:         redirectURI,
-				ResponseType:        responseType,
-				CodeChallenge:       codeChallenge,
-				CodeChallengeMethod: codeChallengeMethod,
+			AuthorizationRequest: &corev1.AuthorizationRequest{
+				Request: &wrappers.StringValue{
+					Value: requestRaw,
+				},
 			},
 		})
 		parRes, ok := res.(*corev1.RegistrationResponse)

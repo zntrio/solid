@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"go.zenithar.org/solid/pkg/request"
+
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 
 	"go.zenithar.org/solid/pkg/dpop"
@@ -46,10 +48,11 @@ type Client interface {
 }
 
 // New oidc client.
-func New(prover dpop.Prover, opts Options) Client {
+func New(prover dpop.Prover, authorizationRequestEncoder request.AuthorizationEncoder, opts Options) Client {
 	return &client{
 		opts:                               opts,
 		prover:                             prover,
+		authorizationRequestEncoder:        authorizationRequestEncoder,
 		httpClient:                         http.DefaultClient,
 		authorizationEndpoint:              fmt.Sprintf("%s/authorize", opts.Issuer),
 		pushedAuthorizationRequestEndpoint: fmt.Sprintf("%s/par", opts.Issuer),
@@ -68,9 +71,10 @@ type Options struct {
 }
 
 type client struct {
-	opts       Options
-	httpClient *http.Client
-	prover     dpop.Prover
+	opts                        Options
+	httpClient                  *http.Client
+	prover                      dpop.Prover
+	authorizationRequestEncoder request.AuthorizationEncoder
 	// Endpoints
 	authorizationEndpoint              string
 	pushedAuthorizationRequestEndpoint string
@@ -129,17 +133,29 @@ func (c *client) CreateRequestURI(ctx context.Context, assertion, state string) 
 
 	// Prepare params
 	params := url.Values{}
-	params.Add("state", state)
-	params.Add("audience", c.opts.Audience)
-	params.Add("response_type", "code")
-	params.Add("client_id", c.opts.ClientID)
-	params.Add("nonce", nonce)
-	params.Add("scope", fmt.Sprintf("openid %s", strings.Join(c.opts.Scopes, " ")))
-	params.Add("redirect_uri", c.opts.RedirectURI)
-	params.Add("code_challenge", pkceChallenge)
-	params.Add("code_challenge_method", "S256")
+
+	// Client authentication
 	params.Add("client_assertion", assertion)
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+
+	// Authorization request encoder
+	request, err := c.authorizationRequestEncoder.Encode(ctx, &corev1.AuthorizationRequest{
+		State:               state,
+		Audience:            c.opts.Audience,
+		ResponseType:        "code",
+		ClientId:            c.opts.ClientID,
+		Nonce:               nonce,
+		Scope:               fmt.Sprintf("openid %s", strings.Join(c.opts.Scopes, " ")),
+		RedirectUri:         c.opts.RedirectURI,
+		CodeChallenge:       pkceChallenge,
+		CodeChallengeMethod: "S256",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode request: %w", err)
+	}
+
+	// Assign request
+	params.Add("request", request)
 
 	// Assemple final url
 	parURL.RawQuery = params.Encode()

@@ -110,7 +110,8 @@ I made sample server and various integrations inside `examples/` folder.
   an AS-only accessbile record that will contains extra data;
 * `audience` parameter is mandatory for request that need `scope` in order to
   target the corresponding application. This will allow various validations between
-  `client` and `application`, and `consent` management.
+  `client` and `application`, and `consent` management;
+* `PAR` must use JWT encoded request payload to due request registration.
 
 ### Framework
 
@@ -123,9 +124,10 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `authorization_code` grant type
       * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
       * [x] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
+      * [x] [JWT Encoded Authorization Requests](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-20) (JAR)
     * [x] `refresh_token` grant type
     * [ ] `device_code` grant type
-    * [ ] Pairwise subject identifier
+    * [x] Pairwise subject identifier
   * Client
     * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
     * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)

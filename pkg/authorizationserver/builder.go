@@ -30,6 +30,7 @@ import (
 	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
 	"go.zenithar.org/solid/pkg/generator"
 	"go.zenithar.org/solid/pkg/reactor"
+	"go.zenithar.org/solid/pkg/request"
 )
 
 // AuthorizationServer represents global authorization features enabled at-runtime.
@@ -48,6 +49,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 		authorizationCodeGenerator:      generator.DefaultAuthorizationCode(),
 		accessTokenGenerator:            generator.DefaultToken(),
 		refreshTokenGenerator:           generator.DefaultToken(),
+		authorizationRequestDecoder:     request.JWSAuthorizationDecoder(),
 		clientReader:                    nil,
 		tokenManager:                    nil,
 		authorizationCodeSessionManager: nil,
@@ -66,7 +68,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	}
 
 	// Initialize services
-	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
+	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.authorizationRequestDecoder)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
 

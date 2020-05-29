@@ -19,15 +19,18 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	"go.zenithar.org/solid/pkg/client"
 	"go.zenithar.org/solid/pkg/dpop"
+	"go.zenithar.org/solid/pkg/request"
 
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"
-	"go.zenithar.org/solid/pkg/client"
+	"github.com/square/go-jose/v3"
 )
 
 type sessionObject struct {
@@ -152,8 +155,24 @@ func main() {
 		panic(err)
 	}
 
+	arEncoder := request.JWSAuthorizationEncoder(jose.ES384, func() (*jose.JSONWebKey, error) {
+		var privateKey jose.JSONWebKey
+
+		// Decode JWK
+		err := json.Unmarshal(clientPrivateKey, &privateKey)
+		if err != nil {
+			return nil, fmt.Errorf("unable to decode JWK: %w", err)
+		}
+
+		// No error
+		return &privateKey, nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	// Build client
-	solidClient := client.New(prover, client.Options{
+	solidClient := client.New(prover, arEncoder, client.Options{
 		Audience:    "NYxFyoSuuRGXItTbX",
 		ClientID:    "6779ef20e75817b79602",
 		Issuer:      "http://127.0.0.1:8080",

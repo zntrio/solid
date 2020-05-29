@@ -27,6 +27,7 @@ import (
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 	"go.zenithar.org/solid/api/oidc"
 	"go.zenithar.org/solid/internal/services"
+	"go.zenithar.org/solid/pkg/request"
 	"go.zenithar.org/solid/pkg/rfcerrors"
 	"go.zenithar.org/solid/pkg/storage"
 	"go.zenithar.org/solid/pkg/types"
@@ -45,14 +46,16 @@ type service struct {
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequest
 	authorizationCodeSessions storage.AuthorizationCodeSessionWriter
+	requestDecoder            request.AuthorizationDecoder
 }
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter) services.Authorization {
+func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, requestDecoder request.AuthorizationDecoder) services.Authorization {
 	return &service{
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
+		requestDecoder:            requestDecoder,
 	}
 }
 
@@ -154,34 +157,40 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 		return res, fmt.Errorf("client must not be nil")
 	}
 
-	// Check client_id
-	if req.Client.ClientId == "" {
+	// Check authorization request is nill
+	if req.AuthorizationRequest == nil {
 		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("client_id must not be empty")
+		return res, fmt.Errorf("authorization request must not be nil")
 	}
 
-	// Check client existence
-	client, err := s.clients.Get(ctx, req.Client.ClientId)
-	if err != nil {
-		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("unable to retrieve client details: %w", err)
+	// If request parameter is used
+	if req.AuthorizationRequest.Request != nil {
+		// Check if valid assert
+		newReq, err := s.requestDecoder.Decode(ctx, req.Client.Jwks, req.AuthorizationRequest.Request.Value)
+		if err != nil {
+			res.Error = rfcerrors.InvalidRequest("")
+			return res, fmt.Errorf("unable to decode request: %w", err)
+		}
+
+		// Override with new request
+		req.AuthorizationRequest = newReq
 	}
 
 	// Validate authorization request
-	publicErr, err := s.validate(ctx, req.Request)
+	publicErr, err := s.validate(ctx, req.AuthorizationRequest)
 	if err != nil {
 		res.Error = publicErr
 		return res, err
 	}
 
 	// Check registration / client association
-	if req.Request.ClientId != client.ClientId {
+	if req.AuthorizationRequest.ClientId != req.Client.ClientId {
 		res.Error = rfcerrors.InvalidRequest("")
 		return res, fmt.Errorf("unable to register request for another client")
 	}
 
 	// Register the authorization request
-	requestURI, err := s.authorizationRequests.Register(ctx, req.Request)
+	requestURI, err := s.authorizationRequests.Register(ctx, req.AuthorizationRequest)
 	if err != nil {
 		res.Error = rfcerrors.ServerError("")
 		return res, fmt.Errorf("unable to register authorization request: %w", err)

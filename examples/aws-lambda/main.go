@@ -20,10 +20,10 @@ package main
 import (
 	"context"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/examples/storage/inmemory"
-	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/examples/storage/inmemory"
+	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/authorizationserver/features/oidc"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )

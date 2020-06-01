@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"net/http"
 
-	discoveryv1 "go.zenithar.org/solid/api/gen/go/oidc/discovery/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/pkg/authorizationserver"
+	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/authorizationserver"
 )
 
 // Metadata handle OIDC Discovery HTTP requests.

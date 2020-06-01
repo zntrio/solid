@@ -26,7 +26,7 @@ import (
 	"text/template"
 	"time"
 
-	"go.zenithar.org/solid/build/mage/git"
+	"zntr.io/solid/build/mage/git"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -153,7 +153,7 @@ LABEL \
     org.label-schema.name="{{.Name}}" \
     org.label-schema.description="{{.Description}}" \
     org.label-schema.url="{{.URL}}" \
-    org.label-schema.vcs-url="https://go.zenithar.org/solid.git" \
+    org.label-schema.vcs-url="https://zntr.io/solid.git" \
     org.label-schema.vcs-ref=$VCS_REF \
     org.label-schema.vendor="go.zenithar.org" \
     org.label-schema.version=$VERSION \

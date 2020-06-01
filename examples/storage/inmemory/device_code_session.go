@@ -22,10 +22,10 @@ import (
 	"fmt"
 	"time"
 
-	"go.zenithar.org/solid/pkg/generator"
+	"zntr.io/solid/pkg/generator"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/pkg/storage"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/storage"
 
 	"github.com/dchest/uniuri"
 	"github.com/patrickmn/go-cache"

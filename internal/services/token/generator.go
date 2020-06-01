@@ -27,7 +27,7 @@ import (
 	"github.com/dchest/uniuri"
 	"golang.org/x/crypto/blake2b"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 const (

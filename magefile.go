@@ -20,7 +20,7 @@
 package main
 
 import (
-	"go.zenithar.org/solid/build/mage/golang"
+	"zntr.io/solid/build/mage/golang"
 
 	"github.com/fatih/color"
 	"github.com/magefile/mage/mg"

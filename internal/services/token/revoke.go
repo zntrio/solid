@@ -21,9 +21,9 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/pkg/rfcerrors"
-	"go.zenithar.org/solid/pkg/storage"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/storage"
 )
 
 func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest) (*corev1.TokenRevocationResponse, error) {

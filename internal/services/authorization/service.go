@@ -24,13 +24,13 @@ import (
 	"regexp"
 	"strings"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/request"
-	"go.zenithar.org/solid/pkg/rfcerrors"
-	"go.zenithar.org/solid/pkg/storage"
-	"go.zenithar.org/solid/pkg/types"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/pkg/request"
+	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/types"
 )
 
 var requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Za-z0-9]{32}`)

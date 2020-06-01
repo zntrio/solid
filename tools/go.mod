@@ -1,4 +1,4 @@
-module go.zenithar.org/solid/tools
+module zntr.io/solid/tools
 
 go 1.14
 

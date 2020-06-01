@@ -26,7 +26,7 @@ import (
 type contextKey string
 
 func (c contextKey) String() string {
-	return "go.zenithar.org/solid/examples/server/" + string(c)
+	return "zntr.io/solid/examples/server/" + string(c)
 }
 
 var contextKeySubject = contextKey("subject")

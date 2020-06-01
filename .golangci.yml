@@ -46,7 +46,7 @@ linters-settings:
     # report about shadowed variables
     check-shadowing: true
   goimports:
-    local: "go.zenithar.org/solid"
+    local: "zntr.io/solid"
   golint:
     min-confidence: 0.8
   gofmt:

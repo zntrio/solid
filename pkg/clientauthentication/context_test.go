@@ -24,7 +24,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 var (
@@ -60,12 +60,12 @@ func Test_contextKey_String(t *testing.T) {
 	}{
 		{
 			name: "empty",
-			want: "go.zenithar.org/solid/pkg/clientauthentication/",
+			want: "zntr.io/solid/pkg/clientauthentication/",
 		},
 		{
 			name: "empty",
 			c:    contextKey("auth-client"),
-			want: "go.zenithar.org/solid/pkg/clientauthentication/auth-client",
+			want: "zntr.io/solid/pkg/clientauthentication/auth-client",
 		},
 	}
 	for _, tt := range tests {

@@ -22,11 +22,11 @@ import (
 	"fmt"
 	"net/url"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/pkg/rfcerrors"
-	"go.zenithar.org/solid/pkg/storage"
-	"go.zenithar.org/solid/pkg/types"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/types"
 )
 
 func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {

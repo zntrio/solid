@@ -23,7 +23,7 @@ import (
 	"reflect"
 	"sync"
 
-	"go.zenithar.org/solid/pkg/types"
+	"zntr.io/solid/pkg/types"
 )
 
 type defaultReactor struct {

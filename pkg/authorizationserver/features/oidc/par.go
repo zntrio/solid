@@ -18,11 +18,11 @@
 package oidc
 
 import (
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/internal/reactor/oidc/par"
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/authorizationserver/features"
-	"go.zenithar.org/solid/pkg/reactor"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/internal/reactor/oidc/par"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/pkg/authorizationserver/features"
+	"zntr.io/solid/pkg/reactor"
 )
 
 // PushedAuthorizationRequest enables pushed authorization requetst related features.

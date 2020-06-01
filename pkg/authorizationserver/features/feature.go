@@ -18,8 +18,8 @@
 package features
 
 import (
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/reactor"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/pkg/reactor"
 )
 
 // Feature represents authorization server feature enabler.

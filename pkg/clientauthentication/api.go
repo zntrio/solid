@@ -20,7 +20,7 @@ package clientauthentication
 import (
 	"context"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 // AuthenticationProcessor describes client authentication method contract.

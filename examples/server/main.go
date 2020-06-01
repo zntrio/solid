@@ -23,13 +23,13 @@ import (
 	"log"
 	"net/http"
 
-	"go.zenithar.org/solid/examples/server/handlers"
-	"go.zenithar.org/solid/examples/server/middleware"
-	"go.zenithar.org/solid/examples/storage/inmemory"
-	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/pkg/dpop"
-	"go.zenithar.org/solid/pkg/generator"
-	"go.zenithar.org/solid/pkg/generator/jwt"
+	"zntr.io/solid/examples/server/handlers"
+	"zntr.io/solid/examples/server/middleware"
+	"zntr.io/solid/examples/storage/inmemory"
+	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/dpop"
+	"zntr.io/solid/pkg/generator"
+	"zntr.io/solid/pkg/generator/jwt"
 
 	"github.com/square/go-jose/v3"
 )

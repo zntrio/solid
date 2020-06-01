@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"go.zenithar.org/solid/build/mage/git"
+	"zntr.io/solid/build/mage/git"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -109,12 +109,12 @@ func Build(name, packageName string, opts ...BuildOption) func() error {
 
 		// Inject version information
 		varsSetByLinker := map[string]string{
-			"go.zenithar.org/solid/build/version.Version":   version,
-			"go.zenithar.org/solid/build/version.Revision":  git.Revision,
-			"go.zenithar.org/solid/build/version.Branch":    git.Branch,
-			"go.zenithar.org/solid/build/version.BuildUser": os.Getenv("USER"),
-			"go.zenithar.org/solid/build/version.BuildDate": time.Now().Format(time.RFC3339),
-			"go.zenithar.org/solid/build/version.GoVersion": runtime.Version(),
+			"zntr.io/solid/build/version.Version":   version,
+			"zntr.io/solid/build/version.Revision":  git.Revision,
+			"zntr.io/solid/build/version.Branch":    git.Branch,
+			"zntr.io/solid/build/version.BuildUser": os.Getenv("USER"),
+			"zntr.io/solid/build/version.BuildDate": time.Now().Format(time.RFC3339),
+			"zntr.io/solid/build/version.GoVersion": runtime.Version(),
 		}
 		var linkerArgs []string
 		for name, value := range varsSetByLinker {

@@ -26,12 +26,12 @@ import (
 	"strings"
 	"time"
 
-	"go.zenithar.org/solid/pkg/request"
+	"zntr.io/solid/pkg/request"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 
-	"go.zenithar.org/solid/pkg/dpop"
-	"go.zenithar.org/solid/pkg/pkce"
+	"zntr.io/solid/pkg/dpop"
+	"zntr.io/solid/pkg/pkce"
 
 	"github.com/dchest/uniuri"
 	"github.com/square/go-jose/v3"

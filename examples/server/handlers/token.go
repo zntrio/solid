@@ -22,12 +22,12 @@ import (
 	"net/http"
 	"time"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/pkg/clientauthentication"
-	"go.zenithar.org/solid/pkg/dpop"
-	"go.zenithar.org/solid/pkg/rfcerrors"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/clientauthentication"
+	"zntr.io/solid/pkg/dpop"
+	"zntr.io/solid/pkg/rfcerrors"
 )
 
 // Token handles token HTTP requests.

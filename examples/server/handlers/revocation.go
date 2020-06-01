@@ -21,10 +21,10 @@ import (
 	"log"
 	"net/http"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/pkg/clientauthentication"
-	"go.zenithar.org/solid/pkg/rfcerrors"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/clientauthentication"
+	"zntr.io/solid/pkg/rfcerrors"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 )

@@ -18,7 +18,7 @@
 package rfcerrors
 
 import (
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 // ServerError returns a compliant `server_error` error.

@@ -21,12 +21,12 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/generator"
-	"go.zenithar.org/solid/pkg/rfcerrors"
-	"go.zenithar.org/solid/pkg/storage"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/pkg/generator"
+	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/storage"
 )
 
 type service struct {

@@ -24,9 +24,9 @@ import (
 	"log"
 	"net/http"
 
-	"go.zenithar.org/solid/pkg/client"
-	"go.zenithar.org/solid/pkg/dpop"
-	"go.zenithar.org/solid/pkg/request"
+	"zntr.io/solid/pkg/client"
+	"zntr.io/solid/pkg/dpop"
+	"zntr.io/solid/pkg/request"
 
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"

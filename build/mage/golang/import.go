@@ -30,7 +30,7 @@ func Import() error {
 	color.Cyan("## Process imports")
 
 	for pth := range CollectedGoFiles {
-		args := []string{"-w", "-local", "go.zenithar.org/solid"}
+		args := []string{"-w", "-local", "zntr.io/solid"}
 		args = append(args, pth)
 
 		if err := sh.RunV("gofumports", args...); err != nil {

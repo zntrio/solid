@@ -20,9 +20,9 @@ package inmemory
 import (
 	"context"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/pkg/storage"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/storage"
 )
 
 type clientStorage struct {

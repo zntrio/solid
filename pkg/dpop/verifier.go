@@ -27,7 +27,7 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"go.zenithar.org/solid/pkg/storage"
+	"zntr.io/solid/pkg/storage"
 
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"

@@ -20,13 +20,13 @@ package clientauthentication
 import (
 	"context"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 type contextKey string
 
 func (c contextKey) String() string {
-	return "go.zenithar.org/solid/pkg/clientauthentication/" + string(c)
+	return "zntr.io/solid/pkg/clientauthentication/" + string(c)
 }
 
 var contextKeyClientAuth = contextKey("client")

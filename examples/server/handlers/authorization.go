@@ -24,10 +24,10 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/examples/server/middleware"
-	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/pkg/rfcerrors"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/examples/server/middleware"
+	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/rfcerrors"
 )
 
 // Authorization handles authorization HTTP requests.

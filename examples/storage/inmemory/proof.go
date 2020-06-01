@@ -21,7 +21,7 @@ import (
 	"context"
 	"time"
 
-	"go.zenithar.org/solid/pkg/storage"
+	"zntr.io/solid/pkg/storage"
 
 	"github.com/patrickmn/go-cache"
 )

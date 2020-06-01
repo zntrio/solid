@@ -27,12 +27,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	"go.zenithar.org/solid/pkg/generator"
-	"go.zenithar.org/solid/pkg/rfcerrors"
-	"go.zenithar.org/solid/pkg/storage"
-	storagemock "go.zenithar.org/solid/pkg/storage/mock"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/generator"
+	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/storage"
+	storagemock "zntr.io/solid/pkg/storage/mock"
 )
 
 var (

@@ -21,10 +21,10 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/pkg/reactor"
-	"go.zenithar.org/solid/pkg/types"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/pkg/reactor"
+	"zntr.io/solid/pkg/types"
 )
 
 // DeviceAuthorizeHandler handles device authorization requests.

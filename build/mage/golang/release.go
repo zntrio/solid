@@ -26,7 +26,7 @@ import (
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 
-	"go.zenithar.org/solid/build/mage/git"
+	"zntr.io/solid/build/mage/git"
 )
 
 // -----------------------------------------------------------------------------

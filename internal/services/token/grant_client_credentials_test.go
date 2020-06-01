@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
-	"go.zenithar.org/solid/api/oidc"
-	generatormock "go.zenithar.org/solid/pkg/generator/mock"
-	"go.zenithar.org/solid/pkg/rfcerrors"
-	storagemock "go.zenithar.org/solid/pkg/storage/mock"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	generatormock "zntr.io/solid/pkg/generator/mock"
+	"zntr.io/solid/pkg/rfcerrors"
+	storagemock "zntr.io/solid/pkg/storage/mock"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"

@@ -22,15 +22,15 @@ import (
 	"fmt"
 	"net/url"
 
-	"go.zenithar.org/solid/internal/services"
-	"go.zenithar.org/solid/internal/services/authorization"
-	"go.zenithar.org/solid/internal/services/device"
-	"go.zenithar.org/solid/internal/services/token"
-	"go.zenithar.org/solid/pkg/authorizationserver/features"
-	"go.zenithar.org/solid/pkg/authorizationserver/features/oidc"
-	"go.zenithar.org/solid/pkg/generator"
-	"go.zenithar.org/solid/pkg/reactor"
-	"go.zenithar.org/solid/pkg/request"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/internal/services/authorization"
+	"zntr.io/solid/internal/services/device"
+	"zntr.io/solid/internal/services/token"
+	"zntr.io/solid/pkg/authorizationserver/features"
+	"zntr.io/solid/pkg/authorizationserver/features/oidc"
+	"zntr.io/solid/pkg/generator"
+	"zntr.io/solid/pkg/reactor"
+	"zntr.io/solid/pkg/request"
 )
 
 // AuthorizationServer represents global authorization features enabled at-runtime.

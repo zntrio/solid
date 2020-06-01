@@ -27,7 +27,7 @@ import (
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 // -----------------------------------------------------------------------------

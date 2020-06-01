@@ -20,24 +20,24 @@ package request
 import (
 	"context"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
-//go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock go.zenithar.org/solid/pkg/request AuthorizationDecoder
+//go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationDecoder
 
 // AuthorizationDecoder describes authorization decoder contract.
 type AuthorizationDecoder interface {
 	Decode(ctx context.Context, jwks []byte, value string) (*corev1.AuthorizationRequest, error)
 }
 
-//go:generate mockgen -destination mock/authorization_encoder.gen.go -package mock go.zenithar.org/solid/pkg/request AuthorizationEncoder
+//go:generate mockgen -destination mock/authorization_encoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationEncoder
 
 // AuthorizationEncoder describes authorization encoder contract.
 type AuthorizationEncoder interface {
 	Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error)
 }
 
-//go:generate mockgen -destination mock/authorization.gen.go -package mock go.zenithar.org/solid/pkg/request Authorization
+//go:generate mockgen -destination mock/authorization.gen.go -package mock zntr.io/solid/pkg/request Authorization
 
 // Authorization describes authorization request codec contract.
 type Authorization interface {

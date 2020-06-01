@@ -18,9 +18,9 @@
 package authorizationserver
 
 import (
-	"go.zenithar.org/solid/pkg/generator"
-	"go.zenithar.org/solid/pkg/request"
-	"go.zenithar.org/solid/pkg/storage"
+	"zntr.io/solid/pkg/generator"
+	"zntr.io/solid/pkg/request"
+	"zntr.io/solid/pkg/storage"
 )
 
 // Builder options holder

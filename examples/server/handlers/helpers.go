@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 
 	jsoniter "github.com/json-iterator/go"
 )

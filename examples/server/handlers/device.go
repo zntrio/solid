@@ -20,9 +20,9 @@ package handlers
 import (
 	"net/http"
 
-	"go.zenithar.org/solid/examples/server/middleware"
-	"go.zenithar.org/solid/pkg/authorizationserver"
-	"go.zenithar.org/solid/pkg/rfcerrors"
+	"zntr.io/solid/examples/server/middleware"
+	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/rfcerrors"
 )
 
 // Device handle device code validation.

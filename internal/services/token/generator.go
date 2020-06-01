@@ -24,9 +24,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dchest/uniuri"
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/dchest/uniuri"
 	corev1 "go.zenithar.org/solid/api/gen/go/oidc/core/v1"
 )
 

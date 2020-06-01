@@ -54,12 +54,10 @@ const secret = "54686520776f7264206875736b79206f726967696e617465642066726f6d2074
 var secretKeys []*[32]byte
 
 func init() {
-
 	var sk [32]byte
 	secretKeyBytes, _ := hex.DecodeString(secret)
 	copy(sk[:], secretKeyBytes)
 	secretKeys = []*[32]byte{&sk}
-
 }
 
 func intention(solidClient client.Client, config *session.Config) http.Handler {

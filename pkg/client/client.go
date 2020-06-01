@@ -44,7 +44,7 @@ type Client interface {
 	Assertion() (string, error)
 	CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error)
 	AuthenticationURL(requestURI string) (string, error)
-	ExchangeCode(ctx context.Context, assertion string, authorizationCode string, pkceCodeVerifier string) (*oauth2.Token, error)
+	ExchangeCode(ctx context.Context, assertion, authorizationCode, pkceCodeVerifier string) (*oauth2.Token, error)
 }
 
 // New oidc client.

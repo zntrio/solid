@@ -38,7 +38,7 @@ func FuzzBuild(name, packageName string) func() error {
 		// Check output directory existence
 		if !existDir(outputPath) {
 			// Create output directory
-			if err := os.MkdirAll(outputPath, 0777); err != nil {
+			if err := os.MkdirAll(outputPath, 0o777); err != nil {
 				return fmt.Errorf("unable to create fuzz output directory: %w", err)
 			}
 		}

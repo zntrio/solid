@@ -80,7 +80,6 @@ func (s *tokenStorage) GetByValue(ctx context.Context, value string) (*corev1.To
 }
 
 func (s *tokenStorage) Delete(ctx context.Context, id string) error {
-
 	// Retrieve token
 	t, err := s.Get(ctx, id)
 	if err != nil {

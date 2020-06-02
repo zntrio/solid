@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/dchest/uniuri"
@@ -34,10 +33,7 @@ const (
 	jtiLength = 8
 )
 
-var (
-	timeFunc         = time.Now
-	tokenTypeStrings = strings.Split("invalid|unknown|access_token|refesh_token|id_token", "|")
-)
+var timeFunc = time.Now
 
 func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
 	var err error

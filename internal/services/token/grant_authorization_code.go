@@ -38,6 +38,7 @@ const (
 	desiredCodeVerifiedMaxValueLength      = 128
 )
 
+//nolint:funlen,gocyclo,gocognit // to refactor
 func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
 	res := &corev1.TokenResponse{}
 	grant := req.GetAuthorizationCode()

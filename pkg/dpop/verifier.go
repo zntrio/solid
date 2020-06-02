@@ -33,6 +33,15 @@ import (
 	"github.com/square/go-jose/v3/jwt"
 )
 
+const (
+	// HeaderType defines typ claim value
+	HeaderType = "dpop+jwt"
+	// ExpirationTreshold defines clock swrew tolerance
+	ExpirationTreshold = 15 * time.Second
+	// SignatureAlgorithm defines algorithm used for proof signature
+	SignatureAlgorithm = jose.ES256
+)
+
 // Verifier describes proof verifier contract.
 type Verifier interface {
 	Verify(ctx context.Context, r *http.Request, proof string) (string, error)
@@ -71,33 +80,92 @@ func (v *defaultVerifier) Verify(ctx context.Context, r *http.Request, proof str
 		return "", fmt.Errorf("proof has not a valid jwt syntax: %w", err)
 	}
 
+	// Validate header
+	if errHdr := v.validateHeader(token); errHdr != nil {
+		return "", errHdr
+	}
+
+	// Validate claims
+	jtiHash, errClm := v.validateClaims(r, token.Headers[0].JSONWebKey, token)
+	if errClm != nil {
+		return "", errClm
+	}
+
+	// Check if exists
+	valid, err := v.proofs.Exists(ctx, jtiHash)
+	if err != nil {
+		return "", fmt.Errorf("unable to query proof storage: %w", err)
+	}
+	if valid {
+		return "", fmt.Errorf("invalid proof: already used")
+	}
+
+	// Insert proof in cache
+	if err = v.proofs.Register(ctx, jtiHash); err != nil {
+		return "", fmt.Errorf("unable to register proof in storage: %w", err)
+	}
+
+	// Compute confirmation
+	thumb, err := token.Headers[0].JSONWebKey.Thumbprint(crypto.SHA256)
+	if err != nil {
+		return "", fmt.Errorf("unable to compute confirmation: %w", err)
+	}
+
+	// Return confirmation
+	return base64.RawURLEncoding.EncodeToString(thumb), nil
+}
+
+func (v *defaultVerifier) validateHeader(token *jwt.JSONWebToken) error {
+	// Check arguments
+	if token == nil {
+		return fmt.Errorf("unable to process nil token")
+	}
+
 	// Check claims
 	if len(token.Headers) == 0 {
-		return "", fmt.Errorf("proof has not a valid jwt syntax, missing header")
+		return fmt.Errorf("proof has not a valid jwt syntax, missing header")
 	}
 	if len(token.Headers) > 1 {
-		return "", fmt.Errorf("proof has not a valid jwt syntax, too many headers")
+		return fmt.Errorf("proof has not a valid jwt syntax, too many headers")
 	}
 
 	// JWK
 	if token.Headers[0].JSONWebKey == nil {
-		return "", fmt.Errorf("proof has not a valid jwt syntax, no public jwk embedded")
+		return fmt.Errorf("proof has not a valid jwt syntax, no public jwk embedded")
 	}
 	// Typ
 	typ, ok := token.Headers[0].ExtraHeaders[jose.HeaderKey("typ")]
 	if !ok {
-		return "", fmt.Errorf("proof has not a valid jwt syntax, 'typ' header is mandatory")
+		return fmt.Errorf("proof has not a valid jwt syntax, 'typ' header is mandatory")
 	}
-	if typ != "dpop+jwt" {
-		return "", fmt.Errorf("proof has not a valid jwt syntax, 'typ' header value must be 'dpop+jwt'")
+	if typ != HeaderType {
+		return fmt.Errorf("proof has not a valid jwt syntax, 'typ' header value must be '%s'", HeaderType)
 	}
+
 	// Algorithm
-	if token.Headers[0].Algorithm != string(jose.ES256) {
-		return "", fmt.Errorf("proof has not a valid jwt syntax, 'alg' header value must be 'ES256'")
+	if token.Headers[0].Algorithm != string(SignatureAlgorithm) {
+		return fmt.Errorf("proof has not a valid jwt syntax, 'alg' header value must be '%s'", SignatureAlgorithm)
 	}
+
+	// No error
+	return nil
+}
+
+func (v *defaultVerifier) validateClaims(r *http.Request, jwk *jose.JSONWebKey, token *jwt.JSONWebToken) (string, error) {
+	// Check arguments
+	if r == nil {
+		return "", fmt.Errorf("unable to process nil request")
+	}
+	if jwk == nil {
+		return "", fmt.Errorf("unable to process nil jwk")
+	}
+	if token == nil {
+		return "", fmt.Errorf("unable to process nil token")
+	}
+
 	// Check signature
 	var claims proofClaims
-	if err := token.Claims(token.Headers[0].JSONWebKey, &claims); err != nil {
+	if err := token.Claims(jwk, &claims); err != nil {
 		return "", fmt.Errorf("unable to decode proof claims: %w", err)
 	}
 
@@ -121,10 +189,10 @@ func (v *defaultVerifier) Verify(ctx context.Context, r *http.Request, proof str
 	}
 
 	// Check expiration
-	if claims.IssuedAt-uint64(time.Now().Unix()) > uint64(15*time.Second) {
+	if claims.IssuedAt-uint64(time.Now().Unix()) > uint64(ExpirationTreshold) {
 		return "", fmt.Errorf("invalid proof: issued in the future")
 	}
-	if uint64(time.Now().Unix())-claims.IssuedAt > uint64(15*time.Second) {
+	if uint64(time.Now().Unix())-claims.IssuedAt > uint64(ExpirationTreshold) {
 		return "", fmt.Errorf("invalid proof: expired")
 	}
 
@@ -132,26 +200,6 @@ func (v *defaultVerifier) Verify(ctx context.Context, r *http.Request, proof str
 	jtiHashRaw := blake2b.Sum256([]byte(claims.JTI))
 	jtiStorage := base64.RawURLEncoding.EncodeToString(jtiHashRaw[:])
 
-	// Check if exists
-	valid, err := v.proofs.Exists(ctx, jtiStorage)
-	if err != nil {
-		return "", fmt.Errorf("unable to query proof storage: %w", err)
-	}
-	if valid {
-		return "", fmt.Errorf("invalid proof: already used")
-	}
-
-	// Insert proof in cache
-	if err := v.proofs.Register(ctx, jtiStorage); err != nil {
-		return "", fmt.Errorf("unable to register proof in storage: %w", err)
-	}
-
-	// Compute confirmation
-	thumb, err := token.Headers[0].JSONWebKey.Thumbprint(crypto.SHA256)
-	if err != nil {
-		return "", fmt.Errorf("unable to compute confirmation: %w", err)
-	}
-
-	// Return confirmation
-	return base64.RawURLEncoding.EncodeToString(thumb), nil
+	// No error
+	return jtiStorage, nil
 }

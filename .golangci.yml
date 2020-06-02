@@ -27,6 +27,7 @@ linters:
     - dupl
     - nestif
     - godot
+    - goerr113
 
 output:
   format: colored-line-number

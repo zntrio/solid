@@ -15,33 +15,29 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package pkce
+package clientauthentication
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
+	"context"
+
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/storage"
 )
 
-const (
-	codeVerifierLen = 96
-)
-
-// CodeVerifier generates and returns code_verifier and code_challenge.
-func CodeVerifier() (string, string, error) {
-	// Generate random string
-	random := make([]byte, codeVerifierLen)
-	if _, err := rand.Read(random); err != nil {
-		return "", "", err
+// MutualTLS authentication method.
+func MutualTLS(clients storage.ClientReader) AuthenticationProcessor {
+	return &mtlsAuthentication{
+		clients: clients,
 	}
+}
 
-	// Encode verifier
-	verifier := base64.RawURLEncoding.EncodeToString(random)
+type mtlsAuthentication struct {
+	clients storage.ClientReader
+}
 
-	// Compute and encode challenge
-	hash := sha256.Sum256([]byte(verifier))
-	challenge := base64.RawURLEncoding.EncodeToString(hash[:])
+func (p *mtlsAuthentication) Authenticate(ctx context.Context, req *corev1.ClientAuthenticationRequest) (*corev1.ClientAuthenticationResponse, error) {
+	res := &corev1.ClientAuthenticationResponse{}
 
 	// No error
-	return verifier, challenge, nil
+	return res, nil
 }

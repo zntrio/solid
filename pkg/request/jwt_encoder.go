@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/protobuf/jsonpb"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
 
@@ -33,10 +33,10 @@ import (
 // -----------------------------------------------------------------------------
 
 // JWSAuthorizationEncoder returns an authorization request encoder instance.
-func JWSAuthorizationEncoder(alg jose.SignatureAlgorithm, KeyProvider jwk.KeyProviderFunc) AuthorizationEncoder {
+func JWSAuthorizationEncoder(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) AuthorizationEncoder {
 	return &jwtEncoder{
 		alg:         alg,
-		keyProvider: KeyProvider,
+		keyProvider: keyProvider,
 	}
 }
 
@@ -73,7 +73,7 @@ func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReque
 
 	// Decode using json
 	var claims map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonString), &claims); err != nil {
+	if err = json.Unmarshal([]byte(jsonString), &claims); err != nil {
 		return "", fmt.Errorf("unable to serialize request payload: %w", err)
 	}
 

@@ -38,7 +38,6 @@ const (
 	desiredMinNonceValueLength         = 8
 	desiredMinStateValueLength         = 32
 	desiredMinCodeChallengeValueLength = 43
-	desiredMaxCodeChallengeValueLength = 128
 )
 
 type service struct {
@@ -194,6 +193,7 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 
 // -----------------------------------------------------------------------------
 
+//nolint:gocyclo,gocognit // to refactor
 func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.Error, error) {
 	// Check req nullity
 	if req == nil {

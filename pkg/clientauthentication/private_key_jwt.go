@@ -51,6 +51,7 @@ type privateKeyJWTAuthentication struct {
 	clients storage.ClientReader
 }
 
+//nolint:funlen,gocyclo,gocognit // to refactor
 func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *corev1.ClientAuthenticationRequest) (*corev1.ClientAuthenticationResponse, error) {
 	res := &corev1.ClientAuthenticationResponse{}
 
@@ -87,9 +88,9 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 
 	// Retrieve payload claims
 	var claims privateJWTClaims
-	if err := json.Unmarshal(rawAssertion.UnsafePayloadWithoutVerification(), &claims); err != nil {
+	if errDecode := json.Unmarshal(rawAssertion.UnsafePayloadWithoutVerification(), &claims); errDecode != nil {
 		res.Error = rfcerrors.InvalidRequest("")
-		return res, fmt.Errorf("unable to decode payload claims: %w", err)
+		return res, fmt.Errorf("unable to decode payload claims: %w", errDecode)
 	}
 
 	// Validate claims
@@ -132,14 +133,14 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 
 	// Try to validate assertion with one of keys
 	valid := false
-	for _, k := range jwks.Keys {
+	for i := range jwks.Keys {
 		// Ignore encryption keys
-		if k.Use == "enc" {
+		if jwks.Keys[i].Use == "enc" {
 			continue
 		}
 
 		// Check assertion using key
-		_, err := rawAssertion.Verify(k)
+		_, err := rawAssertion.Verify(jwks.Keys[i])
 		if err == nil {
 			valid = true
 		}

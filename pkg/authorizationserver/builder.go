@@ -41,7 +41,7 @@ type AuthorizationServer interface {
 
 // -----------------------------------------------------------------------------
 
-// New assemble all given options to instanciate an authorization server.
+// New assemble all given options to instantiate an authorization server.
 func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServer, error) {
 	// Default options
 	defaultOptions := &options{

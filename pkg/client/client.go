@@ -27,14 +27,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/dpop"
 	"zntr.io/solid/pkg/pkce"
 	"zntr.io/solid/pkg/request"
 
 	"github.com/dchest/uniuri"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/square/go-jose/v3"
 	jwt "github.com/square/go-jose/v3/jwt"
 	"golang.org/x/oauth2"
@@ -54,7 +53,7 @@ type Client interface {
 }
 
 // New oidc client.
-func New(prover dpop.Prover, authorizationRequestEncoder request.AuthorizationEncoder, opts Options) Client {
+func New(prover dpop.Prover, authorizationRequestEncoder request.AuthorizationEncoder, opts *Options) Client {
 	return &client{
 		opts:                               opts,
 		prover:                             prover,
@@ -78,7 +77,7 @@ type Options struct {
 }
 
 type client struct {
-	opts                        Options
+	opts                        *Options
 	httpClient                  *http.Client
 	prover                      dpop.Prover
 	authorizationRequestEncoder request.AuthorizationEncoder
@@ -154,7 +153,7 @@ func (c *client) CreateRequestURI(ctx context.Context, assertion, state string) 
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
 
 	// Authorization request encoder
-	request, err := c.authorizationRequestEncoder.Encode(ctx, &corev1.AuthorizationRequest{
+	r, err := c.authorizationRequestEncoder.Encode(ctx, &corev1.AuthorizationRequest{
 		State:               state,
 		Audience:            c.opts.Audience,
 		ResponseType:        "code",
@@ -171,9 +170,9 @@ func (c *client) CreateRequestURI(ctx context.Context, assertion, state string) 
 	}
 
 	// Assign request
-	params.Add("request", request)
+	params.Add("request", r)
 
-	// Assemple final url
+	// Assemble final url
 	parURL.RawQuery = params.Encode()
 
 	// Query PAR endpoint
@@ -264,7 +263,7 @@ func (c *client) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVeri
 	params.Add("client_assertion", assertion)
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
 
-	// Assemple final url
+	// Assemble final url
 	tokenURL.RawQuery = params.Encode()
 
 	// Query token endpoint

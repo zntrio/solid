@@ -56,7 +56,7 @@ func DefaultProver() (Prover, error) {
 	})
 }
 
-// KeyProver uses the given key to instanciate a prover.
+// KeyProver uses the given key to instantiate a prover.
 func KeyProver(k jose.SigningKey) (Prover, error) {
 	// Build instance
 	return &defaultProver{

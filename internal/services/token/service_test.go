@@ -567,7 +567,7 @@ func Test_service_Token(t *testing.T) {
 				tt.prepare(clients, authorizationRequests, accessTokens, authorizationCodeSessions, deviceCodeSessions, tokens)
 			}
 
-			// Instanciate service
+			// instantiate service
 			underTest := New(accessTokens, idTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens)
 
 			// Under test

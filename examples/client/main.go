@@ -184,7 +184,7 @@ func main() {
 	}
 
 	// Build client
-	solidClient := client.New(prover, arEncoder, client.Options{
+	solidClient := client.New(prover, arEncoder, &client.Options{
 		Audience:    "NYxFyoSuuRGXItTbX",
 		ClientID:    "6779ef20e75817b79602",
 		Issuer:      "http://127.0.0.1:8080",

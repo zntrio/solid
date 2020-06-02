@@ -29,6 +29,7 @@ import (
 	"zntr.io/solid/pkg/types"
 )
 
+//nolint:funlen,gocyclo // to refactor
 func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
 	res := &corev1.TokenResponse{}
 	grant := req.GetDeviceCode()

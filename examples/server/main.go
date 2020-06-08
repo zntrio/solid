@@ -23,6 +23,8 @@ import (
 	"log"
 	"net/http"
 
+	"zntr.io/solid/pkg/request"
+
 	"zntr.io/solid/examples/server/handlers"
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/examples/storage/inmemory"
@@ -30,6 +32,8 @@ import (
 	"zntr.io/solid/pkg/dpop"
 	"zntr.io/solid/pkg/generator"
 	"zntr.io/solid/pkg/generator/jwt"
+	"zntr.io/solid/pkg/jarm"
+	"zntr.io/solid/pkg/jwk"
 
 	"github.com/square/go-jose/v3"
 )
@@ -47,7 +51,7 @@ var (
 	}`)
 )
 
-func keyProvider() jwt.KeyProviderFunc {
+func keyProvider() jwk.KeyProviderFunc {
 	var privateKey jose.JSONWebKey
 
 	// Decode JWK
@@ -56,9 +60,28 @@ func keyProvider() jwt.KeyProviderFunc {
 		panic(err)
 	}
 
-	return func() (*jose.JSONWebKey, error) {
+	return func(_ context.Context) (*jose.JSONWebKey, error) {
 		// No error
 		return &privateKey, nil
+	}
+}
+
+func keySetProvider() jwk.KeySetProviderFunc {
+	var privateKey jose.JSONWebKey
+
+	// Decode JWK
+	err := json.Unmarshal(jwkPrivateKey, &privateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	return func(_ context.Context) (*jose.JSONWebKeySet, error) {
+		// No error
+		return &jose.JSONWebKeySet{
+			Keys: []jose.JSONWebKey{
+				privateKey.Public(),
+			},
+		}, nil
 	}
 }
 
@@ -95,10 +118,18 @@ func main() {
 	// Initialize dpop verifier
 	dpopVerifier := dpop.DefaultVerifier(inmemory.DPoPProofs())
 
+	// JWSREQ Decoder
+	requestDecoder := request.JWSAuthorizationDecoder(keySetProvider())
+
+	// Initialize JARM encoder
+	jarmEncoder := jarm.JWTEncoder(jose.ES384, keyProvider())
+
 	// Create router
+	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as))
 	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as))
-	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as), clientAuth))
-	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as), secHeaders, basicAuth))
+	http.Handle("/.well-known/jwks.json", handlers.JWKS(as, keySetProvider()))
+	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as, dpopVerifier), clientAuth))
+	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as, inmemory.Clients(), requestDecoder, jarmEncoder), secHeaders, basicAuth))
 	http.Handle("/device_authorize", middleware.Adapt(handlers.DeviceAuthorization(as), clientAuth))
 	http.Handle("/token", middleware.Adapt(handlers.Token(as, dpopVerifier), clientAuth))
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))

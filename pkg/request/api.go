@@ -27,7 +27,7 @@ import (
 
 // AuthorizationDecoder describes authorization decoder contract.
 type AuthorizationDecoder interface {
-	Decode(ctx context.Context, jwks []byte, value string) (*corev1.AuthorizationRequest, error)
+	Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error)
 }
 
 //go:generate mockgen -destination mock/authorization_encoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationEncoder

@@ -18,20 +18,24 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/square/go-jose/v3"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/clientauthentication"
+	"zntr.io/solid/pkg/dpop"
+	"zntr.io/solid/pkg/request"
 	"zntr.io/solid/pkg/rfcerrors"
 )
 
 // PushedAuthorizationRequest handles PAR HTTP requests.
-func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http.Handler {
+func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {
 		RequestURI string `json:"request_uri"`
 		ExpiresIn  uint64 `json:"expires_in"`
@@ -46,6 +50,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 		var (
 			ctx        = r.Context()
 			q          = r.URL.Query()
+			dpopProof  = r.Header.Get("DPoP")
 			requestRaw = q.Get("request")
 		)
 
@@ -56,13 +61,39 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer) http
 			return
 		}
 
+		// Check dpop proof
+		jkt, err := dpopVerifier.Verify(ctx, r, dpopProof)
+		if err != nil {
+			log.Println("unable to validate dpop proof:", err)
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof())
+			return
+		}
+
+		// Prepare client request decoder
+		clientRequestDecoder := request.JWSAuthorizationDecoder(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+			var jwks jose.JSONWebKeySet
+			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
+				return nil, fmt.Errorf("unable to decode client JWKS")
+			}
+
+			// No error
+			return &jwks, nil
+		})
+
+		// Decode request
+		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
+		if err != nil {
+			log.Println("unable to decode request:", err)
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			return
+		}
+
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.RegistrationRequest{
-			Client: client,
-			AuthorizationRequest: &corev1.AuthorizationRequest{
-				Request: &wrappers.StringValue{
-					Value: requestRaw,
-				},
+			Client:               client,
+			AuthorizationRequest: ar,
+			Confirmation: &corev1.TokenConfirmation{
+				Jkt: jkt,
 			},
 		})
 		parRes, ok := res.(*corev1.RegistrationResponse)

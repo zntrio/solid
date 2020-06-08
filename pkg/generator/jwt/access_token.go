@@ -21,9 +21,9 @@ import (
 	"context"
 	"fmt"
 
-	"zntr.io/solid/pkg/generator"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/generator"
+	"zntr.io/solid/pkg/jwk"
 
 	"github.com/square/go-jose/v3"
 	jwt "github.com/square/go-jose/v3/jwt"
@@ -32,7 +32,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // AccessToken instanciate a JWT access token generator.
-func AccessToken(alg jose.SignatureAlgorithm, keyProvider KeyProviderFunc) generator.Token {
+func AccessToken(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) generator.Token {
 	return &accessTokenGenerator{
 		alg:         alg,
 		keyProvider: keyProvider,
@@ -46,7 +46,7 @@ type KeyProviderFunc func() (*jose.JSONWebKey, error)
 
 type accessTokenGenerator struct {
 	alg         jose.SignatureAlgorithm
-	keyProvider KeyProviderFunc
+	keyProvider jwk.KeyProviderFunc
 }
 
 func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error) {
@@ -62,7 +62,7 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 	}
 
 	// Retrieve signing key
-	key, err := c.keyProvider()
+	key, err := c.keyProvider(ctx)
 	if err != nil {
 		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
 	}

@@ -100,20 +100,17 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		// Prepare msg
 		msg := messageBuilder(r, client)
 
-		// Check if dpop is used
-		if dpopProof != "" {
-			// Check dpop proof
-			jkt, err := dpopVerifier.Verify(r.Context(), r, dpopProof)
-			if err != nil {
-				log.Println("unable to validate dpop proof:", err)
-				withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof())
-				return
-			}
+		// Check dpop proof
+		jkt, err := dpopVerifier.Verify(ctx, r, dpopProof)
+		if err != nil {
+			log.Println("unable to validate dpop proof:", err)
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof())
+			return
+		}
 
-			// Add confirmation
-			msg.TokenConfirmation = &corev1.TokenConfirmation{
-				Jkt: jkt,
-			}
+		// Add confirmation
+		msg.TokenConfirmation = &corev1.TokenConfirmation{
+			Jkt: jkt,
 		}
 
 		// Send request to reactor

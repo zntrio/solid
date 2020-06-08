@@ -48,7 +48,7 @@ func Clients() storage.Client {
 					"code",
 				},
 				RedirectUris: []string{
-					"http://127.0.0.1:8085/cb",
+					"http://127.0.0.1:8085/oidc/as/127.0.0.1",
 				},
 				Contacts: []string{
 					"foo@bar.com",

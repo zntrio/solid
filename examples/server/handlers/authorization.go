@@ -18,25 +18,26 @@
 package handlers
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/square/go-jose/v3"
+	"zntr.io/solid/pkg/storage"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/jarm"
+	"zntr.io/solid/pkg/request"
 	"zntr.io/solid/pkg/rfcerrors"
 )
 
 // Authorization handles authorization HTTP requests.
-func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
-
-	type response struct {
-		Code  string `json:"code"`
-		State string `json:"state"`
-	}
+func Authorization(as authorizationserver.AuthorizationServer, clients storage.ClientReader, requestDecoder request.AuthorizationDecoder, jarmEncoder jarm.ResponseEncoder) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
@@ -49,7 +50,8 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 		var (
 			ctx        = r.Context()
 			q          = r.URL.Query()
-			requestURI = q.Get("request_uri")
+			clientID   = q.Get("client_id")
+			requestRaw = q.Get("request")
 		)
 
 		// Retrieve subject form context
@@ -59,14 +61,36 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 			return
 		}
 
+		// Retrieve client
+		client, err := clients.Get(ctx, clientID)
+		if err != nil {
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			return
+		}
+
+		// Prepare client request decoder
+		clientRequestDecoder := request.JWSAuthorizationDecoder(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+			var jwks jose.JSONWebKeySet
+			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
+				return nil, fmt.Errorf("unable to decode client JWKS")
+			}
+
+			// No error
+			return &jwks, nil
+		})
+
+		// Decode request
+		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
+		if err != nil {
+			log.Println("unable to decode request:", err)
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			return
+		}
+
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.AuthorizationCodeRequest{
-			Subject: sub,
-			Request: &corev1.AuthorizationRequest{
-				RequestUri: &wrappers.StringValue{
-					Value: requestURI,
-				},
-			},
+			Subject:              sub,
+			AuthorizationRequest: ar,
 		})
 		authRes, ok := res.(*corev1.AuthorizationCodeResponse)
 		if !ok {
@@ -87,10 +111,17 @@ func Authorization(as authorizationserver.AuthorizationServer) http.Handler {
 			return
 		}
 
+		// Encode JARM
+		jarmToken, err := jarmEncoder.Encode(ctx, as.Issuer().String(), authRes)
+		if err != nil {
+			log.Println("unable to produce JARM token:", err)
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			return
+		}
+
 		// Assemble final uri
 		params := url.Values{}
-		params.Set("code", authRes.Code)
-		params.Set("state", authRes.State)
+		params.Set("response", jarmToken)
 
 		// Assign new params
 		u.RawQuery = params.Encode()

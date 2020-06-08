@@ -45,7 +45,7 @@ func AuthorizationRequests() storage.AuthorizationRequest {
 
 // -----------------------------------------------------------------------------
 
-func (s *authorizationRequestStorage) Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, error) {
+func (s *authorizationRequestStorage) Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, uint64, error) {
 	// Generate request uri
 	requestURI := fmt.Sprintf("urn:solid:%s", uniuri.NewLen(32))
 
@@ -53,7 +53,7 @@ func (s *authorizationRequestStorage) Register(ctx context.Context, req *corev1.
 	s.backend.Set(requestURI, req, cache.DefaultExpiration)
 
 	// No error
-	return requestURI, nil
+	return requestURI, 60, nil
 }
 
 func (s *authorizationRequestStorage) Delete(ctx context.Context, requestURI string) error {

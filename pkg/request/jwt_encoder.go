@@ -18,7 +18,6 @@
 package request
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -28,79 +27,13 @@ import (
 	"github.com/square/go-jose/v3/jwt"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/jwk"
 )
 
 // -----------------------------------------------------------------------------
 
-// JWSAuthorizationDecoder returns an authorization request decoder instance.
-func JWSAuthorizationDecoder() AuthorizationDecoder {
-	return &jwtDecoder{}
-}
-
-type jwtDecoder struct {
-}
-
-func (d *jwtDecoder) Decode(ctx context.Context, jwksRaw []byte, value string) (*corev1.AuthorizationRequest, error) {
-	// Retrieve JWK associated to the client
-	if len(jwksRaw) == 0 {
-		return nil, fmt.Errorf("jwks is nil")
-	}
-
-	// Validate value
-	token, err := jose.ParseSigned(value)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode request value as a valid JWT: %w", err)
-	}
-
-	// Parse JWKS
-	var jwks jose.JSONWebKeySet
-	if err := json.Unmarshal(jwksRaw, &jwks); err != nil {
-		return nil, fmt.Errorf("jwks is invalid: %w", err)
-	}
-
-	// Try to validate assertion with one of keys
-	valid := false
-	for _, k := range jwks.Keys {
-		// Ignore encryption keys
-		if k.Use == "enc" {
-			continue
-		}
-
-		// Check assertion using key
-		_, err := token.Verify(k)
-		if err == nil {
-			valid = true
-		}
-
-		if valid {
-			break
-		}
-	}
-
-	// If no valid signature found
-	if !valid {
-		return nil, fmt.Errorf("no valid signature found")
-	}
-
-	// Verifiy token claims
-	var req corev1.AuthorizationRequest
-	if err := (&jsonpb.Unmarshaler{
-		AllowUnknownFields: false,
-	}).Unmarshal(bytes.NewBuffer(token.UnsafePayloadWithoutVerification()), &req); err != nil {
-		return nil, fmt.Errorf("unable to decode request payload: %w", err)
-	}
-
-	// No error
-	return &req, nil
-}
-
-// -----------------------------------------------------------------------------
-
-// KeyProviderFunc defines key provider contract.
-type KeyProviderFunc func() (*jose.JSONWebKey, error)
-
 // JWSAuthorizationEncoder returns an authorization request encoder instance.
-func JWSAuthorizationEncoder(alg jose.SignatureAlgorithm, KeyProvider KeyProviderFunc) AuthorizationEncoder {
+func JWSAuthorizationEncoder(alg jose.SignatureAlgorithm, KeyProvider jwk.KeyProviderFunc) AuthorizationEncoder {
 	return &jwtEncoder{
 		alg:         alg,
 		keyProvider: KeyProvider,
@@ -109,7 +42,7 @@ func JWSAuthorizationEncoder(alg jose.SignatureAlgorithm, KeyProvider KeyProvide
 
 type jwtEncoder struct {
 	alg         jose.SignatureAlgorithm
-	keyProvider KeyProviderFunc
+	keyProvider jwk.KeyProviderFunc
 }
 
 func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error) {
@@ -119,7 +52,7 @@ func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReque
 	}
 
 	// Retrieve the signing key
-	key, err := enc.keyProvider()
+	key, err := enc.keyProvider(ctx)
 	if err != nil {
 		return "", fmt.Errorf("unable to retrieve key from key provider: %w", err)
 	}

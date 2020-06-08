@@ -28,6 +28,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/square/go-jose/v3"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/jwk"
 )
 
 var (
@@ -48,10 +49,18 @@ func mustJWK(body []byte) *jose.JSONWebKey {
 	return &key
 }
 
+func mustJWKS(body []byte) *jose.JSONWebKeySet {
+	var key jose.JSONWebKeySet
+	if err := json.Unmarshal(body, &key); err != nil {
+		panic(err)
+	}
+	return &key
+}
+
 func Test_jwtEncoder_Encode(t *testing.T) {
 	type fields struct {
 		alg         jose.SignatureAlgorithm
-		keyProvider KeyProviderFunc
+		keyProvider jwk.KeyProviderFunc
 	}
 	type args struct {
 		ctx context.Context
@@ -80,7 +89,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "keyProvider error",
 			fields: fields{
 				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					return nil, fmt.Errorf("foo")
 				},
 			},
@@ -94,7 +103,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "keyProvider nil result",
 			fields: fields{
 				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					return nil, nil
 				},
 			},
@@ -108,25 +117,9 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "keyProvider public key result",
 			fields: fields{
 				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					p := mustJWK(jwtPrivateKey).Public()
 					return &p, nil
-				},
-			},
-			args: args{
-				ctx: context.Background(),
-				ar:  &corev1.AuthorizationRequest{},
-			},
-			wantErr: true,
-		},
-		{
-			name: "keyProvider key without kid result",
-			fields: fields{
-				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
-					k := mustJWK(jwtPrivateKey)
-					k.KeyID = ""
-					return k, nil
 				},
 			},
 			args: args{
@@ -140,7 +133,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "valid",
 			fields: fields{
 				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					k := mustJWK(jwtPrivateKey)
 					return k, nil
 				},
@@ -176,6 +169,9 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 }
 
 func Test_jwtDecoder_Decode(t *testing.T) {
+	type fields struct {
+		keySetProvider jwk.KeySetProviderFunc
+	}
 	type args struct {
 		ctx     context.Context
 		jwksRaw []byte
@@ -183,7 +179,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		d       *jwtDecoder
+		fields  fields
 		args    args
 		want    *corev1.AuthorizationRequest
 		wantErr bool
@@ -195,10 +191,15 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		// ---------------------------------------------------------------------
 		{
 			name: "valid",
+			fields: fields{
+				keySetProvider: func(_ context.Context) (*jose.JSONWebKeySet, error) {
+					jwks := mustJWKS(jwtPublicKeySet)
+					return jwks, nil
+				},
+			},
 			args: args{
-				ctx:     context.Background(),
-				jwksRaw: jwtPublicKeySet,
-				value:   "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZvbyIsInR5cCI6ImFyK2p3dCJ9.eyJhdWRpZW5jZSI6Im1EdUdjTGptYW1qTnBMbVlaTUxJc2hGY1hVRENORGNIIiwiY2xpZW50X2lkIjoiczZCaGRSa3F0MyIsImNvZGVfY2hhbGxlbmdlIjoiSzItbHRjODNhY2M0aDBjOXc2RVNDX3JFTVRKM2J3dy11Q0hhb2VLMXQ4VSIsImNvZGVfY2hhbGxlbmdlX21ldGhvZCI6IlMyNTYiLCJub25jZSI6IlhEd2JCSDRNb2tVOEJtcloiLCJwcm9tcHQiOiJjb25zZW50IiwicmVkaXJlY3RfdXJpIjoiaHR0cHM6Ly9jbGllbnQuZXhhbXBsZS5vcmcvY2IiLCJyZXNwb25zZV90eXBlIjoiY29kZSIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgb2ZmbGluZV9hY2Nlc3MiLCJzdGF0ZSI6Im9FU0lpdW95YlZ4QUo1ZkFLbXh4TTZzMkNuVmljNnpVIn0.LjwdcB6wCjDdC-CoN7OIfVi8pkFn7znInjwa4J4oTRAfSij-ou2xcpGyvsOYjo__qd8_PDYaMCzRcpH7O2k43w",
+				ctx:   context.Background(),
+				value: "eyJhbGciOiJFUzI1NiIsImtpZCI6ImZvbyIsInR5cCI6ImFyK2p3dCJ9.eyJhdWRpZW5jZSI6Im1EdUdjTGptYW1qTnBMbVlaTUxJc2hGY1hVRENORGNIIiwiY2xpZW50X2lkIjoiczZCaGRSa3F0MyIsImNvZGVfY2hhbGxlbmdlIjoiSzItbHRjODNhY2M0aDBjOXc2RVNDX3JFTVRKM2J3dy11Q0hhb2VLMXQ4VSIsImNvZGVfY2hhbGxlbmdlX21ldGhvZCI6IlMyNTYiLCJub25jZSI6IlhEd2JCSDRNb2tVOEJtcloiLCJwcm9tcHQiOiJjb25zZW50IiwicmVkaXJlY3RfdXJpIjoiaHR0cHM6Ly9jbGllbnQuZXhhbXBsZS5vcmcvY2IiLCJyZXNwb25zZV90eXBlIjoiY29kZSIsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgb2ZmbGluZV9hY2Nlc3MiLCJzdGF0ZSI6Im9FU0lpdW95YlZ4QUo1ZkFLbXh4TTZzMkNuVmljNnpVIn0.LjwdcB6wCjDdC-CoN7OIfVi8pkFn7znInjwa4J4oTRAfSij-ou2xcpGyvsOYjo__qd8_PDYaMCzRcpH7O2k43w",
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationRequest{
@@ -217,8 +218,8 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := JWSAuthorizationDecoder()
-			got, err := d.Decode(tt.args.ctx, tt.args.jwksRaw, tt.args.value)
+			d := JWSAuthorizationDecoder(tt.fields.keySetProvider)
+			got, err := d.Decode(tt.args.ctx, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtDecoder.Decode() error = %v, wantErr %v", err, tt.wantErr)
 				return

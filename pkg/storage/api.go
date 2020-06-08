@@ -52,7 +52,7 @@ type AuthorizationRequestReader interface {
 
 // AuthorizationRequestWriter describes authorization request storage write-only operation contract.
 type AuthorizationRequestWriter interface {
-	Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, error)
+	Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, uint64, error)
 	Delete(ctx context.Context, requestURI string) error
 }
 
@@ -100,7 +100,7 @@ type AuthorizationCodeSessionReader interface {
 
 // AuthorizationCodeSessionWriter describes write-only operation contract.
 type AuthorizationCodeSessionWriter interface {
-	Register(ctx context.Context, s *corev1.AuthorizationCodeSession) (string, error)
+	Register(ctx context.Context, s *corev1.AuthorizationCodeSession) (string, uint64, error)
 	Delete(ctx context.Context, code string) error
 }
 
@@ -116,7 +116,7 @@ type AuthorizationCodeSession interface {
 
 // DeviceCodeSessionWriter describes deviceCode write-only operation contract.
 type DeviceCodeSessionWriter interface {
-	Register(ctx context.Context, r *corev1.DeviceCodeSession) (string, string, error)
+	Register(ctx context.Context, r *corev1.DeviceCodeSession) (string, string, uint64, error)
 	Delete(ctx context.Context, id string) error
 }
 

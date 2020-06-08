@@ -44,7 +44,7 @@ func AuthorizationCodeSessions() storage.AuthorizationCodeSession {
 
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) Register(ctx context.Context, req *corev1.AuthorizationCodeSession) (string, error) {
+func (s *sessionStorage) Register(ctx context.Context, req *corev1.AuthorizationCodeSession) (string, uint64, error) {
 	// Authorization Code Generator
 	code := uniuri.NewLen(32)
 
@@ -52,7 +52,7 @@ func (s *sessionStorage) Register(ctx context.Context, req *corev1.Authorization
 	s.backend.Set(code, req, cache.DefaultExpiration)
 
 	// No error
-	return code, nil
+	return code, uint64(60), nil
 }
 
 func (s *sessionStorage) Delete(ctx context.Context, code string) error {

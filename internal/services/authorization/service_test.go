@@ -25,7 +25,6 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/generator"
-	requestmock "zntr.io/solid/pkg/request/mock"
 	"zntr.io/solid/pkg/rfcerrors"
 	"zntr.io/solid/pkg/storage"
 	storagemock "zntr.io/solid/pkg/storage/mock"
@@ -48,7 +47,7 @@ func Test_service_Authorize(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockAuthorizationRequest, *storagemock.MockClientReader, *storagemock.MockAuthorizationCodeSessionWriter, *requestmock.MockAuthorizationDecoder)
+		prepare func(*storagemock.MockAuthorizationRequest, *storagemock.MockClientReader, *storagemock.MockAuthorizationCodeSessionWriter)
 		want    *corev1.AuthorizationCodeResponse
 		wantErr bool
 	}{
@@ -68,7 +67,7 @@ func Test_service_Authorize(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
-					Request: nil,
+					AuthorizationRequest: nil,
 				},
 			},
 			wantErr: true,
@@ -82,7 +81,7 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 						},
@@ -100,7 +99,7 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "123-456-789",
 						},
@@ -118,14 +117,14 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 						},
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -139,14 +138,14 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 						},
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -160,14 +159,14 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 						},
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{}, nil)
 				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(storage.ErrNotFound)
 			},
@@ -182,14 +181,14 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 						},
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{}, nil)
 				ar.EXPECT().Delete(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(fmt.Errorf("foo"))
 			},
@@ -204,7 +203,7 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -217,13 +216,13 @@ func Test_service_Authorize(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
-				sessions.EXPECT().Register(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+				sessions.EXPECT().Register(gomock.Any(), gomock.Any()).Return("", uint64(0), fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
@@ -236,7 +235,7 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -250,7 +249,7 @@ func Test_service_Authorize(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -270,7 +269,7 @@ func Test_service_Authorize(t *testing.T) {
 						CodeChallengeMethod: "S256",
 						Prompt:              nil,
 					},
-				}).Return("1234567891234567890", nil)
+				}).Return("1234567891234567890", uint64(60), nil)
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationCodeResponse{
@@ -278,6 +277,8 @@ func Test_service_Authorize(t *testing.T) {
 				Code:        "1234567891234567890",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 				RedirectUri: "https://client.example.org/cb",
+				ClientId:    "s6BhdRkqt3",
+				ExpiresIn:   uint64(60),
 			},
 		},
 		{
@@ -286,7 +287,7 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -302,7 +303,7 @@ func Test_service_Authorize(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -324,7 +325,7 @@ func Test_service_Authorize(t *testing.T) {
 							Value: "login",
 						},
 					},
-				}).Return("1234567891234567890", nil)
+				}).Return("1234567891234567890", uint64(60), nil)
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationCodeResponse{
@@ -332,6 +333,8 @@ func Test_service_Authorize(t *testing.T) {
 				Code:        "1234567891234567890",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 				RedirectUri: "https://client.example.org/cb",
+				ClientId:    "s6BhdRkqt3",
+				ExpiresIn:   uint64(60),
 			},
 		},
 
@@ -341,14 +344,14 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 						},
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&corev1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
@@ -374,14 +377,14 @@ func Test_service_Authorize(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.AuthorizationCodeRequest{
 					Subject: "foo",
-					Request: &corev1.AuthorizationRequest{
+					AuthorizationRequest: &corev1.AuthorizationRequest{
 						RequestUri: &wrappers.StringValue{
 							Value: "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac",
 						},
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Get(gomock.Any(), "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(&corev1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
@@ -414,7 +417,7 @@ func Test_service_Authorize(t *testing.T) {
 						CodeChallengeMethod: "S256",
 						Prompt:              &wrappers.StringValue{Value: "consent"},
 					},
-				}).Return("1234567891234567890", nil)
+				}).Return("1234567891234567890", uint64(60), nil)
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationCodeResponse{
@@ -422,6 +425,8 @@ func Test_service_Authorize(t *testing.T) {
 				Code:        "1234567891234567890",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 				RedirectUri: "https://client.example.org/cb",
+				ClientId:    "s6BhdRkqt3",
+				ExpiresIn:   uint64(60),
 			},
 		},
 	}
@@ -434,15 +439,14 @@ func Test_service_Authorize(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
-			requestDecoder := requestmock.NewMockAuthorizationDecoder(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(authorizationRequests, clients, authorizationCodeSessions, requestDecoder)
+				tt.prepare(authorizationRequests, clients, authorizationCodeSessions)
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions, requestDecoder)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions)
 
 			// Do the request
 			got, err := underTest.Authorize(tt.args.ctx, tt.args.req)
@@ -465,7 +469,7 @@ func Test_service_Register(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockAuthorizationRequest, *storagemock.MockClientReader, *storagemock.MockAuthorizationCodeSessionWriter, *requestmock.MockAuthorizationDecoder)
+		prepare func(*storagemock.MockAuthorizationRequest, *storagemock.MockClientReader, *storagemock.MockAuthorizationCodeSessionWriter)
 		want    *corev1.RegistrationResponse
 		wantErr bool
 	}{
@@ -519,66 +523,6 @@ func Test_service_Register(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid request parameter value",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.RegistrationRequest{
-					Client: &corev1.Client{
-						ClientId: "s6BhdRkqt3",
-					},
-					AuthorizationRequest: &corev1.AuthorizationRequest{
-						Request: &wrappers.StringValue{
-							Value: "",
-						},
-					},
-				},
-			},
-			prepare: func(_ *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, decode *requestmock.MockAuthorizationDecoder) {
-				decode.EXPECT().Decode(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("foo"))
-			},
-			wantErr: true,
-			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest(""),
-			},
-		},
-		{
-			name: "valid request parameter value, but embedded request is invalid",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.RegistrationRequest{
-					Client: &corev1.Client{
-						ClientId: "s6BhdRkqt3",
-					},
-					AuthorizationRequest: &corev1.AuthorizationRequest{
-						Request: &wrappers.StringValue{
-							Value: "<valid-encoded-request>",
-						},
-					},
-				},
-			},
-			prepare: func(_ *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, decode *requestmock.MockAuthorizationDecoder) {
-				decode.EXPECT().Decode(gomock.Any(), gomock.Any(), gomock.Any()).Return(&corev1.AuthorizationRequest{
-					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-					ResponseType:        "code",
-					Scope:               "openid profile email",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-					CodeChallengeMethod: "S256",
-				}, nil)
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
-					ClientId:   "s6BhdRkqt3",
-					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
-				}, nil)
-			},
-			wantErr: true,
-			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
-			},
-		},
-		{
 			name: "invalid request",
 			args: args{
 				ctx: context.Background(),
@@ -599,7 +543,7 @@ func Test_service_Register(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(_ *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(_ *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{"client_credentials"},
@@ -632,7 +576,7 @@ func Test_service_Register(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
@@ -667,7 +611,7 @@ func Test_service_Register(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Register(gomock.Any(), &corev1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
@@ -679,7 +623,7 @@ func Test_service_Register(t *testing.T) {
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 					Prompt:              &wrappers.StringValue{Value: "consent"},
-				}).Return("", fmt.Errorf("foo"))
+				}).Return("", uint64(90), fmt.Errorf("foo"))
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
@@ -714,7 +658,7 @@ func Test_service_Register(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *requestmock.MockAuthorizationDecoder) {
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter) {
 				ar.EXPECT().Register(gomock.Any(), &corev1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
@@ -726,7 +670,7 @@ func Test_service_Register(t *testing.T) {
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 					Prompt:              &wrappers.StringValue{Value: "consent"},
-				}).Return("123-456-789", nil)
+				}).Return("123-456-789", uint64(90), nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
@@ -751,15 +695,14 @@ func Test_service_Register(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
-			requestDecoder := requestmock.NewMockAuthorizationDecoder(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(authorizationRequests, clients, authorizationCodeSessions, requestDecoder)
+				tt.prepare(authorizationRequests, clients, authorizationCodeSessions)
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions, requestDecoder)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions)
 
 			// Do the request
 			got, err := underTest.Register(tt.args.ctx, tt.args.req)

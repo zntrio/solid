@@ -30,7 +30,6 @@ import (
 	"zntr.io/solid/pkg/authorizationserver/features/oidc"
 	"zntr.io/solid/pkg/generator"
 	"zntr.io/solid/pkg/reactor"
-	"zntr.io/solid/pkg/request"
 )
 
 // AuthorizationServer represents global authorization features enabled at-runtime.
@@ -49,7 +48,6 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 		authorizationCodeGenerator:      generator.DefaultAuthorizationCode(),
 		accessTokenGenerator:            generator.DefaultToken(),
 		refreshTokenGenerator:           generator.DefaultToken(),
-		authorizationRequestDecoder:     request.JWSAuthorizationDecoder(),
 		clientReader:                    nil,
 		tokenManager:                    nil,
 		authorizationCodeSessionManager: nil,
@@ -68,7 +66,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	}
 
 	// Initialize services
-	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.authorizationRequestDecoder)
+	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
 

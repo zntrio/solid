@@ -37,8 +37,14 @@ service AuthorizationAPI {
 // -----------------------------------------------------------------------------
 
 message AuthorizationCodeRequest {
-  string subject = 1;
-  AuthorizationRequest request = 2;
+  // REQUIRED. Client that requests the authorization requests registration.
+  Client client = 1;
+
+  // REQUIRED. User identity.
+  string subject = 2;
+
+  // REQUIRED. Authorization request object.
+  AuthorizationRequest authorization_request = 3;
 }
 
 // https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2
@@ -63,6 +69,14 @@ message AuthorizationCodeResponse {
 
   // REQUIRED. Assembled redirection uri to application.
   string redirect_uri = 4;
+
+  // REQUIRED. the client_id of the client the response is intended for.
+  string client_id = 5;
+
+  // A JSON number that represents the lifetime of the
+  // authorization code in seconds.  The authorization code lifetime is at the
+  // discretion of the AS.
+  fixed64 expires_in = 6;
 }
 
 message RegistrationRequest {
@@ -71,6 +85,9 @@ message RegistrationRequest {
 
   // REQUIRED. The request to register.
   AuthorizationRequest authorization_request = 2;
+
+  // OPTIONAL. DPoP Proof confirmation.
+  TokenConfirmation confirmation = 3;
 }
 
 message RegistrationResponse {

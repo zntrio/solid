@@ -27,7 +27,6 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/internal/services"
-	"zntr.io/solid/pkg/request"
 	"zntr.io/solid/pkg/rfcerrors"
 	"zntr.io/solid/pkg/storage"
 	"zntr.io/solid/pkg/types"
@@ -46,16 +45,14 @@ type service struct {
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequest
 	authorizationCodeSessions storage.AuthorizationCodeSessionWriter
-	requestDecoder            request.AuthorizationDecoder
 }
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, requestDecoder request.AuthorizationDecoder) services.Authorization {
+func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter) services.Authorization {
 	return &service{
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
-		requestDecoder:            requestDecoder,
 	}
 }
 
@@ -71,7 +68,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	}
 
 	// Check authoriaztion request
-	if req.Request == nil {
+	if req.AuthorizationRequest == nil {
 		res.Error = rfcerrors.InvalidRequest("")
 		return res, fmt.Errorf("unable to process nil authorization request")
 	}
@@ -83,15 +80,15 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	}
 
 	// Check request reference usage
-	if req.Request.RequestUri != nil {
+	if req.AuthorizationRequest.RequestUri != nil {
 		// Check request_uri syntax
-		if !requestURIMatcher.MatchString(req.Request.RequestUri.Value) {
+		if !requestURIMatcher.MatchString(req.AuthorizationRequest.RequestUri.Value) {
 			res.Error = rfcerrors.InvalidRequest("")
-			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.Request.RequestUri.Value)
+			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.AuthorizationRequest.RequestUri.Value)
 		}
 
 		// Check if request uri exists in storage
-		ar, err := s.authorizationRequests.Get(ctx, req.Request.RequestUri.Value)
+		ar, err := s.authorizationRequests.Get(ctx, req.AuthorizationRequest.RequestUri.Value)
 		if err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError("")
@@ -102,7 +99,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		}
 
 		// Burn after read
-		if err := s.authorizationRequests.Delete(ctx, req.Request.RequestUri.Value); err != nil {
+		if err := s.authorizationRequests.Delete(ctx, req.AuthorizationRequest.RequestUri.Value); err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError("")
 			} else {
@@ -112,32 +109,36 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		}
 
 		// Override request
-		req.Request = ar
+		req.AuthorizationRequest = ar
 	}
 
 	// Delegate to real authorize process
-	publicErr, err := s.validate(ctx, req.Request)
+	publicErr, err := s.validate(ctx, req.AuthorizationRequest)
 	if err != nil {
 		res.Error = publicErr
 		return res, err
 	}
 
 	// Create an authorization session
-	code, err := s.authorizationCodeSessions.Register(ctx, &corev1.AuthorizationCodeSession{
+	code, expiresIn, err := s.authorizationCodeSessions.Register(ctx, &corev1.AuthorizationCodeSession{
 		Subject: req.Subject,
-		Request: req.Request,
+		Request: req.AuthorizationRequest,
 	})
 	if err != nil {
-		res.Error = rfcerrors.ServerError(req.Request.State)
+		res.Error = rfcerrors.ServerError(req.AuthorizationRequest.State)
 		return res, fmt.Errorf("unable to generate authorization code: %w", err)
 	}
 
 	// Assign code to response
 	res.Code = code
 	// Assign state to response
-	res.State = req.Request.State
+	res.State = req.AuthorizationRequest.State
 	// Assign redirectUri to response
-	res.RedirectUri = req.Request.RedirectUri
+	res.RedirectUri = req.AuthorizationRequest.RedirectUri
+	// Assign client
+	res.ClientId = req.AuthorizationRequest.ClientId
+	// Assign expiration
+	res.ExpiresIn = expiresIn
 
 	return res, err
 }
@@ -163,19 +164,6 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 		return res, fmt.Errorf("authorization request must not be nil")
 	}
 
-	// If request parameter is used
-	if req.AuthorizationRequest.Request != nil {
-		// Check if valid assert
-		newReq, err := s.requestDecoder.Decode(ctx, req.Client.Jwks, req.AuthorizationRequest.Request.Value)
-		if err != nil {
-			res.Error = rfcerrors.InvalidRequest("")
-			return res, fmt.Errorf("unable to decode request: %w", err)
-		}
-
-		// Override with new request
-		req.AuthorizationRequest = newReq
-	}
-
 	// Validate authorization request
 	publicErr, err := s.validate(ctx, req.AuthorizationRequest)
 	if err != nil {
@@ -190,14 +178,14 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 	}
 
 	// Register the authorization request
-	requestURI, err := s.authorizationRequests.Register(ctx, req.AuthorizationRequest)
+	requestURI, expiresIn, err := s.authorizationRequests.Register(ctx, req.AuthorizationRequest)
 	if err != nil {
 		res.Error = rfcerrors.ServerError("")
 		return res, fmt.Errorf("unable to register authorization request: %w", err)
 	}
 
 	// Assemble result
-	res.ExpiresIn = 90
+	res.ExpiresIn = expiresIn
 	res.RequestUri = requestURI
 
 	// No error

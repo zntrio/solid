@@ -17,6 +17,10 @@
 
 package client
 
+import (
+	"github.com/square/go-jose/v3"
+)
+
 // RequestURIResponse contains all request_uri creation related information.
 type RequestURIResponse struct {
 	RequestURI   string `json:"request_uri"`
@@ -44,4 +48,11 @@ type jsonRequestURIResponse struct {
 	Error *jsonError `json:"inline"`
 
 	RequestURI string `json:"request_uri"`
+}
+
+// -----------------------------------------------------------------------------
+
+type jsonJWKSResponse struct {
+	*jose.JSONWebKeySet `json:",inline"`
+	Expires             uint64 `json:"exp"`
 }

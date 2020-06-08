@@ -18,11 +18,14 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"zntr.io/solid/pkg/jarm"
 
 	"zntr.io/solid/pkg/client"
 	"zntr.io/solid/pkg/dpop"
@@ -62,6 +65,10 @@ func init() {
 
 func intention(solidClient client.Client, config *session.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var (
+			ctx = r.Context()
+		)
+
 		// Prepare client assertion
 		assertion, err := solidClient.Assertion()
 		if err != nil {
@@ -73,14 +80,14 @@ func intention(solidClient client.Client, config *session.Config) http.Handler {
 		state := uniuri.NewLen(32)
 
 		// Create authorization request
-		res, err := solidClient.CreateRequestURI(r.Context(), assertion, state)
+		res, err := solidClient.CreateRequestURI(ctx, assertion, state)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// Generate authentication url
-		authURL, err := solidClient.AuthenticationURL(res.RequestURI)
+		authURL, err := solidClient.AuthenticationURL(ctx, res.RequestURI)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -101,13 +108,12 @@ func intention(solidClient client.Client, config *session.Config) http.Handler {
 	})
 }
 
-func callback(solidClient client.Client, config *session.Config, prover dpop.Prover) http.Handler {
+func callback(solidClient client.Client, config *session.Config, prover dpop.Prover, jarDecoder jarm.ResponseDecoder) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
-			ctx      = r.Context()
-			q        = r.URL.Query()
-			codeRaw  = q.Get("code")
-			stateRaw = q.Get("state")
+			ctx         = r.Context()
+			q           = r.URL.Query()
+			responseRaw = q.Get("response")
 		)
 
 		// Retrieve session
@@ -117,8 +123,15 @@ func callback(solidClient client.Client, config *session.Config, prover dpop.Pro
 			return
 		}
 
+		// Decode response
+		response, err := jarDecoder.Decode(ctx, solidClient.ClientID(), responseRaw)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		// Check state
-		if sess.State != stateRaw {
+		if sess.State != response.State {
 			http.Error(w, "state doesn't match", http.StatusBadRequest)
 			return
 		}
@@ -131,7 +144,7 @@ func callback(solidClient client.Client, config *session.Config, prover dpop.Pro
 		}
 
 		// Exchange code with token
-		t, err := solidClient.ExchangeCode(ctx, assertion, codeRaw, sess.CodeVerifier)
+		t, err := solidClient.ExchangeCode(ctx, assertion, response.Code, sess.CodeVerifier)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -153,7 +166,8 @@ func main() {
 		panic(err)
 	}
 
-	arEncoder := request.JWSAuthorizationEncoder(jose.ES384, func() (*jose.JSONWebKey, error) {
+	// JAR
+	arEncoder := request.JWSAuthorizationEncoder(jose.ES384, func(_ context.Context) (*jose.JSONWebKey, error) {
 		var privateKey jose.JSONWebKey
 
 		// Decode JWK
@@ -175,10 +189,20 @@ func main() {
 		ClientID:    "6779ef20e75817b79602",
 		Issuer:      "http://127.0.0.1:8080",
 		JWK:         clientPrivateKey,
-		RedirectURI: "http://127.0.0.1:8085/cb",
+		RedirectURI: "http://127.0.0.1:8085/oidc/as/127.0.0.1",
 		Scopes:      []string{"user profile email offline_access"},
 	})
 
+	// JARM
+	jarmDecoder := jarm.JWTDecoder("http://127.0.0.1:8080", func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+		jwks, _, err := solidClient.PublicKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return jwks, nil
+	})
+
+	// Cookie session
 	sessions := &session.Config{
 		Name:     "_solid_session",
 		HTTPOnly: true,
@@ -186,8 +210,10 @@ func main() {
 		Path:     "/",
 		Keys:     secretKeys,
 	}
+
+	// Endpoints
 	http.Handle("/login", intention(solidClient, sessions))
-	http.Handle("/cb", callback(solidClient, sessions, prover))
+	http.Handle("/oidc/as/127.0.0.1", callback(solidClient, sessions, prover, jarmDecoder))
 
 	log.Fatal(http.ListenAndServe(":8085", nil))
 }

@@ -49,14 +49,14 @@ func DeviceCodeSessions(userCodes generator.DeviceUserCode) storage.DeviceCodeSe
 
 // -----------------------------------------------------------------------------
 
-func (s *deviceCodeSessionStorage) Register(ctx context.Context, req *corev1.DeviceCodeSession) (string, string, error) {
+func (s *deviceCodeSessionStorage) Register(ctx context.Context, req *corev1.DeviceCodeSession) (string, string, uint64, error) {
 	// Authorization Code Generator
 	deviceCode := uniuri.NewLen(32)
 
 	// Generate user code
 	userCode, err := s.userCodes.Generate(ctx)
 	if err != nil {
-		return "", "", fmt.Errorf("unable to generate user_code: %w", err)
+		return "", "", uint64(0), fmt.Errorf("unable to generate user_code: %w", err)
 	}
 
 	// Assign to session
@@ -66,7 +66,7 @@ func (s *deviceCodeSessionStorage) Register(ctx context.Context, req *corev1.Dev
 	s.backend.Set(userCode, req, cache.DefaultExpiration)
 
 	// No error
-	return deviceCode, userCode, nil
+	return deviceCode, userCode, uint64(60), nil
 }
 
 func (s *deviceCodeSessionStorage) Delete(ctx context.Context, code string) error {

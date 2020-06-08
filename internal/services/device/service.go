@@ -75,7 +75,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 	}
 
 	// Store device code request
-	deviceCode, userCode, err := s.deviceCodeSessions.Register(ctx, &corev1.DeviceCodeSession{
+	deviceCode, userCode, expiresIn, err := s.deviceCodeSessions.Register(ctx, &corev1.DeviceCodeSession{
 		Client:  client,
 		Request: req,
 	})
@@ -89,7 +89,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 	// Assign user code
 	res.UserCode = userCode
 	// Set expiration
-	res.ExpiresIn = 120 // 2 minutes
+	res.ExpiresIn = expiresIn
 	// Polling interval
 	res.Interval = 5
 

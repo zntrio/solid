@@ -26,6 +26,7 @@ import (
 	"github.com/square/go-jose/v3"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/jwk"
 )
 
 var jwtPrivateKey = []byte(`{"kid":"foo", "kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)
@@ -33,7 +34,7 @@ var jwtPrivateKey = []byte(`{"kid":"foo", "kty": "EC","d": "olYJLJ3aiTyP44YXs0R3
 func Test_accessTokenGenerator_Generate(t *testing.T) {
 	type fields struct {
 		alg         jose.SignatureAlgorithm
-		keyProvider KeyProviderFunc
+		keyProvider jwk.KeyProviderFunc
 	}
 	type args struct {
 		ctx  context.Context
@@ -62,7 +63,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "empty jti",
 			fields: fields{
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					return nil, nil
 				},
 			},
@@ -74,7 +75,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "nil meta",
 			fields: fields{
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					return nil, nil
 				},
 			},
@@ -87,7 +88,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "key provider error",
 			fields: fields{
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					return nil, fmt.Errorf("foo")
 				},
 			},
@@ -100,7 +101,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "nil key",
 			fields: fields{
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					return nil, nil
 				},
 			},
@@ -113,7 +114,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "key without id",
 			fields: fields{
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					var privateKey jose.JSONWebKey
 
 					// Decode JWK
@@ -138,7 +139,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			name: "invalid algorithm",
 			fields: fields{
 				alg: "foo",
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					var privateKey jose.JSONWebKey
 
 					// Decode JWK
@@ -165,7 +166,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			name: "algorithm / key mismatch",
 			fields: fields{
 				alg: jose.RS256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					var privateKey jose.JSONWebKey
 
 					// Decode JWK
@@ -192,7 +193,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			name: "ec256 sign",
 			fields: fields{
 				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					var privateKey jose.JSONWebKey
 
 					// Decode JWK
@@ -219,7 +220,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			name: "ec256 sign with confirmation",
 			fields: fields{
 				alg: jose.ES256,
-				keyProvider: func() (*jose.JSONWebKey, error) {
+				keyProvider: func(_ context.Context) (*jose.JSONWebKey, error) {
 					var privateKey jose.JSONWebKey
 
 					// Decode JWK

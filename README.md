@@ -88,6 +88,7 @@ I made sample server and various integrations inside `examples/` folder.
 
 ### Protocol changes
 
+* `PAR+DPoP+JARM` is enabled and enforced for `authorization_code` flow;
 * `hybrid` flow is not and will be supported; Web applications must use server
   side component (or lambda) to negociate authorizations; By design, your
   client-side application code (JS) should not be exposed until you are identified;
@@ -123,8 +124,9 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `client_credentials` grant type
     * [x] `authorization_code` grant type
       * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
-      * [x] [Pushed Authorization Request](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
-      * [x] [JWT Encoded Authorization Requests](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-20) (JAR)
+      * [x] [Pushed Authorization Request (PAR)](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
+      * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-20) (JAR)
+      * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
     * [x] `refresh_token` grant type
     * [ ] `device_code` grant type
     * [x] Pairwise subject identifier
@@ -187,3 +189,6 @@ I made sample server and various integrations inside `examples/` folder.
 * [Financial-grade API - Part 1: Read-Only API Security Profile](https://openid.net/specs/openid-financial-api-part-1.html)
 * [Financial-grade API - Part 2: Read and Write API Security Profile](https://openid.net/specs/openid-financial-api-part-2.html)
 * [PKCE vs. Nonce: Equivalent or Not?](https://danielfett.de/2020/05/16/pkce-vs-nonce-equivalent-or-not/)
+* [An Extensive Formal Security Analysis of the OpenID Financial-grade API](https://arxiv.org/abs/1901.11520)
+* [Mix-Up, Revisited](https://danielfett.de/2020/05/04/mix-up-revisited/)
+* [Financial-grade API: JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)

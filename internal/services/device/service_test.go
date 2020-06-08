@@ -161,7 +161,7 @@ func Test_service_Device(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				deviceCodes.EXPECT().Register(gomock.Any(), gomock.Any()).Return("", "", fmt.Errorf("foo"))
+				deviceCodes.EXPECT().Register(gomock.Any(), gomock.Any()).Return("", "", uint64(60), fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
@@ -182,7 +182,7 @@ func Test_service_Device(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				deviceCodes.EXPECT().Register(gomock.Any(), gomock.Any()).Return("GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", "WDJB-MJHT", nil)
+				deviceCodes.EXPECT().Register(gomock.Any(), gomock.Any()).Return("GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", "WDJB-MJHT", uint64(120), nil)
 			},
 			wantErr: false,
 			want: &corev1.DeviceAuthorizationResponse{

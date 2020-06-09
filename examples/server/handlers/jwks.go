@@ -20,10 +20,9 @@ package handlers
 import (
 	"net/http"
 
+	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/jwk"
 	"zntr.io/solid/pkg/rfcerrors"
-
-	"zntr.io/solid/pkg/authorizationserver"
 )
 
 // JWKS handle OIDC Discovery HTTP for JWKS.

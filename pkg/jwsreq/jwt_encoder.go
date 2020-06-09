@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package request
+package jwsreq
 
 import (
 	"context"
@@ -32,8 +32,8 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// JWSAuthorizationEncoder returns an authorization request encoder instance.
-func JWSAuthorizationEncoder(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) AuthorizationEncoder {
+// JWTAuthorizationEncoder returns an authorization request encoder instance.
+func JWTAuthorizationEncoder(alg jose.SignatureAlgorithm, KeyProvider jwk.KeyProviderFunc) AuthorizationEncoder {
 	return &jwtEncoder{
 		alg:         alg,
 		keyProvider: keyProvider,
@@ -78,7 +78,7 @@ func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReque
 	}
 
 	// Preapre JWT header
-	options := (&jose.SignerOptions{}).WithType("ar+jwt")
+	options := (&jose.SignerOptions{}).WithType("oauth.authz.req+jwt")
 
 	// Prepare a signer
 	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: enc.alg, Key: key}, options)

@@ -34,17 +34,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-var (
-	cmpOpts = []cmp.Option{
-		cmpopts.IgnoreUnexported(wrappers.StringValue{}),
-		cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}),
-		cmpopts.IgnoreUnexported(corev1.AuthorizationCodeRequest{}),
-		cmpopts.IgnoreUnexported(corev1.AuthorizationCodeResponse{}),
-		cmpopts.IgnoreUnexported(corev1.RegistrationRequest{}),
-		cmpopts.IgnoreUnexported(corev1.RegistrationResponse{}),
-		cmpopts.IgnoreUnexported(corev1.Error{}),
-	}
-)
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeResponse{}), cmpopts.IgnoreUnexported(corev1.RegistrationRequest{}), cmpopts.IgnoreUnexported(corev1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_service_validate(t *testing.T) {
 	type args struct {

@@ -25,6 +25,7 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/jwk"
 	"zntr.io/solid/pkg/rfcerrors"
 	"zntr.io/solid/pkg/storage"
 
@@ -132,28 +133,9 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 	}
 
 	// Try to validate assertion with one of keys
-	valid := false
-	for i := range jwks.Keys {
-		// Ignore encryption keys
-		if jwks.Keys[i].Use == "enc" {
-			continue
-		}
-
-		// Check assertion using key
-		_, err := rawAssertion.Verify(jwks.Keys[i])
-		if err == nil {
-			valid = true
-		}
-
-		if valid {
-			break
-		}
-	}
-
-	// If no valid signature found
-	if !valid {
+	if err := jwk.ValidateSignature(&jwks, rawAssertion); err != nil {
 		res.Error = rfcerrors.InvalidClient("")
-		return res, fmt.Errorf("no valid signature found")
+		return res, fmt.Errorf("client assertion is invalid: %w", err)
 	}
 
 	// Assign client to result

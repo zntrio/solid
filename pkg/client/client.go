@@ -29,8 +29,8 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/dpop"
+	"zntr.io/solid/pkg/jwsreq"
 	"zntr.io/solid/pkg/pkce"
-	"zntr.io/solid/pkg/request"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -53,7 +53,7 @@ type Client interface {
 }
 
 // New oidc client.
-func New(prover dpop.Prover, authorizationRequestEncoder request.AuthorizationEncoder, opts *Options) Client {
+func New(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts Options) Client {
 	return &client{
 		opts:                               opts,
 		prover:                             prover,
@@ -80,7 +80,7 @@ type client struct {
 	opts                        *Options
 	httpClient                  *http.Client
 	prover                      dpop.Prover
-	authorizationRequestEncoder request.AuthorizationEncoder
+	authorizationRequestEncoder jwsreq.AuthorizationEncoder
 	jwks                        *jose.JSONWebKeySet
 	jwksExpiration              uint64
 	// Endpoints

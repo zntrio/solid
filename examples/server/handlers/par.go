@@ -30,7 +30,7 @@ import (
 	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/clientauthentication"
 	"zntr.io/solid/pkg/dpop"
-	"zntr.io/solid/pkg/request"
+	"zntr.io/solid/pkg/jwsreq"
 	"zntr.io/solid/pkg/rfcerrors"
 )
 
@@ -70,7 +70,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := request.JWSAuthorizationDecoder(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+		clientRequestDecoder := jwsreq.JWTAuthorizationDecoder(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
 			var jwks jose.JSONWebKeySet
 			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")

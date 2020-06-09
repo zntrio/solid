@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/clientauthentication"

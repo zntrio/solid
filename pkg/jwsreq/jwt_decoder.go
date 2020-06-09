@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package request
+package jwsreq
 
 import (
 	"bytes"
@@ -31,8 +31,8 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// JWSAuthorizationDecoder returns an authorization request decoder instance.
-func JWSAuthorizationDecoder(keySetProvider jwk.KeySetProviderFunc) AuthorizationDecoder {
+// JWTAuthorizationDecoder returns an authorization request decoder instance.
+func JWTAuthorizationDecoder(keySetProvider jwk.KeySetProviderFunc) AuthorizationDecoder {
 	return &jwtDecoder{
 		keySetProvider: keySetProvider,
 	}
@@ -62,30 +62,8 @@ func (d *jwtDecoder) Decode(ctx context.Context, value string) (*corev1.Authoriz
 	}
 
 	// Try to validate assertion with one of keys
-	valid := false
-	for i := range jwks.Keys {
-		// Retrieve the key
-		k := jwks.Keys[i]
-
-		// Ignore encryption keys
-		if k.Use == "enc" {
-			continue
-		}
-
-		// Check assertion using key
-		_, err := token.Verify(k)
-		if err == nil {
-			valid = true
-		}
-
-		if valid {
-			break
-		}
-	}
-
-	// If no valid signature found
-	if !valid {
-		return nil, fmt.Errorf("no valid signature found")
+	if err := jwk.ValidateSignature(jwks, token); err != nil {
+		return nil, fmt.Errorf("unable to validate request object signature: %w", err)
 	}
 
 	// Verifiy token claims

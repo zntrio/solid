@@ -39,9 +39,7 @@ func Handler(as authorizationserver.AuthorizationServer) func(context.Context, *
 }
 
 func main() {
-	var (
-		ctx = context.Background()
-	)
+	ctx := context.Background()
 
 	// Prepare the authorization server
 	as := authorizationserver.New(ctx,

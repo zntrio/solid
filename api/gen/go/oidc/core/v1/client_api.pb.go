@@ -24,12 +24,13 @@
 package corev1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -231,14 +232,17 @@ func file_oidc_core_v1_client_api_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_client_api_proto_rawDescData
 }
 
-var file_oidc_core_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_oidc_core_v1_client_api_proto_goTypes = []interface{}{
-	(*ClientAuthenticationRequest)(nil),  // 0: oidc.core.v1.ClientAuthenticationRequest
-	(*ClientAuthenticationResponse)(nil), // 1: oidc.core.v1.ClientAuthenticationResponse
-	(*wrappers.StringValue)(nil),         // 2: google.protobuf.StringValue
-	(*Error)(nil),                        // 3: oidc.core.v1.Error
-	(*Client)(nil),                       // 4: oidc.core.v1.Client
-}
+var (
+	file_oidc_core_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_oidc_core_v1_client_api_proto_goTypes  = []interface{}{
+		(*ClientAuthenticationRequest)(nil),  // 0: oidc.core.v1.ClientAuthenticationRequest
+		(*ClientAuthenticationResponse)(nil), // 1: oidc.core.v1.ClientAuthenticationResponse
+		(*wrappers.StringValue)(nil),         // 2: google.protobuf.StringValue
+		(*Error)(nil),                        // 3: oidc.core.v1.Error
+		(*Client)(nil),                       // 4: oidc.core.v1.Client
+	}
+)
+
 var file_oidc_core_v1_client_api_proto_depIdxs = []int32{
 	2, // 0: oidc.core.v1.ClientAuthenticationRequest.client_id:type_name -> google.protobuf.StringValue
 	2, // 1: oidc.core.v1.ClientAuthenticationRequest.client_secret:type_name -> google.protobuf.StringValue

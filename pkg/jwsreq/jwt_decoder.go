@@ -18,12 +18,11 @@
 package jwsreq
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/square/go-jose/v3"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/jwk"
@@ -68,9 +67,7 @@ func (d *jwtDecoder) Decode(ctx context.Context, value string) (*corev1.Authoriz
 
 	// Verifiy token claims
 	var req corev1.AuthorizationRequest
-	if err := (&jsonpb.Unmarshaler{
-		AllowUnknownFields: false,
-	}).Unmarshal(bytes.NewBuffer(token.UnsafePayloadWithoutVerification()), &req); err != nil {
+	if err := protojson.Unmarshal(token.UnsafePayloadWithoutVerification(), &req); err != nil {
 		return nil, fmt.Errorf("unable to decode request payload: %w", err)
 	}
 

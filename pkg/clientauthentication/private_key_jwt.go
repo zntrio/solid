@@ -52,7 +52,7 @@ type privateKeyJWTAuthentication struct {
 	clients storage.ClientReader
 }
 
-//nolint:funlen,gocyclo,gocognit // to refactor
+//nolint:funlen,gocyclo // to refactor
 func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *corev1.ClientAuthenticationRequest) (*corev1.ClientAuthenticationResponse, error) {
 	res := &corev1.ClientAuthenticationResponse{}
 

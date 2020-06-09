@@ -35,14 +35,7 @@ import (
 	storagemock "zntr.io/solid/pkg/storage/mock"
 )
 
-var (
-	cmpOpts = []cmp.Option{
-		cmpopts.IgnoreUnexported(wrappers.StringValue{}),
-		cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationRequest{}),
-		cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationResponse{}),
-		cmpopts.IgnoreUnexported(corev1.Error{}),
-	}
-)
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_service_Device(t *testing.T) {
 	type fields struct {

@@ -23,23 +23,21 @@ import (
 	"log"
 	"net/http"
 
-	"zntr.io/solid/pkg/request"
-
 	"zntr.io/solid/examples/server/handlers"
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/examples/storage/inmemory"
-	"zntr.io/solid/pkg/authorizationserver"
+	as "zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/dpop"
 	"zntr.io/solid/pkg/generator"
 	"zntr.io/solid/pkg/generator/jwt"
 	"zntr.io/solid/pkg/jarm"
 	"zntr.io/solid/pkg/jwk"
+	"zntr.io/solid/pkg/jwsreq"
 
 	"github.com/square/go-jose/v3"
 )
 
-var (
-	jwkPrivateKey = []byte(`{
+var jwkPrivateKey = []byte(`{
 		"kty": "EC",
 		"d": "-3yrGLfHTjuvcpG8gZzwQoz9P6uWgBW6HTmYTb-f6u4HxK05PpTdheKBdQ1nXkV-",
 		"use": "sig",
@@ -49,7 +47,6 @@ var (
 		"y": "cEXPFElY6-qb-5xsFu875_58D3lKZlcOzD99ulje6CAh4D_rJjYU7quxf82xCAUZ",
 		"alg": "ES384"
 	}`)
-)
 
 func keyProvider() jwk.KeyProviderFunc {
 	var privateKey jose.JSONWebKey
@@ -86,25 +83,23 @@ func keySetProvider() jwk.KeySetProviderFunc {
 }
 
 func main() {
-	var (
-		ctx = context.Background()
-	)
+	ctx := context.Background()
 
 	// Prepare the authorization server
-	as, err := authorizationserver.New(ctx,
+	as, err := as.New(ctx,
 		"http://127.0.0.1:8080", // Issuer
 		// Client storage
-		authorizationserver.ClientReader(inmemory.Clients()),
+		as.ClientReader(inmemory.Clients()),
 		// Authorization requests
-		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
+		as.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
-		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
+		as.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
 		// Token storage
-		authorizationserver.TokenManager(inmemory.Tokens()),
+		as.TokenManager(inmemory.Tokens()),
 		// Access token generator
-		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
+		as.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
 		// Device authorization session storage
-		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
+		as.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 	)
 	if err != nil {
 		panic(err)
@@ -119,7 +114,7 @@ func main() {
 	dpopVerifier := dpop.DefaultVerifier(inmemory.DPoPProofs())
 
 	// JWSREQ Decoder
-	requestDecoder := request.JWSAuthorizationDecoder(keySetProvider())
+	requestDecoder := jwsreq.JWTAuthorizationDecoder(keySetProvider())
 
 	// Initialize JARM encoder
 	jarmEncoder := jarm.JWTEncoder(jose.ES384, keyProvider())

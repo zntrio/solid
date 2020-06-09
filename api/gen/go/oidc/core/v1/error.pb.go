@@ -24,11 +24,12 @@
 package corev1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -150,10 +151,13 @@ func file_oidc_core_v1_error_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_error_proto_rawDescData
 }
 
-var file_oidc_core_v1_error_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_oidc_core_v1_error_proto_goTypes = []interface{}{
-	(*Error)(nil), // 0: oidc.core.v1.Error
-}
+var (
+	file_oidc_core_v1_error_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+	file_oidc_core_v1_error_proto_goTypes  = []interface{}{
+		(*Error)(nil), // 0: oidc.core.v1.Error
+	}
+)
+
 var file_oidc_core_v1_error_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type

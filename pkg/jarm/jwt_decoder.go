@@ -82,30 +82,10 @@ func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*co
 
 	// Claims
 	var claims jwtResponseClaims
-	valid := false
 
-	// For each key in keyset
-	for i := range jwks.Keys {
-		// Extract key
-		k := jwks.Keys[i]
-
-		// Check key type
-		if k.Use == "enc" {
-			// Ignore encryption key
-			continue
-		}
-
-		// Try to verify with current key
-		if err := token.Claims(k, &claims); err != nil {
-			continue
-		}
-
-		// Found a valid key
-		valid = true
-		break
-	}
-	if !valid {
-		return nil, fmt.Errorf("unable to validate response token, no valid public key found")
+	// Validate token
+	if err := jwk.ValidateToken(jwks, token, &claims); err != nil {
+		return nil, fmt.Errorf("unable to validate response token: %w", err)
 	}
 
 	// Decode claims

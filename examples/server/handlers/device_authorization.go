@@ -30,7 +30,6 @@ import (
 
 // DeviceAuthorization handles device authorization HTTP requests.
 func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handler {
-
 	type response struct {
 		DeviceCode      string `json:"device_code"`
 		UserCode        string `json:"user_code"`
@@ -47,9 +46,8 @@ func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handle
 		}
 
 		// Parameters
-		var (
-			ctx = r.Context()
-		)
+
+		ctx := r.Context()
 
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)

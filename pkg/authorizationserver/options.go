@@ -19,22 +19,20 @@ package authorizationserver
 
 import (
 	"zntr.io/solid/pkg/generator"
-	"zntr.io/solid/pkg/request"
 	"zntr.io/solid/pkg/storage"
 )
 
 // Builder options holder
 type options struct {
 	authorizationCodeGenerator      generator.AuthorizationCode
-	clientReader                    storage.ClientReader
-	authorizationRequestManager     storage.AuthorizationRequest
 	accessTokenGenerator            generator.Token
 	refreshTokenGenerator           generator.Token
 	idTokenGenerator                generator.Identity
+	clientReader                    storage.ClientReader
+	authorizationRequestManager     storage.AuthorizationRequest
 	authorizationCodeSessionManager storage.AuthorizationCodeSession
 	deviceCodeSessionManager        storage.DeviceCodeSession
 	tokenManager                    storage.Token
-	authorizationRequestDecoder     request.AuthorizationDecoder
 }
 
 // Option defines functional pattern function type contract.
@@ -86,12 +84,5 @@ func AccessTokenGenerator(g generator.Token) Option {
 func RefreshTokenGenerator(g generator.Token) Option {
 	return func(opts *options) {
 		opts.refreshTokenGenerator = g
-	}
-}
-
-// AuthorizationRequestDecoder defines the implementation for authorization request decoding (JAR).
-func AuthorizationRequestDecoder(decoder request.AuthorizationDecoder) Option {
-	return func(opts *options) {
-		opts.authorizationRequestDecoder = decoder
 	}
 }

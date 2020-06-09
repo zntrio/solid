@@ -15,12 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package request
+package jwsreq
 
 import (
 	"context"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+)
+
+const (
+	tokenHdrType = "oauth.authz.req+jwt"
 )
 
 //go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationDecoder

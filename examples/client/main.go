@@ -25,11 +25,10 @@ import (
 	"log"
 	"net/http"
 
-	"zntr.io/solid/pkg/jarm"
-
 	"zntr.io/solid/pkg/client"
 	"zntr.io/solid/pkg/dpop"
-	"zntr.io/solid/pkg/request"
+	"zntr.io/solid/pkg/jarm"
+	"zntr.io/solid/pkg/jwsreq"
 
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"
@@ -65,9 +64,7 @@ func init() {
 
 func intention(solidClient client.Client, config *session.Config) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var (
-			ctx = r.Context()
-		)
+		ctx := r.Context()
 
 		// Prepare client assertion
 		assertion, err := solidClient.Assertion()
@@ -167,7 +164,7 @@ func main() {
 	}
 
 	// JAR
-	arEncoder := request.JWSAuthorizationEncoder(jose.ES384, func(_ context.Context) (*jose.JSONWebKey, error) {
+	arEncoder := jwsreq.JWTAuthorizationEncoder(jose.ES384, func(_ context.Context) (*jose.JSONWebKey, error) {
 		var privateKey jose.JSONWebKey
 
 		// Decode JWK

@@ -28,9 +28,7 @@ import (
 // Device handle device code validation.
 func Device(as authorizationserver.AuthorizationServer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var (
-			ctx = r.Context()
-		)
+		ctx := r.Context()
 
 		// Retrieve subject form context
 		sub, ok := middleware.Subject(ctx)
@@ -38,6 +36,5 @@ func Device(as authorizationserver.AuthorizationServer) http.Handler {
 			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
 			return
 		}
-
 	})
 }

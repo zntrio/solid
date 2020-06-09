@@ -26,19 +26,18 @@ import (
 	"net/url"
 
 	"github.com/square/go-jose/v3"
-	"zntr.io/solid/pkg/storage"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/jarm"
-	"zntr.io/solid/pkg/request"
+	"zntr.io/solid/pkg/jwsreq"
 	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/storage"
 )
 
 // Authorization handles authorization HTTP requests.
-func Authorization(as authorizationserver.AuthorizationServer, clients storage.ClientReader, requestDecoder request.AuthorizationDecoder, jarmEncoder jarm.ResponseEncoder) http.Handler {
-
+func Authorization(as authorizationserver.AuthorizationServer, clients storage.ClientReader, requestDecoder jwsreq.AuthorizationDecoder, jarmEncoder jarm.ResponseEncoder) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
@@ -69,7 +68,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := request.JWSAuthorizationDecoder(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+		clientRequestDecoder := jwsreq.JWTAuthorizationDecoder(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
 			var jwks jose.JSONWebKeySet
 			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")

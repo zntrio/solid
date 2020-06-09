@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package request
+package jwsreq
 
 import (
 	"context"
@@ -27,19 +27,17 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/square/go-jose/v3"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/jwk"
 )
 
-var (
-	cmpOpts = []cmp.Option{
-		cmpopts.IgnoreUnexported(wrappers.StringValue{}),
-		cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}),
-	}
-)
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{})}
 
-var jwtPrivateKey = []byte(`{"kid":"foo", "kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)
-var jwtPublicKeySet = []byte(`{"keys":[{"kid":"foo", "kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`)
+var (
+	jwtPrivateKey   = []byte(`{"kid":"foo", "kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)
+	jwtPublicKeySet = []byte(`{"keys":[{"kid":"foo", "kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`)
+)
 
 func mustJWK(body []byte) *jose.JSONWebKey {
 	var key jose.JSONWebKey
@@ -158,7 +156,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enc := JWSAuthorizationEncoder(tt.fields.alg, tt.fields.keyProvider)
+			enc := JWTAuthorizationEncoder(tt.fields.alg, tt.fields.keyProvider)
 			_, err := enc.Encode(tt.args.ctx, tt.args.ar)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtEncoder.Encode() error = %v, wantErr %v", err, tt.wantErr)
@@ -218,7 +216,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := JWSAuthorizationDecoder(tt.fields.keySetProvider)
+			d := JWTAuthorizationDecoder(tt.fields.keySetProvider)
 			got, err := d.Decode(tt.args.ctx, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtDecoder.Decode() error = %v, wantErr %v", err, tt.wantErr)

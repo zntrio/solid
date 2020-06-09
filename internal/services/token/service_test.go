@@ -37,27 +37,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
-var (
-	cmpOpts = []cmp.Option{
-		cmpopts.IgnoreFields(corev1.Token{}, "TokenId"),
-		cmpopts.IgnoreUnexported(wrappers.StringValue{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRequest{}),
-		cmpopts.IgnoreUnexported(corev1.TokenIntrospectionRequest{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRevocationRequest{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRequest_AuthorizationCode{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRequest_ClientCredentials{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRequest_DeviceCode{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRequest_RefreshToken{}),
-		cmpopts.IgnoreUnexported(corev1.TokenResponse{}),
-		cmpopts.IgnoreUnexported(corev1.TokenIntrospectionResponse{}),
-		cmpopts.IgnoreUnexported(corev1.TokenRevocationResponse{}),
-		cmpopts.IgnoreUnexported(corev1.Error{}),
-		cmpopts.IgnoreUnexported(corev1.Token{}),
-		cmpopts.IgnoreUnexported(corev1.TokenMeta{}),
-		cmpopts.IgnoreUnexported(corev1.AuthorizationCodeSession{}),
-		cmpopts.IgnoreUnexported(corev1.DeviceCodeSession{}),
-	}
-)
+var cmpOpts = []cmp.Option{cmpopts.IgnoreFields(corev1.Token{}, "TokenId"), cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.TokenRequest{}), cmpopts.IgnoreUnexported(corev1.TokenIntrospectionRequest{}), cmpopts.IgnoreUnexported(corev1.TokenRevocationRequest{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_AuthorizationCode{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_ClientCredentials{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_DeviceCode{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_RefreshToken{}), cmpopts.IgnoreUnexported(corev1.TokenResponse{}), cmpopts.IgnoreUnexported(corev1.TokenIntrospectionResponse{}), cmpopts.IgnoreUnexported(corev1.TokenRevocationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{}), cmpopts.IgnoreUnexported(corev1.Token{}), cmpopts.IgnoreUnexported(corev1.TokenMeta{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeSession{}), cmpopts.IgnoreUnexported(corev1.DeviceCodeSession{})}
 
 func Test_service_Token(t *testing.T) {
 	type fields struct {

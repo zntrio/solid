@@ -53,7 +53,7 @@ type Client interface {
 }
 
 // New oidc client.
-func New(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts Options) Client {
+func New(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) Client {
 	return &client{
 		opts:                               opts,
 		prover:                             prover,

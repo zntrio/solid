@@ -31,7 +31,7 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// AccessToken instanciate a JWT access token generator.
+// AccessToken instantiate a JWT access token generator.
 func AccessToken(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) generator.Token {
 	return &accessTokenGenerator{
 		alg:         alg,

@@ -24,6 +24,7 @@ import (
 )
 
 const (
+	//nolint:gosec // detected as hardcoded credentials
 	tokenHdrType = "oauth.authz.req+jwt"
 )
 

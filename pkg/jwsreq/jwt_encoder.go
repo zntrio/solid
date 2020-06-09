@@ -22,9 +22,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/jwk"
@@ -64,16 +64,16 @@ func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReque
 	}
 
 	// Encode ar as json
-	jsonString, err := (&jsonpb.Marshaler{
-		OrigName: true,
-	}).MarshalToString(ar)
+	jsonString, err := protojson.MarshalOptions{
+		UseProtoNames: true,
+	}.Marshal(ar)
 	if err != nil {
 		return "", fmt.Errorf("unable to prepare request: %w", err)
 	}
 
 	// Decode using json
 	var claims map[string]interface{}
-	if err = json.Unmarshal([]byte(jsonString), &claims); err != nil {
+	if err = json.Unmarshal(jsonString, &claims); err != nil {
 		return "", fmt.Errorf("unable to serialize request payload: %w", err)
 	}
 

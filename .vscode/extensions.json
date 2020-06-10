@@ -1,6 +1,6 @@
 {
   "recommendations": [
-    "ms-vscode.Go",
+    "golang.go",
     "ms-vscode-remote.remote-containers",
     "davidanson.vscode-markdownlint",
     "shardulm94.trailing-spaces",

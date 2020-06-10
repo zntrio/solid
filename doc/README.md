@@ -36,7 +36,7 @@ Authentication:
 
 Standard Changes:
 
-* `DPoP` is required for all client type (confidential, public);
+* `DPoP` is required for all client;
 * `access token` is a `sender-constrained token` linked to `DPoP` proof;
 
 ### Authorization Code
@@ -71,10 +71,21 @@ Future investigations:
 * `DPoP + Authorization Code` to limit authorization code to client usage only (JWSREQ Binding ?);
 * `DPoP + PAR` to limit authorization request_uri to client usage only (JWSREQ Binding ?);
 
-### Device Code
-
-> IoT / Constrained environment access.
-
 ### Refresh Token
 
 > Offline user access, act as user without online participation.
+
+![Overview](./img/SOLID_RT.png)
+
+Authentication:
+
+* Client authentication is done using `private_jwt` authentication method;
+
+Standard changes:
+
+* `DPoP` is required for all client to binding `access_token` and `refresh_token`
+  usage to resquester client only;
+
+### Device Code
+
+> IoT / Constrained environment access.

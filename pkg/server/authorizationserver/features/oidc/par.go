@@ -27,7 +27,7 @@ import (
 
 // PushedAuthorizationRequest enables pushed authorization requetst related features.
 func PushedAuthorizationRequest() features.Feature {
-	return func(r reactor.Reactor, authorizations services.Authorization, _ services.Token, _ services.Device) {
+	return func(r reactor.Reactor, authorizations services.Authorization, _ services.Token, _ services.Device, _ services.Client) {
 		// Register authorization registration handler.
 		r.RegisterHandler(&corev1.RegistrationRequest{}, par.RegisterAuthorizationHandler(authorizations))
 	}

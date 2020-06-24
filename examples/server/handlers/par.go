@@ -45,6 +45,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		// Only POST verb
 		if r.Method != http.MethodPost {
 			http.Error(w, "invalid request method", http.StatusMethodNotAllowed)
+			return
 		}
 
 		var (

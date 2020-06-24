@@ -34,11 +34,19 @@ type ClientReader interface {
 	Get(ctx context.Context, id string) (*corev1.Client, error)
 }
 
+//go:generate mockgen -destination mock/client_writer.gen.go -package mock zntr.io/solid/pkg/storage ClientWriter
+
+// ClientWriter describes client storage write-only operation contract.
+type ClientWriter interface {
+	Register(ctx context.Context, c *corev1.Client) (string, error)
+}
+
 //go:generate mockgen -destination mock/client.gen.go -package mock zntr.io/solid/pkg/storage Client
 
 // Client describes complete client storage contract.
 type Client interface {
 	ClientReader
+	ClientWriter
 }
 
 //go:generate mockgen -destination mock/authorization_request_reader.gen.go -package mock zntr.io/solid/pkg/storage AuthorizationRequestReader

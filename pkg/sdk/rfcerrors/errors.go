@@ -131,3 +131,39 @@ func InvalidDPoPProof() *corev1.Error {
 		ErrorDescription: "The provided DPoP proof is expired, malformed, or invalid for other reasons.",
 	}
 }
+
+// InvalidRedirectURI returns a compliant `invalid_redirect_uri` error.
+// https://tools.ietf.org/html/rfc7591#section-3.2.2
+func InvalidRedirectURI() *corev1.Error {
+	return &corev1.Error{
+		Err:              "invalid_redirect_uri",
+		ErrorDescription: "The value of one or more redirection URIs is invalid.",
+	}
+}
+
+// InvalidClientMetadata returns a compliant `invalid_client_metadata` error.
+// https://tools.ietf.org/html/rfc7591#section-3.2.2
+func InvalidClientMetadata() *corev1.Error {
+	return &corev1.Error{
+		Err:              "invalid_client_metadata",
+		ErrorDescription: "The value of one of the client metadata fields is invalid and the server has rejected this request.",
+	}
+}
+
+// InvalidSoftwareStatement returns a compliant `invalid_software_statement` error.
+// https://tools.ietf.org/html/rfc7591#section-3.2.2
+func InvalidSoftwareStatement() *corev1.Error {
+	return &corev1.Error{
+		Err:              "invalid_software_statement",
+		ErrorDescription: "The software statement presented is invalid.",
+	}
+}
+
+// UnapprovedSoftwareStatement returns a compliant `unapproved_software_statement` error.
+// https://tools.ietf.org/html/rfc7591#section-3.2.2
+func UnapprovedSoftwareStatement() *corev1.Error {
+	return &corev1.Error{
+		Err:              "unapproved_software_statement",
+		ErrorDescription: "The software statement presented is not approved for use by this authorization server.",
+	}
+}

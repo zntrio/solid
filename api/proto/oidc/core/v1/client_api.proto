@@ -27,8 +27,13 @@ import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
 
-service ClientAPI {
+service ClientAuthenticationAPI {
   rpc Authenticate(ClientAuthenticationRequest) returns (ClientAuthenticationResponse) {};
+}
+
+// https://tools.ietf.org/html/rfc7591
+service ClientRegistrationAPI {
+  rpc Register(ClientRegistrationRequest) returns (ClientRegistrationResponse) {};
 }
 
 // -----------------------------------------------------------------------------
@@ -41,6 +46,18 @@ message ClientAuthenticationRequest {
 }
 
 message ClientAuthenticationResponse {
+  Error error = 1;
+  Client client = 2;
+}
+
+// -----------------------------------------------------------------------------
+
+// https://tools.ietf.org/html/rfc7591#section-2
+message ClientRegistrationRequest {
+  ClientMeta metadata = 1;
+}
+
+message ClientRegistrationResponse {
   Error error = 1;
   Client client = 2;
 }

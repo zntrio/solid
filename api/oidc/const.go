@@ -20,14 +20,18 @@ package oidc
 // Grant types -----------------------------------------------------------------
 
 const (
-	// GrantTypeAuthorizationCode repesents AuthorizationCode grant type name.
+	// GrantTypeAuthorizationCode represents AuthorizationCode grant type name.
 	GrantTypeAuthorizationCode = "authorization_code"
-	// GrantTypeClientCredentials repesents ClientCredentials grant type name.
+	// GrantTypeClientCredentials represents ClientCredentials grant type name.
 	GrantTypeClientCredentials = "client_credentials"
-	// GrantTypeDeviceCode repesents DeviceCode grant type name.
+	// GrantTypeDeviceCode represents DeviceCode grant type name.
 	GrantTypeDeviceCode = "urn:ietf:params:oauth:grant-type:device_code"
-	// GrantTypeRefreshToken repesents RefreshToken grant type name.
+	// GrantTypeRefreshToken represents RefreshToken grant type name.
 	GrantTypeRefreshToken = "refresh_token"
+	// GrantTypeJWTBearer represents JWT Bearer Token grant type name.
+	GrantTypeJWTBearer = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+	// GrantTypeSAML2Bearer represents SAML 2 Bearer token grant type.
+	GrantTypeSAML2Bearer = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 )
 
 // Scopes ----------------------------------------------------------------------
@@ -51,4 +55,29 @@ const (
 const (
 	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
 	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+)
+
+// Response Types --------------------------------------------------------------
+
+const (
+	// ResponseTypeCode represents the authorization code response type defined
+	// in OAuth 2.0
+	ResponseTypeCode = "code"
+	// ResponseTypeToken represents the implicit response type defined in OAuth 2.0
+	ResponseTypeToken = "token"
+)
+
+// Authentication Methods ------------------------------------------------------
+
+const (
+	// AuthMethodNone : The client is a public client as defined in OAuth 2.0
+	AuthMethodNone = "none"
+	// AuthMethodClientSecretPost : The client uses the HTTP POST parameters as
+	// defined in OAuth 2.0
+	AuthMethodClientSecretPost = "client_secret_post"
+	// AuthMethodClientSecretBasic : The client uses HTTP Basic as defined in
+	// OAuth 2.0
+	AuthMethodClientSecretBasic = "client_secret_basic"
+	// AuthMethodPrivateKeyJWT : The client uses JWT assertion.
+	AuthMethodPrivateKeyJWT = "private_key_jwt"
 )

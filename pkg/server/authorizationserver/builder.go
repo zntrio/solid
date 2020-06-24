@@ -24,6 +24,7 @@ import (
 
 	"zntr.io/solid/internal/services"
 	"zntr.io/solid/internal/services/authorization"
+	"zntr.io/solid/internal/services/client"
 	"zntr.io/solid/internal/services/device"
 	"zntr.io/solid/internal/services/token"
 	"zntr.io/solid/pkg/sdk/generator"
@@ -49,6 +50,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 		accessTokenGenerator:            generator.DefaultToken(),
 		refreshTokenGenerator:           generator.DefaultToken(),
 		clientReader:                    nil,
+		clientWriter:                    nil,
 		tokenManager:                    nil,
 		authorizationCodeSessionManager: nil,
 		deviceCodeSessionManager:        nil,
@@ -69,6 +71,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
+	clients := client.New(defaultOptions.clientWriter, client.DefaultValues())
 
 	// Wire message
 	as := &authorizationServer{
@@ -76,6 +79,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 		authorizations: authorizations,
 		tokens:         tokens,
 		devices:        devices,
+		clients:        clients,
 		r:              reactor.New(issuer),
 		dopts:          defaultOptions,
 	}
@@ -86,6 +90,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	as.Enable(oidc.PushedAuthorizationRequest())
 	as.Enable(oidc.Revocation())
 	as.Enable(oidc.Device())
+	as.Enable(oidc.DCR())
 
 	// Return Authorization Server instance
 	return as, nil
@@ -96,6 +101,7 @@ type authorizationServer struct {
 	authorizations services.Authorization
 	tokens         services.Token
 	devices        services.Device
+	clients        services.Client
 	r              reactor.Reactor
 	dopts          *options
 }
@@ -105,7 +111,7 @@ func (as *authorizationServer) Issuer() *url.URL {
 }
 
 func (as *authorizationServer) Enable(f features.Feature) {
-	f(as.r, as.authorizations, as.tokens, as.devices)
+	f(as.r, as.authorizations, as.tokens, as.devices, as.clients)
 }
 
 func (as *authorizationServer) Do(ctx context.Context, req interface{}) (interface{}, error) {

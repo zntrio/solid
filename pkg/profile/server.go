@@ -15,24 +15,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-syntax = "proto3";
+package profile
 
-package oidc.core.v1;
+type defaultServerProfile struct {
+	clientProfiles map[string]Client
+}
 
-option go_package = "oidc/core/v1;corev1";
-
-import "google/protobuf/wrappers.proto";
-
-// https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
-message Error {
-  // REQUIRED. Error code.
-  string err = 1;
-  // OPTIONAL. Human-readable ASCII encoded text description of the error.
-  string error_description = 2;
-  // OPTIONAL. URI of a web page that includes additional information about the
-  // error.
-  google.protobuf.StringValue error_uri = 3;
-  // OAuth 2.0 state value. REQUIRED if the Authorization Request included the
-  // state parameter. Set to the value received from the Client.
-  google.protobuf.StringValue state = 4;
+func (s *defaultServerProfile) ApplicationType(typeName string) (Client, bool) {
+	c, ok := s.clientProfiles[typeName]
+	return c, ok
 }

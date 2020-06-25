@@ -63,7 +63,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -74,7 +74,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -87,7 +87,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -103,7 +103,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -119,7 +119,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -138,7 +138,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.UnsupportedGrantType(""),
+				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
 		{
@@ -158,7 +158,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

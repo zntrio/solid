@@ -23,13 +23,23 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/profile"
 	"zntr.io/solid/pkg/rfcerrors"
 	storagemock "zntr.io/solid/pkg/storage/mock"
 )
+
+var cmpOpts = []cmp.Option{
+	cmpopts.IgnoreUnexported(wrapperspb.StringValue{}),
+	cmpopts.IgnoreUnexported(corev1.ClientRegistrationRequest{}),
+	cmpopts.IgnoreUnexported(corev1.ClientRegistrationResponse{}),
+	cmpopts.IgnoreUnexported(corev1.Client{}),
+	cmpopts.IgnoreUnexported(corev1.Error{}),
+}
 
 func Test_service_validateRegistration(t *testing.T) {
 	type args struct {
@@ -49,7 +59,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				req: nil,
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidRequest().Build(),
 		},
 		{
 			name: "empty request",
@@ -58,7 +68,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				req: &corev1.ClientRegistrationRequest{},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidRequest().Build(),
 		},
 		{
 			name: "empty client meta",
@@ -69,15 +79,42 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidRequest().Build(),
 		},
 		// ---------------------------------------------------------------------
+		{
+			name: "all: invalid application_type value",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.ClientRegistrationRequest{
+					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: "foo"},
+					},
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidRequest().Description("application_type contains an invalid or unsupported value.").Build(),
+		},
+		{
+			name: "all: missing token_endpoint_auth_method value",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.ClientRegistrationRequest{
+					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
+					},
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidClientMetadata().Build(),
+		},
 		{
 			name: "all: empty token_endpoint_auth_method value",
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
 							Value: "",
 						},
@@ -85,7 +122,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Description("token_endpoint_auth_method contains an invalid or unsupported value.").Build(),
 		},
 		{
 			name: "all: invalid token_endpoint_auth_method value",
@@ -93,6 +130,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
 							Value: "foo",
 						},
@@ -100,7 +138,23 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Description("token_endpoint_auth_method contains an invalid or unsupported value.").Build(),
+		},
+		{
+			name: "all: unsupported token_endpoint_auth_method value for application type",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.ClientRegistrationRequest{
+					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
+						TokenEndpointAuthMethod: &wrapperspb.StringValue{
+							Value: oidc.AuthMethodClientSecretBasic,
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidClientMetadata().Description("token_endpoint_auth_method contains an invalid or unsupported value.").Build(),
 		},
 		// ---------------------------------------------------------------------
 		{
@@ -109,15 +163,16 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
+							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
 						ResponseTypes: []string{},
 					},
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Build(),
 		},
 		{
 			name: "all: invalid response_types value",
@@ -125,16 +180,18 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
+							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
 						ResponseTypes: []string{"foo"},
 					},
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Description("response_types contains an invalid or unsupported value.").Build(),
 		},
+
 		// ---------------------------------------------------------------------
 		{
 			name: "all: empty grant_types value",
@@ -142,11 +199,12 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeServerSideWeb},
 						RedirectUris: []string{
 							"http://127.0.0.1:8085/as/127.0.0.1/cb",
 						},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
+							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
 						ResponseTypes: []string{oidc.ResponseTypeCode},
 						GrantTypes:    []string{},
@@ -154,7 +212,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Build(),
 		},
 		{
 			name: "all: invalid grant_types value",
@@ -162,11 +220,12 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeServerSideWeb},
 						RedirectUris: []string{
 							"http://127.0.0.1:8085/as/127.0.0.1/cb",
 						},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
+							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
 						ResponseTypes: []string{oidc.ResponseTypeCode},
 						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode, "foo"},
@@ -174,16 +233,18 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Description("grant_types contains an invalid or unsupported value.").Build(),
 		},
+
 		{
 			name: "authorization_code: empty redirect_uris",
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeServerSideWeb},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
+							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
 						ResponseTypes: []string{oidc.ResponseTypeCode},
 						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
@@ -191,7 +252,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Build(),
 		},
 		{
 			name: "authorization_code: invalid redirect_uris",
@@ -199,8 +260,9 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeServerSideWeb},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
+							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
 						ResponseTypes: []string{oidc.ResponseTypeCode},
 						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
@@ -212,7 +274,7 @@ func Test_service_validateRegistration(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRedirectURI(),
+			want:    rfcerrors.InvalidRedirectURI().Build(),
 		},
 		{
 			name: "authorization_code: invalid response_type",
@@ -220,106 +282,148 @@ func Test_service_validateRegistration(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.ClientRegistrationRequest{
 					Metadata: &corev1.ClientMeta{
-						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
-						},
-						ResponseTypes: []string{oidc.ResponseTypeToken},
-						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-						RedirectUris: []string{
-							"http://127.0.0.1:8085/as/127.0.0.1/cb",
-							"",
-						},
-					},
-				},
-			},
-			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
-		},
-		// ---------------------------------------------------------------------
-		{
-			name: "all: invalid JSON jwks value",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.ClientRegistrationRequest{
-					Metadata: &corev1.ClientMeta{
-						RedirectUris: []string{
-							"http://127.0.0.1:8085/as/127.0.0.1/cb",
-						},
+						ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeServerSideWeb},
 						TokenEndpointAuthMethod: &wrapperspb.StringValue{
 							Value: oidc.AuthMethodPrivateKeyJWT,
 						},
+						ResponseTypes: []string{"foo"},
 						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-						ResponseTypes: []string{oidc.ResponseTypeCode},
-						Jwks:          []byte(`{;`),
-					},
-				},
-			},
-			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
-		},
-		{
-			name: "all: invalid jwks no keys",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.ClientRegistrationRequest{
-					Metadata: &corev1.ClientMeta{
 						RedirectUris: []string{
 							"http://127.0.0.1:8085/as/127.0.0.1/cb",
 						},
-						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodPrivateKeyJWT,
-						},
-						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-						ResponseTypes: []string{oidc.ResponseTypeCode},
-						Jwks:          []byte(`{}`),
 					},
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidClientMetadata().Description("response_types contains an invalid or unsupported value for authorization code flow").Build(),
 		},
-		{
-			name: "all: missing jwks with private_key_jwt authentication",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.ClientRegistrationRequest{
-					Metadata: &corev1.ClientMeta{
-						RedirectUris: []string{
-							"http://127.0.0.1:8085/as/127.0.0.1/cb",
+		/*
+			{
+				name: "client_credentials: invalid response_type",
+				args: args{
+					ctx: context.Background(),
+					req: &corev1.ClientRegistrationRequest{
+						Metadata: &corev1.ClientMeta{
+							ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeService},
+							TokenEndpointAuthMethod: &wrapperspb.StringValue{
+								Value: oidc.AuthMethodClientSecretBasic,
+							},
+							ResponseTypes: []string{oidc.ResponseTypeCode},
+							GrantTypes:    []string{oidc.GrantTypeClientCredentials},
+							RedirectUris: []string{
+								"http://127.0.0.1:8085/as/127.0.0.1/cb",
+							},
 						},
-						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodPrivateKeyJWT,
-						},
-						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-						ResponseTypes: []string{oidc.ResponseTypeCode},
 					},
 				},
+				wantErr: true,
+				want:    rfcerrors.InvalidClientMetadata(),
 			},
-			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
-		},
-		// ---------------------------------------------------------------------
-		{
-			name: "all: invalid scope",
-			args: args{
-				ctx: context.Background(),
-				req: &corev1.ClientRegistrationRequest{
-					Metadata: &corev1.ClientMeta{
-						RedirectUris: []string{
-							"http://127.0.0.1:8085/as/127.0.0.1/cb",
+			{
+				name: "refresh_token: invalid response_type",
+				args: args{
+					ctx: context.Background(),
+					req: &corev1.ClientRegistrationRequest{
+						Metadata: &corev1.ClientMeta{
+							ApplicationType: &wrapperspb.StringValue{Value: oidc.ApplicationTypeNative},
+							TokenEndpointAuthMethod: &wrapperspb.StringValue{
+								Value: oidc.AuthMethodClientSecretBasic,
+							},
+							ResponseTypes: []string{oidc.ResponseTypeCode},
+							GrantTypes:    []string{oidc.GrantTypeRefreshToken},
+							RedirectUris: []string{
+								"http://127.0.0.1:8085/as/127.0.0.1/cb",
+							},
 						},
-						TokenEndpointAuthMethod: &wrapperspb.StringValue{
-							Value: oidc.AuthMethodClientSecretBasic,
-						},
-						GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-						ResponseTypes: []string{oidc.ResponseTypeCode},
-						Scope:         &wrapperspb.StringValue{Value: "openid foo"},
 					},
 				},
+				wantErr: true,
+				want:    rfcerrors.InvalidClientMetadata(),
 			},
-			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
-		},
+			// ---------------------------------------------------------------------
+			{
+				name: "all: invalid JSON jwks value",
+				args: args{
+					ctx: context.Background(),
+					req: &corev1.ClientRegistrationRequest{
+						Metadata: &corev1.ClientMeta{
+							RedirectUris: []string{
+								"http://127.0.0.1:8085/as/127.0.0.1/cb",
+							},
+							TokenEndpointAuthMethod: &wrapperspb.StringValue{
+								Value: oidc.AuthMethodPrivateKeyJWT,
+							},
+							GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+							ResponseTypes: []string{oidc.ResponseTypeCode},
+							Jwks:          &wrapperspb.BytesValue{Value: []byte(`{;`)},
+						},
+					},
+				},
+				wantErr: true,
+				want:    rfcerrors.InvalidClientMetadata(),
+			},
+			{
+				name: "all: invalid jwks no keys",
+				args: args{
+					ctx: context.Background(),
+					req: &corev1.ClientRegistrationRequest{
+						Metadata: &corev1.ClientMeta{
+							RedirectUris: []string{
+								"http://127.0.0.1:8085/as/127.0.0.1/cb",
+							},
+							TokenEndpointAuthMethod: &wrapperspb.StringValue{
+								Value: oidc.AuthMethodPrivateKeyJWT,
+							},
+							GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+							ResponseTypes: []string{oidc.ResponseTypeCode},
+							Jwks:          &wrapperspb.BytesValue{Value: []byte(`{;`)},
+						},
+					},
+				},
+				wantErr: true,
+				want:    rfcerrors.InvalidClientMetadata(),
+			},
+			{
+				name: "all: missing jwks with private_key_jwt authentication",
+				args: args{
+					ctx: context.Background(),
+					req: &corev1.ClientRegistrationRequest{
+						Metadata: &corev1.ClientMeta{
+							RedirectUris: []string{
+								"http://127.0.0.1:8085/as/127.0.0.1/cb",
+							},
+							TokenEndpointAuthMethod: &wrapperspb.StringValue{
+								Value: oidc.AuthMethodPrivateKeyJWT,
+							},
+							GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+							ResponseTypes: []string{oidc.ResponseTypeCode},
+						},
+					},
+				},
+				wantErr: true,
+				want:    rfcerrors.InvalidClientMetadata(),
+			},
+			// ---------------------------------------------------------------------
+			{
+				name: "valid",
+				args: args{
+					ctx: context.Background(),
+					req: &corev1.ClientRegistrationRequest{
+						Metadata: &corev1.ClientMeta{
+							RedirectUris: []string{
+								"http://127.0.0.1:8085/as/127.0.0.1/cb",
+							},
+							TokenEndpointAuthMethod: &wrapperspb.StringValue{
+								Value: oidc.AuthMethodClientSecretBasic,
+							},
+							GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+							ResponseTypes: []string{oidc.ResponseTypeCode},
+							Scope:         &wrapperspb.StringValue{Value: "openid foo"},
+						},
+					},
+				},
+				wantErr: false,
+			},*/
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -327,12 +431,12 @@ func Test_service_validateRegistration(t *testing.T) {
 			defer ctrl.Finish()
 
 			// Arm mocks
-			clients := storagemock.NewMockClientWriter(ctrl)
+			clients := storagemock.NewMockClient(ctrl)
 
 			// Prepare service
 			underTest := &service{
 				clients:       clients,
-				valueProvider: &defaultValueProvider{},
+				serverProfile: profile.Strict(),
 			}
 
 			// Do the request

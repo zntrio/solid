@@ -36,38 +36,38 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 
 	// Check parameters
 	if client == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil client")
 	}
 	if req == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil request")
 	}
 	if grant == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
 	// Check issuer syntax
 	if req.Issuer == "" {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("issuer must not be blank")
 	}
 
 	_, err := url.ParseRequestURI(req.Issuer)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("issuer must be a valid url: %w", err)
 	}
 
 	if grant.RefreshToken == "" {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token must not be empty")
 	}
 
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeRefreshToken) {
-		res.Error = rfcerrors.UnsupportedGrantType("")
+		res.Error = rfcerrors.UnsupportedGrantType().Build()
 		return res, fmt.Errorf("client doesn't support 'refresh_token' as grant type")
 	}
 
@@ -75,43 +75,43 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 	rt, err := s.tokens.GetByValue(ctx, grant.RefreshToken)
 	if err != nil {
 		if err != storage.ErrNotFound {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 		} else {
-			res.Error = rfcerrors.InvalidRequest("")
+			res.Error = rfcerrors.InvalidRequest().Build()
 		}
 		return res, fmt.Errorf("unable to retrieve token '%s' from storage: %w", grant.RefreshToken, err)
 	}
 
 	// Check token
 	if rt.Status != corev1.TokenStatus_TOKEN_STATUS_ACTIVE {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token in not active")
 	}
 	if rt.TokenType != corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token must not be empty")
 	}
 	if rt.Metadata == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("token doesn't have metadata")
 	}
 
 	// If expired
 	if rt.Metadata.ExpiresAt < uint64(timeFunc().Unix()) {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token is expired")
 	}
 
 	// Check client / refresh_token match
 	if rt.Metadata.ClientId != client.ClientId {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("only requestor client must use the refresh_token")
 	}
 
 	// Generate access token
 	at, err := s.generateAccessToken(ctx, client, rt.Metadata, rt.Confirmation)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to generate access token: %w", err)
 	}
 
@@ -120,13 +120,13 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 		// Generate new refresh token
 		newRt, err := s.generateRefreshToken(ctx, client, rt.Metadata, at.Confirmation)
 		if err != nil {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("unable to generate refresh token: %w", err)
 		}
 
 		// Revoke old refresh token
 		if err := s.tokens.Revoke(ctx, rt.TokenId); err != nil {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("unable to revoke old refresh token '%s': %w", rt.Value, err)
 		}
 

@@ -60,7 +60,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -71,7 +71,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -85,7 +85,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -104,7 +104,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -123,7 +123,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -146,7 +146,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -171,7 +171,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.UnsupportedGrantType(""),
+				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
 		{
@@ -199,7 +199,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -227,7 +227,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -260,7 +260,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -293,7 +293,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -326,7 +326,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -367,7 +367,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -409,7 +409,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -452,7 +452,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -494,7 +494,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -537,7 +537,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -582,7 +582,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -628,7 +628,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

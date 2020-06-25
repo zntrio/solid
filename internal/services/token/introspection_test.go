@@ -52,7 +52,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -63,7 +63,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -76,7 +76,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -90,7 +90,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -110,7 +110,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -129,7 +129,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

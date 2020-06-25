@@ -37,34 +37,34 @@ var validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev
 
 	// Validate issuer
 	if req.Issuer == "" {
-		return rfcerrors.ServerError("")
+		return rfcerrors.ServerError().Build()
 	}
 
 	// Validate client authentication
 	if req.Client == nil {
-		return rfcerrors.InvalidClient("")
+		return rfcerrors.InvalidClient().Build()
 	}
 
 	// Check assigned grant_type
 	switch req.GrantType {
 	case oidc.GrantTypeAuthorizationCode:
 		if req.GetAuthorizationCode() == nil {
-			return rfcerrors.InvalidGrant("")
+			return rfcerrors.InvalidGrant().Build()
 		}
 	case oidc.GrantTypeClientCredentials:
 		if req.GetClientCredentials() == nil {
-			return rfcerrors.InvalidGrant("")
+			return rfcerrors.InvalidGrant().Build()
 		}
 	case oidc.GrantTypeDeviceCode:
 		if req.GetDeviceCode() == nil {
-			return rfcerrors.InvalidGrant("")
+			return rfcerrors.InvalidGrant().Build()
 		}
 	case oidc.GrantTypeRefreshToken:
 		if req.GetRefreshToken() == nil {
-			return rfcerrors.InvalidGrant("")
+			return rfcerrors.InvalidGrant().Build()
 		}
 	default:
-		return rfcerrors.InvalidGrant("")
+		return rfcerrors.InvalidGrant().Build()
 	}
 
 	// Return result

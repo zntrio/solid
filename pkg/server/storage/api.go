@@ -32,6 +32,7 @@ var ErrNotFound = errors.New("no result found")
 // ClientReader defines client storage read-only operation contract.
 type ClientReader interface {
 	Get(ctx context.Context, id string) (*corev1.Client, error)
+	GetByName(ctx context.Context, name string) (*corev1.Client, error)
 }
 
 //go:generate mockgen -destination mock/client_writer.gen.go -package mock zntr.io/solid/pkg/storage ClientWriter

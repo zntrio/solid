@@ -81,3 +81,30 @@ const (
 	// AuthMethodPrivateKeyJWT : The client uses JWT assertion.
 	AuthMethodPrivateKeyJWT = "private_key_jwt"
 )
+
+// Application Type ------------------------------------------------------------
+
+const (
+	// ApplicationTypeServerSideWeb is a web application with authorization logic on the server side.
+	ApplicationTypeServerSideWeb = "web"
+	// ApplicationTypeClientSideWeb is a rich client web application with all authorization logic in browser.
+	ApplicationTypeClientSideWeb = "browser"
+	// ApplicationTypeNative is a desktop or a mobile application able to request authorization token non-interactively.
+	ApplicationTypeNative = "native"
+	// ApplicationTypeService is a script that needs to access resources on behalf of itself.
+	ApplicationTypeService = "service"
+	// ApplicationTypeDevice is is designed for devices that either do not have access to a browser or have limited input capabilities.
+	ApplicationTypeDevice = "device"
+)
+
+// Subject Type ----------------------------------------------------------------
+// https://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes
+
+const (
+	// SubjectTypePublic defines subject as public data. This provides the same sub (subject) value to all Clients.
+	// It is the default if the provider has no subject_types_supported element in its discovery document.
+	SubjectTypePublic = "public"
+	// SubjectTypePairwise defines subject masquerade strategy. This provides a different sub value to each Client,
+	// so as not to enable Clients to correlate the End-User's activities without permission.
+	SubjectTypePairwise = "pairwise"
+)

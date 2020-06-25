@@ -59,7 +59,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -72,7 +72,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -90,7 +90,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -108,7 +108,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -129,7 +129,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -150,7 +150,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -172,7 +172,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -194,7 +194,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -226,7 +226,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.ServerError("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+				Error: rfcerrors.ServerError().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 			},
 		},
 		{
@@ -367,7 +367,7 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.AuthorizationCodeResponse{
-				Error: rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+				Error: rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -481,7 +481,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -492,7 +492,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -505,7 +505,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -519,7 +519,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest("<missing>"),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -551,7 +551,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.UnsupportedGrantType("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+				Error: rfcerrors.UnsupportedGrantType().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 			},
 		},
 		{
@@ -586,7 +586,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -633,7 +633,7 @@ func Test_service_Register(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.RegistrationResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{

@@ -43,13 +43,6 @@ enum ClientType {
   CLIENT_TYPE_PUBLIC = 3;
 }
 
-enum SubjectType {
-  SUBJECT_TYPE_INVALID = 0;
-  SUBJECT_TYPE_UNKNOWN = 1;
-  SUBJECT_TYPE_PUBLIC = 2;
-  SUBJECT_TYPE_PAIRWISE = 3;
-}
-
 // Client defines internal OIDC client properties.
 message Client {
   string client_id = 1;
@@ -67,31 +60,35 @@ message Client {
   string jwks_uri = 13;
   bytes jwks = 14;
   bytes client_secret = 15;
-  SubjectType subject_type = 16;
+  string subject_type = 16;
   string sector_identifier = 17;
+  string token_endpoint_auth_method = 18;
 }
 
 message ClientMeta {
-  repeated string redirect_uris = 1;
-  google.protobuf.StringValue token_endpoint_auth_method = 2;
-  repeated string grant_types = 3;
-  repeated string response_types = 4;
-  google.protobuf.StringValue client_name = 5;
-  map<string, string> client_name_i18n = 6;
-  google.protobuf.StringValue client_uri = 7;
-  google.protobuf.StringValue logo_uri = 8;
-  map<string, string> logo_uri_i18n = 9;
-  google.protobuf.StringValue scope = 10;
-  repeated string contacts = 11;
-  google.protobuf.StringValue tos_uri = 12;
-  map<string, string> tos_uri_i18n = 13;
-  google.protobuf.StringValue policy_uri = 14;
-  map<string, string> policy_uri_i18n = 15;
-  google.protobuf.StringValue jwk_uri = 16;
-  bytes jwks = 17;
-  google.protobuf.StringValue software_id = 18;
-  google.protobuf.StringValue software_version = 19;
-  google.protobuf.StringValue software_statement = 20;
+  google.protobuf.StringValue application_type = 1;
+  repeated string redirect_uris = 2;
+  google.protobuf.StringValue token_endpoint_auth_method = 3;
+  repeated string grant_types = 4;
+  repeated string response_types = 5;
+  google.protobuf.StringValue client_name = 6;
+  map<string, string> client_name_i18n = 7;
+  google.protobuf.StringValue client_uri = 8;
+  google.protobuf.StringValue logo_uri = 9;
+  map<string, string> logo_uri_i18n = 10;
+  google.protobuf.StringValue scope = 11;
+  repeated string contacts = 12;
+  google.protobuf.StringValue tos_uri = 13;
+  map<string, string> tos_uri_i18n = 14;
+  google.protobuf.StringValue policy_uri = 15;
+  map<string, string> policy_uri_i18n = 16;
+  google.protobuf.StringValue jwk_uri = 17;
+  google.protobuf.BytesValue jwks = 18;
+  google.protobuf.StringValue software_id = 19;
+  google.protobuf.StringValue software_version = 20;
+  google.protobuf.StringValue software_statement = 21;
+  google.protobuf.StringValue subject_type = 22;
+  google.protobuf.StringValue sector_identifier = 23;
 }
 
 message SoftwareStatement {

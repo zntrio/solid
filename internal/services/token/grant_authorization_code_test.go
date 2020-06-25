@@ -57,7 +57,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -69,7 +69,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -84,7 +84,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -103,7 +103,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -122,7 +122,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -150,7 +150,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.UnsupportedGrantType(""),
+				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
 		{
@@ -178,7 +178,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -207,7 +207,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -235,7 +235,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -264,7 +264,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -293,7 +293,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -321,7 +321,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -353,7 +353,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -385,7 +385,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -419,7 +419,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -463,7 +463,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -507,7 +507,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant("af0ifjsldkj"),
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
 		{
@@ -551,7 +551,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant("af0ifjsldkj"),
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
 		{
@@ -595,7 +595,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant("af0ifjsldkj"),
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
 		{
@@ -639,7 +639,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant("af0ifjsldkj"),
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -685,7 +685,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -730,7 +730,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -776,7 +776,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -823,7 +823,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -870,7 +870,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -918,7 +918,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

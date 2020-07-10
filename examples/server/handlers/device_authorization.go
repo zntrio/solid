@@ -23,9 +23,9 @@ import (
 	"net/http"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/authorizationserver"
-	"zntr.io/solid/pkg/clientauthentication"
-	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
+	"zntr.io/solid/pkg/server/clientauthentication"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
 )
 
 // DeviceAuthorization handles device authorization HTTP requests.

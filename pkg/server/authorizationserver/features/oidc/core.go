@@ -21,8 +21,8 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/internal/reactor/oidc/core"
 	"zntr.io/solid/internal/services"
-	"zntr.io/solid/pkg/authorizationserver/features"
-	"zntr.io/solid/pkg/reactor"
+	"zntr.io/solid/pkg/server/authorizationserver/features"
+	"zntr.io/solid/pkg/server/reactor"
 )
 
 // Core enable basic features.

@@ -26,8 +26,8 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/jwk"
-	"zntr.io/solid/pkg/rfcerrors"
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/storage"
 
 	"github.com/square/go-jose/v3"
 )

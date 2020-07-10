@@ -50,8 +50,6 @@ type jsonRequestURIResponse struct {
 	RequestURI string `json:"request_uri"`
 }
 
-// -----------------------------------------------------------------------------
-
 type jsonJWKSResponse struct {
 	*jose.JSONWebKeySet `json:",inline"`
 	Expires             uint64 `json:"exp"`

@@ -15,38 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package jarm
+package jwk
 
 import (
 	"context"
 
 	"github.com/square/go-jose/v3"
-
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
-
-// ResponseDecoder describes Authorization Response Decoder contract.
-type ResponseDecoder interface {
-	Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error)
-}
-
-// ResponseEncoder describes Authorization Response Encoder contract.
-type ResponseEncoder interface {
-	Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error)
-}
-
-// Response repsents decoded JARM
-type Response struct {
-	Issuer    string
-	Audience  string
-	ExpiresAt uint64
-	Code      string
-	State     string
-	Error     *corev1.Error
-}
 
 // KeySetProviderFunc defines key set provider contract.
 type KeySetProviderFunc func(ctx context.Context) (*jose.JSONWebKeySet, error)
 
 // KeyProviderFunc defines key provider contract.
-type KeyProviderFunc func() (*jose.JSONWebKey, error)
+type KeyProviderFunc func(ctx context.Context) (*jose.JSONWebKey, error)

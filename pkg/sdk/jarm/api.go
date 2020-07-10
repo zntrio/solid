@@ -15,33 +15,30 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package core
+package jarm
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/internal/services"
-	"zntr.io/solid/pkg/sdk/types"
-	"zntr.io/solid/pkg/server/reactor"
 )
 
-// IntrospectionHandler handles introspection requests.
-var IntrospectionHandler = func(token services.Token) reactor.HandlerFunc {
-	return func(ctx context.Context, r interface{}) (interface{}, error) {
-		// Check nil request
-		if types.IsNil(r) {
-			return nil, fmt.Errorf("unable to process nil request")
-		}
+// ResponseDecoder describes Authorization Response Decoder contract.
+type ResponseDecoder interface {
+	Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error)
+}
 
-		// Check request type
-		req, ok := r.(*corev1.TokenIntrospectionRequest)
-		if !ok {
-			return nil, fmt.Errorf("invalid request type %T", req)
-		}
+// ResponseEncoder describes Authorization Response Encoder contract.
+type ResponseEncoder interface {
+	Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error)
+}
 
-		// Delegate to service
-		return token.Introspect(ctx, req)
-	}
+// Response repsents decoded JARM
+type Response struct {
+	Issuer    string
+	Audience  string
+	ExpiresAt uint64
+	Code      string
+	State     string
+	Error     *corev1.Error
 }

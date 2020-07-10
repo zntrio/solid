@@ -25,15 +25,16 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/square/go-jose/v3"
+	"zntr.io/solid/examples/server/middleware"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/examples/server/middleware"
-	"zntr.io/solid/pkg/authorizationserver"
-	"zntr.io/solid/pkg/jarm"
-	"zntr.io/solid/pkg/jwsreq"
-	"zntr.io/solid/pkg/rfcerrors"
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/sdk/jarm"
+	"zntr.io/solid/pkg/sdk/jwsreq"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
+	"zntr.io/solid/pkg/server/storage"
+
+	"github.com/square/go-jose/v3"
 )
 
 // Authorization handles authorization HTTP requests.

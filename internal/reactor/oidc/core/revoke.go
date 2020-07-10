@@ -23,8 +23,8 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/internal/services"
-	"zntr.io/solid/pkg/reactor"
-	"zntr.io/solid/pkg/types"
+	"zntr.io/solid/pkg/sdk/types"
+	"zntr.io/solid/pkg/server/reactor"
 )
 
 // RevocationHandler handles revocation requests.

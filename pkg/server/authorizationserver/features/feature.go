@@ -19,7 +19,7 @@ package features
 
 import (
 	"zntr.io/solid/internal/services"
-	"zntr.io/solid/pkg/reactor"
+	"zntr.io/solid/pkg/server/reactor"
 )
 
 // Feature represents authorization server feature enabler.

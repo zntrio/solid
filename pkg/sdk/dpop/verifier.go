@@ -25,12 +25,11 @@ import (
 	"net/http"
 	"time"
 
-	"golang.org/x/crypto/blake2b"
-
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/server/storage"
 
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
+	"golang.org/x/crypto/blake2b"
 )
 
 const (

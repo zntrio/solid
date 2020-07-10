@@ -33,6 +33,7 @@ import (
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
+	"zntr.io/solid/pkg/server/authorizationserver"
 
 	"github.com/square/go-jose/v3"
 )
@@ -86,20 +87,20 @@ func main() {
 	ctx := context.Background()
 
 	// Prepare the authorization server
-	as, err := as.New(ctx,
+	as, err := authorizationserver.New(ctx,
 		"http://127.0.0.1:8080", // Issuer
 		// Client storage
-		as.ClientReader(inmemory.Clients()),
+		authorizationserver.ClientReader(inmemory.Clients()),
 		// Authorization requests
-		as.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
+		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
-		as.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
+		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
 		// Token storage
-		as.TokenManager(inmemory.Tokens()),
+		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Access token generator
-		as.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
+		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
 		// Device authorization session storage
-		as.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
+		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 	)
 	if err != nil {
 		panic(err)

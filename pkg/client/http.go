@@ -29,8 +29,8 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/dpop"
+	jwsreq "zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/pkce"
-	jwsreq "zntr.io/solid/pkg/sdk/request"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/wrappers"

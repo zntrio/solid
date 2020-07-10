@@ -22,8 +22,8 @@ import (
 	"fmt"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/generator"
-	"zntr.io/solid/pkg/jwk"
+	"zntr.io/solid/pkg/sdk/generator"
+	"zntr.io/solid/pkg/sdk/jwk"
 
 	"github.com/square/go-jose/v3"
 	jwt "github.com/square/go-jose/v3/jwt"

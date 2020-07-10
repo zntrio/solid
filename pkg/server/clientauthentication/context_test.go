@@ -21,11 +21,11 @@ import (
 	"context"
 	"testing"
 
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.ClientAuthenticationRequest{}), cmpopts.IgnoreUnexported(corev1.ClientAuthenticationResponse{}), cmpopts.IgnoreUnexported(corev1.Client{}), cmpopts.IgnoreUnexported(corev1.Error{})}

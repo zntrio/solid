@@ -23,7 +23,7 @@ import (
 
 	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/authorizationserver"
+	"zntr.io/solid/pkg/server/authorizationserver"
 )
 
 // Metadata handle OIDC Discovery HTTP requests.

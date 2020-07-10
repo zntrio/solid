@@ -23,26 +23,30 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
+<<<<<<< HEAD:pkg/jwsreq/api.go
 const (
 	//nolint:gosec // detected as hardcoded credentials
 	tokenHdrType = "oauth.authz.req+jwt"
 )
 
 //go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationDecoder
+=======
+//go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/sdk/request AuthorizationDecoder
+>>>>>>> 9d83ee9... chore(go): package relocation.:pkg/sdk/request/api.go
 
 // AuthorizationDecoder describes authorization decoder contract.
 type AuthorizationDecoder interface {
 	Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error)
 }
 
-//go:generate mockgen -destination mock/authorization_encoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationEncoder
+//go:generate mockgen -destination mock/authorization_encoder.gen.go -package mock zntr.io/solid/pkg/sdk/request AuthorizationEncoder
 
 // AuthorizationEncoder describes authorization encoder contract.
 type AuthorizationEncoder interface {
 	Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error)
 }
 
-//go:generate mockgen -destination mock/authorization.gen.go -package mock zntr.io/solid/pkg/request Authorization
+//go:generate mockgen -destination mock/authorization.gen.go -package mock zntr.io/solid/pkg/sdk/request Authorization
 
 // Authorization describes authorization request codec contract.
 type Authorization interface {

@@ -26,13 +26,13 @@ import (
 	"zntr.io/solid/examples/server/handlers"
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/examples/storage/inmemory"
-	as "zntr.io/solid/pkg/authorizationserver"
-	"zntr.io/solid/pkg/dpop"
-	"zntr.io/solid/pkg/generator"
-	"zntr.io/solid/pkg/generator/jwt"
-	"zntr.io/solid/pkg/jarm"
-	"zntr.io/solid/pkg/jwk"
-	"zntr.io/solid/pkg/jwsreq"
+
+	"zntr.io/solid/pkg/sdk/dpop"
+	"zntr.io/solid/pkg/sdk/generator"
+	"zntr.io/solid/pkg/sdk/generator/jwt"
+	"zntr.io/solid/pkg/sdk/jarm"
+	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/jwsreq"
 
 	"github.com/square/go-jose/v3"
 )

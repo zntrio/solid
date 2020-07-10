@@ -18,8 +18,8 @@
 package authorizationserver
 
 import (
-	"zntr.io/solid/pkg/generator"
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/sdk/generator"
+	"zntr.io/solid/pkg/server/storage"
 )
 
 // Builder options holder

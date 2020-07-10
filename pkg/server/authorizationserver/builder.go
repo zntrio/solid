@@ -26,10 +26,10 @@ import (
 	"zntr.io/solid/internal/services/authorization"
 	"zntr.io/solid/internal/services/device"
 	"zntr.io/solid/internal/services/token"
-	"zntr.io/solid/pkg/authorizationserver/features"
-	"zntr.io/solid/pkg/authorizationserver/features/oidc"
-	"zntr.io/solid/pkg/generator"
-	"zntr.io/solid/pkg/reactor"
+	"zntr.io/solid/pkg/sdk/generator"
+	"zntr.io/solid/pkg/server/authorizationserver/features"
+	"zntr.io/solid/pkg/server/authorizationserver/features/oidc"
+	"zntr.io/solid/pkg/server/reactor"
 )
 
 // AuthorizationServer represents global authorization features enabled at-runtime.

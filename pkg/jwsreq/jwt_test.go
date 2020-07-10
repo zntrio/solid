@@ -29,7 +29,7 @@ import (
 	"github.com/square/go-jose/v3"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/jwk"
+	"zntr.io/solid/pkg/sdk/jwk"
 )
 
 var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{})}

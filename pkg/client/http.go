@@ -28,33 +28,22 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/dpop"
-	"zntr.io/solid/pkg/jwsreq"
-	"zntr.io/solid/pkg/pkce"
+	"zntr.io/solid/pkg/sdk/dpop"
+	"zntr.io/solid/pkg/sdk/pkce"
+	jwsreq "zntr.io/solid/pkg/sdk/request"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/square/go-jose/v3"
-	jwt "github.com/square/go-jose/v3/jwt"
+	"github.com/square/go-jose/v3/jwt"
 	"golang.org/x/oauth2"
 )
 
 const bodyLimiterSize = 5 << 20 // 5 Mb
 
-// Client describes OIDC client contract.
-type Client interface {
-	Assertion() (string, error)
-	CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error)
-	AuthenticationURL(ctx context.Context, requestURI string) (string, error)
-	ExchangeCode(ctx context.Context, assertion, authorizationCode, pkceCodeVerifier string) (*oauth2.Token, error)
-	PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint64, error)
-	ClientID() string
-	Audience() string
-}
-
-// New oidc client.
-func New(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) Client {
-	return &client{
+// HTTP creates an HTTP OIDC Client.
+func HTTP(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) Client {
+	return &httpClient{
 		opts:                               opts,
 		prover:                             prover,
 		authorizationRequestEncoder:        authorizationRequestEncoder,
@@ -66,17 +55,9 @@ func New(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEnc
 	}
 }
 
-// Options defines client options
-type Options struct {
-	Issuer      string
-	Audience    string
-	ClientID    string
-	RedirectURI string
-	Scopes      []string
-	JWK         []byte
-}
+// -----------------------------------------------------------------------------
 
-type client struct {
+type httpClient struct {
 	opts                        *Options
 	httpClient                  *http.Client
 	prover                      dpop.Prover
@@ -92,12 +73,12 @@ type client struct {
 
 // -----------------------------------------------------------------------------
 
-func (c *client) ClientID() string { return c.opts.ClientID }
-func (c *client) Audience() string { return c.opts.Audience }
+func (c *httpClient) ClientID() string { return c.opts.ClientID }
+func (c *httpClient) Audience() string { return c.opts.Audience }
 
 // -----------------------------------------------------------------------------
 
-func (c *client) Assertion() (string, error) {
+func (c *httpClient) Assertion() (string, error) {
 	var privateKey jose.JSONWebKey
 
 	// Decode JWK
@@ -129,7 +110,7 @@ func (c *client) Assertion() (string, error) {
 	return raw, nil
 }
 
-func (c *client) CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error) {
+func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error) {
 	// Generate PKCE verifier
 	pkceVerifier, pkceChallenge, err := pkce.CodeVerifier()
 	if err != nil {
@@ -219,7 +200,7 @@ func (c *client) CreateRequestURI(ctx context.Context, assertion, state string) 
 	}, nil
 }
 
-func (c *client) AuthenticationURL(ctx context.Context, requestURI string) (string, error) {
+func (c *httpClient) AuthenticationURL(ctx context.Context, requestURI string) (string, error) {
 	// Parse authentication url endpoint
 	authURL, err := url.Parse(c.authorizationEndpoint)
 	if err != nil {
@@ -247,7 +228,7 @@ func (c *client) AuthenticationURL(ctx context.Context, requestURI string) (stri
 }
 
 // ExchangeCode uses authorization_code to retrieve the final tokens.
-func (c *client) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVerifier string) (*oauth2.Token, error) {
+func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVerifier string) (*oauth2.Token, error) {
 	// Parse authentication url endpoint
 	tokenURL, err := url.Parse(c.tokenEndpoint)
 	if err != nil {
@@ -311,7 +292,7 @@ func (c *client) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVeri
 	return &token, nil
 }
 
-func (c *client) PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint64, error) {
+func (c *httpClient) PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint64, error) {
 	// Check if keys are not cached and not expired
 	if c.jwks != nil && c.jwksExpiration > uint64(time.Now().Unix()) {
 		// Return cached public keys

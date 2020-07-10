@@ -23,8 +23,8 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/jwk"
-	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
 
 	"github.com/square/go-jose/v3/jwt"
 )

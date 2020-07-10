@@ -26,7 +26,7 @@ import (
 	"github.com/square/go-jose/v3"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/jwk"
+	"zntr.io/solid/pkg/sdk/jwk"
 )
 
 var jwtPrivateKey = []byte(`{"kid":"foo", "kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)

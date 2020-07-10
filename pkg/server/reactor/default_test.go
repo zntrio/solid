@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"zntr.io/solid/pkg/reactor"
+	"zntr.io/solid/pkg/server/reactor"
 )
 
 func TestDefaultReactor_Do(t *testing.T) {

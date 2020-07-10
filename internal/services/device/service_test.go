@@ -29,10 +29,10 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/generator"
-	"zntr.io/solid/pkg/rfcerrors"
-	"zntr.io/solid/pkg/storage"
-	storagemock "zntr.io/solid/pkg/storage/mock"
+	"zntr.io/solid/pkg/sdk/generator"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/storage"
+	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
 
 var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}

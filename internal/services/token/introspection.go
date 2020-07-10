@@ -22,8 +22,8 @@ import (
 	"fmt"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/rfcerrors"
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/storage"
 )
 
 func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospectionRequest) (*corev1.TokenIntrospectionResponse, error) {

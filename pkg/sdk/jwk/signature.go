@@ -32,13 +32,13 @@ var ErrInvalidTokenSignature = errors.New("invalid token signature")
 func ValidateToken(jwks *jose.JSONWebKeySet, token *jwt.JSONWebToken, claims interface{}) error {
 	// Check parameters
 	if jwks == nil {
-		return errors.New("cant process nil jwks")
+		return errors.New("can't process nil jwks")
 	}
 	if len(jwks.Keys) == 0 {
-		return errors.New("cant process empty jwks")
+		return errors.New("can't process empty jwks")
 	}
 	if token == nil {
-		return errors.New("cant process nil token")
+		return errors.New("can't process nil token")
 	}
 
 	valid := false

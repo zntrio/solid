@@ -58,7 +58,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			json.NewEncoder(w).Encode(rfcerrors.InvalidClient(""))
+			json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -66,7 +66,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		jkt, err := dpopVerifier.Verify(ctx, r, dpopProof)
 		if err != nil {
 			log.Println("unable to validate dpop proof:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof())
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
 			return
 		}
 
@@ -85,7 +85,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
 		if err != nil {
 			log.Println("unable to decode request:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -99,7 +99,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		})
 		parRes, ok := res.(*corev1.RegistrationResponse)
 		if !ok {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 		if err != nil {

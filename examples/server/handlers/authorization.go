@@ -42,7 +42,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -57,14 +57,14 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		// Retrieve subject form context
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
 		// Retrieve client
 		client, err := clients.Get(ctx, clientID)
 		if err != nil {
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -83,7 +83,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
 		if err != nil {
 			log.Println("unable to decode request:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -94,7 +94,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		})
 		authRes, ok := res.(*corev1.AuthorizationCodeResponse)
 		if !ok {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 		if err != nil {
@@ -107,7 +107,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		u, err := url.ParseRequestURI(authRes.RedirectUri)
 		if err != nil {
 			log.Println("unable to process redirect uri:", err)
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 
@@ -115,7 +115,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		jarmToken, err := jarmEncoder.Encode(ctx, as.Issuer().String(), authRes)
 		if err != nil {
 			log.Println("unable to produce JARM token:", err)
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 

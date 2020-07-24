@@ -31,7 +31,7 @@ func JWKS(as authorizationserver.AuthorizationServer, keySetProvider jwk.KeySetP
 		// Retrieve the active keyset
 		ks, err := keySetProvider(r.Context())
 		if err != nil {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 

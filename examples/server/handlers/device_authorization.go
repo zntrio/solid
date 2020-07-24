@@ -41,7 +41,7 @@ func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handle
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
 		if r.Method != http.MethodPost {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -52,7 +52,7 @@ func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handle
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -62,7 +62,7 @@ func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handle
 		})
 		authRes, ok := res.(*corev1.DeviceAuthorizationResponse)
 		if !ok {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 		if err != nil {

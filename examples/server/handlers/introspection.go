@@ -46,7 +46,7 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -65,7 +65,7 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 		res, err := as.Do(ctx, msg)
 		introRes, ok := res.(*corev1.TokenIntrospectionResponse)
 		if !ok {
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 		if err != nil {

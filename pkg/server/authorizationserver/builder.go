@@ -27,6 +27,7 @@ import (
 	"zntr.io/solid/internal/services/client"
 	"zntr.io/solid/internal/services/device"
 	"zntr.io/solid/internal/services/token"
+	"zntr.io/solid/pkg/profile"
 	"zntr.io/solid/pkg/sdk/generator"
 	"zntr.io/solid/pkg/server/authorizationserver/features"
 	"zntr.io/solid/pkg/server/authorizationserver/features/oidc"
@@ -71,7 +72,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
-	clients := client.New(defaultOptions.clientWriter, client.DefaultValues())
+	clients := client.New(defaultOptions.clientWriter, profile.Strict())
 
 	// Wire message
 	as := &authorizationServer{

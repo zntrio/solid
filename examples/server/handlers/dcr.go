@@ -25,6 +25,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/imdario/mergo"
 	"github.com/square/go-jose/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -41,6 +42,7 @@ func DCR(as authorizationserver.AuthorizationServer) http.Handler {
 	const bodyLimiterSize = 5 << 20 // 5 Mb
 
 	type request struct {
+		ApplicationType         string              `json:"application_type,omitempty"`
 		RedirectURIs            []string            `json:"redirect_uris,omitempty"`
 		TokenEndpointAuthMethod string              `json:"token_endpoint_auth_method,omitempty"`
 		GrantTypes              []string            `json:"grant_types,omitempty"`
@@ -69,6 +71,9 @@ func DCR(as authorizationserver.AuthorizationServer) http.Handler {
 		}
 
 		// Process optional fields
+		if r.ApplicationType != "" {
+			meta.ApplicationType = &wrapperspb.StringValue{Value: r.ApplicationType}
+		}
 		if r.ClientName != "" {
 			meta.ClientName = &wrapperspb.StringValue{Value: r.ClientName}
 		}
@@ -108,7 +113,7 @@ func DCR(as authorizationserver.AuthorizationServer) http.Handler {
 			}
 
 			// Set JWKS
-			meta.Jwks = buf.Bytes()
+			meta.Jwks = &wrappers.BytesValue{Value: buf.Bytes()}
 		}
 
 		// Merge with default values
@@ -116,7 +121,7 @@ func DCR(as authorizationserver.AuthorizationServer) http.Handler {
 			GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 			ResponseTypes: []string{oidc.ResponseTypeCode},
 			Scope:         &wrapperspb.StringValue{Value: "openid"},
-		}, mergo.WithOverride); err != nil {
+		}); err != nil {
 			return nil, fmt.Errorf("unable to merge with default values: %w", err)
 		}
 
@@ -127,23 +132,23 @@ func DCR(as authorizationserver.AuthorizationServer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
 		if r.Method != http.MethodPost {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
 		// Decode body
 		var reqw request
 		if err := json.NewDecoder(io.LimitReader(r.Body, bodyLimiterSize)).Decode(&reqw); err != nil {
-			log.Println("unable to decode json request: %w", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest(""))
+			log.Printf("unable to decode json request: %w", err)
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
 		// Create request
 		meta, err := toClientMeta(&reqw)
 		if err != nil {
-			log.Println("unable to prepare meta: %w", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidClientMetadata())
+			log.Printf("unable to prepare meta: %w", err)
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidClientMetadata().Build())
 			return
 		}
 
@@ -153,11 +158,11 @@ func DCR(as authorizationserver.AuthorizationServer) http.Handler {
 		})
 		dcrRes, ok := res.(*corev1.ClientRegistrationResponse)
 		if !ok {
-			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withJSON(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 		if err != nil {
-			log.Println("unable to process registration request: %w", err)
+			log.Printf("unable to process registration request: %w", err)
 			withError(w, r, http.StatusBadRequest, dcrRes.Error)
 			return
 		}

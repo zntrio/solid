@@ -40,6 +40,7 @@ var (
 			// Desktop or mobile application
 			oidc.ApplicationTypeNative: &defaultClientProfile{
 				grantTypesSupported: []string{
+					oidc.GrantTypeAuthorizationCode,
 					oidc.GrantTypeRefreshToken,
 				},
 				responseTypesSupported: []string{
@@ -53,6 +54,7 @@ var (
 			oidc.ApplicationTypeDevice: &defaultClientProfile{
 				grantTypesSupported: []string{
 					oidc.GrantTypeDeviceCode,
+					oidc.GrantTypeRefreshToken,
 				},
 				responseTypesSupported: []string{
 					oidc.ResponseTypeCode,

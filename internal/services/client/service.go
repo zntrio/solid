@@ -80,11 +80,12 @@ func (s *service) Register(ctx context.Context, req *corev1.ClientRegistrationRe
 
 	// Create client
 	c := &corev1.Client{
-		ApplicationType: req.Metadata.ApplicationType.Value,
-		Contacts:        req.Metadata.Contacts,
-		GrantTypes:      req.Metadata.GrantTypes,
-		ResponseTypes:   req.Metadata.ResponseTypes,
-		RedirectUris:    req.Metadata.RedirectUris,
+		ApplicationType:         req.Metadata.ApplicationType.Value,
+		TokenEndpointAuthMethod: req.Metadata.TokenEndpointAuthMethod.Value,
+		Contacts:                req.Metadata.Contacts,
+		GrantTypes:              req.Metadata.GrantTypes,
+		ResponseTypes:           req.Metadata.ResponseTypes,
+		RedirectUris:            req.Metadata.RedirectUris,
 	}
 
 	// Assign attributes
@@ -193,7 +194,7 @@ func (s *service) validateRegistration(ctx context.Context, req *corev1.ClientRe
 	// Response Types
 	if len(req.Metadata.ResponseTypes) > 0 {
 		if !clientSettings.ResponseTypesSupported().HasAll(req.Metadata.ResponseTypes...) {
-			return rfcerrors.InvalidClientMetadata().Description("response_types contains an invalid or unsupported value.").Build(), fmt.Errorf("a response_types element is invalid: '%s'", req.Metadata.ResponseTypes)
+			return rfcerrors.InvalidClientMetadata().Description("response_types contains an invalid or unsupported value.").Build(), fmt.Errorf("a response_types element is invalid: '%s', supported '%s'", req.Metadata.ResponseTypes, clientSettings.ResponseTypesSupported())
 		}
 	} else {
 		// Assign default response types
@@ -205,15 +206,15 @@ func (s *service) validateRegistration(ctx context.Context, req *corev1.ClientRe
 		grantTypes := types.StringArray(req.Metadata.GrantTypes)
 
 		// Supported grant_types
-		if !clientSettings.GrantTypesSupported().HasAll(req.Metadata.GrantTypes...) {
-			return rfcerrors.InvalidClientMetadata().Description("grant_types contains an invalid or unsupported value.").Build(), fmt.Errorf("a grant_types element is invalid: '%s'", req.Metadata.GrantTypes)
+		if !clientSettings.GrantTypesSupported().HasOneOf(req.Metadata.GrantTypes...) {
+			return rfcerrors.InvalidClientMetadata().Description("grant_types contains an invalid or unsupported value.").Build(), fmt.Errorf("a grant_types element is invalid: '%s', supported '%s'", req.Metadata.GrantTypes, clientSettings.GrantTypesSupported())
 		}
 
 		// Code must be specified with `authorization_code` grant type
 		if grantTypes.Contains(oidc.GrantTypeAuthorizationCode) {
 			// Response_types should contain `code`
 			if !types.StringArray(req.Metadata.ResponseTypes).Contains(oidc.ResponseTypeCode) {
-				return rfcerrors.InvalidClientMetadata().Description("response_types contains an invalid or unsupported value for authorization code flow.").Build(), fmt.Errorf("response_types should contain `code`")
+				return rfcerrors.InvalidClientMetadata().Description("response_types contains an invalid or unsupported value for authorization code flow.").Build(), fmt.Errorf("response_types should contain `code`, supported '%s'", clientSettings.ResponseTypesSupported())
 			}
 
 			// Validate redirect_uris

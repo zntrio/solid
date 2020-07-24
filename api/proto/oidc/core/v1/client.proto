@@ -63,6 +63,12 @@ message Client {
   string subject_type = 16;
   string sector_identifier = 17;
   string token_endpoint_auth_method = 18;
+  string tls_client_auth_subject_dn = 19;
+  string tls_client_auth_san_dns = 20;
+  string tls_client_auth_san_uri = 21;
+  string tls_client_auth_san_ip = 22;
+  string tls_client_auth_san_email = 23;
+  bool tls_client_certificate_bound_access_tokens = 24;
 }
 
 message ClientMeta {
@@ -89,6 +95,12 @@ message ClientMeta {
   google.protobuf.StringValue software_statement = 21;
   google.protobuf.StringValue subject_type = 22;
   google.protobuf.StringValue sector_identifier = 23;
+  google.protobuf.StringValue tls_client_auth_subject_dn = 24;
+  google.protobuf.StringValue tls_client_auth_san_dns = 25;
+  google.protobuf.StringValue tls_client_auth_san_uri = 26;
+  google.protobuf.StringValue tls_client_auth_san_ip = 27;
+  google.protobuf.StringValue tls_client_auth_san_email = 28;
+  google.protobuf.BoolValue tls_client_certificate_bound_access_tokens = 29;
 }
 
 message SoftwareStatement {

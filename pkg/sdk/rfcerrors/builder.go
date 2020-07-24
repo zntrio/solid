@@ -19,6 +19,7 @@ package rfcerrors
 
 import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 

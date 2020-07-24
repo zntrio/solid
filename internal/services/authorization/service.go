@@ -32,7 +32,7 @@ import (
 	"zntr.io/solid/pkg/server/storage"
 )
 
-var requestURIMatcher = regexp.MustCompile(`urn\:solid\:[A-Za-z0-9]{32}`)
+var requestURIMatcher = regexp.MustCompile(`urn:solid:[A-Za-z0-9]{32}`)
 
 const (
 	desiredMinNonceValueLength         = 8

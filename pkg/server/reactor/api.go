@@ -21,6 +21,8 @@ import (
 	"context"
 )
 
+//go:generate mockgen -destination mock/handler.gen.go -package mock zntr.io/solid/pkg/server/reactor Handler
+
 // Handler describes a command handler
 type Handler interface {
 	Handle(ctx context.Context, req interface{}) (interface{}, error)
@@ -40,6 +42,8 @@ func (f HandlerFunc) Handle(ctx context.Context, req interface{}) (interface{}, 
 
 // Callback function for asynchronous event handling.
 type Callback func(context.Context, interface{}, error)
+
+//go:generate mockgen -destination mock/reactor.gen.go -package mock zntr.io/solid/pkg/server/reactor Reactor
 
 // Reactor defines reactor contract.
 type Reactor interface {

@@ -93,7 +93,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -104,7 +104,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		jkt, err := dpopVerifier.Verify(ctx, r, dpopProof)
 		if err != nil {
 			log.Println("unable to validate dpop proof:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof())
+			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
 			return
 		}
 
@@ -117,7 +117,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		res, err := as.Do(r.Context(), msg)
 		tokenRes, ok := res.(*corev1.TokenResponse)
 		if !ok {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError(""))
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 		if err != nil {

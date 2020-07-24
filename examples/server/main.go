@@ -90,7 +90,11 @@ func main() {
 	as, err := authorizationserver.New(ctx,
 		"http://127.0.0.1:8080", // Issuer
 		// Client storage
+<<<<<<< HEAD
 		authorizationserver.ClientReader(inmemory.Clients()),
+=======
+		as.ClientManager(inmemory.Clients()),
+>>>>>>> 8bda6ef... feat(oidc): DCR open registration.
 		// Authorization requests
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
@@ -131,6 +135,7 @@ func main() {
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))
 	http.Handle("/device", middleware.Adapt(handlers.Device(as), secHeaders, basicAuth))
+	http.Handle("/register", handlers.DCR(as))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

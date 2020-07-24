@@ -31,15 +31,15 @@ func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest
 
 	// Check parameters
 	if req == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("could not process nil request")
 	}
 	if req.Client == nil {
-		res.Error = rfcerrors.InvalidClient("")
+		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("no client authentication found")
 	}
 	if req.Token == "" {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("token parameter is mandatory")
 	}
 
@@ -47,9 +47,9 @@ func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest
 	_, err := s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
 		if err != storage.ErrNotFound {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 		} else {
-			res.Error = rfcerrors.InvalidClient("")
+			res.Error = rfcerrors.InvalidClient().Build()
 		}
 		return res, fmt.Errorf("unable to retrieve client details: %w", err)
 	}

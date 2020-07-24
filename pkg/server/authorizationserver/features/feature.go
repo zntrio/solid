@@ -23,4 +23,4 @@ import (
 )
 
 // Feature represents authorization server feature enabler.
-type Feature func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device)
+type Feature func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client)

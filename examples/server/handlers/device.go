@@ -33,7 +33,7 @@ func Device(as authorizationserver.AuthorizationServer) http.Handler {
 		// Retrieve subject form context
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest(""))
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
 			return
 		}
 	})

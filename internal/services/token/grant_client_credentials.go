@@ -34,33 +34,33 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 
 	// Check parameters
 	if client == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil client")
 	}
 	if req == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil request")
 	}
 	if grant == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
 	// Check issuer syntax
 	if req.Issuer == "" {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("issuer must not be blank")
 	}
 
 	_, err := url.ParseRequestURI(req.Issuer)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("issuer must be a valid url: %w", err)
 	}
 
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeClientCredentials) {
-		res.Error = rfcerrors.UnsupportedGrantType("")
+		res.Error = rfcerrors.UnsupportedGrantType().Build()
 		return res, fmt.Errorf("client doesn't support 'client_credentials' as grant type")
 	}
 
@@ -71,7 +71,7 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 		Audience: grant.Audience,
 	}, req.TokenConfirmation)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to generate access token: %w", err)
 	}
 

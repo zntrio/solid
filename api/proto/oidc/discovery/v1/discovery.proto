@@ -318,7 +318,7 @@ message ServerMetadata {
 
   repeated string pushed_authorization_request_endpoint_auth_methods_supported = 44;
 
-  // https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html#endpointAliases
+  // https://www.rfc-editor.org/rfc/rfc8705.html#section-5
   MTLSEndpoints mtls_endpoint_aliases = 45;
 
   // https://tools.ietf.org/html/rfc8628#section-4
@@ -328,10 +328,15 @@ message ServerMetadata {
   // DPoP proof JWTs.
   // https://www.ietf.org/id/draft-ietf-oauth-dpop-01.html#section-10.7
   repeated string dpop_signing_alg_values_supported = 47;
+
+  // OPTIONAL. Boolean value indicating server support for mutual-TLS client
+  // certificate-bound access tokens. If omitted, the default value is false.
+  // https://www.rfc-editor.org/rfc/rfc8705.html#section-3.3
+  bool tls_client_certificate_bound_access_tokens = 48;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication
-// https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html
+// https://www.rfc-editor.org/rfc/rfc8705.html
 message MTLSEndpoints {
   string token_endpoint = 1;
   string revocation_endpoint = 2;

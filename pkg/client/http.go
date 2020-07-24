@@ -27,10 +27,13 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/dpop"
 	jwsreq "zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/pkce"
+	"zntr.io/solid/pkg/sdk/types"
 
 	"github.com/dchest/uniuri"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -133,8 +136,8 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 	params.Add("client_assertion", assertion)
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
 
-	// Authorization request encoder
-	r, err := c.authorizationRequestEncoder.Encode(ctx, &corev1.AuthorizationRequest{
+	// Prepare request
+	ar := &corev1.AuthorizationRequest{
 		State:               state,
 		Audience:            c.opts.Audience,
 		ResponseType:        "code",
@@ -145,7 +148,15 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 		RedirectUri:         c.opts.RedirectURI,
 		CodeChallenge:       pkceChallenge,
 		CodeChallengeMethod: "S256",
-	})
+	}
+
+	// Check offline access requirements
+	if types.StringArray(c.opts.Scopes).Contains(oidc.ScopeOfflineAccess) {
+		ar.Prompt = &wrapperspb.StringValue{Value: "consent"}
+	}
+
+	// Authorization request encoder
+	r, err := c.authorizationRequestEncoder.Encode(ctx, ar)
 	if err != nil {
 		return nil, fmt.Errorf("unable to encode request: %w", err)
 	}

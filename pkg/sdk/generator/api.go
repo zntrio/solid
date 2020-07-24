@@ -50,3 +50,10 @@ type Identity interface {
 type DeviceUserCode interface {
 	Generate(ctx context.Context) (string, error)
 }
+
+//go:generate mockgen -destination mock/client_id.gen.go -package mock zntr.io/solid/pkg/generator ClientID
+
+// ClientID describes client identified generator contract.
+type ClientID interface {
+	Generate(ctx context.Context) (string, error)
+}

@@ -94,7 +94,6 @@ func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*co
 			Error: &corev1.Error{
 				Err:              claims.Error,
 				ErrorDescription: claims.ErrorDescription,
-				ErrorUri:         claims.ErrorURI,
 			},
 		}, nil
 	}
@@ -102,19 +101,19 @@ func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*co
 	// Check claims
 	if claims.Issuer != d.issuer {
 		return &corev1.AuthorizationCodeResponse{
-			Error: rfcerrors.InvalidToken(),
+			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response token, '%s' does not match expected issuer", claims.Issuer)
 	}
 
 	if claims.Audience != audience {
 		return &corev1.AuthorizationCodeResponse{
-			Error: rfcerrors.InvalidToken(),
+			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response token, '%s' does not match expected audience", claims.Audience)
 	}
 
 	if claims.ExpiresAt < uint64(time.Now().Unix()) {
 		return &corev1.AuthorizationCodeResponse{
-			Error: rfcerrors.InvalidToken(),
+			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response, response token is expired")
 	}
 

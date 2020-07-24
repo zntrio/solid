@@ -55,7 +55,7 @@ func Test_service_validate(t *testing.T) {
 				req: nil,
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest(""),
+			want:    rfcerrors.InvalidRequest().Build(),
 		},
 		{
 			name: "empty request",
@@ -64,7 +64,7 @@ func Test_service_validate(t *testing.T) {
 				req: &corev1.AuthorizationRequest{},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("<missing>"),
+			want:    rfcerrors.InvalidRequest().Build(),
 		},
 		{
 			name: "missing scope",
@@ -82,7 +82,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing response_type",
@@ -100,7 +100,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing client_id",
@@ -118,7 +118,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing redirect_uri",
@@ -136,7 +136,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "invalid redirect_uri",
@@ -155,7 +155,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing state",
@@ -173,7 +173,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("<missing>"),
+			want:    rfcerrors.InvalidRequest().Build(),
 		},
 		{
 			name: "state too short",
@@ -192,7 +192,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ").Build(),
 		},
 		{
 			name: "missing audience",
@@ -210,7 +210,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing nonce",
@@ -228,7 +228,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "nonce too short",
@@ -247,7 +247,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing code_challenge",
@@ -265,7 +265,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "code_challenge too short",
@@ -284,7 +284,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "missing code_challenge_method",
@@ -302,7 +302,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "unsupported code_challenge_method",
@@ -321,7 +321,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "error client not found",
@@ -343,7 +343,7 @@ func Test_service_validate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "error client storage error",
@@ -365,7 +365,7 @@ func Test_service_validate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want:    rfcerrors.ServerError("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.ServerError().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "client don't support authorization code",
@@ -389,7 +389,7 @@ func Test_service_validate(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			want:    rfcerrors.UnsupportedGrantType("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.UnsupportedGrantType().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "client don't support code response_type",
@@ -414,7 +414,7 @@ func Test_service_validate(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
 			name: "client invalid redirect_uri",
@@ -440,7 +440,7 @@ func Test_service_validate(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			want:    rfcerrors.InvalidRequest("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU"),
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		// ---------------------------------------------------------------------
 		{

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
+
 	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/sdk/types"
 )

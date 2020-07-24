@@ -117,17 +117,8 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (s
 	}
 
 	// Check if exists
-	valid, err := v.proofs.Exists(ctx, jtiHash)
-	if err != nil {
-		return "", fmt.Errorf("unable to query proof storage: %w", err)
-	}
-	if valid {
-		return "", fmt.Errorf("invalid proof: already used")
-	}
-
-	// Insert proof in cache
-	if err = v.proofs.Register(ctx, jtiHash); err != nil {
-		return "", fmt.Errorf("unable to register proof in storage: %w", err)
+	if errCache := v.checkProofCache(ctx, jtiHash); errCache != nil {
+		return "", errCache
 	}
 
 	// Compute confirmation
@@ -199,7 +190,7 @@ func (v *defaultVerifier) extractProofClaims(proof jwt.Token) (*proofClaims, err
 	return &claims, nil
 }
 
-func (v *defaultVerifier) validateProofClaims(htm string, htu string, claims *proofClaims) (string, error) {
+func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClaims) (string, error) {
 	// Check arguments
 	if htm == "" {
 		return "", fmt.Errorf("htm must not be blank")
@@ -237,4 +228,23 @@ func (v *defaultVerifier) validateProofClaims(htm string, htu string, claims *pr
 
 	// No error
 	return jtiStorage, nil
+}
+
+func (v *defaultVerifier) checkProofCache(ctx context.Context, jtiHash string) error {
+	// Check existence
+	valid, err := v.proofs.Exists(ctx, jtiHash)
+	if err != nil {
+		return fmt.Errorf("unable to query proof storage: %w", err)
+	}
+	if valid {
+		return fmt.Errorf("invalid proof: already used")
+	}
+
+	// Insert proof in cache
+	if err = v.proofs.Register(ctx, jtiHash); err != nil {
+		return fmt.Errorf("unable to register proof in storage: %w", err)
+	}
+
+	// No error
+	return nil
 }

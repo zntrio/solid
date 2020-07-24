@@ -23,6 +23,7 @@ import (
 
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
+
 	"zntr.io/solid/pkg/sdk/types"
 )
 

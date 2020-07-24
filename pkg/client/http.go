@@ -176,7 +176,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Prepare DPoP
-	proof, err := c.prover.Prove(http.MethodPost, parURL)
+	proof, err := c.prover.Prove(http.MethodPost, c.pushedAuthorizationRequestEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to compute proof of possession: %w", err)
 	}
@@ -267,7 +267,7 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Prepare DPoP
-	proof, err := c.prover.Prove(http.MethodPost, tokenURL)
+	proof, err := c.prover.Prove(http.MethodPost, c.tokenEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to compute proof of possession: %w", err)
 	}

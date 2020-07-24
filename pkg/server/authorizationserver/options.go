@@ -29,6 +29,7 @@ type options struct {
 	refreshTokenGenerator           generator.Token
 	idTokenGenerator                generator.Identity
 	clientReader                    storage.ClientReader
+	clientWriter                    storage.ClientWriter
 	authorizationRequestManager     storage.AuthorizationRequest
 	authorizationCodeSessionManager storage.AuthorizationCodeSession
 	deviceCodeSessionManager        storage.DeviceCodeSession
@@ -84,5 +85,13 @@ func AccessTokenGenerator(g generator.Token) Option {
 func RefreshTokenGenerator(g generator.Token) Option {
 	return func(opts *options) {
 		opts.refreshTokenGenerator = g
+	}
+}
+
+// ClientManager defines the client manager instance to use.
+func ClientManager(store storage.Client) Option {
+	return func(opts *options) {
+		opts.clientWriter = store
+		opts.clientReader = store
 	}
 }

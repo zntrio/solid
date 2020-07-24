@@ -22,9 +22,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 
+	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/client"
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/jarm"
@@ -36,9 +38,11 @@ import (
 )
 
 type sessionObject struct {
-	State        string `json:"state"`
-	Nonce        string `json:"nonce"`
-	CodeVerifier string `json:"code_verifier"`
+	State        string `json:"state,omitempty"`
+	Nonce        string `json:"nonce,omitempty"`
+	CodeVerifier string `json:"code_verifier,omitempty"`
+	AccessToken  string `json:"at,omitempty"`
+	RefreshToken string `json:"rt,omitempty"`
 }
 
 var clientPrivateKey = []byte(`{
@@ -151,8 +155,66 @@ func callback(solidClient client.Client, config *session.Config, prover dpop.Pro
 			return
 		}
 
+		// Update session
+		if err := session.Set(w, &sessionObject{
+			AccessToken:  t.AccessToken,
+			RefreshToken: t.RefreshToken,
+		}, config); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		// Dump token
-		http.Redirect(w, r, fmt.Sprintf("/#_access_token=%s", t.AccessToken), http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
+	})
+}
+
+func home(config *session.Config) http.Handler {
+
+	tmpl := template.Must(template.New("home").Parse(`<!doctype html>
+	<html lang="fr">
+	<head>
+	  <meta charset="utf-8">
+	  <title>Home</title>
+	  <style>
+	  code {
+		background-color: #EEEEEE;
+		font-family: Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,serif;
+	  }
+	  pre {
+		background-color: #EEEEEE;
+		font-family: Consolas,Menlo,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace,serif;
+		margin-bottom: 10px;
+		max-height: 600px;
+		overflow: auto;
+		padding: 5px;
+		width: auto;
+	  }
+	  </style>
+	</head>
+	<body>
+		<p>
+			Access Token
+			<pre>{{ .AccessToken }}</pre>
+		</p>
+		<p>
+			Refresh Token
+			<pre>{{ .RefreshToken }}</pre>
+		</p>
+	</body>
+	</html>
+	`))
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Retrieve session
+		var sess sessionObject
+		if err := session.Get(r, &sess, config); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Generate page
+		tmpl.Execute(w, &sess)
 	})
 }
 
@@ -187,7 +249,7 @@ func main() {
 		Issuer:      "http://127.0.0.1:8080",
 		JWK:         clientPrivateKey,
 		RedirectURI: "http://127.0.0.1:8085/oidc/as/127.0.0.1",
-		Scopes:      []string{"user profile email offline_access"},
+		Scopes:      []string{"user", "profile", "email", oidc.ScopeOfflineAccess},
 	})
 
 	// JARM
@@ -209,6 +271,7 @@ func main() {
 	}
 
 	// Endpoints
+	http.Handle("/", home(sessions))
 	http.Handle("/login", intention(solidClient, sessions))
 	http.Handle("/oidc/as/127.0.0.1", callback(solidClient, sessions, prover, jarmDecoder))
 

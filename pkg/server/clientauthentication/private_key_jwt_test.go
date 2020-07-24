@@ -53,7 +53,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name:    "nil request",
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -64,7 +64,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -79,7 +79,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -94,7 +94,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -109,7 +109,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -127,7 +127,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -145,7 +145,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -163,7 +163,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -188,7 +188,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -213,7 +213,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -238,7 +238,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -263,7 +263,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -288,7 +288,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -313,7 +313,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -331,7 +331,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidRequest(""),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -359,7 +359,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -387,7 +387,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -417,7 +417,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -447,7 +447,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -477,7 +477,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -507,7 +507,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -537,7 +537,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.ClientAuthenticationResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

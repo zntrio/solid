@@ -82,7 +82,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -96,7 +96,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -111,7 +111,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -128,7 +128,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -145,7 +145,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -162,7 +162,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -179,7 +179,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -196,7 +196,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		{
@@ -213,7 +213,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -241,7 +241,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidClient(""),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -268,7 +268,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.ServerError(""),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{
@@ -297,7 +297,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
-				Error: rfcerrors.InvalidGrant(""),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -365,7 +365,7 @@ func Test_service_Token(t *testing.T) {
 					GrantTypes:       []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes:    []string{"code"},
 					RedirectUris:     []string{"https://client.example.org/cb"},
-					SubjectType:      corev1.SubjectType_SUBJECT_TYPE_PAIRWISE,
+					SubjectType:      oidc.SubjectTypePublic,
 					SectorIdentifier: "https://client.example.org",
 				}, nil)
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
@@ -394,7 +394,7 @@ func Test_service_Token(t *testing.T) {
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
-						Subject:   "BFNSOa3f3zMwuO53izk4i4Wtwbnsrewmz-DSEo26YGQ",
+						Subject:   "",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -407,7 +407,7 @@ func Test_service_Token(t *testing.T) {
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
-						Subject:   "BFNSOa3f3zMwuO53izk4i4Wtwbnsrewmz-DSEo26YGQ",
+						Subject:   "",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,

@@ -49,26 +49,26 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 
 	// Check req nullity
 	if req == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
 	// Check client_id
 	if req.ClientId == "" {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client_id must not be empty")
 	}
 
 	// Check client existence
 	client, err := s.clients.Get(ctx, req.ClientId)
 	if err != nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to retrieve client details: %w", err)
 	}
 
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeDeviceCode) {
-		res.Error = rfcerrors.UnsupportedGrantType("")
+		res.Error = rfcerrors.UnsupportedGrantType().Build()
 		return res, fmt.Errorf("client doesn't support '%s' as grant type", oidc.GrantTypeDeviceCode)
 	}
 
@@ -78,7 +78,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 		Request: req,
 	})
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to create device request: %w", err)
 	}
 

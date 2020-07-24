@@ -68,3 +68,17 @@ func (s StringArray) HasOneOf(items ...string) bool {
 
 	return false
 }
+
+// HasAll returns true when all of provided items is found in array.
+func (s StringArray) HasAll(items ...string) bool {
+	found := false
+
+	for _, item := range items {
+		found = s.Contains(item)
+		if !found {
+			break
+		}
+	}
+
+	return found
+}

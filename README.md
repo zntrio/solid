@@ -130,6 +130,7 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `refresh_token` grant type
     * [ ] `device_code` grant type
     * [x] Pairwise subject identifier
+    * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
   * Client
     * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
     * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)

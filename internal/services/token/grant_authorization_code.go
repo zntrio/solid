@@ -45,55 +45,55 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 
 	// Check parameters
 	if client == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil client")
 	}
 	if req == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil request")
 	}
 	if grant == nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
 	// Check issuer syntax
 	if req.Issuer == "" {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("issuer must not be blank")
 	}
 
 	_, err := url.ParseRequestURI(req.Issuer)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("issuer must be a valid url: %w", err)
 	}
 
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeAuthorizationCode) {
-		res.Error = rfcerrors.UnsupportedGrantType("")
+		res.Error = rfcerrors.UnsupportedGrantType().Build()
 		return res, fmt.Errorf("client doesn't support 'authorization_code' as grant type")
 	}
 
 	// Validate request
 	if grant.Code == "" || grant.CodeVerifier == "" || grant.RedirectUri == "" {
-		res.Error = rfcerrors.InvalidGrant("")
+		res.Error = rfcerrors.InvalidGrant().Build()
 		return res, fmt.Errorf("invalid authorization request: code, code_verifier and redirect_uri are mandatory")
 	}
 
 	// Validate code length
 	if len(grant.Code) > desiredAuthorizationCodeMaxValueLength {
-		res.Error = rfcerrors.InvalidGrant("")
+		res.Error = rfcerrors.InvalidGrant().Build()
 		return res, fmt.Errorf("invalid authorization request: code is too long")
 	}
 
 	// Validate code verifier
 	if len(grant.CodeVerifier) < desiredCodeVerifiedMinValueLength {
-		res.Error = rfcerrors.InvalidGrant("")
+		res.Error = rfcerrors.InvalidGrant().Build()
 		return res, fmt.Errorf("invalid authorization request: code_verifier is too short")
 	}
 	if len(grant.CodeVerifier) > desiredCodeVerifiedMaxValueLength {
-		res.Error = rfcerrors.InvalidGrant("")
+		res.Error = rfcerrors.InvalidGrant().Build()
 		return res, fmt.Errorf("invalid authorization request: code_verifier is too long")
 	}
 
@@ -101,33 +101,33 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	ar, err := s.authorizationCodeSessions.Get(ctx, grant.Code)
 	if err != nil {
 		if err != storage.ErrNotFound {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 		} else {
-			res.Error = rfcerrors.InvalidGrant("")
+			res.Error = rfcerrors.InvalidGrant().Build()
 		}
 		return res, fmt.Errorf("unable to retrieve authorization request from code '%s': %w", grant.Code, err)
 	}
 
 	// Check if not nil
 	if ar.Request == nil {
-		res.Error = rfcerrors.InvalidGrant("")
+		res.Error = rfcerrors.InvalidGrant().Build()
 		return res, fmt.Errorf("retrieve authorization request is invalid '%s': %w", grant.Code, err)
 	}
 
 	// Delete session
 	err = s.authorizationCodeSessions.Delete(ctx, grant.Code)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to remove authorization session from code '%s': %w", grant.Code, err)
 	}
 
 	// Validate redirectUri
 	if ar.Request.RedirectUri != grant.RedirectUri {
-		res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+		res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
 		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and token '%s' must be identic", ar.Request.RedirectUri, grant.RedirectUri)
 	}
 	if !types.StringArray(client.RedirectUris).Contains(grant.RedirectUri) {
-		res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+		res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
 		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and client '%s' must be validated", grant.RedirectUri, client.RedirectUris)
 	}
 
@@ -138,11 +138,11 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 		h := sha256.Sum256([]byte(grant.CodeVerifier))
 		computedVerifier := base64.RawURLEncoding.EncodeToString(h[:])
 		if computedVerifier != ar.Request.CodeChallenge {
-			res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+			res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
 			return res, fmt.Errorf("unable to validate PKCE code_verifier `%s` and code_challenge `%s`", computedVerifier, ar.Request.CodeChallenge)
 		}
 	default:
-		res.Error = rfcerrors.InvalidGrant(ar.Request.State)
+		res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
 		return res, fmt.Errorf("invalid code_challenge_method in request `%s`", ar.Request.CodeChallengeMethod)
 	}
 
@@ -159,7 +159,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 			Scope:    ar.Request.Scope,
 		}, req.TokenConfirmation)
 		if err != nil {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("unable to generate access token: %w", err)
 		}
 
@@ -173,7 +173,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 				Scope:    ar.Request.Scope,
 			}, at.Confirmation)
 			if err != nil {
-				res.Error = rfcerrors.ServerError("")
+				res.Error = rfcerrors.ServerError().Build()
 				return res, fmt.Errorf("unable to generate refresh token: %w", err)
 			}
 

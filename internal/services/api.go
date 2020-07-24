@@ -31,7 +31,7 @@ type Authorization interface {
 	Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error)
 }
 
-// Token describes token requet processor.
+// Token describes token request processor.
 type Token interface {
 	// Token handles token retrieval.
 	Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.TokenResponse, error)
@@ -45,4 +45,10 @@ type Token interface {
 type Device interface {
 	// Authorize process device authorization request.
 	Authorize(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error)
+}
+
+// Client describes client management request processor.
+type Client interface {
+	// Register process client registration request.
+	Register(ctx context.Context, req *corev1.ClientRegistrationRequest) (*corev1.ClientRegistrationResponse, error)
 }

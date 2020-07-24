@@ -67,9 +67,9 @@ func (s *service) Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.
 	client, err := s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
 		if err != storage.ErrNotFound {
-			res.Error = rfcerrors.ServerError("")
+			res.Error = rfcerrors.ServerError().Build()
 		} else {
-			res.Error = rfcerrors.InvalidClient("")
+			res.Error = rfcerrors.InvalidClient().Build()
 		}
 		return res, fmt.Errorf("unable to retrieve client details: %w", err)
 	}
@@ -86,7 +86,7 @@ func (s *service) Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.
 		res, err = s.refreshToken(ctx, client, req)
 	default:
 		// Validated by the front validator but added for defensive principle.
-		res.Error = rfcerrors.InvalidGrant("")
+		res.Error = rfcerrors.InvalidGrant().Build()
 		err = fmt.Errorf("invalid grant_type in request '%s'", req.GrantType)
 	}
 

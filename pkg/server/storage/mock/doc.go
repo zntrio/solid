@@ -16,3 +16,6 @@
 // under the License.
 
 package mock
+
+// Import for mock
+import _ "github.com/golang/mock/mockgen/model"

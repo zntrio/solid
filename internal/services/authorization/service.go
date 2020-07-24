@@ -62,19 +62,19 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 
 	// Check req nullity
 	if req == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
 	// Check authoriaztion request
 	if req.AuthorizationRequest == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil authorization request")
 	}
 
 	// Check subject
 	if req.Subject == "" {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process empty subject")
 	}
 
@@ -82,7 +82,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	if req.AuthorizationRequest.RequestUri != nil {
 		// Check request_uri syntax
 		if !requestURIMatcher.MatchString(req.AuthorizationRequest.RequestUri.Value) {
-			res.Error = rfcerrors.InvalidRequest("")
+			res.Error = rfcerrors.InvalidRequest().Build()
 			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.AuthorizationRequest.RequestUri.Value)
 		}
 
@@ -90,9 +90,9 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		ar, err := s.authorizationRequests.Get(ctx, req.AuthorizationRequest.RequestUri.Value)
 		if err != nil {
 			if err != storage.ErrNotFound {
-				res.Error = rfcerrors.ServerError("")
+				res.Error = rfcerrors.ServerError().Build()
 			} else {
-				res.Error = rfcerrors.InvalidRequest("")
+				res.Error = rfcerrors.InvalidRequest().Build()
 			}
 			return res, fmt.Errorf("unable to retrieve request by uri: %w", err)
 		}
@@ -100,9 +100,9 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		// Burn after read
 		if err := s.authorizationRequests.Delete(ctx, req.AuthorizationRequest.RequestUri.Value); err != nil {
 			if err != storage.ErrNotFound {
-				res.Error = rfcerrors.ServerError("")
+				res.Error = rfcerrors.ServerError().Build()
 			} else {
-				res.Error = rfcerrors.InvalidRequest("")
+				res.Error = rfcerrors.InvalidRequest().Build()
 			}
 			return res, fmt.Errorf("unable to retrieve request by uri: %w", err)
 		}
@@ -124,7 +124,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		Request: req.AuthorizationRequest,
 	})
 	if err != nil {
-		res.Error = rfcerrors.ServerError(req.AuthorizationRequest.State)
+		res.Error = rfcerrors.ServerError().State(req.AuthorizationRequest.State).Build()
 		return res, fmt.Errorf("unable to generate authorization code: %w", err)
 	}
 
@@ -147,19 +147,19 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 
 	// Check req nullity
 	if req == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
 	}
 
 	// Check client authentication context
 	if req.Client == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client must not be nil")
 	}
 
 	// Check authorization request is nill
 	if req.AuthorizationRequest == nil {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("authorization request must not be nil")
 	}
 
@@ -172,14 +172,14 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 
 	// Check registration / client association
 	if req.AuthorizationRequest.ClientId != req.Client.ClientId {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to register request for another client")
 	}
 
 	// Register the authorization request
 	requestURI, expiresIn, err := s.authorizationRequests.Register(ctx, req.AuthorizationRequest)
 	if err != nil {
-		res.Error = rfcerrors.ServerError("")
+		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to register authorization request: %w", err)
 	}
 
@@ -197,62 +197,62 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.Error, error) {
 	// Check req nullity
 	if req == nil {
-		return rfcerrors.InvalidRequest(""), fmt.Errorf("unable to process nil request")
+		return rfcerrors.InvalidRequest().Build(), fmt.Errorf("unable to process nil request")
 	}
 
 	// Validate request attributes
 	if req.State == "" {
-		return rfcerrors.InvalidRequest("<missing>"), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
+		return rfcerrors.InvalidRequest().Build(), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
 	}
 	if len(req.State) < desiredMinStateValueLength {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("state too short")
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("state too short")
 	}
 
 	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" || req.Audience == "" || req.Nonce == "" {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("audience, state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method, nonce parameters are mandatory")
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("audience, state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method, nonce parameters are mandatory")
 	}
 
 	if len(req.Nonce) < desiredMinNonceValueLength {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("nonce too short")
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("nonce too short")
 	}
 
 	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("invalid or unsupported code_challenge_method '%s'", req.CodeChallengeMethod)
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("invalid or unsupported code_challenge_method '%s'", req.CodeChallengeMethod)
 	}
 
 	if len(req.CodeChallenge) != desiredMinCodeChallengeValueLength {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("code_challenge too short")
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("code_challenge too short")
 	}
 
 	// Prepare redirection uri
 	_, err := url.ParseRequestURI(req.RedirectUri)
 	if err != nil {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("redirect_uri has an invalid syntax: %w", err)
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("redirect_uri has an invalid syntax: %w", err)
 	}
 
 	// Check client ID
 	client, err := s.clients.Get(ctx, req.ClientId)
 	if err != nil {
 		if err != storage.ErrNotFound {
-			return rfcerrors.ServerError(req.State), fmt.Errorf("unable to retrieve client details: %w", err)
+			return rfcerrors.ServerError().State(req.State).Build(), fmt.Errorf("unable to retrieve client details: %w", err)
 		}
 
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("unable to retrieve client details: %w", err)
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("unable to retrieve client details: %w", err)
 	}
 
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeAuthorizationCode) {
-		return rfcerrors.UnsupportedGrantType(req.State), fmt.Errorf("client doesn't support 'authorization_code' as grant type")
+		return rfcerrors.UnsupportedGrantType().State(req.State).Build(), fmt.Errorf("client doesn't support 'authorization_code' as grant type")
 	}
 
 	// Validate client response_type
 	if !types.StringArray(client.ResponseTypes).Contains(req.ResponseType) {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("client doesn't support `%s` as response type", req.ResponseType)
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("client doesn't support `%s` as response type", req.ResponseType)
 	}
 
 	// Validate client response_types
 	if !types.StringArray(client.RedirectUris).Contains(req.RedirectUri) {
-		return rfcerrors.InvalidRequest(req.State), fmt.Errorf("client doesn't support `%s` as redirect_uri type", req.RedirectUri)
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("client doesn't support `%s` as redirect_uri type", req.RedirectUri)
 	}
 
 	// Check scopes

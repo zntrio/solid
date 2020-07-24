@@ -19,7 +19,9 @@ package inmemory
 
 import (
 	"context"
+	"strings"
 
+	"github.com/dchest/uniuri"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/server/storage"
@@ -67,7 +69,7 @@ func Clients() storage.Client {
 					]
 				}`),
 				// Pairwise sector identitier
-				SubjectType:      corev1.SubjectType_SUBJECT_TYPE_PAIRWISE,
+				SubjectType:      oidc.SubjectTypePairwise,
 				SectorIdentifier: "http://127.0.0.1:8085",
 			},
 		},
@@ -85,4 +87,29 @@ func (s *clientStorage) Get(ctx context.Context, id string) (*corev1.Client, err
 
 	// No error
 	return client, nil
+}
+
+func (s *clientStorage) GetByName(ctx context.Context, name string) (*corev1.Client, error) {
+	// Iterate over bakend map
+	for _, c := range s.backend {
+		if strings.EqualFold(c.ClientName, name) {
+			return c, nil
+		}
+	}
+
+	// Not found
+	return nil, storage.ErrNotFound
+}
+
+// -----------------------------------------------------------------------------
+
+func (s *clientStorage) Register(ctx context.Context, c *corev1.Client) (string, error) {
+	// Assign client id
+	c.ClientId = uniuri.NewLen(16)
+
+	// Assign to storage
+	s.backend[c.ClientId] = c
+
+	// No error
+	return c.ClientId, nil
 }

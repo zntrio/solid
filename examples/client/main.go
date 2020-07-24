@@ -170,7 +170,6 @@ func callback(solidClient client.Client, config *session.Config, prover dpop.Pro
 }
 
 func home(config *session.Config) http.Handler {
-
 	tmpl := template.Must(template.New("home").Parse(`<!doctype html>
 	<html lang="fr">
 	<head>

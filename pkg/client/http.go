@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/dpop"

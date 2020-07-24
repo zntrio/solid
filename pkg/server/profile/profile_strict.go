@@ -19,65 +19,63 @@ package profile
 
 import "zntr.io/solid/api/oidc"
 
-var (
-	strictProfile = &defaultServerProfile{
-		clientProfiles: map[string]Client{
-			// Server side web application
-			oidc.ApplicationTypeServerSideWeb: &defaultClientProfile{
-				grantTypesSupported: []string{
-					oidc.GrantTypeAuthorizationCode,
-				},
-				responseTypesSupported: []string{
-					oidc.ResponseTypeCode,
-				},
-				tokenEndpointAuthMethodsSupported: []string{
-					oidc.AuthMethodPrivateKeyJWT,
-				},
+var strictProfile = &defaultServerProfile{
+	clientProfiles: map[string]Client{
+		// Server side web application
+		oidc.ApplicationTypeServerSideWeb: &defaultClientProfile{
+			grantTypesSupported: []string{
+				oidc.GrantTypeAuthorizationCode,
 			},
-			// Client side web application
-			// Explicitly ignored (not supported in this profile)
-			//
-			// Desktop or mobile application
-			oidc.ApplicationTypeNative: &defaultClientProfile{
-				grantTypesSupported: []string{
-					oidc.GrantTypeAuthorizationCode,
-					oidc.GrantTypeRefreshToken,
-				},
-				responseTypesSupported: []string{
-					oidc.ResponseTypeCode,
-				},
-				tokenEndpointAuthMethodsSupported: []string{
-					oidc.AuthMethodPrivateKeyJWT,
-				},
+			responseTypesSupported: []string{
+				oidc.ResponseTypeCode,
 			},
-			// Constrained device without browser (TV, Box, Game console, IoT, Car, etc.)
-			oidc.ApplicationTypeDevice: &defaultClientProfile{
-				grantTypesSupported: []string{
-					oidc.GrantTypeDeviceCode,
-					oidc.GrantTypeRefreshToken,
-				},
-				responseTypesSupported: []string{
-					oidc.ResponseTypeCode,
-				},
-				tokenEndpointAuthMethodsSupported: []string{
-					oidc.AuthMethodPrivateKeyJWT,
-				},
-			},
-			// Service account
-			oidc.ApplicationTypeService: &defaultClientProfile{
-				grantTypesSupported: []string{
-					oidc.GrantTypeClientCredentials,
-				},
-				responseTypesSupported: []string{
-					oidc.ResponseTypeToken,
-				},
-				tokenEndpointAuthMethodsSupported: []string{
-					oidc.AuthMethodPrivateKeyJWT,
-				},
+			tokenEndpointAuthMethodsSupported: []string{
+				oidc.AuthMethodPrivateKeyJWT,
 			},
 		},
-	}
-)
+		// Client side web application
+		// Explicitly ignored (not supported in this profile)
+		//
+		// Desktop or mobile application
+		oidc.ApplicationTypeNative: &defaultClientProfile{
+			grantTypesSupported: []string{
+				oidc.GrantTypeAuthorizationCode,
+				oidc.GrantTypeRefreshToken,
+			},
+			responseTypesSupported: []string{
+				oidc.ResponseTypeCode,
+			},
+			tokenEndpointAuthMethodsSupported: []string{
+				oidc.AuthMethodPrivateKeyJWT,
+			},
+		},
+		// Constrained device without browser (TV, Box, Game console, IoT, Car, etc.)
+		oidc.ApplicationTypeDevice: &defaultClientProfile{
+			grantTypesSupported: []string{
+				oidc.GrantTypeDeviceCode,
+				oidc.GrantTypeRefreshToken,
+			},
+			responseTypesSupported: []string{
+				oidc.ResponseTypeCode,
+			},
+			tokenEndpointAuthMethodsSupported: []string{
+				oidc.AuthMethodPrivateKeyJWT,
+			},
+		},
+		// Service account
+		oidc.ApplicationTypeService: &defaultClientProfile{
+			grantTypesSupported: []string{
+				oidc.GrantTypeClientCredentials,
+			},
+			responseTypesSupported: []string{
+				oidc.ResponseTypeToken,
+			},
+			tokenEndpointAuthMethodsSupported: []string{
+				oidc.AuthMethodPrivateKeyJWT,
+			},
+		},
+	},
+}
 
 // Strict returns a strict server profile.
 func Strict() Server {

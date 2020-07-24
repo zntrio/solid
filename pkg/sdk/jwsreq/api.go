@@ -28,7 +28,7 @@ const (
 	tokenHdrType = "oauth.authz.req+jwt"
 )
 
-//go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/request AuthorizationDecoder
+//go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/sdk/jwsreq AuthorizationDecoder
 
 // AuthorizationDecoder describes authorization decoder contract.
 type AuthorizationDecoder interface {

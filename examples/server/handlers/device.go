@@ -21,8 +21,8 @@ import (
 	"net/http"
 
 	"zntr.io/solid/examples/server/middleware"
-	"zntr.io/solid/pkg/authorizationserver"
-	"zntr.io/solid/pkg/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
 )
 
 // Device handle device code validation.

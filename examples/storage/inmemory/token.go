@@ -23,7 +23,7 @@ import (
 	"sync"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/server/storage"
 )
 
 type tokenStorage struct {

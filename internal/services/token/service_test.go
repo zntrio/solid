@@ -25,11 +25,11 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/generator"
-	generatormock "zntr.io/solid/pkg/generator/mock"
-	"zntr.io/solid/pkg/rfcerrors"
-	"zntr.io/solid/pkg/storage"
-	storagemock "zntr.io/solid/pkg/storage/mock"
+	"zntr.io/solid/pkg/sdk/generator"
+	generatormock "zntr.io/solid/pkg/sdk/generator/mock"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/storage"
+	storagemock "zntr.io/solid/pkg/server/storage/mock"
 
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"

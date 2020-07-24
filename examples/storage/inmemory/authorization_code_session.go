@@ -22,7 +22,7 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/storage"
+	"zntr.io/solid/pkg/server/storage"
 
 	"github.com/dchest/uniuri"
 	"github.com/patrickmn/go-cache"

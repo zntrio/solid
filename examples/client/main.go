@@ -26,9 +26,9 @@ import (
 	"net/http"
 
 	"zntr.io/solid/pkg/client"
-	"zntr.io/solid/pkg/dpop"
-	"zntr.io/solid/pkg/jarm"
-	"zntr.io/solid/pkg/jwsreq"
+	"zntr.io/solid/pkg/sdk/dpop"
+	"zntr.io/solid/pkg/sdk/jarm"
+	"zntr.io/solid/pkg/sdk/jwsreq"
 
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"
@@ -181,7 +181,7 @@ func main() {
 	}
 
 	// Build client
-	solidClient := client.New(prover, arEncoder, &client.Options{
+	solidClient := client.HTTP(prover, arEncoder, &client.Options{
 		Audience:    "NYxFyoSuuRGXItTbX",
 		ClientID:    "6779ef20e75817b79602",
 		Issuer:      "http://127.0.0.1:8080",

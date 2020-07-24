@@ -23,35 +23,35 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
-//go:generate mockgen -destination mock/authorization_code.gen.go -package mock zntr.io/solid/pkg/generator AuthorizationCode
+//go:generate mockgen -destination mock/authorization_code.gen.go -package mock zntr.io/solid/pkg/sdk/generator AuthorizationCode
 
 // AuthorizationCode describes authorization code generator contract.
 type AuthorizationCode interface {
 	Generate(ctx context.Context) (string, error)
 }
 
-//go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/generator Token
+//go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/sdk/generator Token
 
 // Token describes accessToken / refreshToken generator contract.
 type Token interface {
 	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error)
 }
 
-//go:generate mockgen -destination mock/identity.gen.go -package mock zntr.io/solid/pkg/generator Identity
+//go:generate mockgen -destination mock/identity.gen.go -package mock zntr.io/solid/pkg/sdk/generator Identity
 
 // Identity describes idToken generator contract.
 type Identity interface {
 	Generate(ctx context.Context) (string, error)
 }
 
-//go:generate mockgen -destination mock/device_user_code.gen.go -package mock zntr.io/solid/pkg/generator DeviceUserCode
+//go:generate mockgen -destination mock/device_user_code.gen.go -package mock zntr.io/solid/pkg/sdk/generator DeviceUserCode
 
 // DeviceUserCode describes device user code generator contract.
 type DeviceUserCode interface {
 	Generate(ctx context.Context) (string, error)
 }
 
-//go:generate mockgen -destination mock/client_id.gen.go -package mock zntr.io/solid/pkg/generator ClientID
+//go:generate mockgen -destination mock/client_id.gen.go -package mock zntr.io/solid/pkg/sdk/generator ClientID
 
 // ClientID describes client identified generator contract.
 type ClientID interface {

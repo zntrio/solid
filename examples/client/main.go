@@ -19,6 +19,9 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -31,6 +34,7 @@ import (
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwsreq"
+	"zntr.io/solid/pkg/sdk/jwt"
 
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"
@@ -170,7 +174,6 @@ func callback(solidClient client.Client, config *session.Config, prover dpop.Pro
 }
 
 func home(config *session.Config) http.Handler {
-
 	tmpl := template.Must(template.New("home").Parse(`<!doctype html>
 	<html lang="fr">
 	<head>
@@ -219,8 +222,26 @@ func home(config *session.Config) http.Handler {
 }
 
 func main() {
+	// Generate an ephemeral key for DPoP signer
+	pk, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+
+	// Signer options
+	options := (&jose.SignerOptions{}).WithType(dpop.HeaderType)
+	options.EmbedJWK = true
+	dpopSigner := jwt.DefaultSigner(jose.SigningKey{
+		Algorithm: jose.ES384,
+		Key: &jose.JSONWebKey{
+			Use:   "sig",
+			Key:   pk,
+			KeyID: uniuri.NewLen(8),
+		},
+	}, options)
+
 	// Prover
-	prover, err := dpop.DefaultProver()
+	prover, err := dpop.DefaultProver(dpopSigner)
 	if err != nil {
 		panic(err)
 	}

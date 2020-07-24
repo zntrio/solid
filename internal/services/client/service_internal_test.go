@@ -28,9 +28,9 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/profile"
-	"zntr.io/solid/pkg/rfcerrors"
-	storagemock "zntr.io/solid/pkg/storage/mock"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/profile"
+	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
 
 var cmpOpts = []cmp.Option{

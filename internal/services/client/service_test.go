@@ -29,9 +29,9 @@ package client
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/rfcerrors"
-	"zntr.io/solid/pkg/storage"
-	storagemock "zntr.io/solid/pkg/storage/mock"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/storage"
+	storagemock "zntr.io/solid/pkg/server/storagestorage/mock"
 )
 
 func Test_service_Register(t *testing.T) {

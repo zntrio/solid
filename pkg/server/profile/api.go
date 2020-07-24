@@ -17,27 +17,17 @@
 
 package profile
 
-import "zntr.io/solid/pkg/types"
+import "zntr.io/solid/pkg/sdk/types"
 
-type defaultClientProfile struct {
-	grantTypesSupported               []string
-	tokenEndpointAuthMethodsSupported []string
-	responseTypesSupported            []string
-	defaultScopes                     []string
+// Client defines client profile contract.
+type Client interface {
+	GrantTypesSupported() types.StringArray
+	TokenEndpointAuthMethodsSupported() types.StringArray
+	ResponseTypesSupported() types.StringArray
+	DefaultScopes() types.StringArray
 }
 
-func (c *defaultClientProfile) GrantTypesSupported() types.StringArray {
-	return types.StringArray(c.grantTypesSupported)
-}
-
-func (c *defaultClientProfile) TokenEndpointAuthMethodsSupported() types.StringArray {
-	return types.StringArray(c.tokenEndpointAuthMethodsSupported)
-}
-
-func (c *defaultClientProfile) ResponseTypesSupported() types.StringArray {
-	return types.StringArray(c.responseTypesSupported)
-}
-
-func (c *defaultClientProfile) DefaultScopes() types.StringArray {
-	return types.StringArray(c.defaultScopes)
+// Server defines server profile contract.
+type Server interface {
+	ApplicationType(name string) (Client, bool)
 }

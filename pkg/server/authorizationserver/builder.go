@@ -27,10 +27,10 @@ import (
 	"zntr.io/solid/internal/services/client"
 	"zntr.io/solid/internal/services/device"
 	"zntr.io/solid/internal/services/token"
-	"zntr.io/solid/pkg/profile"
 	"zntr.io/solid/pkg/sdk/generator"
 	"zntr.io/solid/pkg/server/authorizationserver/features"
 	"zntr.io/solid/pkg/server/authorizationserver/features/oidc"
+	"zntr.io/solid/pkg/server/profile"
 	"zntr.io/solid/pkg/server/reactor"
 )
 

@@ -15,17 +15,32 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package clientauthentication
+package dpop
 
 import (
 	"context"
-
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"time"
 )
 
-//go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/pkg/server/clientauthentication AuthenticationProcessor
+const (
+	// HeaderType defines typ claim value
+	HeaderType = "dpop+jwt"
+	// ExpirationTreshold defines clock swrew tolerance
+	ExpirationTreshold = 15 * time.Second
+	// JTICodeLength defines JTI claim string length
+	JTICodeLength = 16
+)
 
-// AuthenticationProcessor describes client authentication method contract.
-type AuthenticationProcessor interface {
-	Authenticate(ctx context.Context, req *corev1.ClientAuthenticationRequest) (*corev1.ClientAuthenticationResponse, error)
+//go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/pkg/sdk/dpop Prover
+
+// Prover describes prover contract
+type Prover interface {
+	Prove(htm string, htu string) (string, error)
+}
+
+//go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/pkg/sdk/dpop Verifier
+
+// Verifier describes proof verifier contract.
+type Verifier interface {
+	Verify(ctx context.Context, htm, htu, proof string) (string, error)
 }

@@ -19,75 +19,101 @@ package dpop
 
 import (
 	"context"
-	"crypto"
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
+	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
 	"golang.org/x/crypto/blake2b"
 )
-
-const (
-	// HeaderType defines typ claim value
-	HeaderType = "dpop+jwt"
-	// ExpirationTreshold defines clock swrew tolerance
-	ExpirationTreshold = 15 * time.Second
-	// SignatureAlgorithm defines algorithm used for proof signature
-	SignatureAlgorithm = jose.ES256
-)
-
-// Verifier describes proof verifier contract.
-type Verifier interface {
-	Verify(ctx context.Context, r *http.Request, proof string) (string, error)
-}
 
 // -----------------------------------------------------------------------------
 
 // DefaultVerifier returns a verifier instance with in-memory cache for proof
 // storage.
-func DefaultVerifier(proofs storage.DPoP) Verifier {
-	return &defaultVerifier{
-		proofs: proofs,
+func DefaultVerifier(proofs storage.DPoP, verifier jwt.Verifier, supported []string) (Verifier, error) {
+	// Check arguments
+	if types.IsNil(proofs) {
+		return nil, fmt.Errorf("proof storage is mandatory and couldn't be nil")
 	}
+	if types.IsNil(verifier) {
+		return nil, fmt.Errorf("jwt verifier is mandatory and couldn't be nil")
+	}
+	if len(supported) == 0 {
+		return nil, fmt.Errorf("supported algorithm is mandatory and couldn't be empty")
+	}
+
+	// No error
+	return &defaultVerifier{
+		proofs:              proofs,
+		verifier:            verifier,
+		supportedAlgorithms: types.StringArray(supported),
+	}, nil
 }
 
 // -----------------------------------------------------------------------------
 
 type defaultVerifier struct {
-	proofs storage.DPoP
+	proofs              storage.DPoP
+	verifier            jwt.Verifier
+	supportedAlgorithms types.StringArray
 }
 
 // Verify given DPoP proof.
 // https://www.ietf.org/id/draft-ietf-oauth-dpop-01.html#section-4.2
-func (v *defaultVerifier) Verify(ctx context.Context, r *http.Request, proof string) (string, error) {
+func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (string, error) {
 	// Check parameters
-	if r == nil {
-		return "", fmt.Errorf("http request must not be nil")
+	if htm == "" {
+		return "", fmt.Errorf("htm must not be blank")
+	}
+	if htu == "" {
+		return "", fmt.Errorf("htu must not be blank")
 	}
 	if proof == "" {
 		return "", fmt.Errorf("proof must not be blank")
 	}
 
+	// Validate url
+	u, err := url.ParseRequestURI(htu)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL syntax for proof verification '%s': %w", htu, err)
+	}
+
+	// Validate method
+	switch strings.ToUpper(htm) {
+	case http.MethodConnect, http.MethodDelete, http.MethodGet, http.MethodHead, http.MethodOptions:
+	case http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace:
+	default:
+		return "", fmt.Errorf("invalid HTTP Method in proof verification '%s'", htm)
+	}
+
 	// Check dpop
-	token, err := jwt.ParseSigned(proof)
+	token, err := v.verifier.Parse(proof)
 	if err != nil {
 		return "", fmt.Errorf("proof has not a valid jwt syntax: %w", err)
 	}
 
 	// Validate header
-	if errHdr := v.validateHeader(token); errHdr != nil {
+	if errHdr := v.validateProofHeader(token); errHdr != nil {
 		return "", errHdr
 	}
 
-	// Validate claims
-	jtiHash, errClm := v.validateClaims(r, token.Headers[0].JSONWebKey, token)
+	// Extract claims
+	claims, errClm := v.extractProofClaims(token)
 	if errClm != nil {
 		return "", errClm
+	}
+
+	// Validate proof claims
+	jtiHash, errJti := v.validateProofClaims(htm, u.String(), claims)
+	if errJti != nil {
+		return "", errJti
 	}
 
 	// Check if exists
@@ -105,94 +131,104 @@ func (v *defaultVerifier) Verify(ctx context.Context, r *http.Request, proof str
 	}
 
 	// Compute confirmation
-	thumb, err := token.Headers[0].JSONWebKey.Thumbprint(crypto.SHA256)
+	thumb, err := token.PublicKeyThumbPrint()
 	if err != nil {
 		return "", fmt.Errorf("unable to compute confirmation: %w", err)
 	}
 
 	// Return confirmation
-	return base64.RawURLEncoding.EncodeToString(thumb), nil
+	return thumb, nil
 }
 
-func (v *defaultVerifier) validateHeader(token *jwt.JSONWebToken) error {
+func (v *defaultVerifier) validateProofHeader(proof jwt.Token) error {
 	// Check arguments
-	if token == nil {
+	if types.IsNil(proof) {
 		return fmt.Errorf("unable to process nil token")
 	}
 
-	// Check claims
-	if len(token.Headers) == 0 {
-		return fmt.Errorf("proof has not a valid jwt syntax, missing header")
-	}
-	if len(token.Headers) > 1 {
-		return fmt.Errorf("proof has not a valid jwt syntax, too many headers")
-	}
-
-	// JWK
-	if token.Headers[0].JSONWebKey == nil {
-		return fmt.Errorf("proof has not a valid jwt syntax, no public jwk embedded")
-	}
-	// Typ
-	typ, ok := token.Headers[0].ExtraHeaders[jose.HeaderKey("typ")]
-	if !ok {
-		return fmt.Errorf("proof has not a valid jwt syntax, 'typ' header is mandatory")
+	// Check token type
+	typ, err := proof.Type()
+	if err != nil {
+		return fmt.Errorf("proof has not a valid jwt syntax, valid 'typ' header is mandatory")
 	}
 	if typ != HeaderType {
 		return fmt.Errorf("proof has not a valid jwt syntax, 'typ' header value must be '%s'", HeaderType)
 	}
 
 	// Algorithm
-	if token.Headers[0].Algorithm != string(SignatureAlgorithm) {
-		return fmt.Errorf("proof has not a valid jwt syntax, 'alg' header value must be '%s'", SignatureAlgorithm)
+	alg, err := proof.Algorithm()
+	if err != nil {
+		return fmt.Errorf("proof has not a valid jwt syntax, valid 'alg' header is mandatory")
+	}
+	if !v.supportedAlgorithms.Contains(alg) {
+		return fmt.Errorf("proof has not a valid jwt syntax, current 'alg' is not supported")
+	}
+
+	// JWK
+	pubJWK, err := proof.PublicKey()
+	if err != nil {
+		return fmt.Errorf("proof has not a valid jwt syntax, a valid embedded public key is mandatory")
+	}
+	if types.IsNil(pubJWK) {
+		return fmt.Errorf("proof has not a valid jwt syntax, the embedded public is invalid")
 	}
 
 	// No error
 	return nil
 }
 
-func (v *defaultVerifier) validateClaims(r *http.Request, jwk *jose.JSONWebKey, token *jwt.JSONWebToken) (string, error) {
+func (v *defaultVerifier) extractProofClaims(proof jwt.Token) (*proofClaims, error) {
 	// Check arguments
-	if r == nil {
-		return "", fmt.Errorf("unable to process nil request")
+	if types.IsNil(proof) {
+		return nil, fmt.Errorf("unable to process nil token")
 	}
-	if jwk == nil {
-		return "", fmt.Errorf("unable to process nil jwk")
-	}
-	if token == nil {
-		return "", fmt.Errorf("unable to process nil token")
+
+	// Extract public key from token
+	jwk, err := proof.PublicKey()
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve public key from token: %w", err)
 	}
 
 	// Check signature
 	var claims proofClaims
-	if err := token.Claims(jwk, &claims); err != nil {
-		return "", fmt.Errorf("unable to decode proof claims: %w", err)
+	if err := proof.Claims(jwk, &claims); err != nil {
+		return nil, fmt.Errorf("unable to decode proof claims: %w", err)
+	}
+
+	// No error
+	return &claims, nil
+}
+
+func (v *defaultVerifier) validateProofClaims(htm string, htu string, claims *proofClaims) (string, error) {
+	// Check arguments
+	if htm == "" {
+		return "", fmt.Errorf("htm must not be blank")
+	}
+	if htu == "" {
+		return "", fmt.Errorf("htu must not be blank")
+	}
+	if claims == nil {
+		return "", fmt.Errorf("claims must not be nil")
 	}
 
 	// Check http parameters
-	if claims.HTTPMethod != r.Method {
-		return "", fmt.Errorf("invalid proof: http method don't match, got:'%s', expected: '%s'", r.Method, claims.HTTPMethod)
+	if claims.HTTPMethod != htm {
+		return "", fmt.Errorf("invalid proof: http method don't match, got:'%s', expected: '%s'", htm, claims.HTTPMethod)
 	}
 
 	// Prepare the url
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	if forwardScheme := r.Header.Get("X-Forwarded-Scheme"); forwardScheme != "" {
-		scheme = forwardScheme
-	}
-	cleanURL := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.Path)
-
-	if claims.HTTPURL != cleanURL {
-		return "", fmt.Errorf("invalid proof: http url don't match, got:'%s', expected: '%s'", cleanURL, claims.HTTPURL)
+	if claims.HTTPURL != htu {
+		return "", fmt.Errorf("invalid proof: http url don't match, got:'%s', expected: '%s'", htu, claims.HTTPURL)
 	}
 
 	// Check expiration
-	if claims.IssuedAt-uint64(time.Now().Unix()) > uint64(ExpirationTreshold) {
-		return "", fmt.Errorf("invalid proof: issued in the future")
-	}
-	if uint64(time.Now().Unix())-claims.IssuedAt > uint64(ExpirationTreshold) {
+	if uint64(time.Now().Add(-ExpirationTreshold).Unix()) > claims.IssuedAt {
 		return "", fmt.Errorf("invalid proof: expired")
+	}
+
+	// Check future proof
+	if uint64(time.Now().Add(ExpirationTreshold).Unix()) < claims.IssuedAt {
+		return "", fmt.Errorf("invalid proof: issued in the future")
 	}
 
 	// Compute jti hash

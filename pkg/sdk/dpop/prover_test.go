@@ -18,60 +18,21 @@
 package dpop
 
 import (
-	"encoding/json"
-	"net/http"
-	"net/url"
+	"fmt"
 	"testing"
 
-	"github.com/square/go-jose/v3"
+	"github.com/golang/mock/gomock"
+	"zntr.io/solid/pkg/sdk/jwt"
+	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
 )
 
-var (
-	publicKey = mustJWK([]byte(`{
-		"kty": "EC",
-		"use": "sig",
-		"crv": "P-256",
-		"x": "wqoF5hz6iA2Zi2fA7hGdy0alu0-XGr3WDMeDH7MnrBU",
-		"y": "ddvcizAhPkapK_CnlMLh139XljlSCssrj2M6y7ypeFw",
-		"alg": "ES256"
-	}`))
-	privateKey = mustJWK([]byte(`{
-		"kty": "EC",
-		"d": "kPamR6LJ3aHNgKlGgs0HeMiAJx8zVJW5MHzLx7getc8",
-		"use": "sig",
-		"crv": "P-256",
-		"x": "wqoF5hz6iA2Zi2fA7hGdy0alu0-XGr3WDMeDH7MnrBU",
-		"y": "ddvcizAhPkapK_CnlMLh139XljlSCssrj2M6y7ypeFw",
-		"alg": "ES256"
-	}`))
-)
-
-func mustJWK(body []byte) *jose.JSONWebKey {
-	var key jose.JSONWebKey
-	if err := json.Unmarshal(body, &key); err != nil {
-		panic(err)
-	}
-	return &key
-}
-
-func mustURLParse(value string) *url.URL {
-	u, err := url.Parse(value)
-	if err != nil {
-		panic(err)
-	}
-	return u
-}
-
-func TestProver(t *testing.T) {
+func TestDefaultProver(t *testing.T) {
 	type args struct {
-		privateKey jose.SigningKey
-		htm        string
-		htu        *url.URL
+		signer jwt.Signer
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    string
 		wantErr bool
 	}{
 		{
@@ -79,76 +40,37 @@ func TestProver(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "empty key",
+			name: "valid signer",
 			args: args{
-				privateKey: jose.SigningKey{},
-				htm:        http.MethodPost,
-				htu:        mustURLParse("https://server.example.com/token"),
-			},
-			wantErr: true,
-		},
-		{
-			name: "public key",
-			args: args{
-				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: publicKey},
-				htm:        http.MethodPost,
-				htu:        mustURLParse("https://server.example.com/token"),
-			},
-			wantErr: true,
-		},
-		{
-			name: "htm empty",
-			args: args{
-				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: privateKey},
-				htm:        "",
-				htu:        mustURLParse("https://server.example.com/token"),
-			},
-			wantErr: true,
-		},
-		{
-			name: "htu nil",
-			args: args{
-				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: privateKey},
-				htm:        http.MethodPost,
-				htu:        nil,
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid",
-			args: args{
-				privateKey: jose.SigningKey{Algorithm: jose.ES256, Key: privateKey},
-				htm:        http.MethodPost,
-				htu:        mustURLParse("https://server.example.com/token"),
+				signer: jwtmock.NewMockSigner(nil),
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			underTest, err := KeyProver(tt.args.privateKey)
-			if err != nil {
-				t.Errorf("KeyProver() error = %v", err)
-				return
-			}
-
-			_, err = underTest.Prove(tt.args.htm, tt.args.htu)
+			_, err := DefaultProver(tt.args.signer)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Proof() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("DefaultProver() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 		})
 	}
 }
 
-func TestProver_Default(t *testing.T) {
+func Test_defaultProver_Prove(t *testing.T) {
+	type fields struct {
+		signer jwt.Signer
+	}
 	type args struct {
 		htm string
-		htu *url.URL
+		htu string
 	}
 	tests := []struct {
 		name    string
+		fields  fields
 		args    args
+		prepare func(*jwtmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -157,42 +79,80 @@ func TestProver_Default(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "htm empty",
+			name: "blank htm",
 			args: args{
 				htm: "",
-				htu: mustURLParse("https://server.example.com/token"),
 			},
 			wantErr: true,
 		},
 		{
-			name: "htu nil",
+			name: "blank htu",
 			args: args{
-				htm: http.MethodPost,
-				htu: nil,
+				htm: "GET",
+				htu: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid htu",
+			args: args{
+				htm: "GET",
+				htu: "https//server.com/resource",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid htm",
+			args: args{
+				htm: "POUET",
+				htu: "https://server.com/resource",
+			},
+			wantErr: true,
+		},
+		{
+			name: "token signature error",
+			args: args{
+				htm: "POST",
+				htu: "https://server.com/resource",
+			},
+			prepare: func(signer *jwtmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
 		{
 			name: "valid",
 			args: args{
-				htm: http.MethodPost,
-				htu: mustURLParse("https://server.example.com/token"),
+				htm: "POST",
+				htu: "https://server.com/resource",
+			},
+			prepare: func(signer *jwtmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
+			want:    "fake-token",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			underTest, err := DefaultProver()
-			if err != nil {
-				t.Errorf("Default() error = %v", err)
-				return
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockSigner := jwtmock.NewMockSigner(ctrl)
+
+			// Prepare mocks
+			if tt.prepare != nil {
+				tt.prepare(mockSigner)
 			}
 
-			_, err = underTest.Prove(tt.args.htm, tt.args.htu)
+			p, _ := DefaultProver(mockSigner)
+			got, err := p.Prove(tt.args.htm, tt.args.htu)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Proof() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("defaultProver.Prove() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if got != tt.want {
+				t.Errorf("defaultProver.Prove() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -19,6 +19,8 @@ package profile
 
 import "zntr.io/solid/pkg/sdk/types"
 
+//go:generate mockgen -destination mock/client.gen.go -package mock zntr.io/solid/pkg/server/profile Client
+
 // Client defines client profile contract.
 type Client interface {
 	GrantTypesSupported() types.StringArray
@@ -26,6 +28,8 @@ type Client interface {
 	ResponseTypesSupported() types.StringArray
 	DefaultScopes() types.StringArray
 }
+
+//go:generate mockgen -destination mock/server.gen.go -package mock zntr.io/solid/pkg/server/profile Server
 
 // Server defines server profile contract.
 type Server interface {

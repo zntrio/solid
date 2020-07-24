@@ -27,8 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/dpop"
@@ -37,10 +35,10 @@ import (
 	"zntr.io/solid/pkg/sdk/types"
 
 	"github.com/dchest/uniuri"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
 	"golang.org/x/oauth2"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const bodyLimiterSize = 5 << 20 // 5 Mb
@@ -142,7 +140,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 		State:               state,
 		Audience:            c.opts.Audience,
 		ResponseType:        "code",
-		ResponseMode:        &wrappers.StringValue{Value: "query.jwt"},
+		ResponseMode:        &wrapperspb.StringValue{Value: "query.jwt"},
 		ClientId:            c.opts.ClientID,
 		Nonce:               nonce,
 		Scope:               fmt.Sprintf("openid %s", strings.Join(c.opts.Scopes, " ")),
@@ -221,7 +219,7 @@ func (c *httpClient) AuthenticationURL(ctx context.Context, requestURI string) (
 
 	// Authorization request encoder
 	request, err := c.authorizationRequestEncoder.Encode(ctx, &corev1.AuthorizationRequest{
-		RequestUri: &wrappers.StringValue{Value: requestURI},
+		RequestUri: &wrapperspb.StringValue{Value: requestURI},
 	})
 	if err != nil {
 		return "", fmt.Errorf("unable to encode request: %w", err)
@@ -282,6 +280,8 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve token: %w", err)
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		var err corev1.Error
 
@@ -298,7 +298,6 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 	if err := json.NewDecoder(io.LimitReader(response.Body, bodyLimiterSize)).Decode(&token); err != nil {
 		return nil, fmt.Errorf("unable to decode json response: %w", err)
 	}
-	defer response.Body.Close()
 
 	// No error
 	return &token, nil

@@ -89,6 +89,41 @@ func (s *service) Register(ctx context.Context, req *corev1.ClientRegistrationRe
 	}
 
 	// Assign attributes
+	if err := s.applyRegistrationRequest(req, c, res); err != nil {
+		return res, err
+	}
+
+	// Save client in persistence
+	c.ClientId, err = s.clients.Register(ctx, c)
+	if err != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("unable to register client in persistence: %w", err)
+	}
+
+	// Assign client
+	res.Client = c
+
+	// No error
+	return res, nil
+}
+
+// -----------------------------------------------------------------------------
+
+func (s *service) applyRegistrationRequest(req *corev1.ClientRegistrationRequest, c *corev1.Client, res *corev1.ClientRegistrationResponse) error {
+	// Check arguments
+	if req == nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("unable to process nil request")
+	}
+	if c == nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("unable to process nil request")
+	}
+	if res == nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("unable to process nil response")
+	}
+
 	if req.Metadata.ClientName != nil {
 		// Assign to client
 		c.ClientName = req.Metadata.ClientName.Value
@@ -130,7 +165,7 @@ func (s *service) Register(ctx context.Context, req *corev1.ClientRegistrationRe
 			c.SubjectType = subjectType
 		default:
 			res.Error = rfcerrors.InvalidClientMetadata().Build()
-			return res, fmt.Errorf("subject_type contains invalid value")
+			return fmt.Errorf("subject_type contains invalid value")
 		}
 
 		// Sector identifier is mandatory with pairwise subject type
@@ -140,7 +175,7 @@ func (s *service) Register(ctx context.Context, req *corev1.ClientRegistrationRe
 				c.SectorIdentifier = req.Metadata.SectorIdentifier.Value
 			} else {
 				res.Error = rfcerrors.InvalidClientMetadata().Build()
-				return res, fmt.Errorf("sector_identifier is mandatory with subject_type")
+				return fmt.Errorf("sector_identifier is mandatory with subject_type")
 			}
 		}
 	} else {
@@ -148,21 +183,9 @@ func (s *service) Register(ctx context.Context, req *corev1.ClientRegistrationRe
 		c.SubjectType = oidc.SubjectTypePublic
 	}
 
-	// Save client in persistence
-	c.ClientId, err = s.clients.Register(ctx, c)
-	if err != nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to register client in persistence: %w", err)
-	}
-
-	// Assign client
-	res.Client = c
-
 	// No error
-	return res, nil
+	return nil
 }
-
-// -----------------------------------------------------------------------------
 
 func (s *service) validateRegistration(ctx context.Context, req *corev1.ClientRegistrationRequest) (*corev1.Error, error) {
 	// Check nil

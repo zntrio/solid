@@ -18,91 +18,76 @@
 package dpop
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dchest/uniuri"
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
+	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/types"
 )
-
-// Prover describes prover contract
-type Prover interface {
-	Prove(htm string, htu *url.URL) (string, error)
-}
 
 // -----------------------------------------------------------------------------
 
-// DefaultProver returns a prover instance with a generated key.
-func DefaultProver() (Prover, error) {
-	// Generate an ephemeral key
-	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("unable to generate P-256 private key: %w", err)
+// DefaultProver uses the given signer to generate a DPoP Proof.
+func DefaultProver(signer jwt.Signer) (Prover, error) {
+	// Check arguments
+	if types.IsNil(signer) {
+		return nil, errors.New("unable to instantiate a DPoP Prover with nil signer")
 	}
 
-	// Delegate to other constructor
-	return KeyProver(jose.SigningKey{
-		Algorithm: jose.ES256,
-		Key: &jose.JSONWebKey{
-			Use:   "sig",
-			Key:   pk,
-			KeyID: uniuri.NewLen(8),
-		},
-	})
-}
-
-// KeyProver uses the given key to instantiate a prover.
-func KeyProver(k jose.SigningKey) (Prover, error) {
 	// Build instance
 	return &defaultProver{
-		privateKey: k,
+		signer: signer,
 	}, nil
 }
 
 // -----------------------------------------------------------------------------
 
 type defaultProver struct {
-	privateKey jose.SigningKey
+	signer jwt.Signer
 }
 
-func (p *defaultProver) Prove(htm string, htu *url.URL) (string, error) {
+func (p *defaultProver) Prove(htm, htu string) (string, error) {
 	// Check parameters
 	if htm == "" {
 		return "", fmt.Errorf("htm must not be blank")
 	}
-	if htu == nil {
-		return "", fmt.Errorf("htu must not be nil")
+	if htu == "" {
+		return "", fmt.Errorf("htu must not be blank")
+	}
+
+	// Validate url
+	u, err := url.ParseRequestURI(htu)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL syntax for proof '%s': %w", htu, err)
+	}
+
+	// Validate method
+	switch strings.ToUpper(htm) {
+	case http.MethodConnect, http.MethodDelete, http.MethodGet, http.MethodHead, http.MethodOptions:
+	case http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace:
+	default:
+		return "", fmt.Errorf("invalid HTTP Method in proof '%s'", htm)
 	}
 
 	// Create proof claims
 	claims := &proofClaims{
-		JTI:        uniuri.NewLen(16),
+		JTI:        uniuri.NewLen(JTICodeLength),
 		HTTPMethod: htm,
-		HTTPURL:    fmt.Sprintf("%s://%s%s", htu.Scheme, htu.Host, htu.Path),
+		HTTPURL:    fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path),
 		IssuedAt:   uint64(time.Now().UTC().Unix()),
 	}
 
-	// Prepare signer options
-	options := (&jose.SignerOptions{}).WithType("dpop+jwt")
-	options.EmbedJWK = true
-
-	// Prepare a signer
-	sig, err := jose.NewSigner(p.privateKey, options)
+	// Sign claims
+	proof, err := p.signer.Sign(claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to prepare signer: %w", err)
-	}
-
-	// Generate the final proof
-	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
-	if err != nil {
-		return "", fmt.Errorf("unable to generate DPoP: %w", err)
+		return "", fmt.Errorf("unable to generate DPoP proof: %w", err)
 	}
 
 	// Return proof
-	return raw, nil
+	return proof, nil
 }

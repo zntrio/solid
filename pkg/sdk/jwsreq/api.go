@@ -24,8 +24,9 @@ import (
 )
 
 const (
+	// HeaderType describes JWT token header type.
 	//nolint:gosec // detected as hardcoded credentials
-	tokenHdrType = "oauth.authz.req+jwt"
+	HeaderType = "oauth.authz.req+jwt"
 )
 
 //go:generate mockgen -destination mock/authorization_decoder.gen.go -package mock zntr.io/solid/pkg/sdk/jwsreq AuthorizationDecoder

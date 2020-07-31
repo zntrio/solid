@@ -24,10 +24,10 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/server/authorizationserver"
-	"zntr.io/solid/pkg/server/clientauthentication"
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
+	"zntr.io/solid/pkg/server/clientauthentication"
 )
 
 // Token handles token HTTP requests.
@@ -101,7 +101,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		msg := messageBuilder(r, client)
 
 		// Check dpop proof
-		jkt, err := dpopVerifier.Verify(ctx, r, dpopProof)
+		jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
 		if err != nil {
 			log.Println("unable to validate dpop proof:", err)
 			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())

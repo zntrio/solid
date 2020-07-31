@@ -33,6 +33,7 @@ import (
 	"zntr.io/solid/pkg/client"
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/jarm"
+	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/jwt"
 
@@ -48,16 +49,6 @@ type sessionObject struct {
 	AccessToken  string `json:"at,omitempty"`
 	RefreshToken string `json:"rt,omitempty"`
 }
-
-var clientPrivateKey = []byte(`{
-    "kty": "EC",
-    "d": "Uwq56PhVB6STB8MvLQWcOsKQlZbBvWFQba8D6Uhb2qDunpzqvoNyFsnAHKS_AkQB",
-    "use": "sig",
-    "crv": "P-384",
-    "x": "m2NDaWfRRGlCkUa4FK949uLtMqitX1lYgi8UCIMtsuR60ux3d00XBlsC6j_YDOTe",
-    "y": "6vxuUq3V1aoWi4FQ_h9ZNwUsmcGP8Uuqq_YN5dhP0U8lchdmZJbLF9mPiimo_6p4",
-    "alg": "ES384"
-}`)
 
 const secret = "54686520776f7264206875736b79206f726967696e617465642066726f6d2074686520776f726420726566657272696e6720746f204172637469632070656f706c6520696e2067656e6572616c2c20496e7569742028612e6b2e612e2045736b696d6f73292c202e2e2e6b6e6f776e20617320276875736b69657327"
 
@@ -221,11 +212,38 @@ func home(config *session.Config) http.Handler {
 	})
 }
 
-func main() {
+// -----------------------------------------------------------------------------
+
+var clientPrivateKey = []byte(`{
+    "kty": "EC",
+    "d": "Uwq56PhVB6STB8MvLQWcOsKQlZbBvWFQba8D6Uhb2qDunpzqvoNyFsnAHKS_AkQB",
+    "use": "sig",
+    "crv": "P-384",
+    "x": "m2NDaWfRRGlCkUa4FK949uLtMqitX1lYgi8UCIMtsuR60ux3d00XBlsC6j_YDOTe",
+    "y": "6vxuUq3V1aoWi4FQ_h9ZNwUsmcGP8Uuqq_YN5dhP0U8lchdmZJbLF9mPiimo_6p4",
+    "alg": "ES384"
+}`)
+
+func keyProvider() jwk.KeyProviderFunc {
+	var privateKey jose.JSONWebKey
+
+	// Decode JWK
+	err := json.Unmarshal(clientPrivateKey, &privateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	return func(_ context.Context) (*jose.JSONWebKey, error) {
+		// No error
+		return &privateKey, nil
+	}
+}
+
+func dpopProver() (dpop.Prover, error) {
 	// Generate an ephemeral key for DPoP signer
 	pk, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("unable to generate dpop prover key: %w", err)
 	}
 
 	// Signer options
@@ -241,46 +259,73 @@ func main() {
 	}, options)
 
 	// Prover
-	prover, err := dpop.DefaultProver(dpopSigner)
+	return dpop.DefaultProver(dpopSigner)
+}
+
+func arEncoder(keyProvider jwk.KeyProviderFunc) (jwsreq.AuthorizationEncoder, error) {
+	// Retrieve private key
+	pk, err := keyProvider(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve signing key: %w", err)
+	}
+
+	// Signer options
+	options := (&jose.SignerOptions{}).WithType(jwsreq.HeaderType)
+	arSigner := jwt.DefaultSigner(jose.SigningKey{
+		Algorithm: jose.ES384,
+		Key:       pk,
+	}, options)
+
+	// No error
+	return jwsreq.JWTAuthorizationEncoder(arSigner), nil
+}
+
+func jarmDecoder(issuer string, c client.Client) (jarm.ResponseDecoder, error) {
+	return jarm.JWTDecoder(issuer, jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+		// Retrieve server publickeys
+		jwks, _, err := c.PublicKeys(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		// No error
+		return jwks, nil
+	}, []string{"ES384"})), nil
+}
+
+func main() {
+	ctx := context.Background()
+
+	// DPoP
+	prover, err := dpopProver()
 	if err != nil {
 		panic(err)
 	}
 
-	// JAR
-	arEncoder := jwsreq.JWTAuthorizationEncoder(jose.ES384, func(_ context.Context) (*jose.JSONWebKey, error) {
-		var privateKey jose.JSONWebKey
-
-		// Decode JWK
-		err := json.Unmarshal(clientPrivateKey, &privateKey)
-		if err != nil {
-			return nil, fmt.Errorf("unable to decode JWK: %w", err)
-		}
-
-		// No error
-		return &privateKey, nil
-	})
+	// JWSREQ
+	jwsreqEncoder, err := arEncoder(keyProvider())
 	if err != nil {
 		panic(err)
 	}
 
 	// Build client
-	solidClient := client.HTTP(prover, arEncoder, &client.Options{
+	solidClient, err := client.HTTP(ctx, prover, jwsreqEncoder, &client.Options{
+		Issuer:      "http://127.0.0.1:8080",
 		Audience:    "NYxFyoSuuRGXItTbX",
 		ClientID:    "6779ef20e75817b79602",
-		Issuer:      "http://127.0.0.1:8080",
 		JWK:         clientPrivateKey,
 		RedirectURI: "http://127.0.0.1:8085/oidc/as/127.0.0.1",
 		Scopes:      []string{"user", "profile", "email", oidc.ScopeOfflineAccess},
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	// JARM
-	jarmDecoder := jarm.JWTDecoder("http://127.0.0.1:8080", func(ctx context.Context) (*jose.JSONWebKeySet, error) {
-		jwks, _, err := solidClient.PublicKeys(ctx)
-		if err != nil {
-			return nil, err
-		}
-		return jwks, nil
-	})
+	jarmDecoder, err := jarmDecoder("http://127.0.0.1:8080", solidClient)
+	if err != nil {
+		panic(err)
+	}
 
 	// Cookie session
 	sessions := &session.Config{

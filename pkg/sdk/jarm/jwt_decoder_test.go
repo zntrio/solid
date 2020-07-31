@@ -112,7 +112,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -128,7 +128,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *jwtResponseClaims:
 						*v = jwtResponseClaims{
@@ -158,7 +158,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *jwtResponseClaims:
 						*v = jwtResponseClaims{
@@ -188,7 +188,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *jwtResponseClaims:
 						*v = jwtResponseClaims{
@@ -218,7 +218,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *jwtResponseClaims:
 						*v = jwtResponseClaims{
@@ -237,23 +237,23 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		{
 			name: "valid",
 			fields: fields{
-				issuer: "https://example.com",
+				issuer: "https://accounts.example.com",
 			},
 			args: args{
-				audience: "https://example.com",
+				audience: "s6BhdRkqt3",
 				response: "fake-token",
 			},
 			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *jwtResponseClaims:
 						*v = jwtResponseClaims{
-							Issuer:    "https://example.com",
-							Audience:  "https://example.com",
-							Code:      "AZERTYUIOP",
-							State:     "QSDFGHJKLM",
+							Issuer:    "https://accounts.example.com",
+							Audience:  "s6BhdRkqt3",
+							Code:      "PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
+							State:     "S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw",
 							ExpiresAt: uint64(time.Now().Add(60 * time.Second).Unix()),
 						}
 					}
@@ -261,8 +261,8 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationCodeResponse{
-				Code:  "AZERTYUIOP",
-				State: "QSDFGHJKLM",
+				Code:  "PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
+				State: "S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw",
 			},
 		},
 	}

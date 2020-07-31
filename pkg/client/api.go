@@ -22,6 +22,8 @@ import (
 
 	"github.com/square/go-jose/v3"
 	"golang.org/x/oauth2"
+
+	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
 )
 
 // Client describes OIDC client contract.
@@ -33,6 +35,7 @@ type Client interface {
 	PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint64, error)
 	ClientID() string
 	Audience() string
+	ServerMetadata() *discoveryv1.ServerMetadata
 }
 
 // Options defines client options

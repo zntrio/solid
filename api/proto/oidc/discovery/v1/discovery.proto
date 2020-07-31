@@ -333,6 +333,23 @@ message ServerMetadata {
   // certificate-bound access tokens. If omitted, the default value is false.
   // https://www.rfc-editor.org/rfc/rfc8705.html#section-3.3
   bool tls_client_certificate_bound_access_tokens = 48;
+
+  // https://openid.net/specs/openid-financial-api-jarm.html#authorization-server-metadata
+
+  // OPTIONAL. JSON array containing a list of the JWS [RFC7515] signing
+  // algorithms (alg values) JWA [RFC7518] supported by the authorization
+  // endpoint to sign the response.
+  repeated string authorization_signing_alg_values_supported = 49;
+
+  // OPTIONAL. JSON array containing a list of the JWE [RFC7516] encryption
+  // algorithms (alg values) JWA [RFC7518] supported by the authorization
+  // endpoint to encrypt the response.
+  repeated string authorization_encryption_alg_values_supported = 50;
+
+  // OPTIONAL. JSON array containing a list of the JWE [RFC7516] encryption
+  // algorithms (enc values) JWA [RFC7518] supported by the authorization
+  // endpoint to encrypt the response.
+  repeated string authorization_encryption_enc_values_supported = 51;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

@@ -32,8 +32,8 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
 )
 
 // DCR handles dynamic client registration.

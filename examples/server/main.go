@@ -29,10 +29,11 @@ import (
 
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/generator"
-	"zntr.io/solid/pkg/sdk/generator/jwt"
+	jwtgen "zntr.io/solid/pkg/sdk/generator/jwt"
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
+	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/server/authorizationserver"
 
 	"github.com/square/go-jose/v3"
@@ -90,11 +91,7 @@ func main() {
 	as, err := authorizationserver.New(ctx,
 		"http://127.0.0.1:8080", // Issuer
 		// Client storage
-<<<<<<< HEAD
 		authorizationserver.ClientReader(inmemory.Clients()),
-=======
-		as.ClientManager(inmemory.Clients()),
->>>>>>> 8bda6ef... feat(oidc): DCR open registration.
 		// Authorization requests
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
@@ -102,7 +99,7 @@ func main() {
 		// Token storage
 		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Access token generator
-		authorizationserver.AccessTokenGenerator(jwt.AccessToken(jose.ES384, keyProvider())),
+		authorizationserver.AccessTokenGenerator(jwtgen.AccessToken(jose.ES384, keyProvider())),
 		// Device authorization session storage
 		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 	)
@@ -116,7 +113,10 @@ func main() {
 	basicAuth := middleware.BasicAuthentication()
 
 	// Initialize dpop verifier
-	dpopVerifier := dpop.DefaultVerifier(inmemory.DPoPProofs())
+	dpopVerifier, err := dpop.DefaultVerifier(inmemory.DPoPProofs(), jwt.DefaultVerifier(keySetProvider(), []string{"ES384"}))
+	if err != nil {
+		panic(err)
+	}
 
 	// JWSREQ Decoder
 	requestDecoder := jwsreq.JWTAuthorizationDecoder(keySetProvider())

@@ -87,7 +87,7 @@ func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*co
 	var claims jwtResponseClaims
 
 	// Extract claims
-	if err := t.Claims(response, &claims); err != nil {
+	if err := d.verifier.Claims(response, &claims); err != nil {
 		return nil, fmt.Errorf("unable to extract claims from JARM response : %w", err)
 	}
 

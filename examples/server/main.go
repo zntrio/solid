@@ -20,6 +20,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -84,6 +85,24 @@ func keySetProvider() jwk.KeySetProviderFunc {
 	}
 }
 
+func jarmEncoder(keyProvider jwk.KeyProviderFunc) (jarm.ResponseEncoder, error) {
+	// Retrieve private key
+	pk, err := keyProvider(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve a signing key")
+	}
+
+	// Signer options
+	options := (&jose.SignerOptions{}).WithType(jarm.HeaderType)
+	jarmSigner := jwt.DefaultSigner(jose.SigningKey{
+		Algorithm: jose.ES384,
+		Key:       pk,
+	}, options)
+
+	// Prover
+	return jarm.JWTEncoder(jarmSigner), nil
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -119,10 +138,13 @@ func main() {
 	}
 
 	// JWSREQ Decoder
-	requestDecoder := jwsreq.JWTAuthorizationDecoder(keySetProvider())
+	requestDecoder := jwsreq.JWTAuthorizationDecoder(jwt.DefaultVerifier(keySetProvider(), []string{string(jose.ES384)}))
 
 	// Initialize JARM encoder
-	jarmEncoder := jarm.JWTEncoder(jose.ES384, keyProvider())
+	jarmEncoder, err := jarmEncoder(keyProvider())
+	if err != nil {
+		panic(err)
+	}
 
 	// Create router
 	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as))

@@ -28,6 +28,7 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/dpop"
 	jwsreq "zntr.io/solid/pkg/sdk/jwsreq"
@@ -44,17 +45,41 @@ import (
 const bodyLimiterSize = 5 << 20 // 5 Mb
 
 // HTTP creates an HTTP OIDC Client.
-func HTTP(prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) Client {
-	return &httpClient{
-		opts:                               opts,
-		prover:                             prover,
-		authorizationRequestEncoder:        authorizationRequestEncoder,
-		httpClient:                         http.DefaultClient,
-		authorizationEndpoint:              fmt.Sprintf("%s/authorize", opts.Issuer),
-		pushedAuthorizationRequestEndpoint: fmt.Sprintf("%s/par", opts.Issuer),
-		tokenEndpoint:                      fmt.Sprintf("%s/token", opts.Issuer),
-		jwksEndpoint:                       fmt.Sprintf("%s/.well-known/jwks.json", opts.Issuer),
+func HTTP(ctx context.Context, prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) (Client, error) {
+
+	// Initialize solid client
+	c := &httpClient{
+		opts:                        opts,
+		prover:                      prover,
+		authorizationRequestEncoder: authorizationRequestEncoder,
+		httpClient:                  http.DefaultClient,
 	}
+
+	// Query server metadata endpoint
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/.well-known/oauth-authorization-server", opts.Issuer), nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to query server metadata: %w", err)
+	}
+
+	// Do the query
+	response, err := c.httpClient.Do(req)
+	if err != nil || response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unable to parse server metadata request: %w", err)
+	}
+	defer response.Body.Close()
+
+	// Parse response
+	if err := json.NewDecoder(response.Body).Decode(&c.serverMetadata); err != nil {
+		return nil, fmt.Errorf("unable to decode server metadata: %w", err)
+	}
+
+	// Retrieve public keys
+	if _, _, err := c.PublicKeys(ctx); err != nil {
+		return nil, fmt.Errorf("unable to retrieve public keys: %w", err)
+	}
+
+	// No error
+	return c, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -66,17 +91,14 @@ type httpClient struct {
 	authorizationRequestEncoder jwsreq.AuthorizationEncoder
 	jwks                        *jose.JSONWebKeySet
 	jwksExpiration              uint64
-	// Endpoints
-	authorizationEndpoint              string
-	pushedAuthorizationRequestEndpoint string
-	tokenEndpoint                      string
-	jwksEndpoint                       string
+	serverMetadata              *discoveryv1.ServerMetadata
 }
 
 // -----------------------------------------------------------------------------
 
-func (c *httpClient) ClientID() string { return c.opts.ClientID }
-func (c *httpClient) Audience() string { return c.opts.Audience }
+func (c *httpClient) ClientID() string                            { return c.opts.ClientID }
+func (c *httpClient) Audience() string                            { return c.opts.Audience }
+func (c *httpClient) ServerMetadata() *discoveryv1.ServerMetadata { return c.serverMetadata }
 
 // -----------------------------------------------------------------------------
 
@@ -120,7 +142,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 	}
 
 	// Prepare PAR endpoint
-	parURL, err := url.Parse(c.pushedAuthorizationRequestEndpoint)
+	parURL, err := url.Parse(c.serverMetadata.PushedAuthorizationRequestEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse pushed_authorization_endpoint url: %w", err)
 	}
@@ -176,7 +198,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Prepare DPoP
-	proof, err := c.prover.Prove(http.MethodPost, c.pushedAuthorizationRequestEndpoint)
+	proof, err := c.prover.Prove(http.MethodPost, c.serverMetadata.PushedAuthorizationRequestEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to compute proof of possession: %w", err)
 	}
@@ -212,7 +234,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 
 func (c *httpClient) AuthenticationURL(ctx context.Context, requestURI string) (string, error) {
 	// Parse authentication url endpoint
-	authURL, err := url.Parse(c.authorizationEndpoint)
+	authURL, err := url.Parse(c.serverMetadata.AuthorizationEndpoint)
 	if err != nil {
 		return "", fmt.Errorf("unable to parse authentication endpoint url: %w", err)
 	}
@@ -240,7 +262,7 @@ func (c *httpClient) AuthenticationURL(ctx context.Context, requestURI string) (
 // ExchangeCode uses authorization_code to retrieve the final tokens.
 func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCodeVerifier string) (*oauth2.Token, error) {
 	// Parse authentication url endpoint
-	tokenURL, err := url.Parse(c.tokenEndpoint)
+	tokenURL, err := url.Parse(c.serverMetadata.TokenEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse token endpoint url: %w", err)
 	}
@@ -267,7 +289,7 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Prepare DPoP
-	proof, err := c.prover.Prove(http.MethodPost, c.tokenEndpoint)
+	proof, err := c.prover.Prove(http.MethodPost, c.serverMetadata.TokenEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("unable to compute proof of possession: %w", err)
 	}
@@ -311,7 +333,7 @@ func (c *httpClient) PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint6
 	}
 
 	// Parse authentication url endpoint
-	jwksURL, err := url.Parse(c.jwksEndpoint)
+	jwksURL, err := url.Parse(c.serverMetadata.JwksUri)
 	if err != nil {
 		return nil, 0, fmt.Errorf("unable to parse jwks endpoint url: %w", err)
 	}

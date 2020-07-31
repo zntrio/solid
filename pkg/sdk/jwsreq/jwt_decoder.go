@@ -18,56 +18,51 @@
 package jwsreq
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/square/go-jose/v3"
-	"google.golang.org/protobuf/encoding/protojson"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/jwt"
+
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // -----------------------------------------------------------------------------
 
 // JWTAuthorizationDecoder returns an authorization request decoder instance.
-func JWTAuthorizationDecoder(keySetProvider jwk.KeySetProviderFunc) AuthorizationDecoder {
+func JWTAuthorizationDecoder(verifier jwt.Verifier) AuthorizationDecoder {
 	return &jwtDecoder{
-		keySetProvider: keySetProvider,
+		verifier: verifier,
 	}
 }
 
 type jwtDecoder struct {
-	keySetProvider jwk.KeySetProviderFunc
+	verifier jwt.Verifier
 }
 
 func (d *jwtDecoder) Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error) {
-	// Validate value
-	token, err := jose.ParseSigned(value)
-	if err != nil {
-		return nil, fmt.Errorf("unable to decode request value as a valid JWT: %w", err)
+	// Check arguments
+	if value == "" {
+		return nil, fmt.Errorf("value must not be blank")
 	}
 
-	// Retrieve key set
-	jwks, err := d.keySetProvider(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve key set from provider: %w", err)
-	}
-	if jwks == nil {
-		return nil, fmt.Errorf("key set provider returned a nil key set")
-	}
-	if len(jwks.Keys) == 0 {
-		return nil, fmt.Errorf("key set provider returned an empty key set")
+	// Extract claims
+	var claims map[string]interface{}
+	if err := d.verifier.Claims(value, &claims); err != nil {
+		return nil, fmt.Errorf("unable to decode request claims: %w", err)
 	}
 
-	// Try to validate assertion with one of keys
-	if err := jwk.ValidateSignature(jwks, token); err != nil {
-		return nil, fmt.Errorf("unable to validate request object signature: %w", err)
+	// Re-encode to json
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(claims); err != nil {
+		return nil, fmt.Errorf("unable to reencode request claims as json : %w", err)
 	}
 
-	// Verifiy token claims
+	// Verify token claims
 	var req corev1.AuthorizationRequest
-	if err := protojson.Unmarshal(token.UnsafePayloadWithoutVerification(), &req); err != nil {
+	if err := protojson.Unmarshal(buf.Bytes(), &req); err != nil {
 		return nil, fmt.Errorf("unable to decode request payload: %w", err)
 	}
 

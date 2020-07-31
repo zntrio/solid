@@ -23,6 +23,11 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
+const (
+	// HeaderType defines typ claim value
+	HeaderType = "jarm+jwt"
+)
+
 // ResponseDecoder describes Authorization Response Decoder contract.
 type ResponseDecoder interface {
 	Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error)

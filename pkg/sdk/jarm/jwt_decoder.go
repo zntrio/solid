@@ -23,10 +23,8 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
-
-	"github.com/square/go-jose/v3/jwt"
 )
 
 // -----------------------------------------------------------------------------
@@ -49,43 +47,48 @@ func (r *jwtResponseClaims) HasError() bool {
 // -----------------------------------------------------------------------------
 
 // JWTDecoder builds a JWT Response deocer instance.
-func JWTDecoder(issuer string, keySetProvider jwk.KeySetProviderFunc) ResponseDecoder {
+func JWTDecoder(issuer string, verifier jwt.Verifier) ResponseDecoder {
 	return &jwtDecoder{
-		issuer:         issuer,
-		keySetProvider: keySetProvider,
+		issuer:   issuer,
+		verifier: verifier,
 	}
 }
 
 type jwtDecoder struct {
-	keySetProvider jwk.KeySetProviderFunc
-	issuer         string
+	issuer   string
+	verifier jwt.Verifier
 }
 
 func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error) {
-	// Retrieve key from provider
-	jwks, err := d.keySetProvider(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve key from provider: %w", err)
+	// Check arguments
+	if audience == "" {
+		return nil, fmt.Errorf("audience must not be blank")
 	}
-	if jwks == nil {
-		return nil, fmt.Errorf("key set privoder returned nil key set")
-	}
-	if len(jwks.Keys) == 0 {
-		return nil, fmt.Errorf("key set provider returned an empty key list")
+	if response == "" {
+		return nil, fmt.Errorf("response must not be blank")
 	}
 
-	// Validate value
-	token, err := jwt.ParseSigned(response)
+	// Parse response
+	t, err := d.verifier.Parse(response)
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode response value as a valid JWT: %w", err)
+		return nil, fmt.Errorf("unable to parse JARM response: %w", err)
+	}
+
+	// Check token type
+	typ, err := t.Type()
+	if err != nil {
+		return nil, fmt.Errorf("jarm response has not a valid jwt syntax, valid 'typ' header is mandatory")
+	}
+	if typ != HeaderType {
+		return nil, fmt.Errorf("jarm response  has not a valid jwt syntax, 'typ' header value must be '%s'", HeaderType)
 	}
 
 	// Claims
 	var claims jwtResponseClaims
 
-	// Validate token
-	if err := jwk.ValidateToken(jwks, token, &claims); err != nil {
-		return nil, fmt.Errorf("unable to validate response token: %w", err)
+	// Extract claims
+	if err := t.Claims(response, &claims); err != nil {
+		return nil, fmt.Errorf("unable to extract claims from JARM response : %w", err)
 	}
 
 	// Decode claims

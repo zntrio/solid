@@ -22,27 +22,23 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
-	"google.golang.org/protobuf/encoding/protojson"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/jwt"
+
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // -----------------------------------------------------------------------------
 
 // JWTAuthorizationEncoder returns an authorization request encoder instance.
-func JWTAuthorizationEncoder(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) AuthorizationEncoder {
+func JWTAuthorizationEncoder(signer jwt.Signer) AuthorizationEncoder {
 	return &jwtEncoder{
-		alg:         alg,
-		keyProvider: keyProvider,
+		signer: signer,
 	}
 }
 
 type jwtEncoder struct {
-	alg         jose.SignatureAlgorithm
-	keyProvider jwk.KeyProviderFunc
+	signer jwt.Signer
 }
 
 func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error) {
@@ -51,21 +47,10 @@ func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReque
 		return "", fmt.Errorf("unable to encode nil request")
 	}
 
-	// Retrieve the signing key
-	key, err := enc.keyProvider(ctx)
-	if err != nil {
-		return "", fmt.Errorf("unable to retrieve key from key provider: %w", err)
-	}
-	if key == nil {
-		return "", fmt.Errorf("key provider returned a nil key")
-	}
-	if key.IsPublic() {
-		return "", fmt.Errorf("key provider returned a public key")
-	}
-
 	// Encode ar as json
 	jsonString, err := protojson.MarshalOptions{
-		UseProtoNames: true,
+		UseProtoNames:   true,
+		EmitUnpopulated: false,
 	}.Marshal(ar)
 	if err != nil {
 		return "", fmt.Errorf("unable to prepare request: %w", err)
@@ -77,21 +62,12 @@ func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReque
 		return "", fmt.Errorf("unable to serialize request payload: %w", err)
 	}
 
-	// Preapre JWT header
-	options := (&jose.SignerOptions{}).WithType(tokenHdrType)
-
-	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: enc.alg, Key: key}, options)
+	// Sign request
+	req, err := enc.signer.Sign(claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to prepare signer: %w", err)
-	}
-
-	// Generate signed token
-	out, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
-	if err != nil {
-		return "", fmt.Errorf("unable to generate JWT encoding: %w", err)
+		return "", fmt.Errorf("unable to sign request: %w", err)
 	}
 
 	// No error
-	return out, nil
+	return req, nil
 }

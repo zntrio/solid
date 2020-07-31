@@ -23,46 +23,29 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwk"
-
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
+	"zntr.io/solid/pkg/sdk/jwt"
 )
 
 // -----------------------------------------------------------------------------
 
 // JWTEncoder builds a JWT Response encoder instance.
-func JWTEncoder(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) ResponseEncoder {
+func JWTEncoder(signer jwt.Signer) ResponseEncoder {
 	return &jwtEncoder{
-		alg:         alg,
-		keyProvider: keyProvider,
+		signer: signer,
 	}
 }
 
 type jwtEncoder struct {
-	alg         jose.SignatureAlgorithm
-	keyProvider jwk.KeyProviderFunc
+	signer jwt.Signer
 }
 
 func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error) {
 	// Check arguments
-	if resp == nil {
-		return "", fmt.Errorf("unable to process nil response")
-	}
 	if issuer == "" {
 		return "", fmt.Errorf("unable to process empty issuer")
 	}
-
-	// Retrieve key from provider
-	k, err := d.keyProvider(ctx)
-	if err != nil {
-		return "", fmt.Errorf("unable to retrieve signing key from provider: %w", err)
-	}
-	if k == nil {
-		return "", fmt.Errorf("key provider returned nil key")
-	}
-	if k.IsPublic() {
-		return "", fmt.Errorf("key provider returned a public key")
+	if resp == nil {
+		return "", fmt.Errorf("unable to process nil response")
 	}
 
 	// Prepare response claims
@@ -74,6 +57,20 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 			ErrorDescription: resp.Error.ErrorDescription,
 		}
 	} else {
+		// Validate mandatory fields
+		if resp.ClientId == "" {
+			return "", fmt.Errorf("client_id must not be blank")
+		}
+		if resp.Code == "" {
+			return "", fmt.Errorf("code must not be blank")
+		}
+		if resp.State == "" {
+			return "", fmt.Errorf("state must not be blank")
+		}
+		if resp.ExpiresIn <= 0 {
+			return "", fmt.Errorf("expires_in must not be strictly positive")
+		}
+
 		claims = &jwtResponseClaims{
 			State:     resp.State,
 			Issuer:    issuer,
@@ -83,19 +80,10 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 		}
 	}
 
-	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{
-		Algorithm: d.alg,
-		Key:       k,
-	}, nil)
+	// Sign the claims to generate token
+	raw, err := d.signer.Sign(claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to prepare signer: %w", err)
-	}
-
-	// Generate the final proof
-	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
-	if err != nil {
-		return "", fmt.Errorf("unable to generate JARM: %w", err)
+		return "", fmt.Errorf("unable to encode JARM assertion: %w", err)
 	}
 
 	// No error

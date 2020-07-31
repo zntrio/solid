@@ -17,6 +17,8 @@
 
 package jwt
 
+import "errors"
+
 //go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/jwt Signer
 
 // Signer describe JWT signer contract.
@@ -30,6 +32,7 @@ type Signer interface {
 type Verifier interface {
 	Parse(token string) (Token, error)
 	Verify(token string) error
+	Claims(token string, claims interface{}) error
 }
 
 //go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/sdk/jwt Token
@@ -37,8 +40,13 @@ type Verifier interface {
 // Token represents a jwt token contract.
 type Token interface {
 	Type() (string, error)
+	KeyID() (string, error)
 	PublicKey() (interface{}, error)
 	PublicKeyThumbPrint() (string, error)
 	Algorithm() (string, error)
 	Claims(publicKey interface{}, claims interface{}) error
 }
+
+// ErrInvalidTokenSignature is raised when token is signed with a private key
+// where the public key is not known by the keyset.
+var ErrInvalidTokenSignature = errors.New("invalid token signature")

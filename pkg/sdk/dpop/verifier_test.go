@@ -33,9 +33,8 @@ import (
 
 func TestDefaultVerifier(t *testing.T) {
 	type args struct {
-		proofs    storage.DPoP
-		verifier  jwt.Verifier
-		supported []string
+		proofs   storage.DPoP
+		verifier jwt.Verifier
 	}
 	tests := []struct {
 		name    string
@@ -55,26 +54,17 @@ func TestDefaultVerifier(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "blank supported",
+			name: "valid",
 			args: args{
 				proofs:   storagemock.NewMockDPoP(nil),
 				verifier: jwtmock.NewMockVerifier(nil),
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid",
-			args: args{
-				proofs:    storagemock.NewMockDPoP(nil),
-				verifier:  jwtmock.NewMockVerifier(nil),
-				supported: []string{"ES256"},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := DefaultVerifier(tt.args.proofs, tt.args.verifier, tt.args.supported)
+			_, err := DefaultVerifier(tt.args.proofs, tt.args.verifier)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DefaultVerifier() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -189,7 +179,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			},
 			prepare: func(_ *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
@@ -205,7 +194,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			},
 			prepare: func(_ *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(nil)
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
@@ -222,7 +210,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			prepare: func(proofs *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
@@ -249,7 +236,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			prepare: func(proofs *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
@@ -276,7 +262,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			prepare: func(proofs *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
@@ -304,7 +289,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			prepare: func(proofs *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
@@ -333,7 +317,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			prepare: func(proofs *storagemock.MockDPoP, verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
-				token.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
@@ -368,7 +351,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				tt.prepare(mockStorage, mockVerifier, mockToken)
 			}
 
-			v, _ := DefaultVerifier(mockStorage, mockVerifier, defaultSupportedAlgorithms)
+			v, _ := DefaultVerifier(mockStorage, mockVerifier)
 			got, err := v.Verify(tt.args.ctx, tt.args.htm, tt.args.htu, tt.args.proof)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultVerifier.Verify() error = %v, wantErr %v", err, tt.wantErr)
@@ -422,36 +405,11 @@ func Test_defaultVerifier_validateProofHeader(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "algorithm error",
-			args: args{
-				token: func(ctrl *gomock.Controller) jwt.Token {
-					mockToken := jwtmock.NewMockToken(ctrl)
-					mockToken.EXPECT().Type().Return(HeaderType, nil)
-					mockToken.EXPECT().Algorithm().Return("", fmt.Errorf("foo"))
-					return mockToken
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "algorithm not supported",
-			args: args{
-				token: func(ctrl *gomock.Controller) jwt.Token {
-					mockToken := jwtmock.NewMockToken(ctrl)
-					mockToken.EXPECT().Type().Return(HeaderType, nil)
-					mockToken.EXPECT().Algorithm().Return("PSS385", nil)
-					return mockToken
-				},
-			},
-			wantErr: true,
-		},
-		{
 			name: "public key error",
 			args: args{
 				token: func(ctrl *gomock.Controller) jwt.Token {
 					mockToken := jwtmock.NewMockToken(ctrl)
 					mockToken.EXPECT().Type().Return(HeaderType, nil)
-					mockToken.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 					mockToken.EXPECT().PublicKey().Return(nil, fmt.Errorf("foo"))
 					return mockToken
 				},
@@ -464,7 +422,6 @@ func Test_defaultVerifier_validateProofHeader(t *testing.T) {
 				token: func(ctrl *gomock.Controller) jwt.Token {
 					mockToken := jwtmock.NewMockToken(ctrl)
 					mockToken.EXPECT().Type().Return(HeaderType, nil)
-					mockToken.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 					mockToken.EXPECT().PublicKey().Return(nil, nil)
 					return mockToken
 				},
@@ -477,7 +434,6 @@ func Test_defaultVerifier_validateProofHeader(t *testing.T) {
 				token: func(ctrl *gomock.Controller) jwt.Token {
 					mockToken := jwtmock.NewMockToken(ctrl)
 					mockToken.EXPECT().Type().Return(HeaderType, nil)
-					mockToken.EXPECT().Algorithm().Return(defaultSupportedAlgorithms[0], nil)
 					mockToken.EXPECT().PublicKey().Return(&struct{}{}, nil)
 					return mockToken
 				},
@@ -494,9 +450,8 @@ func Test_defaultVerifier_validateProofHeader(t *testing.T) {
 			mockVerifier := jwtmock.NewMockVerifier(ctrl)
 
 			v := &defaultVerifier{
-				proofs:              mockStorage,
-				verifier:            mockVerifier,
-				supportedAlgorithms: []string{"ES256"},
+				proofs:   mockStorage,
+				verifier: mockVerifier,
 			}
 			if err := v.validateProofHeader(tt.args.token(ctrl)); (err != nil) != tt.wantErr {
 				t.Errorf("defaultVerifier.validateHeader() error = %v, wantErr %v", err, tt.wantErr)
@@ -569,9 +524,8 @@ func Test_defaultVerifier_extractProofClaims(t *testing.T) {
 			mockVerifier := jwtmock.NewMockVerifier(ctrl)
 
 			v := &defaultVerifier{
-				proofs:              mockStorage,
-				verifier:            mockVerifier,
-				supportedAlgorithms: []string{"ES256"},
+				proofs:   mockStorage,
+				verifier: mockVerifier,
 			}
 			_, err := v.extractProofClaims(tt.args.token(ctrl))
 			if (err != nil) != tt.wantErr {
@@ -695,9 +649,8 @@ func Test_defaultVerifier_validateProofClaims(t *testing.T) {
 			mockVerifier := jwtmock.NewMockVerifier(ctrl)
 
 			v := &defaultVerifier{
-				proofs:              mockStorage,
-				verifier:            mockVerifier,
-				supportedAlgorithms: []string{"ES256"},
+				proofs:   mockStorage,
+				verifier: mockVerifier,
 			}
 			got, err := v.validateProofClaims(tt.args.htm, tt.args.htu, tt.args.claims)
 			if (err != nil) != tt.wantErr {
@@ -710,9 +663,3 @@ func Test_defaultVerifier_validateProofClaims(t *testing.T) {
 		})
 	}
 }
-
-// -----------------------------------------------------------------------------
-
-var (
-	defaultSupportedAlgorithms = []string{"ES256"}
-)

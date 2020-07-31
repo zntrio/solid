@@ -37,7 +37,7 @@ import (
 
 // DefaultVerifier returns a verifier instance with in-memory cache for proof
 // storage.
-func DefaultVerifier(proofs storage.DPoP, verifier jwt.Verifier, supported []string) (Verifier, error) {
+func DefaultVerifier(proofs storage.DPoP, verifier jwt.Verifier) (Verifier, error) {
 	// Check arguments
 	if types.IsNil(proofs) {
 		return nil, fmt.Errorf("proof storage is mandatory and couldn't be nil")
@@ -45,24 +45,19 @@ func DefaultVerifier(proofs storage.DPoP, verifier jwt.Verifier, supported []str
 	if types.IsNil(verifier) {
 		return nil, fmt.Errorf("jwt verifier is mandatory and couldn't be nil")
 	}
-	if len(supported) == 0 {
-		return nil, fmt.Errorf("supported algorithm is mandatory and couldn't be empty")
-	}
 
 	// No error
 	return &defaultVerifier{
-		proofs:              proofs,
-		verifier:            verifier,
-		supportedAlgorithms: types.StringArray(supported),
+		proofs:   proofs,
+		verifier: verifier,
 	}, nil
 }
 
 // -----------------------------------------------------------------------------
 
 type defaultVerifier struct {
-	proofs              storage.DPoP
-	verifier            jwt.Verifier
-	supportedAlgorithms types.StringArray
+	proofs   storage.DPoP
+	verifier jwt.Verifier
 }
 
 // Verify given DPoP proof.
@@ -144,15 +139,6 @@ func (v *defaultVerifier) validateProofHeader(proof jwt.Token) error {
 	}
 	if typ != HeaderType {
 		return fmt.Errorf("proof has not a valid jwt syntax, 'typ' header value must be '%s'", HeaderType)
-	}
-
-	// Algorithm
-	alg, err := proof.Algorithm()
-	if err != nil {
-		return fmt.Errorf("proof has not a valid jwt syntax, valid 'alg' header is mandatory")
-	}
-	if !v.supportedAlgorithms.Contains(alg) {
-		return fmt.Errorf("proof has not a valid jwt syntax, current 'alg' is not supported")
 	}
 
 	// JWK

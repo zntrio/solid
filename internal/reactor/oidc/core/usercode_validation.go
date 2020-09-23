@@ -15,37 +15,33 @@
 // specific language governing permissions and limitations
 // under the License.
 
-syntax = "proto3";
+package core
 
-package oidc.core.v1;
+import (
+	"context"
+	"fmt"
 
-option go_package = "oidc/core/v1;corev1";
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/internal/services"
+	"zntr.io/solid/pkg/sdk/types"
+	"zntr.io/solid/pkg/server/reactor"
+)
 
-import "oidc/core/v1/core.proto";
-import "oidc/core/v1/core_api.proto";
-import "oidc/core/v1/client.proto";
+// UserCodeValidationHandler handles device user code validation requests.
+var UserCodeValidationHandler = func(authorization services.Device) reactor.HandlerFunc {
+	return func(ctx context.Context, r interface{}) (interface{}, error) {
+		// Check nil request
+		if types.IsNil(r) {
+			return nil, fmt.Errorf("unable to process nil request")
+		}
 
-message AuthorizationCodeSession {
-  Client client = 1;
-  AuthorizationRequest request = 2;
-  string subject = 3;
-}
+		// Check request type
+		req, ok := r.(*corev1.DeviceCodeValidationRequest)
+		if !ok {
+			return nil, fmt.Errorf("invalid request type %T", req)
+		}
 
-enum DeviceCodeStatus {
-  DEVICE_CODE_STATUS_INVALID = 0;
-  DEVICE_CODE_STATUS_UNKNOWN = 1;
-  DEVICE_CODE_STATUS_AUTHORIZATION_PENDING = 2;
-  DEVICE_CODE_STATUS_VALIDATED = 3;
-}
-
-message DeviceCodeSession {
-  Client client = 1;
-  DeviceAuthorizationRequest request = 2;
-  string device_code = 3;
-  string user_code = 4;
-  fixed64 expires_at = 5;
-  DeviceCodeStatus status = 6;
-  string scope = 7;
-  string audience = 8;
-  string subject = 9;
+		// Delegate to service
+		return authorization.Validate(ctx, req)
+	}
 }

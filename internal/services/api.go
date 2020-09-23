@@ -45,6 +45,8 @@ type Token interface {
 type Device interface {
 	// Authorize process device authorization request.
 	Authorize(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error)
+	// Validate user code
+	Validate(ctx context.Context, req *corev1.DeviceCodeValidationRequest) (*corev1.DeviceCodeValidationResponse, error)
 }
 
 // Client describes client management request processor.

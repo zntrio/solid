@@ -127,13 +127,15 @@ type AuthorizationCodeSession interface {
 type DeviceCodeSessionWriter interface {
 	Register(ctx context.Context, r *corev1.DeviceCodeSession) (string, string, uint64, error)
 	Delete(ctx context.Context, id string) error
+	Authorize(ctx context.Context, userCode, subject string) error
 }
 
 //go:generate mockgen -destination mock/device_code_session_reader.gen.go -package mock zntr.io/solid/pkg/server/storage DeviceCodeSessionReader
 
 // DeviceCodeSessionReader describes deviceCode read-only operation contract.
 type DeviceCodeSessionReader interface {
-	Get(ctx context.Context, id string) (*corev1.DeviceCodeSession, error)
+	GetByDeviceCode(ctx context.Context, deviceCode string) (*corev1.DeviceCodeSession, error)
+	GetByUserCode(ctx context.Context, userCode string) (*corev1.DeviceCodeSession, error)
 }
 
 //go:generate mockgen -destination mock/device_code_session.gen.go -package mock zntr.io/solid/pkg/server/storage DeviceCodeSession

@@ -8,6 +8,7 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.1
+	github.com/google/gofuzz v1.2.0
 	github.com/kr/session v0.1.0
 	github.com/magefile/mage v1.10.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible

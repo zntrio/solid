@@ -70,7 +70,9 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 			}
 		case oidc.GrantTypeDeviceCode:
 			msg.Grant = &corev1.TokenRequest_DeviceCode{
-				DeviceCode: &corev1.GrantDeviceCode{},
+				DeviceCode: &corev1.GrantDeviceCode{
+					DeviceCode: q.Get("device_code"),
+				},
 			}
 		case oidc.GrantTypeRefreshToken:
 			msg.Grant = &corev1.TokenRequest_RefreshToken{
@@ -100,17 +102,19 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		// Prepare msg
 		msg := messageBuilder(r, client)
 
-		// Check dpop proof
-		jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
-		if err != nil {
-			log.Println("unable to validate dpop proof:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
-			return
-		}
+		if dpopProof != "" {
+			// Check dpop proof
+			jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
+			if err != nil {
+				log.Println("unable to validate dpop proof:", err)
+				withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
+				return
+			}
 
-		// Add confirmation
-		msg.TokenConfirmation = &corev1.TokenConfirmation{
-			Jkt: jkt,
+			// Add confirmation
+			msg.TokenConfirmation = &corev1.TokenConfirmation{
+				Jkt: jkt,
+			}
 		}
 
 		// Send request to reactor
@@ -121,7 +125,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 			return
 		}
 		if err != nil {
-			log.Println("unable to process token request: %w", err)
+			log.Println("unable to process token request:", err)
 			withError(w, r, http.StatusBadRequest, tokenRes.Error)
 			return
 		}

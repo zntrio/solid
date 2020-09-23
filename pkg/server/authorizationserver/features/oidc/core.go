@@ -56,6 +56,8 @@ func Device() features.Feature {
 	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client) {
 		// Register device authorization request handler.
 		r.RegisterHandler(&corev1.DeviceAuthorizationRequest{}, core.DeviceAuthorizeHandler(devices))
+		// Register user code validation request handler.
+		r.RegisterHandler(&corev1.DeviceCodeValidationRequest{}, core.UserCodeValidationHandler(devices))
 	}
 }
 

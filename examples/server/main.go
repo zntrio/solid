@@ -152,7 +152,7 @@ func main() {
 	http.Handle("/.well-known/jwks.json", handlers.JWKS(as, keySetProvider()))
 	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as, dpopVerifier), clientAuth))
 	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as, inmemory.Clients(), requestDecoder, jarmEncoder), secHeaders, basicAuth))
-	http.Handle("/device_authorize", middleware.Adapt(handlers.DeviceAuthorization(as), clientAuth))
+	http.Handle("/device_authorization", middleware.Adapt(handlers.DeviceAuthorization(as), clientAuth))
 	http.Handle("/token", middleware.Adapt(handlers.Token(as, dpopVerifier), clientAuth))
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))

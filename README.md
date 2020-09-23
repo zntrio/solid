@@ -128,7 +128,7 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-30) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
     * [x] `refresh_token` grant type
-    * [ ] `device_code` grant type
+    * [x] `device_code` grant type
     * [x] Pairwise subject identifier
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
   * Client

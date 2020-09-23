@@ -19,6 +19,7 @@ package inmemory
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -31,18 +32,21 @@ import (
 )
 
 type deviceCodeSessionStorage struct {
-	backend   *cache.Cache
-	userCodes generator.DeviceUserCode
+	userCodeIndex   *cache.Cache
+	deviceCodeIndex *cache.Cache
+	userCodes       generator.DeviceUserCode
 }
 
 // DeviceCodeSessions returns a device authorization session manager.
 func DeviceCodeSessions(userCodes generator.DeviceUserCode) storage.DeviceCodeSession {
 	// Initialize in-memory caches
-	backendCache := cache.New(2*time.Minute, 10*time.Minute)
+	userCodeCache := cache.New(2*time.Minute, 10*time.Minute)
+	deviceCodeCache := cache.New(2*time.Minute, 10*time.Minute)
 
 	return &deviceCodeSessionStorage{
-		userCodes: userCodes,
-		backend:   backendCache,
+		userCodes:       userCodes,
+		userCodeIndex:   userCodeCache,
+		deviceCodeIndex: deviceCodeCache,
 	}
 }
 
@@ -60,26 +64,66 @@ func (s *deviceCodeSessionStorage) Register(ctx context.Context, req *corev1.Dev
 
 	// Assign to session
 	req.UserCode = userCode
+	req.ExpiresAt = uint64(time.Now().Add(120 * time.Second).Unix())
+	req.Status = corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING
 
 	// Insert in cache
-	s.backend.Set(userCode, req, cache.DefaultExpiration)
+	s.userCodeIndex.Set(userCode, req, cache.DefaultExpiration)
+	s.deviceCodeIndex.Set(deviceCode, req, cache.DefaultExpiration)
 
 	// No error
-	return deviceCode, userCode, uint64(60), nil
+	return deviceCode, userCode, uint64(120), nil
 }
 
 func (s *deviceCodeSessionStorage) Delete(ctx context.Context, code string) error {
-	s.backend.Delete(code)
+	s.userCodeIndex.Delete(code)
 	// No error
 	return nil
 }
 
-func (s *deviceCodeSessionStorage) Get(ctx context.Context, code string) (*corev1.DeviceCodeSession, error) {
+func (s *deviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, deviceCode string) (*corev1.DeviceCodeSession, error) {
 	// Retrieve from cache
-	if x, found := s.backend.Get(code); found {
+	if x, found := s.deviceCodeIndex.Get(deviceCode); found {
 		req := x.(*corev1.DeviceCodeSession)
 		return req, nil
 	}
 
 	return nil, storage.ErrNotFound
+}
+
+func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, userCode string) (*corev1.DeviceCodeSession, error) {
+	// Retrieve from cache
+	if x, found := s.userCodeIndex.Get(userCode); found {
+		req := x.(*corev1.DeviceCodeSession)
+		return req, nil
+	}
+
+	return nil, storage.ErrNotFound
+}
+
+func (s *deviceCodeSessionStorage) Authorize(ctx context.Context, userCode, subject string) error {
+	// Check arguments
+	if userCode == "" {
+		return errors.New("unable to proceed with blank user_code")
+	}
+	if subject == "" {
+		return errors.New("unable to proceed with blank subject")
+	}
+
+	// Get by user code
+	session, err := s.GetByUserCode(ctx, userCode)
+	if err != nil {
+		return err
+	}
+
+	// Update user sndex
+	session.Status = corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED
+	session.Subject = subject
+
+	// Insert in cache
+	s.userCodeIndex.Set(userCode, session, cache.DefaultExpiration)
+	s.deviceCodeIndex.Set(session.DeviceCode, session, cache.DefaultExpiration)
+
+	// No error
+	return nil
 }

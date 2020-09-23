@@ -32,6 +32,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
+	fuzz "github.com/google/gofuzz"
 )
 
 func Test_service_Authorize(t *testing.T) {
@@ -461,6 +462,29 @@ func Test_service_Authorize(t *testing.T) {
 	}
 }
 
+func Test_service_Authorize_Fuzz(t *testing.T) {
+	// Arm mocks
+	ctrl := gomock.NewController(t)
+	authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
+	clients := storagemock.NewMockClientReader(ctrl)
+	authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+
+	// Prepare service
+	underTest := New(clients, authorizationRequests, authorizationCodeSessions)
+
+	// Making sure the function never panics
+	for i := 0; i < 1000; i++ {
+		f := fuzz.New()
+
+		// Prepare arguments
+		var req corev1.AuthorizationCodeRequest
+		f.Fuzz(&req)
+
+		// Execute
+		underTest.Authorize(context.Background(), &req)
+	}
+}
+
 func Test_service_Register(t *testing.T) {
 	type args struct {
 		ctx context.Context
@@ -714,5 +738,28 @@ func Test_service_Register(t *testing.T) {
 				t.Errorf("service.Register() res =%s", diff)
 			}
 		})
+	}
+}
+
+func Test_service_Register_Fuzz(t *testing.T) {
+	// Arm mocks
+	ctrl := gomock.NewController(t)
+	authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
+	clients := storagemock.NewMockClientReader(ctrl)
+	authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+
+	// Prepare service
+	underTest := New(clients, authorizationRequests, authorizationCodeSessions)
+
+	// Making sure the function never panics
+	for i := 0; i < 1000; i++ {
+		f := fuzz.New()
+
+		// Prepare arguments
+		var req corev1.RegistrationRequest
+		f.Fuzz(&req)
+
+		// Execute
+		underTest.Register(context.Background(), &req)
 	}
 }

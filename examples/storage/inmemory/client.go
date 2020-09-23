@@ -73,6 +73,22 @@ func Clients() storage.Client {
 				SubjectType:      oidc.SubjectTypePairwise,
 				SectorIdentifier: "http://127.0.0.1:8085",
 			},
+			"public-client": {
+				ClientId:        "public-client",
+				ClientType:      corev1.ClientType_CLIENT_TYPE_PUBLIC,
+				ApplicationType: "cli",
+				ClientName:      "cli-public-client",
+				GrantTypes: []string{
+					oidc.GrantTypeDeviceCode,   // Device-to-service
+					oidc.GrantTypeRefreshToken, // Act as user
+				},
+				Contacts: []string{
+					"foo@bar.com",
+				},
+				// Pairwise sector identitier
+				SubjectType:      oidc.SubjectTypePairwise,
+				SectorIdentifier: "http://127.0.0.1:8085",
+			},
 		},
 	}
 }

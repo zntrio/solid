@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
@@ -51,7 +52,7 @@ func Test_service_Device(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*storagemock.MockClientReader, *storagemock.MockDeviceCodeSessionWriter)
+		prepare func(*storagemock.MockClientReader, *storagemock.MockDeviceCodeSession)
 		want    *corev1.DeviceAuthorizationResponse
 		wantErr bool
 	}{
@@ -98,7 +99,7 @@ func Test_service_Device(t *testing.T) {
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSessionWriter) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -114,12 +115,28 @@ func Test_service_Device(t *testing.T) {
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSessionWriter) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "client nil error",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.DeviceAuthorizationRequest{
+					ClientId: "s6BhdRkqt3",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, nil)
+			},
+			wantErr: true,
+			want: &corev1.DeviceAuthorizationResponse{
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -130,7 +147,7 @@ func Test_service_Device(t *testing.T) {
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSessionWriter) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
@@ -149,7 +166,7 @@ func Test_service_Device(t *testing.T) {
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSessionWriter) {
+			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSession) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
@@ -168,9 +185,12 @@ func Test_service_Device(t *testing.T) {
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
 					ClientId: "s6BhdRkqt3",
+					Scope: &wrapperspb.StringValue{
+						Value: "openid admin",
+					},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSessionWriter) {
+			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSession) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
@@ -193,7 +213,7 @@ func Test_service_Device(t *testing.T) {
 
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
-			deviceCodeSessions := storagemock.NewMockDeviceCodeSessionWriter(ctrl)
+			deviceCodeSessions := storagemock.NewMockDeviceCodeSession(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {

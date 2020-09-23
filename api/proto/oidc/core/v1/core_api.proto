@@ -176,6 +176,9 @@ message DeviceAuthorizationRequest {
   // OPTIONAL.  The scope of the access request as defined by
   // Section 3.3 of [RFC6749].
   google.protobuf.StringValue scope = 2;
+
+  // OPTIONAL.  The target audience.
+  google.protobuf.StringValue audience = 3;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.2
@@ -200,4 +203,15 @@ message DeviceAuthorizationResponse {
   // SHOULD wait between polling requests to the token endpoint.  If no
   // value is provided, clients MUST use 5 as the default.
   fixed64 interval = 7;
+}
+
+message DeviceCodeValidationRequest {
+  // REQUIRED. The end-user verification code.
+  string user_code = 1;
+  // REQUIRED. User identity.
+  string subject = 2;
+}
+
+message DeviceCodeValidationResponse {
+  Error error = 1;
 }

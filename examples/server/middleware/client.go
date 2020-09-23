@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/clientauthentication"
 	"zntr.io/solid/pkg/server/storage"
 
@@ -38,27 +39,42 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var (
-				ctx = r.Context()
-				q   = r.URL.Query()
+				ctx         = r.Context()
+				q           = r.URL.Query()
+				clientIDRaw = q.Get("client_id")
 			)
 
-			// Process authentication
-			resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-				ClientAssertionType: &wrappers.StringValue{
-					Value: q.Get("client_assertion_type"),
-				},
-				ClientAssertion: &wrappers.StringValue{
-					Value: q.Get("client_assertion"),
-				},
-			})
+			// Retrieve client details
+			client, err := clients.Get(ctx, clientIDRaw)
 			if err != nil {
-				log.Println("unable to authenticate client:", err)
-				json.NewEncoder(w).Encode(resAuth.GetError())
+				log.Println("unable to retrieve client:", err)
+				json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build())
 				return
 			}
 
-			// Assign client to context
-			ctx = clientauthentication.Inject(ctx, resAuth.Client)
+			// Process authentication
+			if client.ClientType == corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL {
+				resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+					ClientAssertionType: &wrappers.StringValue{
+						Value: q.Get("client_assertion_type"),
+					},
+					ClientAssertion: &wrappers.StringValue{
+						Value: q.Get("client_assertion"),
+					},
+				})
+				if err != nil {
+					log.Println("unable to authenticate client:", err)
+					json.NewEncoder(w).Encode(resAuth.GetError())
+					return
+				}
+
+				// Assign client to context
+				ctx = clientauthentication.Inject(ctx, resAuth.Client)
+			}
+			if client.ClientType == corev1.ClientType_CLIENT_TYPE_PUBLIC {
+				// Assign client to context
+				ctx = clientauthentication.Inject(ctx, client)
+			}
 
 			// Delegate to next handler
 			h.ServeHTTP(w, r.WithContext(ctx))

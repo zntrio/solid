@@ -125,7 +125,7 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `authorization_code` grant type
       * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
       * [x] [Pushed Authorization Request (PAR)](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
-      * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-20) (JAR)
+      * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-30) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
     * [x] `refresh_token` grant type
     * [ ] `device_code` grant type

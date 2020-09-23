@@ -18,15 +18,75 @@
 package handlers
 
 import (
+	"html/template"
+	"log"
 	"net/http"
 
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/examples/server/middleware"
-	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
 )
 
 // Device handle device code validation.
 func Device(as authorizationserver.AuthorizationServer) http.Handler {
+
+	// Display user code form
+	displayForm := func(w http.ResponseWriter, r *http.Request, sub string) {
+		// Only POST verb
+		if r.Method != http.MethodGet {
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			return
+		}
+
+		// Prepare template
+		form := template.Must(template.New("user-code-inupt").Parse(`<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+	<form action="" method="post">
+	  <label for="user_code">Enter user code:
+		  <input type="text" name="user_code">
+	  </label>
+	</form>
+  </body>
+</html>`))
+
+		// Write template to output
+		if err := form.Execute(w, nil); err != nil {
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+			return
+		}
+	}
+
+	// Validate user code
+	validateUserCode := func(w http.ResponseWriter, r *http.Request, sub string) {
+		r.ParseForm()
+
+		// Only POST verb
+		if r.Method != http.MethodPost {
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			return
+		}
+
+		// Send request to reactor
+		res, err := as.Do(r.Context(), &corev1.DeviceCodeValidationRequest{
+			Subject:  sub,
+			UserCode: r.PostFormValue("user_code"),
+		})
+		authRes, ok := res.(*corev1.DeviceCodeValidationResponse)
+		if !ok {
+			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+			return
+		}
+		if err != nil {
+			log.Println("unable to process authorization request:", err)
+			withError(w, r, http.StatusBadRequest, authRes.Error)
+			return
+		}
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -34,6 +94,16 @@ func Device(as authorizationserver.AuthorizationServer) http.Handler {
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
 			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
+			return
+		}
+
+		switch r.Method {
+		case http.MethodGet:
+			displayForm(w, r, sub)
+		case http.MethodPost:
+			validateUserCode(w, r, sub)
+		default:
+			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 	})

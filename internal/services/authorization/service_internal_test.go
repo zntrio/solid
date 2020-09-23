@@ -32,6 +32,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	fuzz "github.com/google/gofuzz"
 )
 
 var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeResponse{}), cmpopts.IgnoreUnexported(corev1.RegistrationRequest{}), cmpopts.IgnoreUnexported(corev1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
@@ -527,5 +528,32 @@ func Test_service_validate(t *testing.T) {
 				t.Errorf("service.Authorize() res =%s", diff)
 			}
 		})
+	}
+}
+
+func Test_service_validate_Fuzz(t *testing.T) {
+	// Arm mocks
+	ctrl := gomock.NewController(t)
+	authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
+	clients := storagemock.NewMockClientReader(ctrl)
+	sessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+
+	// Prepare service
+	s := &service{
+		clients:                   clients,
+		authorizationRequests:     authorizationRequests,
+		authorizationCodeSessions: sessions,
+	}
+
+	// Making sure the function never panics
+	for i := 0; i < 1000; i++ {
+		f := fuzz.New()
+
+		// Prepare arguments
+		var req corev1.AuthorizationRequest
+		f.Fuzz(&req)
+
+		// Execute
+		s.validate(context.Background(), &req)
 	}
 }

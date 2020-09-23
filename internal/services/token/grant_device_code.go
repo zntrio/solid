@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
@@ -73,7 +74,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	}
 
 	// Resolve device code
-	session, err := s.deviceCodeSessions.Get(ctx, grant.DeviceCode)
+	session, err := s.deviceCodeSessions.GetByDeviceCode(ctx, grant.DeviceCode)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -109,7 +110,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 		return res, fmt.Errorf("token '%s' is expired", grant.DeviceCode)
 	}
 
-	// Check if it validated
+	// Check if it's validated
 	if session.Status == corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING {
 		res.Error = rfcerrors.AuthorizationPending().Build()
 		return res, fmt.Errorf("token '%s' is waiting for authorization", grant.DeviceCode)
@@ -121,11 +122,18 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 		return res, fmt.Errorf("token '%s' is invalid", grant.DeviceCode)
 	}
 
+	// Check subject attribute
+	if session.Subject == "" {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("session has no subject for '%s'", grant.DeviceCode)
+	}
+
 	// Generate access token
 	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
 		Issuer:   req.Issuer,
-		Scope:    "",
-		Audience: "",
+		Scope:    session.Scope,
+		Audience: session.Audience,
+		Subject:  session.Subject,
 	}, req.TokenConfirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
@@ -134,6 +142,27 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 
 	// Assign response
 	res.AccessToken = at
+
+	// Validate scopes
+	scopes := types.StringArray(strings.Fields(session.Scope))
+
+	// Check if request has offline_access to generate refresh_token
+	if scopes.Contains(oidc.ScopeOfflineAccess) {
+		// Generate refresh token
+		rt, err := s.generateRefreshToken(ctx, client, &corev1.TokenMeta{
+			Issuer:   req.Issuer,
+			Scope:    session.Scope,
+			Audience: session.Audience,
+			Subject:  session.Subject,
+		}, at.Confirmation)
+		if err != nil {
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("unable to generate refresh token: %w", err)
+		}
+
+		// Assign response
+		res.RefreshToken = rt
+	}
 
 	// No error
 	return res, nil

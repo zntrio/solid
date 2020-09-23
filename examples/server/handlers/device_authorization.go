@@ -22,10 +22,10 @@ import (
 	"log"
 	"net/http"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/server/authorizationserver"
-	"zntr.io/solid/pkg/server/clientauthentication"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/authorizationserver"
 )
 
 // DeviceAuthorization handles device authorization HTTP requests.
@@ -46,20 +46,31 @@ func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handle
 		}
 
 		// Parameters
+		var (
+			q           = r.URL.Query()
+			ctx         = r.Context()
+			clientIDRaw = q.Get("client_id")
+			scopeRaw    = q.Get("scope")
+			audienceRaw = q.Get("audience")
+		)
 
-		ctx := r.Context()
-
-		// Retrieve client front context
-		client, ok := clientauthentication.FromContext(ctx)
-		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
-			return
+		// Prepare request
+		req := &corev1.DeviceAuthorizationRequest{
+			ClientId: clientIDRaw,
+		}
+		if scopeRaw != "" {
+			req.Scope = &wrapperspb.StringValue{
+				Value: scopeRaw,
+			}
+		}
+		if audienceRaw != "" {
+			req.Audience = &wrapperspb.StringValue{
+				Value: audienceRaw,
+			}
 		}
 
-		// Send request to reactor
-		res, err := as.Do(ctx, &corev1.DeviceAuthorizationRequest{
-			ClientId: client.ClientId,
-		})
+		// Send to reactor
+		res, err := as.Do(ctx, req)
 		authRes, ok := res.(*corev1.DeviceAuthorizationResponse)
 		if !ok {
 			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())

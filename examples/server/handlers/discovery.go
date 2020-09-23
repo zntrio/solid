@@ -52,6 +52,7 @@ func Metadata(as authorizationserver.AuthorizationServer) http.Handler {
 			RevocationEndpointAuthSigningAlgValuesSupported:        []string{"ES384"},
 			DpopSigningAlgValuesSupported:                          []string{"ES256"},
 			TlsClientCertificateBoundAccessTokens:                  true,
+			DeviceAuthorizationEndpoint:                            fmt.Sprintf("%s/device_authorization", issuer),
 		})
 	})
 }

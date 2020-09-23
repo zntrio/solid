@@ -434,6 +434,9 @@ func Test_service_Token(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
+					Scope: &wrappers.StringValue{
+						Value: "openid admin",
+					},
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *generatormock.MockToken, _ *storagemock.MockAuthorizationCodeSession, sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken) {
@@ -442,7 +445,7 @@ func Test_service_Token(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				sessions.EXPECT().Get(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -451,6 +454,7 @@ func Test_service_Token(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Subject:   "user1",
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
@@ -466,6 +470,7 @@ func Test_service_Token(t *testing.T) {
 						IssuedAt:  1,
 						ExpiresAt: 3601,
 						ClientId:  "s6BhdRkqt3",
+						Subject:   "user1",
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},

@@ -44,16 +44,40 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				clientIDRaw = q.Get("client_id")
 			)
 
-			// Retrieve client details
-			client, err := clients.Get(ctx, clientIDRaw)
-			if err != nil {
-				log.Println("unable to retrieve client:", err)
-				json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build())
-				return
-			}
+			// client_id
+			if clientIDRaw != "" {
+				// Retrieve client details
+				client, err := clients.Get(ctx, clientIDRaw)
+				if err != nil {
+					log.Printf("unable to retrieve client '%s': %v", clientIDRaw, err)
+					json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build())
+					return
+				}
 
-			// Process authentication
-			if client.ClientType == corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL {
+				// Process authentication
+				if client.ClientType == corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL {
+					resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+						ClientAssertionType: &wrappers.StringValue{
+							Value: q.Get("client_assertion_type"),
+						},
+						ClientAssertion: &wrappers.StringValue{
+							Value: q.Get("client_assertion"),
+						},
+					})
+					if err != nil {
+						log.Println("unable to authenticate client:", err)
+						json.NewEncoder(w).Encode(resAuth.GetError())
+						return
+					}
+
+					// Assign client to context
+					ctx = clientauthentication.Inject(ctx, resAuth.Client)
+				}
+				if client.ClientType == corev1.ClientType_CLIENT_TYPE_PUBLIC {
+					// Assign client to context
+					ctx = clientauthentication.Inject(ctx, client)
+				}
+			} else {
 				resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
 					ClientAssertionType: &wrappers.StringValue{
 						Value: q.Get("client_assertion_type"),
@@ -70,10 +94,6 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 
 				// Assign client to context
 				ctx = clientauthentication.Inject(ctx, resAuth.Client)
-			}
-			if client.ClientType == corev1.ClientType_CLIENT_TYPE_PUBLIC {
-				// Assign client to context
-				ctx = clientauthentication.Inject(ctx, client)
 			}
 
 			// Delegate to next handler

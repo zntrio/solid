@@ -2,7 +2,7 @@ module zntr.io/solid/examples/server
 
 replace zntr.io/solid => ../../
 
-go 1.14
+go 1.15
 
 require (
 	github.com/golang/protobuf v1.4.2

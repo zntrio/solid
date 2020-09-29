@@ -334,6 +334,8 @@ func main() {
 		Secure:   false,
 		Path:     "/",
 		Keys:     secretKeys,
+		SameSite: http.SameSiteStrictMode,
+		Domain:   "",
 	}
 
 	// Endpoints

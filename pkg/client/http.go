@@ -154,8 +154,9 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 	params := url.Values{}
 
 	// Client authentication
-	params.Add("client_assertion", assertion)
+	params.Add("client_id", c.opts.ClientID)
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	params.Add("client_assertion", assertion)
 
 	// Prepare request
 	ar := &corev1.AuthorizationRequest{

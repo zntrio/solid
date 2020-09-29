@@ -2,7 +2,7 @@ module zntr.io/solid/samples/aws-lambda
 
 replace zntr.io/solid => ../../
 
-go 1.14
+go 1.15
 
 require (
 	github.com/allegro/bigcache v1.2.1

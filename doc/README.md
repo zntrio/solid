@@ -88,4 +88,15 @@ Standard changes:
 
 ### Device Code
 
-> IoT / Constrained environment access.
+> IoT / Constrained environment access. CLI without callback server bind.
+
+![Overview](./img/SOLID_DEVICE_CODE.png)
+
+Authentication:
+
+* Public Client
+
+Standard changes:
+
+* `DPoP` is required for all client to binding `access_token` and `refresh_token`
+  usage to resquester client only;

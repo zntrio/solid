@@ -73,7 +73,7 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 
 		claims = &jwtResponseClaims{
 			State:     resp.State,
-			Issuer:    issuer,
+			Issuer:    resp.Issuer,
 			Audience:  resp.ClientId,
 			Code:      resp.Code,
 			ExpiresAt: uint64(time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second).Unix()),

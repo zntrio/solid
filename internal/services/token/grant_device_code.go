@@ -156,6 +156,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 			Subject:  session.Subject,
 		}, at.Confirmation)
 		if err != nil {
+			res.AccessToken = nil
 			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("unable to generate refresh token: %w", err)
 		}

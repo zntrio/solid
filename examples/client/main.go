@@ -43,6 +43,7 @@ import (
 )
 
 type sessionObject struct {
+	Issuer       string `json:"issuer"`
 	State        string `json:"state,omitempty"`
 	Nonce        string `json:"nonce,omitempty"`
 	CodeVerifier string `json:"code_verifier,omitempty"`
@@ -123,6 +124,12 @@ func callback(solidClient client.Client, config *session.Config, prover dpop.Pro
 		response, err := jarDecoder.Decode(ctx, solidClient.ClientID(), responseRaw)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Check issuer
+		if response.Issuer != solidClient.Issuer() {
+			http.Error(w, "issuer doesn't match", http.StatusBadRequest)
 			return
 		}
 
@@ -229,13 +236,10 @@ func keyProvider() jwk.KeyProviderFunc {
 
 	// Decode JWK
 	err := json.Unmarshal(clientPrivateKey, &privateKey)
-	if err != nil {
-		panic(err)
-	}
 
 	return func(_ context.Context) (*jose.JSONWebKey, error) {
 		// No error
-		return &privateKey, nil
+		return &privateKey, err
 	}
 }
 
@@ -295,6 +299,7 @@ func jarmDecoder(issuer string, c client.Client) (jarm.ResponseDecoder, error) {
 
 func main() {
 	ctx := context.Background()
+	issuer := "http://127.0.0.1:8080"
 
 	// DPoP
 	prover, err := dpopProver()
@@ -309,8 +314,7 @@ func main() {
 	}
 
 	// Build client
-	solidClient, err := client.HTTP(ctx, prover, jwsreqEncoder, &client.Options{
-		Issuer:      "http://127.0.0.1:8080",
+	solidClient, err := client.HTTP(ctx, issuer, prover, jwsreqEncoder, &client.Options{
 		Audience:    "NYxFyoSuuRGXItTbX",
 		ClientID:    "6779ef20e75817b79602",
 		JWK:         clientPrivateKey,
@@ -322,7 +326,7 @@ func main() {
 	}
 
 	// JARM
-	jarmDecoder, err := jarmDecoder("http://127.0.0.1:8080", solidClient)
+	jarmDecoder, err := jarmDecoder(issuer, solidClient)
 	if err != nil {
 		panic(err)
 	}

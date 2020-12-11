@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/square/go-jose/v3/jwt"
+
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/types"
 )

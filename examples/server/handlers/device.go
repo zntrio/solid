@@ -30,7 +30,6 @@ import (
 
 // Device handle device code validation.
 func Device(as authorizationserver.AuthorizationServer) http.Handler {
-
 	// Display user code form
 	displayForm := func(w http.ResponseWriter, r *http.Request, sub string) {
 		// Only POST verb

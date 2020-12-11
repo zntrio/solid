@@ -21,11 +21,11 @@ import (
 	"context"
 	"time"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/server/storage"
-
 	"github.com/dchest/uniuri"
 	"github.com/patrickmn/go-cache"
+
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/server/storage"
 )
 
 type sessionStorage struct {

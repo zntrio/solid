@@ -23,14 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/google/go-cmp/cmp"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	generatormock "zntr.io/solid/pkg/sdk/generator/mock"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
-
-	"github.com/golang/mock/gomock"
-	"github.com/google/go-cmp/cmp"
 )
 
 func Test_service_clientCredentials(t *testing.T) {

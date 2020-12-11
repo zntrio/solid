@@ -21,9 +21,9 @@ import (
 	"context"
 	"time"
 
-	"zntr.io/solid/pkg/server/storage"
-
 	"github.com/patrickmn/go-cache"
+
+	"zntr.io/solid/pkg/server/storage"
 )
 
 type proofCache struct {

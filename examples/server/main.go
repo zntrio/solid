@@ -24,10 +24,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/square/go-jose/v3"
+
 	"zntr.io/solid/examples/server/handlers"
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/examples/storage/inmemory"
-
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/generator"
 	jwtgen "zntr.io/solid/pkg/sdk/generator/jwt"
@@ -36,8 +37,6 @@ import (
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/server/authorizationserver"
-
-	"github.com/square/go-jose/v3"
 )
 
 var jwkPrivateKey = []byte(`{

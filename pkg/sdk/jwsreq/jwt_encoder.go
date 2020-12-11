@@ -22,10 +22,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/jwt"
-
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // -----------------------------------------------------------------------------

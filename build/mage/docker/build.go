@@ -26,10 +26,10 @@ import (
 	"text/template"
 	"time"
 
-	"zntr.io/solid/build/mage/git"
-
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
+
+	"zntr.io/solid/build/mage/git"
 )
 
 var dockerTemplate = strings.TrimSpace(`

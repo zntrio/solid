@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/square/go-jose/v3"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/storage"
-
-	"github.com/square/go-jose/v3"
 )
 
 // PrivateKeyJWT authentication method.

@@ -21,12 +21,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/clientauthentication"
-	"zntr.io/solid/pkg/sdk/rfcerrors"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 // TokenRevocation handles token revocation HTTP requests.

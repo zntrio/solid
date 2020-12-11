@@ -24,12 +24,13 @@
 package corev1
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	wrappers "github.com/golang/protobuf/ptypes/wrappers"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -847,19 +848,22 @@ func file_oidc_core_v1_core_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_core_proto_rawDescData
 }
 
-var file_oidc_core_v1_core_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_oidc_core_v1_core_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_oidc_core_v1_core_proto_goTypes = []interface{}{
-	(Display)(0),                   // 0: oidc.core.v1.Display
-	(Prompt)(0),                    // 1: oidc.core.v1.Prompt
-	(*GrantAuthorizationCode)(nil), // 2: oidc.core.v1.GrantAuthorizationCode
-	(*GrantRefreshToken)(nil),      // 3: oidc.core.v1.GrantRefreshToken
-	(*GrantDeviceCode)(nil),        // 4: oidc.core.v1.GrantDeviceCode
-	(*GrantClientCredentials)(nil), // 5: oidc.core.v1.GrantClientCredentials
-	(*AuthorizationRequest)(nil),   // 6: oidc.core.v1.AuthorizationRequest
-	(*wrappers.StringValue)(nil),   // 7: google.protobuf.StringValue
-	(*wrappers.UInt64Value)(nil),   // 8: google.protobuf.UInt64Value
-}
+var (
+	file_oidc_core_v1_core_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_oidc_core_v1_core_proto_msgTypes  = make([]protoimpl.MessageInfo, 5)
+	file_oidc_core_v1_core_proto_goTypes   = []interface{}{
+		(Display)(0),                   // 0: oidc.core.v1.Display
+		(Prompt)(0),                    // 1: oidc.core.v1.Prompt
+		(*GrantAuthorizationCode)(nil), // 2: oidc.core.v1.GrantAuthorizationCode
+		(*GrantRefreshToken)(nil),      // 3: oidc.core.v1.GrantRefreshToken
+		(*GrantDeviceCode)(nil),        // 4: oidc.core.v1.GrantDeviceCode
+		(*GrantClientCredentials)(nil), // 5: oidc.core.v1.GrantClientCredentials
+		(*AuthorizationRequest)(nil),   // 6: oidc.core.v1.AuthorizationRequest
+		(*wrappers.StringValue)(nil),   // 7: google.protobuf.StringValue
+		(*wrappers.UInt64Value)(nil),   // 8: google.protobuf.UInt64Value
+	}
+)
+
 var file_oidc_core_v1_core_proto_depIdxs = []int32{
 	7,  // 0: oidc.core.v1.AuthorizationRequest.response_mode:type_name -> google.protobuf.StringValue
 	7,  // 1: oidc.core.v1.AuthorizationRequest.display:type_name -> google.protobuf.StringValue

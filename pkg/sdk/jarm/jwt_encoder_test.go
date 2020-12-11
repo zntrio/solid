@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
 	"zntr.io/solid/pkg/sdk/rfcerrors"

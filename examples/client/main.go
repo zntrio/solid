@@ -29,6 +29,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/dchest/uniuri"
+	"github.com/kr/session"
+	"github.com/square/go-jose/v3"
+
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/client"
 	"zntr.io/solid/pkg/sdk/dpop"
@@ -36,10 +40,6 @@ import (
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/jwt"
-
-	"github.com/dchest/uniuri"
-	"github.com/kr/session"
-	"github.com/square/go-jose/v3"
 )
 
 type sessionObject struct {

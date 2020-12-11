@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	generatormock "zntr.io/solid/pkg/sdk/generator/mock"
@@ -583,6 +584,55 @@ func Test_service_deviceCode(t *testing.T) {
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
+		{
+			name: "refresh token storage error",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+					Scope: &wrapperspb.StringValue{
+						Value: "offline_access",
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+						Scope: &wrapperspb.StringValue{
+							Value: "offline_access",
+						},
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Subject:   "user1",
+					Scope:     "offline_access",
+				}, nil)
+				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil).After(atGen)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).After(atSave)
+			},
+			wantErr: true,
+			want: &corev1.TokenResponse{
+				Error: rfcerrors.ServerError().Build(),
+			},
+		},
 		// ---------------------------------------------------------------------
 		{
 			name: "valid",
@@ -633,6 +683,81 @@ func Test_service_deviceCode(t *testing.T) {
 						Subject:   "user1",
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+		},
+		{
+			name: "valid - offline_access",
+			args: args{
+				ctx: context.Background(),
+				client: &corev1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &corev1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &corev1.TokenRequest_DeviceCode{
+						DeviceCode: &corev1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+					Scope: &wrapperspb.StringValue{
+						Value: "offline_access",
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+					Client: &corev1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &corev1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+						Scope: &wrapperspb.StringValue{
+							Value: "offline_access",
+						},
+					},
+					ExpiresAt: 200,
+					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Subject:   "user1",
+					Scope:     "offline_access",
+				}, nil)
+				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil).After(atGen)
+				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
+			},
+			wantErr: false,
+			want: &corev1.TokenResponse{
+				Error: nil,
+				AccessToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Scope:     "offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 3601,
+						ClientId:  "s6BhdRkqt3",
+						Subject:   "user1",
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+				RefreshToken: &corev1.Token{
+					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Scope:     "offline_access",
+						IssuedAt:  1,
+						ExpiresAt: 604801,
+						ClientId:  "s6BhdRkqt3",
+						Subject:   "user1",
+					},
+					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 				},
 			},
 		},

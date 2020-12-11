@@ -74,7 +74,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 
 	// Check issuer
 	if req.Issuer == "" {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process empty issuer")
 	}
 
@@ -162,7 +162,7 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 
 	// Check issuer
 	if req.Issuer == "" {
-		res.Error = rfcerrors.InvalidRequest("")
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process empty issuer")
 	}
 

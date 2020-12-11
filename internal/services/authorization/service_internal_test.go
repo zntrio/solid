@@ -22,17 +22,17 @@ import (
 	"fmt"
 	"testing"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/sdk/rfcerrors"
-	"zntr.io/solid/pkg/server/storage"
-	storagemock "zntr.io/solid/pkg/server/storage/mock"
-
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
+
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
+	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/server/storage"
+	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
 
 var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeResponse{}), cmpopts.IgnoreUnexported(corev1.RegistrationRequest{}), cmpopts.IgnoreUnexported(corev1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}

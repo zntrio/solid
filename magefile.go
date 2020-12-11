@@ -20,10 +20,10 @@
 package main
 
 import (
-	"zntr.io/solid/build/mage/golang"
-
 	"github.com/fatih/color"
 	"github.com/magefile/mage/mg"
+
+	"zntr.io/solid/build/mage/golang"
 )
 
 type Code mg.Namespace

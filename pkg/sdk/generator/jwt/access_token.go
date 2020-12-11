@@ -21,12 +21,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/square/go-jose/v3"
+	jwt "github.com/square/go-jose/v3/jwt"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/generator"
 	"zntr.io/solid/pkg/sdk/jwk"
-
-	"github.com/square/go-jose/v3"
-	jwt "github.com/square/go-jose/v3/jwt"
 )
 
 // -----------------------------------------------------------------------------

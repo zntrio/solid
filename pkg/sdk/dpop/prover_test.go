@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+
 	"zntr.io/solid/pkg/sdk/jwt"
 	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
 )

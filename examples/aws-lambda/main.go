@@ -20,12 +20,12 @@ package main
 import (
 	"context"
 
+	"github.com/aws/aws-lambda-go/lambda"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/examples/storage/inmemory"
 	"zntr.io/solid/pkg/authorizationserver"
 	"zntr.io/solid/pkg/authorizationserver/features/oidc"
-
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 // Handler initializes a lambda handler using given authorization server implementation.

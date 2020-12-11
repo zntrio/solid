@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/jwt"
 	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"

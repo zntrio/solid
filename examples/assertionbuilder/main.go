@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
-
 	"github.com/square/go-jose/v3"
 	jwt "github.com/square/go-jose/v3/jwt"
 )

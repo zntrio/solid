@@ -26,11 +26,11 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/blake2b"
+
 	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
-
-	"golang.org/x/crypto/blake2b"
 )
 
 // -----------------------------------------------------------------------------

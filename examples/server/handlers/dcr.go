@@ -38,7 +38,6 @@ import (
 
 // DCR handles dynamic client registration.
 func DCR(as authorizationserver.AuthorizationServer) http.Handler {
-
 	const bodyLimiterSize = 5 << 20 // 5 Mb
 
 	type request struct {

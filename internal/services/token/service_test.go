@@ -23,6 +23,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/generator"
@@ -30,11 +35,6 @@ import (
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
-
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 var cmpOpts = []cmp.Option{cmpopts.IgnoreFields(corev1.Token{}, "TokenId"), cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.TokenRequest{}), cmpopts.IgnoreUnexported(corev1.TokenIntrospectionRequest{}), cmpopts.IgnoreUnexported(corev1.TokenRevocationRequest{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_AuthorizationCode{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_ClientCredentials{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_DeviceCode{}), cmpopts.IgnoreUnexported(corev1.TokenRequest_RefreshToken{}), cmpopts.IgnoreUnexported(corev1.TokenResponse{}), cmpopts.IgnoreUnexported(corev1.TokenIntrospectionResponse{}), cmpopts.IgnoreUnexported(corev1.TokenRevocationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{}), cmpopts.IgnoreUnexported(corev1.Token{}), cmpopts.IgnoreUnexported(corev1.TokenMeta{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeSession{}), cmpopts.IgnoreUnexported(corev1.DeviceCodeSession{})}

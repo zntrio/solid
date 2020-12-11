@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"net/http"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-
 	jsoniter "github.com/json-iterator/go"
+
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
 func withError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {

@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/jwt"
 	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
-
-	"github.com/golang/mock/gomock"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func Test_jwtEncoder_Encode(t *testing.T) {

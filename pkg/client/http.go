@@ -27,6 +27,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dchest/uniuri"
+	"github.com/square/go-jose/v3"
+	"github.com/square/go-jose/v3/jwt"
+	"golang.org/x/oauth2"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
 	"zntr.io/solid/api/oidc"
@@ -34,19 +40,12 @@ import (
 	jwsreq "zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/pkce"
 	"zntr.io/solid/pkg/sdk/types"
-
-	"github.com/dchest/uniuri"
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
-	"golang.org/x/oauth2"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const bodyLimiterSize = 5 << 20 // 5 Mb
 
 // HTTP creates an HTTP OIDC Client.
 func HTTP(ctx context.Context, prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) (Client, error) {
-
 	// Initialize solid client
 	c := &httpClient{
 		opts:                        opts,

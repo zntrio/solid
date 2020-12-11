@@ -22,12 +22,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/clientauthentication"
 	"zntr.io/solid/pkg/server/storage"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 // ClientAuthentication is a middleware to handle client authentication.

@@ -26,6 +26,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/jwt"
 	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"

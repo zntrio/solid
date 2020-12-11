@@ -239,7 +239,7 @@ func keyProvider() jwk.KeyProviderFunc {
 
 	return func(_ context.Context) (*jose.JSONWebKey, error) {
 		// No error
-		return &privateKey, nil
+		return &privateKey, err
 	}
 }
 

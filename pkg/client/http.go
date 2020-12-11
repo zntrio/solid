@@ -85,6 +85,7 @@ func HTTP(ctx context.Context, issuer string, prover dpop.Prover, authorizationR
 // -----------------------------------------------------------------------------
 
 type httpClient struct {
+	issuer                      string
 	opts                        *Options
 	httpClient                  *http.Client
 	prover                      dpop.Prover

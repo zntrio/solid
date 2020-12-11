@@ -53,6 +53,7 @@ func Metadata(as authorizationserver.AuthorizationServer) http.Handler {
 			DpopSigningAlgValuesSupported:                          []string{"ES256"},
 			TlsClientCertificateBoundAccessTokens:                  true,
 			DeviceAuthorizationEndpoint:                            fmt.Sprintf("%s/device_authorization", issuer),
+			AuthorizationResponseIssParameterSupported:             true,
 		})
 	})
 }

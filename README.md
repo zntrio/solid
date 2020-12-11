@@ -131,6 +131,7 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `device_code` grant type
     * [x] Pairwise subject identifier
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
+    * [x] [OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/)
   * Client
     * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
     * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)

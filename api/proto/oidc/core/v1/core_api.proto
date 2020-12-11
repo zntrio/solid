@@ -37,14 +37,17 @@ service AuthorizationAPI {
 // -----------------------------------------------------------------------------
 
 message AuthorizationCodeRequest {
+  // REQUIRED. Issuer uri.
+  string issuer = 1;
+
   // REQUIRED. Client that requests the authorization requests registration.
-  Client client = 1;
+  Client client = 2;
 
   // REQUIRED. User identity.
-  string subject = 2;
+  string subject = 3;
 
   // REQUIRED. Authorization request object.
-  AuthorizationRequest authorization_request = 3;
+  AuthorizationRequest authorization_request = 4;
 }
 
 // https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2
@@ -77,17 +80,32 @@ message AuthorizationCodeResponse {
   // authorization code in seconds.  The authorization code lifetime is at the
   // discretion of the AS.
   fixed64 expires_in = 6;
+
+  // REQUIRED
+  // https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/
+  //
+  // The "iss" parameter value is the issuer identifier of the
+  // authorization server which created the authorization response, as
+  // defined in [RFC8414].  Its value MUST be a URL that uses the "https"
+  // scheme without any query or fragment components.  If the
+  // authorization server provides metadata as defined in [RFC8414], the
+  // value of the parameter "iss" MUST be identical to the authorization
+  // server metadata value "issuer".
+  string issuer = 7;
 }
 
 message RegistrationRequest {
+  // REQUIRED. Issuer uri.
+  string issuer = 1;
+
   // REQUIRED. Client that requests the authorization requests registration.
-  Client client = 1;
+  Client client = 2;
 
   // REQUIRED. The request to register.
-  AuthorizationRequest authorization_request = 2;
+  AuthorizationRequest authorization_request = 3;
 
   // OPTIONAL. DPoP Proof confirmation.
-  TokenConfirmation confirmation = 3;
+  TokenConfirmation confirmation = 4;
 }
 
 message RegistrationResponse {
@@ -108,6 +126,9 @@ message RegistrationResponse {
   // request URI in seconds.  The request URI lifetime is at the
   // discretion of the AS.
   fixed64 expires_in = 3;
+
+  // Issuer URI.
+  string issuer = 4;
 }
 
 message TokenRequest {
@@ -164,6 +185,8 @@ message TokenResponse {
   Token refresh_token = 3;
   // OPTIONAL. ID Token information.
   Token id_token = 4;
+  // REQUIRED. Issuer url.
+  string issuer = 5;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.1
@@ -203,6 +226,8 @@ message DeviceAuthorizationResponse {
   // SHOULD wait between polling requests to the token endpoint.  If no
   // value is provided, clients MUST use 5 as the default.
   fixed64 interval = 7;
+  // REQUIRED. Issuer url.
+  string issuer = 8;
 }
 
 message DeviceCodeValidationRequest {

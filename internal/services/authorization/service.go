@@ -72,6 +72,12 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		return res, fmt.Errorf("unable to process nil authorization request")
 	}
 
+	// Check issuer
+	if req.Issuer == "" {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to process empty issuer")
+	}
+
 	// Check subject
 	if req.Subject == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
@@ -87,7 +93,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		}
 
 		// Check if request uri exists in storage
-		ar, err := s.authorizationRequests.Get(ctx, req.AuthorizationRequest.RequestUri.Value)
+		ar, err := s.authorizationRequests.Get(ctx, req.Issuer, req.AuthorizationRequest.RequestUri.Value)
 		if err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError().Build()
@@ -98,7 +104,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		}
 
 		// Burn after read
-		if err := s.authorizationRequests.Delete(ctx, req.AuthorizationRequest.RequestUri.Value); err != nil {
+		if err := s.authorizationRequests.Delete(ctx, req.Issuer, req.AuthorizationRequest.RequestUri.Value); err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError().Build()
 			} else {
@@ -120,6 +126,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 
 	// Create an authorization session
 	code, expiresIn, err := s.authorizationCodeSessions.Register(ctx, &corev1.AuthorizationCodeSession{
+		Issuer:  req.Issuer,
 		Subject: req.Subject,
 		Request: req.AuthorizationRequest,
 	})
@@ -138,6 +145,8 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	res.ClientId = req.AuthorizationRequest.ClientId
 	// Assign expiration
 	res.ExpiresIn = expiresIn
+	// Assign issuer
+	res.Issuer = req.Issuer
 
 	return res, err
 }
@@ -149,6 +158,12 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+
+	// Check issuer
+	if req.Issuer == "" {
+		res.Error = rfcerrors.InvalidRequest("")
+		return res, fmt.Errorf("unable to process empty issuer")
 	}
 
 	// Check client authentication context
@@ -177,7 +192,7 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 	}
 
 	// Register the authorization request
-	requestURI, expiresIn, err := s.authorizationRequests.Register(ctx, req.AuthorizationRequest)
+	requestURI, expiresIn, err := s.authorizationRequests.Register(ctx, req.Issuer, req.AuthorizationRequest)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to register authorization request: %w", err)
@@ -186,6 +201,7 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 	// Assemble result
 	res.ExpiresIn = expiresIn
 	res.RequestUri = requestURI
+	res.Issuer = req.Issuer
 
 	// No error
 	return res, nil

@@ -254,4 +254,8 @@ message AuthorizationRequest {
   // used to indicate that the requested token is intended to be used
   // at multiple resources.
   google.protobuf.StringValue resource = 20;
+
+  // OPTIONAL.
+  // Issuer url used for JARM decoding.
+  string iss = 21;
 }

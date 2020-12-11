@@ -25,9 +25,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"zntr.io/solid/examples/server/middleware"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/jwt"
@@ -40,6 +39,9 @@ import (
 
 // Authorization handles authorization HTTP requests.
 func Authorization(as authorizationserver.AuthorizationServer, clients storage.ClientReader, requestDecoder jwsreq.AuthorizationDecoder, jarmEncoder jarm.ResponseEncoder) http.Handler {
+
+	issuer := as.Issuer().String()
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
@@ -90,6 +92,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.AuthorizationCodeRequest{
+			Issuer:               issuer,
 			Subject:              sub,
 			AuthorizationRequest: ar,
 		})

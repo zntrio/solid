@@ -36,11 +36,11 @@ type Client interface {
 	ClientID() string
 	Audience() string
 	ServerMetadata() *discoveryv1.ServerMetadata
+	Issuer() string
 }
 
 // Options defines client options
 type Options struct {
-	Issuer      string
 	Audience    string
 	ClientID    string
 	RedirectURI string

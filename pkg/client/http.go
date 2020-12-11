@@ -45,18 +45,19 @@ import (
 const bodyLimiterSize = 5 << 20 // 5 Mb
 
 // HTTP creates an HTTP OIDC Client.
-func HTTP(ctx context.Context, prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) (Client, error) {
+func HTTP(ctx context.Context, issuer string, prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) (Client, error) {
 
 	// Initialize solid client
 	c := &httpClient{
 		opts:                        opts,
+		issuer:                      issuer,
 		prover:                      prover,
 		authorizationRequestEncoder: authorizationRequestEncoder,
 		httpClient:                  http.DefaultClient,
 	}
 
 	// Query server metadata endpoint
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/.well-known/oauth-authorization-server", opts.Issuer), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/.well-known/oauth-authorization-server", issuer), nil)
 	if err != nil {
 		return nil, fmt.Errorf("unable to query server metadata: %w", err)
 	}
@@ -99,6 +100,7 @@ type httpClient struct {
 func (c *httpClient) ClientID() string                            { return c.opts.ClientID }
 func (c *httpClient) Audience() string                            { return c.opts.Audience }
 func (c *httpClient) ServerMetadata() *discoveryv1.ServerMetadata { return c.serverMetadata }
+func (c *httpClient) Issuer() string                              { return c.issuer }
 
 // -----------------------------------------------------------------------------
 
@@ -122,7 +124,7 @@ func (c *httpClient) Assertion() (string, error) {
 		JTI:      uniuri.NewLen(8),
 		Subject:  c.opts.ClientID,
 		Issuer:   c.opts.ClientID,
-		Audience: c.opts.Issuer,
+		Audience: c.issuer,
 		Expires:  uint64(time.Now().Add(30 * time.Second).Unix()),
 		IssuedAt: uint64(time.Now().Unix()),
 	}).CompactSerialize()
@@ -227,6 +229,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 
 	// No error
 	return &RequestURIResponse{
+		Issuer:       c.issuer,
 		RequestURI:   jsonResponse.RequestURI,
 		Nonce:        nonce,
 		CodeVerifier: pkceVerifier,

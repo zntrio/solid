@@ -38,9 +38,12 @@ import (
 // PushedAuthorizationRequest handles PAR HTTP requests.
 func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {
+		Issuer     string `json:"iss"`
 		RequestURI string `json:"request_uri"`
 		ExpiresIn  uint64 `json:"expires_in"`
 	}
+
+	issuer := as.Issuer().String()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
@@ -93,6 +96,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		// Send request to reactor
 		res, err := as.Do(ctx, &corev1.RegistrationRequest{
 			Client:               client,
+			Issuer:               issuer,
 			AuthorizationRequest: ar,
 			Confirmation: &corev1.TokenConfirmation{
 				Jkt: jkt,
@@ -111,6 +115,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 
 		// Send json response
 		withJSON(w, r, http.StatusCreated, &response{
+			Issuer:     parRes.Issuer,
 			RequestURI: parRes.RequestUri,
 			ExpiresIn:  parRes.ExpiresIn,
 		})

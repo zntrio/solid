@@ -23,6 +23,7 @@ import (
 
 // RequestURIResponse contains all request_uri creation related information.
 type RequestURIResponse struct {
+	Issuer       string `json:"iss"`
 	RequestURI   string `json:"request_uri"`
 	CodeVerifier string `json:"code_verifier"`
 	Nonce        string `json:"nonce"`

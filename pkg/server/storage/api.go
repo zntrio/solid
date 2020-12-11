@@ -54,15 +54,15 @@ type Client interface {
 
 // AuthorizationRequestReader describes authorization request storage read-only operation contract.
 type AuthorizationRequestReader interface {
-	Get(ctx context.Context, requestURI string) (*corev1.AuthorizationRequest, error)
+	Get(ctx context.Context, issuer, requestURI string) (*corev1.AuthorizationRequest, error)
 }
 
 //go:generate mockgen -destination mock/authorization_request_writer.gen.go -package mock zntr.io/solid/pkg/server/storage AuthorizationRequestWriter
 
 // AuthorizationRequestWriter describes authorization request storage write-only operation contract.
 type AuthorizationRequestWriter interface {
-	Register(ctx context.Context, req *corev1.AuthorizationRequest) (string, uint64, error)
-	Delete(ctx context.Context, requestURI string) error
+	Register(ctx context.Context, issuer string, req *corev1.AuthorizationRequest) (string, uint64, error)
+	Delete(ctx context.Context, issuer, requestURI string) error
 }
 
 //go:generate mockgen -destination mock/authorization_request.gen.go -package mock zntr.io/solid/pkg/server/storage AuthorizationRequest

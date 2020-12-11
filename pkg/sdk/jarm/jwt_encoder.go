@@ -44,8 +44,25 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 	if issuer == "" {
 		return "", fmt.Errorf("unable to process empty issuer")
 	}
+<<<<<<< HEAD
 	if resp == nil {
 		return "", fmt.Errorf("unable to process nil response")
+=======
+	if issuer != resp.Issuer {
+		return "", fmt.Errorf("unbale to validate issuer match, reponse and given issuer don't match")
+	}
+
+	// Retrieve key from provider
+	k, err := d.keyProvider(ctx)
+	if err != nil {
+		return "", fmt.Errorf("unable to retrieve signing key from provider: %w", err)
+	}
+	if k == nil {
+		return "", fmt.Errorf("key provider returned nil key")
+	}
+	if k.IsPublic() {
+		return "", fmt.Errorf("key provider returned a public key")
+>>>>>>> 9876833 (feat(oidc): iss authorization code response.)
 	}
 
 	// Prepare response claims
@@ -73,7 +90,7 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 
 		claims = &jwtResponseClaims{
 			State:     resp.State,
-			Issuer:    issuer,
+			Issuer:    resp.Issuer,
 			Audience:  resp.ClientId,
 			Code:      resp.Code,
 			ExpiresAt: uint64(time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second).Unix()),

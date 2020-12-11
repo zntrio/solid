@@ -122,7 +122,8 @@ func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*co
 
 	// No error
 	return &corev1.AuthorizationCodeResponse{
-		Code:  claims.Code,
-		State: claims.State,
+		Code:   claims.Code,
+		State:  claims.State,
+		Issuer: claims.Issuer,
 	}, nil
 }

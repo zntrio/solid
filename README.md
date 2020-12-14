@@ -13,6 +13,9 @@ secure settings according to your use cases :
 * `devices and constrained environments`, you know for IO(v)T (Internet Of vulnerable Thing);
 * `offline users` using `refresh_token` flow for application that need to
   `act as an online user but without its online interaction`.
+* `impersonation / delegation` using `token_exchange` flow fro resource server
+  who wants to access authenticated external resource on behalf of the subject
+  with a restricted resource level privilege set.
 
 ## What and Why
 
@@ -128,7 +131,7 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-30) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
     * [x] `refresh_token` grant type
-    * [x] `device_code` grant type
+    * [x] `device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
     * [x] `token_exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
     * [x] Pairwise subject identifier
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)

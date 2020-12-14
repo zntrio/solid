@@ -100,3 +100,24 @@ Standard changes:
 
 * `DPoP` is required for all client to binding `access_token` and `refresh_token`
   usage to resquester client only;
+
+### Token Exchange
+
+> This flow defines a protocol for an HTTP- and JSON-based
+> Security Token Service (STS) by defining how to request and obtain
+> security tokens from OAuth 2.0 authorization servers, including
+> security tokens employing impersonation and delegation.
+
+This flow is used to change token authorization from caller to backend service(s)
+in the case of resource server need to act as a client to other resource server(s).
+
+The naive solution is to forward caller token to `act as caller` on backend service(s)
+but it could be dangerous to allow service A to have admin rights on all platform
+services where `admin` rights are only needed on service B. Service tokens are
+exchanged from caller and restricted to required permissions only.
+
+![Overview](./img/SOLID_TOKEN_EXCHANGE.png)
+
+Authentication:
+
+* Client authentication is done using `private_jwt` authentication method;

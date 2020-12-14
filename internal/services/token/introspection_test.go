@@ -229,7 +229,7 @@ func Test_service_Introspect(t *testing.T) {
 			}
 
 			// instantiate service
-			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens)
+			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens, nil)
 
 			got, err := underTest.Introspect(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

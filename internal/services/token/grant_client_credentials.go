@@ -64,12 +64,19 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 		return res, fmt.Errorf("client doesn't support 'client_credentials' as grant type")
 	}
 
+	// Prepare token
+	tokenMeta := &corev1.TokenMeta{
+		Issuer: req.Issuer,
+	}
+	if req.Scope != nil {
+		tokenMeta.Scope = req.Scope.Value
+	}
+	if req.Audience != nil {
+		tokenMeta.Audience = req.Audience.Value
+	}
+
 	// Generate access token
-	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
-		Issuer:   req.Issuer,
-		Scope:    grant.Scope,
-		Audience: grant.Audience,
-	}, req.TokenConfirmation)
+	at, err := s.generateAccessToken(ctx, client, tokenMeta, req.TokenConfirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to generate access token: %w", err)

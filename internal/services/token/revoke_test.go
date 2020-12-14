@@ -241,7 +241,7 @@ func Test_service_Revoke(t *testing.T) {
 			}
 
 			// instantiate service
-			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens)
+			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens, nil)
 
 			got, err := underTest.Revoke(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

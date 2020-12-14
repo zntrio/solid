@@ -56,6 +56,17 @@ message TokenMeta {
   string audience = 8;
 }
 
+message Actor {
+    // OPTIONAL. Token issuer URI
+    string issuer = 1;
+    // OPTIONAL. Identity subject
+    string subject = 2;
+    // OPTIONAL. Client identifier.
+    string client_id = 3;
+    // OPTIONAL. Actor chain.
+    Actor act = 4;
+}
+
 message Token {
   // REQUIRED. Token type.
   TokenType token_type = 1;
@@ -69,6 +80,10 @@ message Token {
   string value = 5;
   // OPTIONAL. Token confirmation
   TokenConfirmation confirmation = 6;
+  // OPTIONAL. Actor.
+  repeated Actor actor = 7;
+  // OPTIONAL. Authorized Actor.
+  repeated Actor may_act = 8;
 }
 
 message TokenConfirmation {

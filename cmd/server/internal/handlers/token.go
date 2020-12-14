@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"time"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/dpop"
@@ -30,14 +31,23 @@ import (
 	"zntr.io/solid/pkg/server/clientauthentication"
 )
 
+func optionalString(value string) *wrapperspb.StringValue {
+	if value != "" {
+		return &wrapperspb.StringValue{Value: value}
+	}
+	return nil
+}
+
 // Token handles token HTTP requests.
 func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {
-		AccessToken  string `json:"access_token"`
-		ExpiresIn    uint64 `json:"expires_in"`
-		TokenType    string `json:"token_type"`
-		RefreshToken string `json:"refresh_token,omitempty"`
-		Scope        string `json:"scope"`
+		Issuer          string `json:"iss"`
+		AccessToken     string `json:"access_token"`
+		ExpiresIn       uint64 `json:"expires_in"`
+		TokenType       string `json:"token_type"`
+		RefreshToken    string `json:"refresh_token,omitempty"`
+		Scope           string `json:"scope,omitempty"`
+		IssuedTokenType string `json:"issued_token_type,omitempty"`
 	}
 
 	messageBuilder := func(r *http.Request, client *corev1.Client) *corev1.TokenRequest {
@@ -45,12 +55,25 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 
 		var (
 			grantType = r.FormValue("grant_type")
+			scope     = r.FormValue("scope")
+			resource  = r.FormValue("resource")
+			audience  = r.FormValue("audience")
 		)
 
 		msg := &corev1.TokenRequest{
 			Issuer:    as.Issuer().String(),
 			Client:    client,
 			GrantType: grantType,
+		}
+
+		if scope != "" {
+			msg.Scope = &wrapperspb.StringValue{Value: scope}
+		}
+		if resource != "" {
+			msg.Resource = &wrapperspb.StringValue{Value: resource}
+		}
+		if audience != "" {
+			msg.Audience = &wrapperspb.StringValue{Value: audience}
 		}
 
 		switch grantType {
@@ -79,6 +102,17 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 			msg.Grant = &corev1.TokenRequest_RefreshToken{
 				RefreshToken: &corev1.GrantRefreshToken{
 					RefreshToken: r.FormValue("refresh_token"),
+				},
+			}
+
+		case oidc.GrantTypeTokenExchange:
+			msg.Grant = &corev1.TokenRequest_TokenExchange{
+				TokenExchange: &corev1.GrantTokenExchange{
+					SubjectToken:       r.FormValue("subject_token"),
+					SubjectTokenType:   r.FormValue("subject_token_type"),
+					ActorToken:         optionalString(r.FormValue("actor_token")),
+					ActorTokenType:     optionalString(r.FormValue("actor_token_type")),
+					RequestedTokenType: optionalString(r.FormValue("requested_token_type")),
 				},
 			}
 		}
@@ -139,6 +173,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 
 		// Prepare response
 		jsonResponse := &response{
+			Issuer:      tokenRes.Issuer,
 			AccessToken: tokenRes.AccessToken.Value,
 			ExpiresIn:   tokenRes.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()),
 			TokenType:   tokenType,
@@ -146,6 +181,9 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 		}
 		if tokenRes.RefreshToken != nil {
 			jsonResponse.RefreshToken = tokenRes.RefreshToken.Value
+		}
+		if tokenRes.IssuedTokenType != "" {
+			jsonResponse.IssuedTokenType = tokenRes.IssuedTokenType
 		}
 
 		// Send json reponse

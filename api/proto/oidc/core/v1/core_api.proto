@@ -167,6 +167,25 @@ message TokenRequest {
   // at multiple resources.
   google.protobuf.StringValue resource = 6;
 
+  // OPTIONAL.  The logical name of the target service where the client
+  // intends to use the requested security token.  This serves a
+  // purpose similar to the "resource" parameter but with the client
+  // providing a logical name for the target service.  Interpretation
+  // of the name requires that the value be something that both the
+  // client and the authorization server understand.  An OAuth client
+  // identifier, a SAML entity identifier [OASIS.saml-core-2.0-os], and
+  // an OpenID Connect Issuer Identifier [OpenID.Core] are examples of
+  // things that might be used as "audience" parameter values.
+  // However, "audience" values used with a given authorization server
+  // must be unique within that server to ensure that they are properly
+  // interpreted as the intended type of value.  Multiple "audience"
+  // parameters may be used to indicate that the issued token is
+  // intended to be used at the multiple audiences listed.  The
+  // "audience" and "resource" parameters may be used together to
+  // indicate multiple target services with a mix of logical names and
+  // resource URIs.
+  google.protobuf.StringValue audience = 7;
+
   // REQUIRED.
   oneof grant {
     // tools.ietf.org/html/rfc6749#section-1.3.1
@@ -177,6 +196,8 @@ message TokenRequest {
     GrantDeviceCode device_code = 12;
     // tools.ietf.org/html/rfc6749#section-1.5
     GrantRefreshToken refresh_token = 13;
+    // https://tools.ietf.org/html/rfc8693#section-2.1
+    GrantTokenExchange token_exchange = 14;
   }
 }
 
@@ -190,6 +211,12 @@ message TokenResponse {
   Token id_token = 4;
   // REQUIRED. Issuer url.
   string issuer = 5;
+  // OPTIONAL. An identifier, as described in Section 3, for the representation
+  // of the issued security token. REQUIRED for RFC8693.
+  string issued_token_type = 6;
+  // OPTIONAL if the scope of the issued security token is identical to
+  // the scope requested by the client; otherwise, it is REQUIRED.
+  string scope = 7;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.1
@@ -243,3 +270,4 @@ message DeviceCodeValidationRequest {
 message DeviceCodeValidationResponse {
   Error error = 1;
 }
+

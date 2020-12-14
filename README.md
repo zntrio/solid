@@ -129,6 +129,7 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
     * [x] `refresh_token` grant type
     * [x] `device_code` grant type
+    * [x] `token_exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
     * [x] Pairwise subject identifier
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
     * [x] [OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/)

@@ -15,18 +15,29 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package jwt
+package token
 
-import "errors"
+import (
+	"context"
 
-//go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/jwt Signer
+	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+)
+
+//go:generate mockgen -destination mock/generator.gen.go -package mock zntr.io/solid/pkg/sdk/token Generator
+
+// Generator describes accessToken / refreshToken generator contract.
+type Generator interface {
+	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error)
+}
+
+//go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/token Signer
 
 // Signer describe JWT signer contract.
 type Signer interface {
 	Sign(claims interface{}) (string, error)
 }
 
-//go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/pkg/sdk/jwt Verifier
+//go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/pkg/sdk/token Verifier
 
 // Verifier describes JWT verifier contract.
 type Verifier interface {
@@ -35,18 +46,14 @@ type Verifier interface {
 	Claims(token string, claims interface{}) error
 }
 
-//go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/sdk/jwt Token
+//go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/sdk/token Token
 
 // Token represents a jwt token contract.
 type Token interface {
+	Algorithm() (string, error)
 	Type() (string, error)
 	KeyID() (string, error)
 	PublicKey() (interface{}, error)
 	PublicKeyThumbPrint() (string, error)
-	Algorithm() (string, error)
 	Claims(publicKey interface{}, claims interface{}) error
 }
-
-// ErrInvalidTokenSignature is raised when token is signed with a private key
-// where the public key is not known by the keyset.
-var ErrInvalidTokenSignature = errors.New("invalid token signature")

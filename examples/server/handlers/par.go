@@ -29,8 +29,8 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/jwsreq"
-	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token/jwt"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/clientauthentication"
 )
@@ -75,7 +75,7 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := jwsreq.JWTAuthorizationDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
 			var jwks jose.JSONWebKeySet
 			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")

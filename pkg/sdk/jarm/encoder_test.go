@@ -25,8 +25,8 @@ import (
 	"github.com/golang/mock/gomock"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
 func Test_jwtEncoder_Encode(t *testing.T) {
@@ -38,7 +38,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*jwtmock.MockSigner)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -69,7 +69,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Error: rfcerrors.AccessDenied().Build(),
 				},
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
+			prepare: func(signer *tokenmock.MockSigner) {
 				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
@@ -83,7 +83,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Error: rfcerrors.AccessDenied().Build(),
 				},
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
+			prepare: func(signer *tokenmock.MockSigner) {
 				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -145,7 +145,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					ExpiresIn: 60,
 				},
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
+			prepare: func(signer *tokenmock.MockSigner) {
 				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -161,7 +161,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					ExpiresIn: 60,
 				},
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
+			prepare: func(signer *tokenmock.MockSigner) {
 				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
@@ -173,14 +173,14 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockSigner := jwtmock.NewMockSigner(ctrl)
+			mockSigner := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {
 				tt.prepare(mockSigner)
 			}
 
-			d := JWTEncoder(mockSigner)
+			d := Encoder(mockSigner)
 			got, err := d.Encode(tt.args.ctx, tt.args.issuer, tt.args.resp)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtEncoder.Encode() error = %v, wantErr %v", err, tt.wantErr)

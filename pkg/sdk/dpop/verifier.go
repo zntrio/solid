@@ -28,7 +28,7 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 )
@@ -37,7 +37,7 @@ import (
 
 // DefaultVerifier returns a verifier instance with in-memory cache for proof
 // storage.
-func DefaultVerifier(proofs storage.DPoP, verifier jwt.Verifier) (Verifier, error) {
+func DefaultVerifier(proofs storage.DPoP, verifier token.Verifier) (Verifier, error) {
 	// Check arguments
 	if types.IsNil(proofs) {
 		return nil, fmt.Errorf("proof storage is mandatory and couldn't be nil")
@@ -57,7 +57,7 @@ func DefaultVerifier(proofs storage.DPoP, verifier jwt.Verifier) (Verifier, erro
 
 type defaultVerifier struct {
 	proofs   storage.DPoP
-	verifier jwt.Verifier
+	verifier token.Verifier
 }
 
 // Verify given DPoP proof.
@@ -91,7 +91,7 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (s
 	// Check dpop
 	token, err := v.verifier.Parse(proof)
 	if err != nil {
-		return "", fmt.Errorf("proof has not a valid jwt syntax: %w", err)
+		return "", fmt.Errorf("proof has not a valid syntax: %w", err)
 	}
 
 	// Validate header
@@ -126,7 +126,7 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (s
 	return thumb, nil
 }
 
-func (v *defaultVerifier) validateProofHeader(proof jwt.Token) error {
+func (v *defaultVerifier) validateProofHeader(proof token.Token) error {
 	// Check arguments
 	if types.IsNil(proof) {
 		return fmt.Errorf("unable to process nil token")
@@ -135,26 +135,26 @@ func (v *defaultVerifier) validateProofHeader(proof jwt.Token) error {
 	// Check token type
 	typ, err := proof.Type()
 	if err != nil {
-		return fmt.Errorf("proof has not a valid jwt syntax, valid 'typ' header is mandatory")
+		return fmt.Errorf("proof has not a valid syntax, valid 'typ' header is mandatory")
 	}
 	if typ != HeaderType {
-		return fmt.Errorf("proof has not a valid jwt syntax, 'typ' header value must be '%s'", HeaderType)
+		return fmt.Errorf("proof has not a valid syntax, 'typ' header value must be '%s'", HeaderType)
 	}
 
 	// JWK
 	pubJWK, err := proof.PublicKey()
 	if err != nil {
-		return fmt.Errorf("proof has not a valid jwt syntax, a valid embedded public key is mandatory")
+		return fmt.Errorf("proof has not a valid syntax, a valid embedded public key is mandatory")
 	}
 	if types.IsNil(pubJWK) {
-		return fmt.Errorf("proof has not a valid jwt syntax, the embedded public is invalid")
+		return fmt.Errorf("proof has not a valid syntax, the embedded public is invalid")
 	}
 
 	// No error
 	return nil
 }
 
-func (v *defaultVerifier) extractProofClaims(proof jwt.Token) (*proofClaims, error) {
+func (v *defaultVerifier) extractProofClaims(proof token.Token) (*proofClaims, error) {
 	// Check arguments
 	if types.IsNil(proof) {
 		return nil, fmt.Errorf("unable to process nil token")

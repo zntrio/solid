@@ -39,7 +39,7 @@ import (
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token/jwt"
 )
 
 type sessionObject struct {
@@ -281,11 +281,11 @@ func arEncoder(keyProvider jwk.KeyProviderFunc) (jwsreq.AuthorizationEncoder, er
 	}, options)
 
 	// No error
-	return jwsreq.JWTAuthorizationEncoder(arSigner), nil
+	return jwsreq.AuthorizationRequestEncoder(arSigner), nil
 }
 
 func jarmDecoder(issuer string, c client.Client) (jarm.ResponseDecoder, error) {
-	return jarm.JWTDecoder(issuer, jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+	return jarm.Decoder(issuer, jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
 		// Retrieve server publickeys
 		jwks, _, err := c.PublicKeys(ctx)
 		if err != nil {

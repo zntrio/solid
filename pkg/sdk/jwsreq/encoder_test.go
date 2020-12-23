@@ -26,13 +26,13 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
-	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
+	"zntr.io/solid/pkg/sdk/token"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
 func Test_jwtEncoder_Encode(t *testing.T) {
 	type fields struct {
-		signer jwt.Signer
+		signer token.Signer
 	}
 	type args struct {
 		ctx context.Context
@@ -42,7 +42,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*jwtmock.MockSigner)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -73,7 +73,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Prompt:              &wrapperspb.StringValue{Value: "consent"},
 				},
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
+			prepare: func(signer *tokenmock.MockSigner) {
 				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -94,7 +94,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Prompt:              &wrapperspb.StringValue{Value: "consent"},
 				},
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
+			prepare: func(signer *tokenmock.MockSigner) {
 				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
@@ -106,14 +106,14 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockSigner := jwtmock.NewMockSigner(ctrl)
+			mockSigner := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {
 				tt.prepare(mockSigner)
 			}
 
-			enc := JWTAuthorizationEncoder(mockSigner)
+			enc := AuthorizationRequestEncoder(mockSigner)
 			got, err := enc.Encode(tt.args.ctx, tt.args.ar)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtEncoder.Encode() error = %v, wantErr %v", err, tt.wantErr)

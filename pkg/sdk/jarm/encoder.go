@@ -23,23 +23,23 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token"
 )
 
 // -----------------------------------------------------------------------------
 
-// JWTEncoder builds a JWT Response encoder instance.
-func JWTEncoder(signer jwt.Signer) ResponseEncoder {
-	return &jwtEncoder{
+// Encoder builds a Response Mode encoder instance.
+func Encoder(signer token.Signer) ResponseEncoder {
+	return &tokenEncoder{
 		signer: signer,
 	}
 }
 
-type jwtEncoder struct {
-	signer jwt.Signer
+type tokenEncoder struct {
+	signer token.Signer
 }
 
-func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error) {
+func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error) {
 	// Check arguments
 	if issuer == "" {
 		return "", fmt.Errorf("unable to process empty issuer")
@@ -49,9 +49,9 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 	}
 
 	// Prepare response claims
-	var claims *jwtResponseClaims
+	var claims *responseClaims
 	if resp.Error != nil {
-		claims = &jwtResponseClaims{
+		claims = &responseClaims{
 			State:            resp.State,
 			Error:            resp.Error.Err,
 			ErrorDescription: resp.Error.ErrorDescription,
@@ -71,7 +71,7 @@ func (d *jwtEncoder) Encode(ctx context.Context, issuer string, resp *corev1.Aut
 			return "", fmt.Errorf("expires_in must not be strictly positive")
 		}
 
-		claims = &jwtResponseClaims{
+		claims = &responseClaims{
 			State:     resp.State,
 			Issuer:    resp.Issuer,
 			Audience:  resp.ClientId,

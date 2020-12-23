@@ -28,6 +28,7 @@ import (
 	"zntr.io/solid/internal/services/device"
 	"zntr.io/solid/internal/services/token"
 	"zntr.io/solid/pkg/sdk/generator"
+	tokengen "zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/server/authorizationserver/features"
 	"zntr.io/solid/pkg/server/authorizationserver/features/oidc"
 	"zntr.io/solid/pkg/server/profile"
@@ -48,8 +49,8 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	// Default options
 	defaultOptions := &options{
 		authorizationCodeGenerator:      generator.DefaultAuthorizationCode(),
-		accessTokenGenerator:            generator.DefaultToken(),
-		refreshTokenGenerator:           generator.DefaultToken(),
+		accessTokenGenerator:            tokengen.DefaultGenerator(),
+		refreshTokenGenerator:           tokengen.DefaultGenerator(),
 		clientReader:                    nil,
 		clientWriter:                    nil,
 		tokenManager:                    nil,
@@ -71,7 +72,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	// Initialize services
 	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
-	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.idTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
+	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.refreshTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
 	clients := client.New(defaultOptions.clientWriter, profile.Strict())
 
 	// Wire message

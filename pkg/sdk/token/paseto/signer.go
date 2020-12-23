@@ -15,31 +15,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package jwt
+package paseto
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 
+	pasetolib "github.com/o1egl/paseto"
 	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
 
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/types"
 )
 
 // DefaultSigner declare a default JWT signer.
-func DefaultSigner(privateKey jose.SigningKey, opts *jose.SignerOptions) Signer {
+func DefaultSigner(privateKey *jose.JSONWebKey) token.Signer {
 	return &defaultSigner{
 		privateKey: privateKey,
-		options:    opts,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type defaultSigner struct {
-	privateKey jose.SigningKey
-	options    *jose.SignerOptions
+	privateKey *jose.JSONWebKey
 }
 
 func (ds *defaultSigner) Sign(claims interface{}) (string, error) {
@@ -48,16 +48,19 @@ func (ds *defaultSigner) Sign(claims interface{}) (string, error) {
 		return "", errors.New("unable to sign nil claim object")
 	}
 
-	// Prepare a signer
-	sig, err := jose.NewSigner(ds.privateKey, ds.options)
+	// Prepare footer
+	footerJSON := map[string]string{
+		"kid": ds.privateKey.KeyID,
+	}
+	footer, err := json.Marshal(footerJSON)
 	if err != nil {
-		return "", fmt.Errorf("unable to prepare signer: %w", err)
+		return "", fmt.Errorf("unable to encode paseto footer: %w", err)
 	}
 
-	// Generate the final proof
-	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
+	// Prepare a signer
+	raw, err := pasetolib.NewV2().Sign(ds.privateKey.Key, claims, string(footer))
 	if err != nil {
-		return "", fmt.Errorf("unable to generate JWT: %w", err)
+		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}
 
 	// No error

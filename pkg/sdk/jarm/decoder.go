@@ -23,13 +23,13 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token"
 )
 
 // -----------------------------------------------------------------------------
 
-type jwtResponseClaims struct {
+type responseClaims struct {
 	Issuer           string `json:"iss,omitempty"`
 	Audience         string `json:"aud,omitempty"`
 	ExpiresAt        uint64 `json:"exp,omitempty"`
@@ -40,26 +40,26 @@ type jwtResponseClaims struct {
 	ErrorURI         string `json:"error_uri,omitempty"`
 }
 
-func (r *jwtResponseClaims) HasError() bool {
+func (r *responseClaims) HasError() bool {
 	return r.Error != ""
 }
 
 // -----------------------------------------------------------------------------
 
-// JWTDecoder builds a JWT Response deocer instance.
-func JWTDecoder(issuer string, verifier jwt.Verifier) ResponseDecoder {
-	return &jwtDecoder{
+// Decoder builds a Response decoder instance.
+func Decoder(issuer string, verifier token.Verifier) ResponseDecoder {
+	return &tokenDecoder{
 		issuer:   issuer,
 		verifier: verifier,
 	}
 }
 
-type jwtDecoder struct {
+type tokenDecoder struct {
 	issuer   string
-	verifier jwt.Verifier
+	verifier token.Verifier
 }
 
-func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error) {
+func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error) {
 	// Check arguments
 	if audience == "" {
 		return nil, fmt.Errorf("audience must not be blank")
@@ -84,7 +84,7 @@ func (d *jwtDecoder) Decode(ctx context.Context, audience, response string) (*co
 	}
 
 	// Claims
-	var claims jwtResponseClaims
+	var claims responseClaims
 
 	// Extract claims
 	if err := d.verifier.Claims(response, &claims); err != nil {

@@ -31,8 +31,8 @@ import (
 	"zntr.io/solid/examples/server/middleware"
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwsreq"
-	"zntr.io/solid/pkg/sdk/jwt"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token/jwt"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/storage"
 )
@@ -72,7 +72,7 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := jwsreq.JWTAuthorizationDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
+		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
 			var jwks jose.JSONWebKeySet
 			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")

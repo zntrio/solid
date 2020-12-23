@@ -139,10 +139,7 @@ func Test_defaultSigner_Sign(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ds := &defaultSigner{
-				privateKey: tt.fields.privateKey,
-				options:    tt.fields.options,
-			}
+			ds := DefaultSigner(tt.fields.privateKey, tt.fields.options)
 			_, err := ds.Sign(tt.args.claims)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultSigner.Sign() error = %v, wantErr %v", err, tt.wantErr)

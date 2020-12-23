@@ -24,11 +24,12 @@ import (
 	"github.com/square/go-jose/v3/jwt"
 
 	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/types"
 )
 
 // DefaultVerifier declare a default JWT verifier.
-func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms []string) Verifier {
+func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms []string) token.Verifier {
 	return &defaultVerifier{
 		keySetProvider:      keySetProvider,
 		supportedAlgorithms: types.StringArray(supportedAlgorithms),
@@ -42,7 +43,7 @@ type defaultVerifier struct {
 	supportedAlgorithms types.StringArray
 }
 
-func (v *defaultVerifier) Parse(token string) (Token, error) {
+func (v *defaultVerifier) Parse(token string) (token.Token, error) {
 	// Parse JWT token
 	t, err := jwt.ParseSigned(token)
 	if err != nil {
@@ -79,7 +80,7 @@ func (v *defaultVerifier) Verify(token string) error {
 
 func (v *defaultVerifier) Claims(raw string, claims interface{}) error {
 	// Parse JWT token
-	token, err := jwt.ParseSigned(raw)
+	t, err := jwt.ParseSigned(raw)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}
@@ -94,7 +95,7 @@ func (v *defaultVerifier) Claims(raw string, claims interface{}) error {
 	keys := jwks.Keys
 
 	// Check if token refer to a key
-	kid := token.Headers[0].KeyID
+	kid := t.Headers[0].KeyID
 	if kid != "" {
 		keys = jwks.Key(kid)
 	}
@@ -113,7 +114,7 @@ func (v *defaultVerifier) Claims(raw string, claims interface{}) error {
 		}
 
 		// Try to verify with current key
-		if err := token.Claims(k, claims); err != nil {
+		if err := t.Claims(k, claims); err != nil {
 			continue
 		}
 
@@ -122,7 +123,7 @@ func (v *defaultVerifier) Claims(raw string, claims interface{}) error {
 		break
 	}
 	if !valid {
-		return ErrInvalidTokenSignature
+		return token.ErrInvalidTokenSignature
 	}
 
 	// No error

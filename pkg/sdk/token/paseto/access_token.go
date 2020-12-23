@@ -15,37 +15,31 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package jwt
+package paseto
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/square/go-jose/v3"
-	jwt "github.com/square/go-jose/v3/jwt"
+	pasetolib "github.com/o1egl/paseto"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/generator"
 	"zntr.io/solid/pkg/sdk/jwk"
+	"zntr.io/solid/pkg/sdk/token"
 )
 
 // -----------------------------------------------------------------------------
 
-// AccessToken instantiate a JWT access token generator.
-func AccessToken(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) generator.Token {
+// AccessToken instantiate a PASETO access token generator.
+func AccessToken(keyProvider jwk.KeyProviderFunc) token.Generator {
 	return &accessTokenGenerator{
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
-// KeyProviderFunc defines key provider contract.
-type KeyProviderFunc func() (*jose.JSONWebKey, error)
-
 type accessTokenGenerator struct {
-	alg         jose.SignatureAlgorithm
 	keyProvider jwk.KeyProviderFunc
 }
 
@@ -75,14 +69,10 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 		return "", fmt.Errorf("key provider returned a unidentifiable key")
 	}
 
-	// Preapre JWT header
-	options := (&jose.SignerOptions{}).WithType("at+jwt")
-	options = options.WithHeader(jose.HeaderKey("kid"), key.KeyID)
-
-	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: c.alg, Key: key}, options)
-	if err != nil {
-		return "", fmt.Errorf("unable to prepare signer: %w", err)
+	// Prepare footer
+	footer := map[string]string{
+		"kid": key.KeyID,
+		"typ": "at+paseto",
 	}
 
 	// Prepare claims
@@ -91,6 +81,7 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 		"exp":       meta.ExpiresAt,
 		"aud":       meta.Audience,
 		"iat":       meta.IssuedAt,
+		"nbf":       meta.IssuedAt + 1,
 		"sub":       meta.Subject,
 		"client_id": meta.ClientId,
 		"jti":       jti,
@@ -106,9 +97,9 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 	}
 
 	// Sign the assertion
-	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
+	raw, err := pasetolib.NewV2().Sign(key.Key, claims, footer)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign access token: %w", err)
+		return "", fmt.Errorf("unable to sign accesstoken: %w", err)
 	}
 
 	// No error

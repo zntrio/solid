@@ -27,15 +27,15 @@ import (
 	"github.com/golang/mock/gomock"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
-	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
 func Test_jwtDecoder_Decode(t *testing.T) {
 	type fields struct {
 		issuer   string
-		verifier jwt.Verifier
+		verifier token.Verifier
 	}
 	type args struct {
 		ctx      context.Context
@@ -46,7 +46,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*jwtmock.MockVerifier, *jwtmock.MockToken)
+		prepare func(*tokenmock.MockVerifier, *tokenmock.MockToken)
 		want    *corev1.AuthorizationCodeResponse
 		wantErr bool
 	}{
@@ -75,7 +75,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "invalid-jwt-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, _ *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, _ *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("invalid-jwt-token").Return(nil, fmt.Errorf("invalid token"))
 			},
 			wantErr: true,
@@ -86,7 +86,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return("", fmt.Errorf("foo"))
 			},
@@ -98,7 +98,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return("invalid", nil)
 			},
@@ -110,7 +110,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
@@ -126,13 +126,13 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
-					case *jwtResponseClaims:
-						*v = jwtResponseClaims{
+					case *responseClaims:
+						*v = responseClaims{
 							Issuer:    "https://foo.com",
 							Audience:  "https://example.com",
 							Code:      "AZERTYUIOP",
@@ -156,13 +156,13 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://foo.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
-					case *jwtResponseClaims:
-						*v = jwtResponseClaims{
+					case *responseClaims:
+						*v = responseClaims{
 							Issuer:    "https://example.com",
 							Audience:  "https://example.com",
 							Code:      "AZERTYUIOP",
@@ -186,13 +186,13 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
-					case *jwtResponseClaims:
-						*v = jwtResponseClaims{
+					case *responseClaims:
+						*v = responseClaims{
 							Issuer:    "https://example.com",
 							Audience:  "https://example.com",
 							Code:      "AZERTYUIOP",
@@ -216,13 +216,13 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "https://example.com",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
-					case *jwtResponseClaims:
-						*v = jwtResponseClaims{
+					case *responseClaims:
+						*v = responseClaims{
 							Error: "invalid_request",
 						}
 					}
@@ -244,13 +244,13 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				audience: "s6BhdRkqt3",
 				response: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier, token *jwtmock.MockToken) {
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-token").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
-					case *jwtResponseClaims:
-						*v = jwtResponseClaims{
+					case *responseClaims:
+						*v = responseClaims{
 							Issuer:    "https://accounts.example.com",
 							Audience:  "s6BhdRkqt3",
 							Code:      "PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
@@ -262,8 +262,9 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			},
 			wantErr: false,
 			want: &corev1.AuthorizationCodeResponse{
-				Code:  "PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
-				State: "S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw",
+				Code:   "PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
+				State:  "S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw",
+				Issuer: "https://accounts.example.com",
 			},
 		},
 	}
@@ -272,15 +273,15 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockVerifier := jwtmock.NewMockVerifier(ctrl)
-			mockToken := jwtmock.NewMockToken(ctrl)
+			mockVerifier := tokenmock.NewMockVerifier(ctrl)
+			mockToken := tokenmock.NewMockToken(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {
 				tt.prepare(mockVerifier, mockToken)
 			}
 
-			d := JWTDecoder(tt.fields.issuer, mockVerifier)
+			d := Decoder(tt.fields.issuer, mockVerifier)
 			got, err := d.Decode(tt.args.ctx, tt.args.audience, tt.args.response)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtDecoder.Decode() error = %v, wantErr %v", err, tt.wantErr)

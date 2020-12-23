@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package generator
+package token
 
 import (
 	"context"
@@ -31,8 +31,8 @@ const (
 	DefaultAccessTokenLen = 28
 )
 
-// DefaultToken returns the default token generator.
-func DefaultToken() Token {
+// DefaultGenerator returns the default token generator.
+func DefaultGenerator() Generator {
 	return &tokenGenerator{}
 }
 

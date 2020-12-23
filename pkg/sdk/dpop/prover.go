@@ -27,14 +27,14 @@ import (
 
 	"github.com/dchest/uniuri"
 
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/types"
 )
 
 // -----------------------------------------------------------------------------
 
 // DefaultProver uses the given signer to generate a DPoP Proof.
-func DefaultProver(signer jwt.Signer) (Prover, error) {
+func DefaultProver(signer token.Signer) (Prover, error) {
 	// Check arguments
 	if types.IsNil(signer) {
 		return nil, errors.New("unable to instantiate a DPoP Prover with nil signer")
@@ -49,7 +49,7 @@ func DefaultProver(signer jwt.Signer) (Prover, error) {
 // -----------------------------------------------------------------------------
 
 type defaultProver struct {
-	signer jwt.Signer
+	signer token.Signer
 }
 
 func (p *defaultProver) Prove(htm, htu string) (string, error) {

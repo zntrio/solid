@@ -28,8 +28,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
-	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
+	"zntr.io/solid/pkg/sdk/token"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
 var cmpOpts = []cmp.Option{
@@ -40,7 +40,7 @@ var cmpOpts = []cmp.Option{
 
 func Test_jwtDecoder_Decode(t *testing.T) {
 	type fields struct {
-		verifier jwt.Verifier
+		verifier token.Verifier
 	}
 	type args struct {
 		ctx   context.Context
@@ -50,7 +50,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*jwtmock.MockVerifier)
+		prepare func(*tokenmock.MockVerifier)
 		want    *corev1.AuthorizationRequest
 		wantErr bool
 	}{
@@ -70,7 +70,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			args: args{
 				value: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier) {
+			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -80,7 +80,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			args: args{
 				value: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier) {
+			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *map[string]interface{}:
@@ -97,7 +97,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			args: args{
 				value: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier) {
+			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *map[string]interface{}:
@@ -115,7 +115,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			args: args{
 				value: "fake-token",
 			},
-			prepare: func(verifier *jwtmock.MockVerifier) {
+			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *map[string]interface{}:
@@ -136,14 +136,14 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockVerifier := jwtmock.NewMockVerifier(ctrl)
+			mockVerifier := tokenmock.NewMockVerifier(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {
 				tt.prepare(mockVerifier)
 			}
 
-			d := JWTAuthorizationDecoder(mockVerifier)
+			d := AuthorizationRequestDecoder(mockVerifier)
 			got, err := d.Decode(tt.args.ctx, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtDecoder.Decode() error = %v, wantErr %v", err, tt.wantErr)

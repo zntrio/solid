@@ -29,8 +29,8 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	generatormock "zntr.io/solid/pkg/sdk/generator/mock"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
@@ -44,7 +44,7 @@ func Test_service_authorizationCode(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockAuthorizationCodeSession, *storagemock.MockToken, *generatormock.MockToken)
+		prepare func(*storagemock.MockAuthorizationCodeSession, *storagemock.MockToken, *tokenmock.MockGenerator, *tokenmock.MockGenerator)
 		want    *corev1.TokenResponse
 		wantErr bool
 	}{
@@ -348,7 +348,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -380,7 +380,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -412,7 +412,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: nil,
 				}, nil)
@@ -446,7 +446,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -490,7 +490,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -534,7 +534,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -578,7 +578,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -622,7 +622,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -667,7 +667,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -712,7 +712,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -757,7 +757,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -803,7 +803,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -817,9 +817,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				}, nil)
 				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
-				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo")).After(atGen)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -850,7 +850,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -864,9 +864,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				}, nil)
 				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
-				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).After(atGen)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -897,7 +897,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -911,9 +911,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				}, nil)
 				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
-				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil).After(atGen)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")).After(atSave)
 			},
 			wantErr: true,
@@ -946,7 +946,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *generatormock.MockToken) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
@@ -961,9 +961,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				}, nil)
 				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
-				atGen := at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil).After(atGen)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
@@ -1003,19 +1003,19 @@ func Test_service_authorizationCode(t *testing.T) {
 
 			// Arm mocks
 			sessions := storagemock.NewMockAuthorizationCodeSession(ctrl)
-			accessTokens := generatormock.NewMockToken(ctrl)
-			idTokens := generatormock.NewMockIdentity(ctrl)
+			accessTokens := tokenmock.NewMockGenerator(ctrl)
+			refreshTokens := tokenmock.NewMockGenerator(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(sessions, tokens, accessTokens)
+				tt.prepare(sessions, tokens, accessTokens, refreshTokens)
 			}
 
 			s := &service{
 				authorizationCodeSessions: sessions,
-				tokenGen:                  accessTokens,
-				idGen:                     idTokens,
+				accessTokenGen:            accessTokens,
+				refreshTokenGen:           refreshTokens,
 				tokens:                    tokens,
 			}
 			got, err := s.authorizationCode(tt.args.ctx, tt.args.client, tt.args.req)

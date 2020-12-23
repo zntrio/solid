@@ -31,11 +31,11 @@ import (
 	"zntr.io/solid/examples/storage/inmemory"
 	"zntr.io/solid/pkg/sdk/dpop"
 	"zntr.io/solid/pkg/sdk/generator"
-	jwtgen "zntr.io/solid/pkg/sdk/generator/jwt"
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token/jwt"
+	"zntr.io/solid/pkg/sdk/token/paseto"
 	"zntr.io/solid/pkg/server/authorizationserver"
 )
 
@@ -50,11 +50,36 @@ var jwkPrivateKey = []byte(`{
 		"alg": "ES384"
 	}`)
 
+var ed25519PrivateKey = []byte(`{
+	"kid":"123456700",
+	"kty": "OKP",
+	"d": "XlEceI8Qol54ytI0Uxe7GqAGl6_nief996QthhCnpew",
+	"use": "sig",
+	"crv": "Ed25519",
+	"x": "g1nc4Wa7fWcrRuGqiFOb8MlikE-EYHgWinC7QqGBmzU",
+	"alg": "EdDSA"
+}`)
+
 func keyProvider() jwk.KeyProviderFunc {
 	var privateKey jose.JSONWebKey
 
 	// Decode JWK
 	err := json.Unmarshal(jwkPrivateKey, &privateKey)
+	if err != nil {
+		panic(err)
+	}
+
+	return func(_ context.Context) (*jose.JSONWebKey, error) {
+		// No error
+		return &privateKey, nil
+	}
+}
+
+func pasetoKeyProvider() jwk.KeyProviderFunc {
+	var privateKey jose.JSONWebKey
+
+	// Decode JWK
+	err := json.Unmarshal(ed25519PrivateKey, &privateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -99,7 +124,7 @@ func jarmEncoder(keyProvider jwk.KeyProviderFunc) (jarm.ResponseEncoder, error) 
 	}, options)
 
 	// Prover
-	return jarm.JWTEncoder(jarmSigner), nil
+	return jarm.Encoder(jarmSigner), nil
 }
 
 func main() {
@@ -117,7 +142,7 @@ func main() {
 		// Token storage
 		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Access token generator
-		authorizationserver.AccessTokenGenerator(jwtgen.AccessToken(jose.ES384, keyProvider())),
+		authorizationserver.AccessTokenGenerator(paseto.AccessToken(pasetoKeyProvider())),
 		// Device authorization session storage
 		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 	)
@@ -137,7 +162,7 @@ func main() {
 	}
 
 	// JWSREQ Decoder
-	requestDecoder := jwsreq.JWTAuthorizationDecoder(jwt.DefaultVerifier(keySetProvider(), []string{string(jose.ES384)}))
+	requestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(keySetProvider(), []string{string(jose.ES384)}))
 
 	// Initialize JARM encoder
 	jarmEncoder, err := jarmEncoder(keyProvider())

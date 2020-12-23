@@ -25,23 +25,23 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token"
 )
 
 // -----------------------------------------------------------------------------
 
-// JWTAuthorizationEncoder returns an authorization request encoder instance.
-func JWTAuthorizationEncoder(signer jwt.Signer) AuthorizationEncoder {
-	return &jwtEncoder{
+// AuthorizationRequestEncoder returns an authorization request encoder instance.
+func AuthorizationRequestEncoder(signer token.Signer) AuthorizationEncoder {
+	return &tokenEncoder{
 		signer: signer,
 	}
 }
 
-type jwtEncoder struct {
-	signer jwt.Signer
+type tokenEncoder struct {
+	signer token.Signer
 }
 
-func (enc *jwtEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error) {
+func (enc *tokenEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error) {
 	// Check arguments
 	if ar == nil {
 		return "", fmt.Errorf("unable to encode nil request")

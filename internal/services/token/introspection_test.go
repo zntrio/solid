@@ -27,8 +27,8 @@ import (
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	generatormock "zntr.io/solid/pkg/sdk/generator/mock"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
@@ -219,8 +219,8 @@ func Test_service_Introspect(t *testing.T) {
 
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
-			accessTokens := generatormock.NewMockToken(ctrl)
-			idTokens := generatormock.NewMockIdentity(ctrl)
+			accessTokens := tokenmock.NewMockGenerator(ctrl)
+			refreshTokens := tokenmock.NewMockGenerator(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSession(ctrl)
@@ -232,7 +232,7 @@ func Test_service_Introspect(t *testing.T) {
 			}
 
 			// instantiate service
-			underTest := New(accessTokens, idTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens)
+			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens)
 
 			got, err := underTest.Introspect(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

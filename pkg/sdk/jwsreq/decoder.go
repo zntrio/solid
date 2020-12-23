@@ -26,23 +26,23 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwt"
+	"zntr.io/solid/pkg/sdk/token"
 )
 
 // -----------------------------------------------------------------------------
 
-// JWTAuthorizationDecoder returns an authorization request decoder instance.
-func JWTAuthorizationDecoder(verifier jwt.Verifier) AuthorizationDecoder {
-	return &jwtDecoder{
+// AuthorizationRequestDecoder returns an authorization request decoder instance.
+func AuthorizationRequestDecoder(verifier token.Verifier) AuthorizationDecoder {
+	return &tokenDecoder{
 		verifier: verifier,
 	}
 }
 
-type jwtDecoder struct {
-	verifier jwt.Verifier
+type tokenDecoder struct {
+	verifier token.Verifier
 }
 
-func (d *jwtDecoder) Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error) {
+func (d *tokenDecoder) Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error) {
 	// Check arguments
 	if value == "" {
 		return nil, fmt.Errorf("value must not be blank")

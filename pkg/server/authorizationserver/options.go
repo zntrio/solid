@@ -19,15 +19,15 @@ package authorizationserver
 
 import (
 	"zntr.io/solid/pkg/sdk/generator"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/server/storage"
 )
 
 // Builder options holder
 type options struct {
 	authorizationCodeGenerator      generator.AuthorizationCode
-	accessTokenGenerator            generator.Token
-	refreshTokenGenerator           generator.Token
-	idTokenGenerator                generator.Identity
+	accessTokenGenerator            token.Generator
+	refreshTokenGenerator           token.Generator
 	clientReader                    storage.ClientReader
 	clientWriter                    storage.ClientWriter
 	authorizationRequestManager     storage.AuthorizationRequest
@@ -75,14 +75,14 @@ func TokenManager(store storage.Token) Option {
 }
 
 // AccessTokenGenerator defines the implementation used to generate access tokens.
-func AccessTokenGenerator(g generator.Token) Option {
+func AccessTokenGenerator(g token.Generator) Option {
 	return func(opts *options) {
 		opts.accessTokenGenerator = g
 	}
 }
 
 // RefreshTokenGenerator defines the implementation used to generate refresh tokens.
-func RefreshTokenGenerator(g generator.Token) Option {
+func RefreshTokenGenerator(g token.Generator) Option {
 	return func(opts *options) {
 		opts.refreshTokenGenerator = g
 	}

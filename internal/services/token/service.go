@@ -24,14 +24,14 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/internal/services"
-	"zntr.io/solid/pkg/sdk/generator"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/server/storage"
 )
 
 type service struct {
-	tokenGen                  generator.Token
-	idGen                     generator.Identity
+	accessTokenGen            token.Generator
+	refreshTokenGen           token.Generator
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequestReader
 	authorizationCodeSessions storage.AuthorizationCodeSession
@@ -40,10 +40,10 @@ type service struct {
 }
 
 // New build and returns an authorization service implementation.
-func New(tokenGen generator.Token, idGen generator.Identity, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token) services.Token {
+func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token) services.Token {
 	return &service{
-		tokenGen:                  tokenGen,
-		idGen:                     idGen,
+		accessTokenGen:            accessTokenGen,
+		refreshTokenGen:           refreshTokenGen,
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,

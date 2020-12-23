@@ -142,12 +142,13 @@ I made sample server and various integrations inside `examples/` folder.
   * Token
     * Scheme
       * [x] Bearer - [rfc6750](https://tools.ietf.org/html/rfc6750)
-      * [x] DPoP - [draft-fett-oauth-dpop-04](https://tools.ietf.org/html/draft-ietf-oauth-dpop-01)
+      * [x] DPoP - [draft-fett-oauth-dpop-02](https://tools.ietf.org/html/draft-ietf-oauth-dpop-02)
       * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
     * Authentication by reference
       * [x] Random string
     * Authentication by value
       * [x] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
+      * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
       * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
 * Storage
   * [x] API

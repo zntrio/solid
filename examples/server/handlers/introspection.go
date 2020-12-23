@@ -31,10 +31,6 @@ import (
 
 // TokenIntrospection handles token introspection HTTP requests.
 func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler {
-	type response struct {
-		Active bool `json:"active"`
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (
 			q             = r.URL.Query()
@@ -74,9 +70,24 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 			return
 		}
 
+		resp := map[string]interface{}{
+			"active": introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		}
+
+		if introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE {
+			resp["token_type"] = "Bearer"
+			resp["scope"] = introRes.Token.Metadata.Scope
+			resp["client_id"] = introRes.Token.Metadata.ClientId
+			resp["exp"] = introRes.Token.Metadata.ExpiresAt
+			resp["iat"] = introRes.Token.Metadata.IssuedAt
+			resp["nbf"] = introRes.Token.Metadata.NotBefore
+			resp["sub"] = introRes.Token.Metadata.Subject
+			resp["aud"] = introRes.Token.Metadata.Audience
+			resp["iss"] = introRes.Token.Metadata.Issuer
+			resp["jti"] = introRes.Token.TokenId
+		}
+
 		// Send json reponse
-		withJSON(w, r, http.StatusOK, &response{
-			Active: introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-		})
+		withJSON(w, r, http.StatusOK, resp)
 	})
 }

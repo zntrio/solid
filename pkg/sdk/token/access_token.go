@@ -15,38 +15,35 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package paseto
+package token
 
 import (
 	"context"
 	"fmt"
 
-	pasetolib "github.com/o1egl/paseto"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/pkg/sdk/jwk"
-	"zntr.io/solid/pkg/sdk/token"
+	"zntr.io/solid/pkg/sdk/types"
 )
 
 // -----------------------------------------------------------------------------
 
-// AccessToken instantiate a PASETO access token generator.
-func AccessToken(keyProvider jwk.KeyProviderFunc) token.Generator {
+// AccessToken instantiate an access token generator.
+func AccessToken(signer Signer) Generator {
 	return &accessTokenGenerator{
-		keyProvider: keyProvider,
+		signer: signer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type accessTokenGenerator struct {
-	keyProvider jwk.KeyProviderFunc
+	signer Signer
 }
 
 func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error) {
 	// Check arguments
-	if c.keyProvider == nil {
-		return "", fmt.Errorf("unable to use nil key provider")
+	if types.IsNil(c.signer) {
+		return "", fmt.Errorf("unable to use nil signer")
 	}
 	if jti == "" {
 		return "", fmt.Errorf("token id must not be blank")
@@ -55,33 +52,13 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 		return "", fmt.Errorf("token meta must not be nil")
 	}
 
-	// Retrieve signing key
-	key, err := c.keyProvider(ctx)
-	if err != nil {
-		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
-	}
-
-	// Check
-	if key == nil {
-		return "", fmt.Errorf("key provider returned a nil key")
-	}
-	if key.KeyID == "" {
-		return "", fmt.Errorf("key provider returned a unidentifiable key")
-	}
-
-	// Prepare footer
-	footer := map[string]string{
-		"kid": key.KeyID,
-		"typ": "at+paseto",
-	}
-
 	// Prepare claims
 	claims := map[string]interface{}{
 		"iss":       meta.Issuer,
 		"exp":       meta.ExpiresAt,
 		"aud":       meta.Audience,
 		"iat":       meta.IssuedAt,
-		"nbf":       meta.IssuedAt + 1,
+		"nbf":       meta.NotBefore,
 		"sub":       meta.Subject,
 		"client_id": meta.ClientId,
 		"jti":       jti,
@@ -97,9 +74,9 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 	}
 
 	// Sign the assertion
-	raw, err := pasetolib.NewV2().Sign(key.Key, claims, footer)
+	raw, err := c.signer.Sign(ctx, claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign accesstoken: %w", err)
+		return "", fmt.Errorf("unable to sign access token: %w", err)
 	}
 
 	// No error

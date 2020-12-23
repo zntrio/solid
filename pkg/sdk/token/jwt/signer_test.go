@@ -18,21 +18,21 @@
 package jwt
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
+	"context"
 	"testing"
 
-	"github.com/dchest/uniuri"
 	"github.com/square/go-jose/v3"
+	"zntr.io/solid/pkg/sdk/jwk"
 )
 
 func Test_defaultSigner_Sign(t *testing.T) {
 	type fields struct {
-		privateKey jose.SigningKey
-		options    *jose.SignerOptions
+		tokenType   string
+		alg         jose.SignatureAlgorithm
+		keyProvider jwk.KeyProviderFunc
 	}
 	type args struct {
+		ctx    context.Context
 		claims interface{}
 	}
 	tests := []struct {
@@ -42,108 +42,22 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		want    string
 		wantErr bool
 	}{
-		{
-			name:    "nil claims",
-			wantErr: true,
-		},
-		{
-			name: "public key",
-			fields: fields{
-				privateKey: func() jose.SigningKey {
-					// Generate an ephemeral key for DPoP signer
-					pk, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					return jose.SigningKey{
-						Algorithm: jose.ES384,
-						Key: &jose.JSONWebKey{
-							Use:   "sig",
-							Key:   pk.Public(),
-							KeyID: "key-id-1",
-						},
-					}
-				}(),
-				options: &jose.SignerOptions{},
-			},
-			args: args{
-				claims: struct {
-					NonJsonifiable chan interface{}
-				}{
-					NonJsonifiable: make(chan interface{}),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "non json serializable",
-			fields: fields{
-				privateKey: func() jose.SigningKey {
-					// Generate an ephemeral key for DPoP signer
-					pk, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					return jose.SigningKey{
-						Algorithm: jose.ES384,
-						Key: &jose.JSONWebKey{
-							Use:   "sig",
-							Key:   pk,
-							KeyID: "12345678",
-						},
-					}
-				}(),
-				options: &jose.SignerOptions{},
-			},
-			args: args{
-				claims: struct {
-					NonJsonifiable chan interface{}
-				}{
-					NonJsonifiable: make(chan interface{}),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid",
-			fields: fields{
-				privateKey: func() jose.SigningKey {
-					// Generate an ephemeral key for DPoP signer
-					pk, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-					if err != nil {
-						t.Fatal(err)
-					}
-
-					return jose.SigningKey{
-						Algorithm: jose.ES384,
-						Key: &jose.JSONWebKey{
-							Use:   "sig",
-							Key:   pk,
-							KeyID: uniuri.NewLen(8),
-						},
-					}
-				}(),
-				options: &jose.SignerOptions{},
-			},
-			args: args{
-				claims: struct {
-					JTI string `json:"jti"`
-				}{
-					JTI: uniuri.New(),
-				},
-			},
-			wantErr: false,
-		},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ds := DefaultSigner(tt.fields.privateKey, tt.fields.options)
-			_, err := ds.Sign(tt.args.claims)
+			ds := &defaultSigner{
+				tokenType:   tt.fields.tokenType,
+				alg:         tt.fields.alg,
+				keyProvider: tt.fields.keyProvider,
+			}
+			got, err := ds.Sign(tt.args.ctx, tt.args.claims)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultSigner.Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if got != tt.want {
+				t.Errorf("defaultSigner.Sign() = %v, want %v", got, tt.want)
 			}
 		})
 	}

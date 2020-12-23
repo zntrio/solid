@@ -84,7 +84,7 @@ func (p *defaultProver) Prove(htm, htu string) (string, error) {
 	}
 
 	// Sign claims
-	proof, err := p.signer.Sign(claims)
+	proof, err := p.signer.Sign("dpop", claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to generate DPoP proof: %w", err)
 	}

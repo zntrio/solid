@@ -18,39 +18,57 @@
 package paseto
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
 	pasetolib "github.com/o1egl/paseto"
-	"github.com/square/go-jose/v3"
 
+	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/types"
 )
 
-// DefaultSigner declare a default JWT signer.
-func DefaultSigner(privateKey *jose.JSONWebKey) token.Signer {
+// DefaultSigner declare a default PASETO signer.
+func DefaultSigner(tokenType string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
-		privateKey: privateKey,
+		tokenType:   fmt.Sprintf("%s+paseto", tokenType),
+		keyProvider: keyProvider,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type defaultSigner struct {
-	privateKey *jose.JSONWebKey
+	tokenType   string
+	keyProvider jwk.KeyProviderFunc
 }
 
-func (ds *defaultSigner) Sign(claims interface{}) (string, error) {
+func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
 	}
 
+	// Retrieve signing key
+	key, err := ds.keyProvider(ctx)
+	if err != nil {
+		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
+	}
+
+	// Check
+	if key == nil {
+		return "", fmt.Errorf("key provider returned a nil key")
+	}
+	if key.KeyID == "" {
+		return "", fmt.Errorf("key provider returned a unidentifiable key")
+	}
+
 	// Prepare footer
 	footerJSON := map[string]string{
-		"kid": ds.privateKey.KeyID,
+		"kid": key.KeyID,
+		"typ": ds.tokenType,
 	}
 	footer, err := json.Marshal(footerJSON)
 	if err != nil {
@@ -58,7 +76,7 @@ func (ds *defaultSigner) Sign(claims interface{}) (string, error) {
 	}
 
 	// Prepare a signer
-	raw, err := pasetolib.NewV2().Sign(ds.privateKey.Key, claims, string(footer))
+	raw, err := pasetolib.NewV2().Sign(key.Key, claims, string(footer))
 	if err != nil {
 		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}

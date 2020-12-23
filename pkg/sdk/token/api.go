@@ -32,9 +32,9 @@ type Generator interface {
 
 //go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/token Signer
 
-// Signer describe JWT signer contract.
+// Signer describe Token signer contract.
 type Signer interface {
-	Sign(claims interface{}) (string, error)
+	Sign(ctx context.Context, claims interface{}) (string, error)
 }
 
 //go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/pkg/sdk/token Verifier

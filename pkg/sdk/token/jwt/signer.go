@@ -18,39 +18,48 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/square/go-jose/v3"
 	"github.com/square/go-jose/v3/jwt"
 
-	"zntr.io/solid/pkg/sdk/token"
+	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/types"
 )
 
-// DefaultSigner declare a default JWT signer.
-func DefaultSigner(privateKey jose.SigningKey, opts *jose.SignerOptions) token.Signer {
-	return &defaultSigner{
-		privateKey: privateKey,
-		options:    opts,
-	}
-}
-
-// -----------------------------------------------------------------------------
-
 type defaultSigner struct {
-	privateKey jose.SigningKey
-	options    *jose.SignerOptions
+	tokenType   string
+	alg         jose.SignatureAlgorithm
+	keyProvider jwk.KeyProviderFunc
 }
 
-func (ds *defaultSigner) Sign(claims interface{}) (string, error) {
+func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
 	}
 
+	// Retrieve signing key
+	key, err := ds.keyProvider(ctx)
+	if err != nil {
+		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
+	}
+
+	// Check
+	if key == nil {
+		return "", fmt.Errorf("key provider returned a nil key")
+	}
+	if key.KeyID == "" {
+		return "", fmt.Errorf("key provider returned a unidentifiable key")
+	}
+	// Prepare JWT header
+	options := (&jose.SignerOptions{}).WithType(jose.ContentType(ds.tokenType))
+	options = options.WithHeader(jose.HeaderKey("kid"), key.KeyID)
+
 	// Prepare a signer
-	sig, err := jose.NewSigner(ds.privateKey, ds.options)
+	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: ds.alg, Key: key}, options)
 	if err != nil {
 		return "", fmt.Errorf("unable to prepare signer: %w", err)
 	}

@@ -34,8 +34,8 @@ import (
 	"zntr.io/solid/pkg/sdk/jarm"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/token/jwt"
-	"zntr.io/solid/pkg/sdk/token/paseto"
 	"zntr.io/solid/pkg/server/authorizationserver"
 )
 
@@ -139,10 +139,12 @@ func main() {
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
+		// Access Token Generator
+		authorizationserver.AccessTokenGenerator(token.AccessToken(jwt.AccessTokenSigner(jose.ES384, keyProvider()))),
+		// Refresh Token Generator
+		authorizationserver.RefreshTokenGenerator(token.AccessToken(jwt.RefreshTokenSigner(jose.ES384, keyProvider()))),
 		// Token storage
 		authorizationserver.TokenManager(inmemory.Tokens()),
-		// Access token generator
-		authorizationserver.AccessTokenGenerator(paseto.AccessToken(pasetoKeyProvider())),
 		// Device authorization session storage
 		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 	)

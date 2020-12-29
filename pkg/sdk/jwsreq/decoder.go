@@ -50,7 +50,7 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*corev1.Author
 
 	// Extract claims
 	var claims map[string]interface{}
-	if err := d.verifier.Claims(value, &claims); err != nil {
+	if err := d.verifier.Claims(ctx, value, &claims); err != nil {
 		return nil, fmt.Errorf("unable to decode request claims: %w", err)
 	}
 

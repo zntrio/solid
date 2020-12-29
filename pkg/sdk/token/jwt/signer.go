@@ -33,12 +33,16 @@ type defaultSigner struct {
 	tokenType   string
 	alg         jose.SignatureAlgorithm
 	keyProvider jwk.KeyProviderFunc
+	embedJWK    bool
 }
 
 func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
+	}
+	if ds.keyProvider == nil {
+		return "", errors.New("unable to use nil keyProvider")
 	}
 
 	// Retrieve signing key
@@ -57,6 +61,7 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 	// Prepare JWT header
 	options := (&jose.SignerOptions{}).WithType(jose.ContentType(ds.tokenType))
 	options = options.WithHeader(jose.HeaderKey("kid"), key.KeyID)
+	options.EmbedJWK = ds.embedJWK
 
 	// Prepare a signer
 	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: ds.alg, Key: key}, options)

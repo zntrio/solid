@@ -39,11 +39,11 @@ type Signer interface {
 
 //go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/pkg/sdk/token Verifier
 
-// Verifier describes JWT verifier contract.
+// Verifier describes Token verifier contract.
 type Verifier interface {
 	Parse(token string) (Token, error)
 	Verify(token string) error
-	Claims(token string, claims interface{}) error
+	Claims(ctx context.Context, token string, claims interface{}) error
 }
 
 //go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/sdk/token Token

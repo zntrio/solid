@@ -18,6 +18,7 @@
 package dpop
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,16 +35,11 @@ import (
 // -----------------------------------------------------------------------------
 
 // DefaultProver uses the given signer to generate a DPoP Proof.
-func DefaultProver(signer token.Signer) (Prover, error) {
-	// Check arguments
-	if types.IsNil(signer) {
-		return nil, errors.New("unable to instantiate a DPoP Prover with nil signer")
-	}
-
+func DefaultProver(signer token.Signer) Prover {
 	// Build instance
 	return &defaultProver{
 		signer: signer,
-	}, nil
+	}
 }
 
 // -----------------------------------------------------------------------------
@@ -54,6 +50,9 @@ type defaultProver struct {
 
 func (p *defaultProver) Prove(htm, htu string) (string, error) {
 	// Check parameters
+	if types.IsNil(p.signer) {
+		return "", errors.New("unable to prove with nil signer")
+	}
 	if htm == "" {
 		return "", fmt.Errorf("htm must not be blank")
 	}
@@ -84,7 +83,7 @@ func (p *defaultProver) Prove(htm, htu string) (string, error) {
 	}
 
 	// Sign claims
-	proof, err := p.signer.Sign("dpop", claims)
+	proof, err := p.signer.Sign(context.Background(), claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to generate DPoP proof: %w", err)
 	}

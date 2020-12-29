@@ -71,7 +71,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				value: "fake-token",
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
-				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -81,7 +81,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				value: "fake-token",
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
-				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx interface{}, key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *map[string]interface{}:
 						*v = map[string]interface{}{
@@ -98,7 +98,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				value: "fake-token",
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
-				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx interface{}, key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *map[string]interface{}:
 						*v = map[string]interface{}{
@@ -116,7 +116,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				value: "fake-token",
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
-				verifier.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key interface{}, claims interface{}) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx interface{}, key interface{}, claims interface{}) {
 					switch v := claims.(type) {
 					case *map[string]interface{}:
 						*v = map[string]interface{}{

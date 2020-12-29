@@ -67,6 +67,19 @@ const (
 	ResponseTypeToken = "token"
 )
 
+// Response Modes --------------------------------------------------------------
+
+const (
+	// ResponseModeJWT represents JARM encoded response.
+	ResponseModeJWT = "jwt"
+	// ResponseModeQueryJWT represents JARM encoded response as query parameter.
+	ResponseModeQueryJWT = "query.jwt"
+	// ResponseModeFragmentJWT represents JARM encoded response as fragment.
+	ResponseModeFragmentJWT = "fragment.jwt"
+	// ResponseModeFormPOSTJWT represents JARM encoded response as form post.
+	ResponseModeFormPOSTJWT = "form_post.jwt"
+)
+
 // Authentication Methods ------------------------------------------------------
 
 const (

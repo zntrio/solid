@@ -63,7 +63,7 @@ func (enc *tokenEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReq
 	}
 
 	// Sign request
-	req, err := enc.signer.Sign(claims)
+	req, err := enc.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign request: %w", err)
 	}

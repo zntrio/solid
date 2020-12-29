@@ -362,6 +362,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
 						ExpiresAt: 2,
+						NotBefore: 2,
 					},
 				}, nil)
 			},
@@ -403,6 +404,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				}, nil)
@@ -445,6 +447,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				}, nil)
@@ -487,6 +490,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				}, nil)
@@ -529,6 +533,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				}, nil)
@@ -573,6 +578,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
 						ExpiresAt: 2,
+						NotBefore: 2,
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
@@ -618,6 +624,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
 						ExpiresAt: 2,
+						NotBefore: 2,
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
@@ -664,6 +671,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				}, nil)
@@ -682,6 +690,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 				},
@@ -719,6 +728,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 2,
 					},
 				}, nil)
@@ -740,6 +750,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 				},
@@ -753,6 +764,7 @@ func Test_service_refreshToken(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				},

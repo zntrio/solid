@@ -19,11 +19,25 @@ package jwt
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/square/go-jose/v3"
+
 	"zntr.io/solid/pkg/sdk/jwk"
 )
+
+var jwkPrivateKey = []byte(`{
+	"kid": "foo",
+    "kty": "EC",
+    "d": "Uwq56PhVB6STB8MvLQWcOsKQlZbBvWFQba8D6Uhb2qDunpzqvoNyFsnAHKS_AkQB",
+    "use": "sig",
+    "crv": "P-384",
+    "x": "m2NDaWfRRGlCkUa4FK949uLtMqitX1lYgi8UCIMtsuR60ux3d00XBlsC6j_YDOTe",
+    "y": "6vxuUq3V1aoWi4FQ_h9ZNwUsmcGP8Uuqq_YN5dhP0U8lchdmZJbLF9mPiimo_6p4",
+    "alg": "ES384"
+}`)
 
 func Test_defaultSigner_Sign(t *testing.T) {
 	type fields struct {
@@ -39,10 +53,152 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    string
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name:    "nil",
+			wantErr: true,
+		},
+		{
+			name: "nil claims",
+			args: args{
+				claims: nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "nil keyprovider",
+			fields: fields{
+				keyProvider: nil,
+			},
+			args: args{
+				claims: map[string]string{
+					"test": "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "keyprovider error",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					return nil, errors.New("test")
+				},
+			},
+			args: args{
+				claims: map[string]string{
+					"test": "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "keyprovider returns nil key",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					return nil, nil
+				},
+			},
+			args: args{
+				claims: map[string]string{
+					"test": "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "keyprovider returns unnamed key",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					return &jose.JSONWebKey{}, nil
+				},
+			},
+			args: args{
+				claims: map[string]string{
+					"test": "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "signer error",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					var privateKey jose.JSONWebKey
+
+					// Decode JWK
+					err := json.Unmarshal(jwkPrivateKey, &privateKey)
+
+					return &privateKey, err
+				},
+			},
+			args: args{
+				claims: map[string]string{
+					"test": "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "signer algorithm mismatch",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					var privateKey jose.JSONWebKey
+
+					// Decode JWK
+					err := json.Unmarshal(jwkPrivateKey, &privateKey)
+
+					return &privateKey, err
+				},
+				alg: jose.RS256,
+			},
+			args: args{
+				claims: map[string]string{
+					"test": "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "not serializable claims",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					var privateKey jose.JSONWebKey
+
+					// Decode JWK
+					err := json.Unmarshal(jwkPrivateKey, &privateKey)
+
+					return &privateKey, err
+				},
+				alg: jose.ES384,
+			},
+			args: args{
+				claims: map[string]interface{}{
+					"test": make(chan struct{}),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid",
+			fields: fields{
+				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+					var privateKey jose.JSONWebKey
+
+					// Decode JWK
+					err := json.Unmarshal(jwkPrivateKey, &privateKey)
+
+					return &privateKey, err
+				},
+				alg: jose.ES384,
+			},
+			args: args{
+				claims: map[string]interface{}{
+					"test": "example",
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -51,13 +207,10 @@ func Test_defaultSigner_Sign(t *testing.T) {
 				alg:         tt.fields.alg,
 				keyProvider: tt.fields.keyProvider,
 			}
-			got, err := ds.Sign(tt.args.ctx, tt.args.claims)
+			_, err := ds.Sign(tt.args.ctx, tt.args.claims)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultSigner.Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if got != tt.want {
-				t.Errorf("defaultSigner.Sign() = %v, want %v", got, tt.want)
 			}
 		})
 	}

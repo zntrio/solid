@@ -81,7 +81,7 @@ func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *corev1.A
 	}
 
 	// Sign the claims to generate token
-	raw, err := d.signer.Sign(claims)
+	raw, err := d.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to encode JARM assertion: %w", err)
 	}

@@ -12,6 +12,7 @@ func AccessTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderF
 		tokenType:   "at+jwt",
 		alg:         alg,
 		keyProvider: keyProvider,
+		embedJWK:    false,
 	}
 }
 
@@ -21,5 +22,46 @@ func RefreshTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvider
 		tokenType:   "rt+jwt",
 		alg:         alg,
 		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}
+
+// RequestSigner represents JWT Request Token signer.
+func RequestSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "oauth-authz-req+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}
+
+// JARMSigner represents JWT JARM Token signer.
+func JARMSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "jarm+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}
+
+// DPoPSigner represents JWT DPoP Token signer.
+func DPoPSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "dpop+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    true,
+	}
+}
+
+// ClientAssertionSigner represents JWT Client Assertion signer.
+func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "client-assertion+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
 	}
 }

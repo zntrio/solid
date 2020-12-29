@@ -333,6 +333,7 @@ func Test_service_Token(t *testing.T) {
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
@@ -398,6 +399,7 @@ func Test_service_Token(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
@@ -411,6 +413,7 @@ func Test_service_Token(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
@@ -468,6 +471,7 @@ func Test_service_Token(t *testing.T) {
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 						ClientId:  "s6BhdRkqt3",
 						Subject:   "user1",
@@ -509,6 +513,7 @@ func Test_service_Token(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 					},
 				}, nil)
@@ -527,6 +532,7 @@ func Test_service_Token(t *testing.T) {
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 				},

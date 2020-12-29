@@ -256,6 +256,7 @@ func Test_service_clientCredentials(t *testing.T) {
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",

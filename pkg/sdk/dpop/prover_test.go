@@ -27,38 +27,6 @@ import (
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
-func TestDefaultProver(t *testing.T) {
-	type args struct {
-		signer token.Signer
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "nil",
-			wantErr: true,
-		},
-		{
-			name: "valid signer",
-			args: args{
-				signer: tokenmock.NewMockSigner(nil),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := DefaultProver(tt.args.signer)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DefaultProver() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
-
 func Test_defaultProver_Prove(t *testing.T) {
 	type fields struct {
 		signer token.Signer
@@ -77,6 +45,13 @@ func Test_defaultProver_Prove(t *testing.T) {
 	}{
 		{
 			name:    "nil",
+			wantErr: true,
+		},
+		{
+			name: "nil signer",
+			fields: fields{
+				signer: nil,
+			},
 			wantErr: true,
 		},
 		{
@@ -117,7 +92,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htu: "https://server.com/resource",
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -128,7 +103,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htu: "https://server.com/resource",
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -146,7 +121,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 				tt.prepare(mockSigner)
 			}
 
-			p, _ := DefaultProver(mockSigner)
+			p := DefaultProver(mockSigner)
 			got, err := p.Prove(tt.args.htm, tt.args.htu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultProver.Prove() error = %v, wantErr %v", err, tt.wantErr)

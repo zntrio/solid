@@ -150,7 +150,7 @@ func Test_service_Introspect(t *testing.T) {
 				}, nil)
 				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, storage.ErrNotFound)
 			},
-			wantErr: true,
+			wantErr: false,
 			want: &corev1.TokenIntrospectionResponse{
 				Token: &corev1.Token{
 					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
@@ -177,10 +177,7 @@ func Test_service_Introspect(t *testing.T) {
 			},
 			wantErr: true,
 			want: &corev1.TokenIntrospectionResponse{
-				Token: &corev1.Token{
-					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
-					Status: corev1.TokenStatus_TOKEN_STATUS_INVALID,
-				},
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

@@ -70,7 +70,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 				},
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -84,7 +84,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 				},
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -146,7 +146,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 				},
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -162,7 +162,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 				},
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",

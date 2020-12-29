@@ -19,6 +19,7 @@ package jwt
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/square/go-jose/v3/jwt"
@@ -47,11 +48,11 @@ func (v *defaultVerifier) Parse(token string) (token.Token, error) {
 	// Parse JWT token
 	t, err := jwt.ParseSigned(token)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse signed token: %w", err)
+		return nil, errors.New("unable to parse signed token")
 	}
 
 	// Wrap token instance
-	return &tokenWrapper{
+	return &tokenAdapter{
 		token: t,
 	}, nil
 }
@@ -78,7 +79,8 @@ func (v *defaultVerifier) Verify(token string) error {
 	return nil
 }
 
-func (v *defaultVerifier) Claims(raw string, claims interface{}) error {
+// Claims extracts claims from given raw token with verifier keyset provider.
+func (v *defaultVerifier) Claims(ctx context.Context, raw string, claims interface{}) error {
 	// Parse JWT token
 	t, err := jwt.ParseSigned(raw)
 	if err != nil {
@@ -86,7 +88,7 @@ func (v *defaultVerifier) Claims(raw string, claims interface{}) error {
 	}
 
 	// Retrieve KeySet
-	jwks, err := v.keySetProvider(context.Background())
+	jwks, err := v.keySetProvider(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve KeySet: %w", err)
 	}

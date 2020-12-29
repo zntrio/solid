@@ -678,6 +678,7 @@ func Test_service_deviceCode(t *testing.T) {
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 						ClientId:  "s6BhdRkqt3",
 						Subject:   "user1",
@@ -740,6 +741,7 @@ func Test_service_deviceCode(t *testing.T) {
 						Issuer:    "http://127.0.0.1:8080",
 						Scope:     "offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 3601,
 						ClientId:  "s6BhdRkqt3",
 						Subject:   "user1",
@@ -753,6 +755,7 @@ func Test_service_deviceCode(t *testing.T) {
 						Issuer:    "http://127.0.0.1:8080",
 						Scope:     "offline_access",
 						IssuedAt:  1,
+						NotBefore: 2,
 						ExpiresAt: 604801,
 						ClientId:  "s6BhdRkqt3",
 						Subject:   "user1",

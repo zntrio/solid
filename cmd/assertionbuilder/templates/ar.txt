@@ -1,0 +1,12 @@
+{
+	"state": "{{ randAlphaNum 32 }}",
+	"audience": "NYxFyoSuuRGXItTbX",
+	"response_type": "code",
+  "response_mode": "jwt",
+	"client_id": "6779ef20e75817b79602",
+	"nonce": "{{ randAlphaNum 8 }}",
+	"scope": "openid user profile email offline_access",
+	"redirect_uri": "http://127.0.0.1:8085/oidc/as/127.0.0.1",
+	"code_challenge": "-PCBxoCJMdDloUVl1ctjvA6VNbY6fTg1P7PNhymbydM",
+	"code_challenge_method": "S256"
+}

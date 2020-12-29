@@ -87,7 +87,7 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 	var claims responseClaims
 
 	// Extract claims
-	if err := d.verifier.Claims(response, &claims); err != nil {
+	if err := d.verifier.Claims(ctx, response, &claims); err != nil {
 		return nil, fmt.Errorf("unable to extract claims from JARM response : %w", err)
 	}
 

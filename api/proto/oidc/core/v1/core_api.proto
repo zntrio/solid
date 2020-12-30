@@ -92,6 +92,9 @@ message AuthorizationCodeResponse {
   // value of the parameter "iss" MUST be identical to the authorization
   // server metadata value "issuer".
   string issuer = 7;
+
+  // REQUIRED. The authorization request request response mode.
+  string response_mode = 8;
 }
 
 message RegistrationRequest {

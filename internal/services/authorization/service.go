@@ -148,6 +148,21 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	// Assign issuer
 	res.Issuer = req.Issuer
 
+	// Assign response mode
+	if req.AuthorizationRequest.ResponseMode != nil {
+		res.ResponseMode = req.AuthorizationRequest.ResponseMode.Value
+	}
+
+	// Expand alias according to response type.
+	if res.ResponseMode == oidc.ResponseModeJWT {
+		switch req.AuthorizationRequest.ResponseType {
+		case oidc.ResponseTypeCode:
+			res.ResponseMode = oidc.ResponseModeQueryJWT
+		case oidc.ResponseTypeToken:
+			res.ResponseMode = oidc.ResponseModeFragmentJWT
+		}
+	}
+
 	return res, err
 }
 

@@ -188,13 +188,10 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 	// Assign request
 	params.Add("request", r)
 
-	// Assemble final url
-	parURL.RawQuery = params.Encode()
-
 	// Query PAR endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, parURL.String(), strings.NewReader(params.Encode()))
 	if err != nil {
-		return nil, fmt.Errorf("unable to prepare par request: %w", err)
+		return nil, fmt.Errorf("unable to prepare PAR request: %w", err)
 	}
 
 	// Set approppriate header value
@@ -279,9 +276,6 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 	params.Add("code_verifier", pkceCodeVerifier)
 	params.Add("client_assertion", assertion)
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
-
-	// Assemble final url
-	tokenURL.RawQuery = params.Encode()
 
 	// Query token endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL.String(), strings.NewReader(params.Encode()))

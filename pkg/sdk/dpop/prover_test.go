@@ -23,45 +23,13 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"zntr.io/solid/pkg/sdk/jwt"
-	jwtmock "zntr.io/solid/pkg/sdk/jwt/mock"
+	"zntr.io/solid/pkg/sdk/token"
+	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
-
-func TestDefaultProver(t *testing.T) {
-	type args struct {
-		signer jwt.Signer
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name:    "nil",
-			wantErr: true,
-		},
-		{
-			name: "valid signer",
-			args: args{
-				signer: jwtmock.NewMockSigner(nil),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := DefaultProver(tt.args.signer)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DefaultProver() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
 
 func Test_defaultProver_Prove(t *testing.T) {
 	type fields struct {
-		signer jwt.Signer
+		signer token.Signer
 	}
 	type args struct {
 		htm string
@@ -71,12 +39,19 @@ func Test_defaultProver_Prove(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*jwtmock.MockSigner)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
 		{
 			name:    "nil",
+			wantErr: true,
+		},
+		{
+			name: "nil signer",
+			fields: fields{
+				signer: nil,
+			},
 			wantErr: true,
 		},
 		{
@@ -116,8 +91,8 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htm: "POST",
 				htu: "https://server.com/resource",
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -127,8 +102,8 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htm: "POST",
 				htu: "https://server.com/resource",
 			},
-			prepare: func(signer *jwtmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any()).Return("fake-token", nil)
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -139,14 +114,14 @@ func Test_defaultProver_Prove(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockSigner := jwtmock.NewMockSigner(ctrl)
+			mockSigner := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {
 				tt.prepare(mockSigner)
 			}
 
-			p, _ := DefaultProver(mockSigner)
+			p := DefaultProver(mockSigner)
 			got, err := p.Prove(tt.args.htm, tt.args.htu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultProver.Prove() error = %v, wantErr %v", err, tt.wantErr)

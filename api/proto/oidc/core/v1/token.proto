@@ -44,14 +44,16 @@ message TokenMeta {
   string subject = 2;
   // REQUIRED. Unix timestamp of the creation date
   fixed64 issued_at = 3;
+  // REQUIRED. Unix timestamp of the usability date
+  fixed64 not_before = 4;
   // REQUIRED. Unix timestamp of the expiration date
-  fixed64 expires_at = 4;
+  fixed64 expires_at = 5;
   // REQUIRED. Token owner.
-  string client_id = 5;
+  string client_id = 6;
   // REQUIRED. Space delimited JSON string containing requested scope.
-  string scope = 6;
+  string scope = 7;
   // REQUIRED. Targeted application identifier.
-  string audience = 7;
+  string audience = 8;
 }
 
 message Token {

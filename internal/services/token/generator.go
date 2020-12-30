@@ -46,6 +46,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
 			IssuedAt:  uint64(now.Unix()),
+			NotBefore: uint64(now.Unix() + 1),
 			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()),
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
@@ -55,7 +56,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 	}
 
 	// Generate an access token
-	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata, at.Confirmation)
+	at.Value, err = s.accessTokenGen.Generate(ctx, at.TokenId, at.Metadata, at.Confirmation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate an accessToken: %w", err)
 	}
@@ -87,6 +88,7 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
 			IssuedAt:  uint64(now.Unix()),
+			NotBefore: uint64(now.Unix() + 1),
 			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()),
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
@@ -96,14 +98,14 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 	}
 
 	// Generate an access token
-	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata, at.Confirmation)
+	at.Value, err = s.refreshTokenGen.Generate(ctx, at.TokenId, at.Metadata, at.Confirmation)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate an refresh token: %w", err)
 	}
 
 	// Check generator value
 	if at.Value == "" {
-		return nil, fmt.Errorf("accessTokenGenerator generated an empty value")
+		return nil, fmt.Errorf("refreshTokenGenerator generated an empty value")
 	}
 
 	// Store the token spec

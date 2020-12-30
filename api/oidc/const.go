@@ -55,6 +55,8 @@ const (
 const (
 	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
 	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+	// AssertionTypePasetoBearer repesents PASETO Bearer assertion name.
+	AssertionTypePasetoBearer = "urn:solid:params:oauth:client-assertion-type:paseto-bearer"
 )
 
 // Response Types --------------------------------------------------------------
@@ -65,6 +67,19 @@ const (
 	ResponseTypeCode = "code"
 	// ResponseTypeToken represents the implicit response type defined in OAuth 2.0
 	ResponseTypeToken = "token"
+)
+
+// Response Modes --------------------------------------------------------------
+
+const (
+	// ResponseModeJWT represents JARM encoded response.
+	ResponseModeJWT = "jwt"
+	// ResponseModeQueryJWT represents JARM encoded response as query parameter.
+	ResponseModeQueryJWT = "query.jwt"
+	// ResponseModeFragmentJWT represents JARM encoded response as fragment.
+	ResponseModeFragmentJWT = "fragment.jwt"
+	// ResponseModeFormPOSTJWT represents JARM encoded response as form post.
+	ResponseModeFormPOSTJWT = "form_post.jwt"
 )
 
 // Authentication Methods ------------------------------------------------------

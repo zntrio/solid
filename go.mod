@@ -6,7 +6,9 @@ replace github.com/kr/session => github.com/Zenithar/session v0.1.1-0.2020092907
 
 require (
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.9.0
+	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.5.2

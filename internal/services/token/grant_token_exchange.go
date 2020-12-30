@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
+
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
@@ -187,7 +188,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	}
 
 	// Generate an access token
-	at.Value, err = s.tokenGen.Generate(ctx, at.TokenId, at.Metadata, nil)
+	at.Value, err = s.accessTokenGen.Generate(ctx, at.TokenId, at.Metadata, nil)
 	if err != nil {
 		return fmt.Errorf("unable to generate an accessToken: %w", err)
 	}

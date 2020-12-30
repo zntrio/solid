@@ -62,7 +62,7 @@ func (c *clientAssertionGenerator) Generate(ctx context.Context, jti string, met
 		meta.IssuedAt = uint64(time.Now().Unix())
 	}
 	if meta.ExpiresAt == 0 {
-		meta.IssuedAt = uint64(time.Now().Add(5 * time.Minute).Unix())
+		meta.ExpiresAt = uint64(time.Now().Add(5 * time.Minute).Unix())
 	}
 
 	// Validate meta informations
@@ -99,14 +99,15 @@ func (c *clientAssertionGenerator) validateMeta(meta *corev1.TokenMeta) error {
 	}
 
 	now := uint64(time.Now().Unix())
+	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix())
 
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,
 		validation.Field(&meta.Audience, validation.Required, is.URL),
 		validation.Field(&meta.Issuer, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
-		validation.Field(&meta.IssuedAt, validation.Required, validation.Min(now-1)),
-		validation.Field(&meta.ExpiresAt, validation.Required, validation.Min(now+1)),
+		validation.Field(&meta.IssuedAt, validation.Required, validation.Min(uint64(0)), validation.Max(now)),
+		validation.Field(&meta.ExpiresAt, validation.Required, validation.Min(meta.IssuedAt), validation.Max(maxExpiration)),
 	); err != nil {
 		return fmt.Errorf("unable to validate claims: %w", err)
 	}

@@ -20,7 +20,10 @@ package token
 import (
 	"context"
 	"fmt"
+	"time"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/types"
 )
@@ -52,6 +55,11 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 		return "", fmt.Errorf("token meta must not be nil")
 	}
 
+	// Validate meta informations
+	if err := c.validateMeta(meta); err != nil {
+		return "", fmt.Errorf("unable to generate claims, invalid meta: %w", err)
+	}
+
 	// Prepare claims
 	claims := map[string]interface{}{
 		"iss":       meta.Issuer,
@@ -81,4 +89,31 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *c
 
 	// No error
 	return raw, nil
+}
+
+// -----------------------------------------------------------------------------
+
+func (c *accessTokenGenerator) validateMeta(meta *corev1.TokenMeta) error {
+	// Check arguments
+	if meta == nil {
+		return fmt.Errorf("token meta must not be nil")
+	}
+
+	now := uint64(time.Now().Unix())
+	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix())
+
+	// Validate syntaxically
+	if err := validation.ValidateStruct(meta,
+		validation.Field(&meta.Audience, validation.Required, is.PrintableASCII),
+		validation.Field(&meta.Issuer, validation.Required, is.URL),
+		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
+		validation.Field(&meta.IssuedAt, validation.Required, validation.Min(uint64(0)), validation.Max(now)),
+		validation.Field(&meta.NotBefore, validation.Required, validation.Min(meta.IssuedAt), validation.Max(meta.ExpiresAt)),
+		validation.Field(&meta.ExpiresAt, validation.Required, validation.Min(meta.IssuedAt), validation.Max(maxExpiration)),
+	); err != nil {
+		return fmt.Errorf("unable to validate claims: %w", err)
+	}
+
+	// No error
+	return nil
 }

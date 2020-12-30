@@ -55,6 +55,8 @@ const (
 const (
 	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
 	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+	// AssertionTypePasetoBearer repesents PASETO Bearer assertion name.
+	AssertionTypePasetoBearer = "urn:solid:params:oauth:client-assertion-type:paseto-bearer"
 )
 
 // Response Types --------------------------------------------------------------

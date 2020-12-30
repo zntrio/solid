@@ -46,6 +46,7 @@ func Clients() storage.Client {
 					oidc.GrantTypeClientCredentials, // Machine-to-machine
 					oidc.GrantTypeDeviceCode,        // Device-to-service
 					oidc.GrantTypeRefreshToken,      // Act as user
+					oidc.GrantTypeTokenExchange,
 				},
 				ResponseTypes: []string{
 					"code",

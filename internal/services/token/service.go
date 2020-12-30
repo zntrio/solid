@@ -37,10 +37,11 @@ type service struct {
 	authorizationCodeSessions storage.AuthorizationCodeSession
 	deviceCodeSessions        storage.DeviceCodeSession
 	tokens                    storage.Token
+	resources                 storage.ResourceReader
 }
 
 // New build and returns an authorization service implementation.
-func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token) services.Token {
+func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
 	return &service{
 		accessTokenGen:            accessTokenGen,
 		refreshTokenGen:           refreshTokenGen,
@@ -49,6 +50,7 @@ func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, client
 		authorizationCodeSessions: authorizationCodeSessions,
 		deviceCodeSessions:        deviceCodeSessions,
 		tokens:                    tokens,
+		resources:                 resources,
 	}
 }
 
@@ -84,6 +86,8 @@ func (s *service) Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.
 		res, err = s.deviceCode(ctx, client, req)
 	case oidc.GrantTypeRefreshToken:
 		res, err = s.refreshToken(ctx, client, req)
+	case oidc.GrantTypeTokenExchange:
+		res, err = s.tokenExchange(ctx, client, req)
 	default:
 		// Validated by the front validator but added for defensive principle.
 		res.Error = rfcerrors.InvalidGrant().Build()

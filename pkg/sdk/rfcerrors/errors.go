@@ -158,3 +158,12 @@ func UnapprovedSoftwareStatement() ErrorBuilder {
 		errorDescription: "The software statement presented is not approved for use by this authorization server.",
 	}
 }
+
+// InvalidTarget returns a compliant `invalid_target` error.
+// https://tools.ietf.org/html/rfc8707#section-2
+func InvalidTarget() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "invalid_target",
+		errorDescription: "The requested resource is invalid, missing, unknown, or malformed.",
+	}
+}

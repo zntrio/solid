@@ -34,6 +34,7 @@ type options struct {
 	authorizationCodeSessionManager storage.AuthorizationCodeSession
 	deviceCodeSessionManager        storage.DeviceCodeSession
 	tokenManager                    storage.Token
+	resourceReader                  storage.ResourceReader
 }
 
 // Option defines functional pattern function type contract.
@@ -93,5 +94,12 @@ func ClientManager(store storage.Client) Option {
 	return func(opts *options) {
 		opts.clientWriter = store
 		opts.clientReader = store
+	}
+}
+
+// ResourceReader defines the resource reader instance to use.
+func ResourceReader(store storage.ResourceReader) Option {
+	return func(opts *options) {
+		opts.resourceReader = store
 	}
 }

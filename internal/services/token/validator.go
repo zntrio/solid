@@ -63,6 +63,10 @@ var validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev
 		if req.GetRefreshToken() == nil {
 			return rfcerrors.InvalidGrant().Build()
 		}
+	case oidc.GrantTypeTokenExchange:
+		if req.GetTokenExchange() == nil {
+			return rfcerrors.InvalidGrant().Build()
+		}
 	default:
 		return rfcerrors.InvalidGrant().Build()
 	}

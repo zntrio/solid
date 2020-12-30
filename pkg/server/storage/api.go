@@ -154,3 +154,11 @@ type DPoP interface {
 	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
 }
+
+type ResourceReader interface {
+	GetByURI(ctx context.Context, urn string) (*corev1.Resource, error)
+}
+
+type Resource interface {
+	ResourceReader
+}

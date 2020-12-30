@@ -32,6 +32,8 @@ const (
 	GrantTypeJWTBearer = "urn:ietf:params:oauth:grant-type:jwt-bearer"
 	// GrantTypeSAML2Bearer represents SAML 2 Bearer token grant type.
 	GrantTypeSAML2Bearer = "urn:ietf:params:oauth:grant-type:saml2-bearer"
+	// GrantTypeTokenExchange represent token exchange flow (RFC8693)
+	GrantTypeTokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange"
 )
 
 // Scopes ----------------------------------------------------------------------
@@ -122,4 +124,27 @@ const (
 	// SubjectTypePairwise defines subject masquerade strategy. This provides a different sub value to each Client,
 	// so as not to enable Clients to correlate the End-User's activities without permission.
 	SubjectTypePairwise = "pairwise"
+)
+
+// Token Type ------------------------------------------------------------------
+// https://tools.ietf.org/html/rfc8693#section-3
+
+const (
+	// TokenExchangeAccessTokenType indicates that the token is an OAuth 2.0 access token issued by
+	// the given authorization server.
+	TokenExchangeAccessTokenType = "urn:ietf:params:oauth:token-type:access_token"
+	// TokenExchangeRefreshTokenType indicates that the token is an OAuth 2.0 refresh token issued by
+	// the given authorization server.
+	TokenExchangeRefreshTokenType = "urn:ietf:params:oauth:token-type:refresh_token"
+	// TokenExchangeIDTokenType indicates that the token is an ID Token as defined in Section 2 of
+	// [OpenID.Core].
+	TokenExchangeIDTokenType = "urn:ietf:params:oauth:token-type:id_token"
+	// TokenExchangeSAML1Type indicates that the token is a base64url-encoded SAML 1.1
+	// [OASIS.saml-core-1.1] assertion.
+	TokenExchangeSAML1Type = "urn:ietf:params:oauth:token-type:saml1"
+	// TokenExchangeSAML2Type indicates that the token is a base64url-encoded SAML 2.0
+	// [OASIS.saml-core-2.0-os] assertion.
+	TokenExchangeSAML2Type = "urn:ietf:params:oauth:token-type:saml2"
+	// TokenExchangeJWTType indicates that the token is a JWT.
+	TokenExchangeJWTType = "urn:ietf:params:oauth:token-type:jwt"
 )

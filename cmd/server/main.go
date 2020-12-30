@@ -136,6 +136,8 @@ func main() {
 		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Device authorization session storage
 		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
+		// Resource storage
+		authorizationserver.ResourceReader(inmemory.Resources()),
 	)
 	if err != nil {
 		panic(err)

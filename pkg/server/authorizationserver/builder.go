@@ -56,6 +56,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 		tokenManager:                    nil,
 		authorizationCodeSessionManager: nil,
 		deviceCodeSessionManager:        nil,
+		resourceReader:                  nil,
 	}
 
 	// Parse issuer
@@ -72,7 +73,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	// Initialize services
 	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
-	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.refreshTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager)
+	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.refreshTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager, defaultOptions.resourceReader)
 	clients := client.New(defaultOptions.clientWriter, profile.Strict())
 
 	// Wire message

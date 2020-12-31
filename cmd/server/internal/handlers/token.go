@@ -31,13 +31,6 @@ import (
 	"zntr.io/solid/pkg/server/clientauthentication"
 )
 
-func optionalString(value string) *wrapperspb.StringValue {
-	if value != "" {
-		return &wrapperspb.StringValue{Value: value}
-	}
-	return nil
-}
-
 // Token handles token HTTP requests.
 func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {

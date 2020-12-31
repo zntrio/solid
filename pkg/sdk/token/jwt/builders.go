@@ -65,3 +65,13 @@ func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvi
 		embedJWK:    false,
 	}
 }
+
+// TokenIntrospection represents JWT Token Introspection Assertion signer.
+func TokenIntrospection(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "token-introspection+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}

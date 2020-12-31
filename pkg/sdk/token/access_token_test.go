@@ -31,10 +31,8 @@ import (
 
 func Test_accessTokenGenerator_Generate(t *testing.T) {
 	type args struct {
-		ctx  context.Context
-		jti  string
-		meta *corev1.TokenMeta
-		cnf  *corev1.TokenConfirmation
+		ctx context.Context
+		t   *corev1.Token
 	}
 	tests := []struct {
 		name    string
@@ -54,22 +52,25 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "nil meta",
 			args: args{
-				jti: "123456789",
+				t: &corev1.Token{},
 			},
 			wantErr: true,
 		},
 		{
 			name: "signer error",
 			args: args{
-				jti: "123456789",
-				meta: &corev1.TokenMeta{
-					Issuer:    "http://localhost:8080",
-					Audience:  "azertyuiop",
-					ClientId:  "789456",
-					Subject:   "test",
-					IssuedAt:  1,
-					NotBefore: 2,
-					ExpiresAt: 3601,
+				t: &corev1.Token{
+					TokenId: "123456789",
+					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://localhost:8080",
+						Audience:  "azertyuiop",
+						ClientId:  "789456",
+						Subject:   "test",
+						Scope:     "openid",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 3601,
+					},
 				},
 			},
 			prepare: func(s *tokenmock.MockSigner) {
@@ -81,15 +82,18 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				jti: "123456789",
-				meta: &corev1.TokenMeta{
-					Issuer:    "http://localhost:8080",
-					Audience:  "azertyuiop",
-					ClientId:  "789456",
-					Subject:   "test",
-					IssuedAt:  1,
-					NotBefore: 2,
-					ExpiresAt: 3601,
+				t: &corev1.Token{
+					TokenId: "123456789",
+					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://localhost:8080",
+						Audience:  "azertyuiop",
+						ClientId:  "789456",
+						Subject:   "test",
+						Scope:     "openid",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 3601,
+					},
 				},
 			},
 			prepare: func(s *tokenmock.MockSigner) {
@@ -101,18 +105,21 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "valid with confirmation",
 			args: args{
-				jti: "123456789",
-				meta: &corev1.TokenMeta{
-					Issuer:    "http://localhost:8080",
-					Audience:  "azertyuiop",
-					ClientId:  "789456",
-					Subject:   "test",
-					IssuedAt:  1,
-					NotBefore: 2,
-					ExpiresAt: 3601,
-				},
-				cnf: &corev1.TokenConfirmation{
-					Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+				t: &corev1.Token{
+					TokenId: "123456789",
+					Metadata: &corev1.TokenMeta{
+						Issuer:    "http://localhost:8080",
+						Audience:  "azertyuiop",
+						ClientId:  "789456",
+						Subject:   "test",
+						Scope:     "openid",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 3601,
+					},
+					Confirmation: &corev1.TokenConfirmation{
+						Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+					},
 				},
 			},
 			prepare: func(s *tokenmock.MockSigner) {
@@ -136,7 +143,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			}
 
 			c := token.AccessToken(signer)
-			got, err := c.Generate(tt.args.ctx, tt.args.jti, tt.args.meta, tt.args.cnf)
+			got, err := c.Generate(tt.args.ctx, tt.args.t)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("accessTokenGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return

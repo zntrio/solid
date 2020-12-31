@@ -321,7 +321,7 @@ func Test_service_Token(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,
@@ -382,9 +382,9 @@ func Test_service_Token(t *testing.T) {
 					},
 				}, nil)
 				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
-				rt.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
@@ -459,7 +459,7 @@ func Test_service_Token(t *testing.T) {
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   "user1",
 				}, nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,
@@ -517,7 +517,7 @@ func Test_service_Token(t *testing.T) {
 						ExpiresAt: 604801,
 					},
 				}, nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
 				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
 			},
 			wantErr: false,

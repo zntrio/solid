@@ -25,9 +25,9 @@ import (
 
 //go:generate mockgen -destination mock/generator.gen.go -package mock zntr.io/solid/pkg/sdk/token Generator
 
-// Generator describes accessToken / refreshToken generator contract.
+// Generator describes claims generator contract.
 type Generator interface {
-	Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error)
+	Generate(ctx context.Context, t *corev1.Token) (string, error)
 }
 
 //go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/token Signer

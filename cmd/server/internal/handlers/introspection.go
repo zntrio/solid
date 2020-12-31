@@ -21,10 +21,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/clientauthentication"
 )
@@ -35,9 +34,9 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 		r.ParseForm()
 
 		var (
-			ctx           = r.Context()
-			token         = r.FormValue("token")
-			tokenTypeHint = r.FormValue("token_type_hint")
+			ctx              = r.Context()
+			tokenRaw         = r.FormValue("token")
+			tokenTypeHintRaw = r.FormValue("token_type_hint")
 		)
 
 		// Retrieve client front context
@@ -49,13 +48,9 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 
 		// Prepare msg
 		msg := &corev1.TokenIntrospectionRequest{
-			Client: client,
-			Token:  token,
-		}
-		if tokenTypeHint != "" {
-			msg.TokenTypeHint = &wrappers.StringValue{
-				Value: tokenTypeHint,
-			}
+			Client:        client,
+			Token:         tokenRaw,
+			TokenTypeHint: optionalString(tokenTypeHintRaw),
 		}
 
 		// Send request to reactor
@@ -71,11 +66,12 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 			return
 		}
 
-		resp := map[string]interface{}{
-			"active": introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-		}
+		active := (introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE) && token.IsUsable(introRes.Token)
 
-		if introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE {
+		resp := map[string]interface{}{
+			"active": active,
+		}
+		if active {
 			resp["token_type"] = "Bearer"
 			resp["scope"] = introRes.Token.Metadata.Scope
 			resp["client_id"] = introRes.Token.Metadata.ClientId

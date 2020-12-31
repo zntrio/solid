@@ -19,7 +19,6 @@ package paseto
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -66,17 +65,13 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 	}
 
 	// Prepare footer
-	footerJSON := map[string]string{
+	footer := map[string]string{
 		"kid": key.KeyID,
 		"typ": ds.tokenType,
 	}
-	footer, err := json.Marshal(footerJSON)
-	if err != nil {
-		return "", fmt.Errorf("unable to encode paseto footer: %w", err)
-	}
 
 	// Prepare a signer
-	raw, err := pasetolib.NewV2().Sign(key.Key, claims, string(footer))
+	raw, err := pasetolib.NewV2().Sign(key.Key, claims, footer)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}

@@ -356,6 +356,25 @@ message ServerMetadata {
   // in Section 2. If omitted, the default value is false.
   // https://www.ietf.org/archive/id/draft-meyerzuselhausen-oauth-iss-auth-resp-02.html#name-authorization-server-metada
   bool authorization_response_iss_parameter_supported = 52;
+
+  // OPTIONAL.  JSON array containing a list of the JWS [RFC7515] signing algorithms
+  // ("alg" values) as defined in JWA [RFC7518] supported by the
+  // introspection endpoint to sign the response.
+  // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
+  repeated string introspection_signing_alg_values_supported = 53;
+
+  // OPTIONAL.  JSON array containing a list of the JWE [RFC7516] encryption algorithms
+  // ("alg" values) as defined in JWA [RFC7518] supported by the
+  // introspection endpoint to encrypt the content encryption key
+  // for introspection responses (content key encryption).
+  // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
+  repeated string introspection_encryption_alg_values_supported = 54;
+
+  // OPTIONAL.  JSON array containing a list of the JWE [RFC7516] encryption algorithms
+  // ("enc" values) as defined in JWA [RFC7518] supported by the
+  // introspection endpoint to encrypt the response (content encryption).
+  // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
+  repeated string introspection_encryption_enc_values_supported = 55;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

@@ -188,7 +188,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	}
 
 	// Generate an access token
-	at.Value, err = s.accessTokenGen.Generate(ctx, at.TokenId, at.Metadata, nil)
+	at.Value, err = s.accessTokenGen.Generate(ctx, at)
 	if err != nil {
 		return fmt.Errorf("unable to generate an accessToken: %w", err)
 	}

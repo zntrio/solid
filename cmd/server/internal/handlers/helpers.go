@@ -23,6 +23,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
@@ -32,6 +33,13 @@ func getHost(r *http.Request) string {
 		return r.URL.Host
 	}
 	return r.Host
+}
+
+func optionalString(value string) *wrapperspb.StringValue {
+	if value != "" {
+		return &wrapperspb.StringValue{Value: value}
+	}
+	return nil
 }
 
 func withError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {

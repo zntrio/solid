@@ -43,42 +43,43 @@ type accessTokenGenerator struct {
 	signer Signer
 }
 
-func (c *accessTokenGenerator) Generate(ctx context.Context, jti string, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (string, error) {
+func (c *accessTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
 	// Check arguments
 	if types.IsNil(c.signer) {
 		return "", fmt.Errorf("unable to use nil signer")
 	}
-	if jti == "" {
+	if t == nil {
+		return "", fmt.Errorf("unable to generate claims from nil token")
+	}
+	if t.TokenId == "" {
 		return "", fmt.Errorf("token id must not be blank")
 	}
-	if meta == nil {
+	if t.Metadata == nil {
 		return "", fmt.Errorf("token meta must not be nil")
 	}
 
 	// Validate meta informations
-	if err := c.validateMeta(meta); err != nil {
+	if err := c.validateMeta(t.Metadata); err != nil {
 		return "", fmt.Errorf("unable to generate claims, invalid meta: %w", err)
 	}
 
 	// Prepare claims
 	claims := map[string]interface{}{
-		"iss":       meta.Issuer,
-		"exp":       meta.ExpiresAt,
-		"aud":       meta.Audience,
-		"iat":       meta.IssuedAt,
-		"nbf":       meta.NotBefore,
-		"sub":       meta.Subject,
-		"client_id": meta.ClientId,
-		"jti":       jti,
-		"scope":     meta.Scope,
+		"iss":       t.Metadata.Issuer,
+		"exp":       t.Metadata.ExpiresAt,
+		"aud":       t.Metadata.Audience,
+		"iat":       t.Metadata.IssuedAt,
+		"nbf":       t.Metadata.NotBefore,
+		"sub":       t.Metadata.Subject,
+		"client_id": t.Metadata.ClientId,
+		"jti":       t.TokenId,
+		"scope":     t.Metadata.Scope,
 	}
 
 	// If token has a confirmation
-	if cnf != nil {
+	if t.Confirmation != nil {
 		// Add jwt key token proof
-		claims["cnf"] = map[string]interface{}{
-			"jkt": cnf.Jkt,
-		}
+		claims["cnf"] = t.Confirmation
 	}
 
 	// Sign the assertion
@@ -107,6 +108,8 @@ func (c *accessTokenGenerator) validateMeta(meta *corev1.TokenMeta) error {
 		validation.Field(&meta.Audience, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.Issuer, validation.Required, is.URL),
 		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
+		validation.Field(&meta.ClientId, validation.Required, is.PrintableASCII),
+		validation.Field(&meta.Scope, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.IssuedAt, validation.Required, validation.Min(uint64(0)), validation.Max(now)),
 		validation.Field(&meta.NotBefore, validation.Required, validation.Min(meta.IssuedAt), validation.Max(meta.ExpiresAt)),
 		validation.Field(&meta.ExpiresAt, validation.Required, validation.Min(meta.IssuedAt), validation.Max(maxExpiration)),

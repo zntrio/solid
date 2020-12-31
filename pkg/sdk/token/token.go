@@ -41,7 +41,7 @@ func DefaultGenerator() Generator {
 type tokenGenerator struct {
 }
 
-func (c *tokenGenerator) Generate(_ context.Context, _ string, _ *corev1.TokenMeta, _ *corev1.TokenConfirmation) (string, error) {
+func (c *tokenGenerator) Generate(_ context.Context, _ *corev1.Token) (string, error) {
 	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
 	return code, nil
 }

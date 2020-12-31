@@ -27,12 +27,12 @@ import (
 )
 
 const (
-	// DefaultAccessTokenLen defines default token code length.
-	DefaultAccessTokenLen = 28
+	// DefaultOpaqueTokenLen defines default token code length.
+	DefaultOpaqueTokenLen = 28
 )
 
-// DefaultGenerator returns the default token generator.
-func DefaultGenerator() Generator {
+// OpaqueToken returns the default token generator.
+func OpaqueToken() Generator {
 	return &tokenGenerator{}
 }
 
@@ -42,6 +42,6 @@ type tokenGenerator struct {
 }
 
 func (c *tokenGenerator) Generate(_ context.Context, _ *corev1.Token) (string, error) {
-	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultAccessTokenLen))
+	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultOpaqueTokenLen))
 	return code, nil
 }

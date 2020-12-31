@@ -30,7 +30,7 @@ import (
 
 // Introspection instantiate an introspection assertion generator.
 func Introspection(signer Signer) Generator {
-	return &clientAssertionGenerator{
+	return &introspectionAssertionGenerator{
 		signer: signer,
 	}
 }

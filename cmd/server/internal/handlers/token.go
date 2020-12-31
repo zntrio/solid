@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/dpop"
@@ -48,25 +47,15 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 
 		var (
 			grantType = r.FormValue("grant_type")
-			scope     = r.FormValue("scope")
-			resource  = r.FormValue("resource")
-			audience  = r.FormValue("audience")
 		)
 
 		msg := &corev1.TokenRequest{
 			Issuer:    as.Issuer().String(),
 			Client:    client,
 			GrantType: grantType,
-		}
-
-		if scope != "" {
-			msg.Scope = &wrapperspb.StringValue{Value: scope}
-		}
-		if resource != "" {
-			msg.Resource = &wrapperspb.StringValue{Value: resource}
-		}
-		if audience != "" {
-			msg.Audience = &wrapperspb.StringValue{Value: audience}
+			Audience:  optionalString(r.FormValue("audience")),
+			Scope:     optionalString(r.FormValue("scope")),
+			Resource:  optionalString(r.FormValue("resource")),
 		}
 
 		switch grantType {
@@ -80,10 +69,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 			}
 		case oidc.GrantTypeClientCredentials:
 			msg.Grant = &corev1.TokenRequest_ClientCredentials{
-				ClientCredentials: &corev1.GrantClientCredentials{
-					Audience: r.FormValue("audience"),
-					Scope:    r.FormValue("scope"),
-				},
+				ClientCredentials: &corev1.GrantClientCredentials{},
 			}
 		case oidc.GrantTypeDeviceCode:
 			msg.Grant = &corev1.TokenRequest_DeviceCode{

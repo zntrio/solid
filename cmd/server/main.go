@@ -116,6 +116,12 @@ func jarmEncoder(keyProvider jwk.KeyProviderFunc) (jarm.ResponseEncoder, error) 
 	return jarm.Encoder(jarmSigner), nil
 }
 
+func introspectionEncoder(keyProvider jwk.KeyProviderFunc) (token.Generator, error) {
+	// Token introspection signer
+	introspectionSigner := jwt.TokenIntrospection(jose.ES384, keyProvider)
+	return token.Introspection(introspectionSigner), nil
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -129,9 +135,9 @@ func main() {
 		// Authorization code storage
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
 		// Access Token Generator
-		authorizationserver.AccessTokenGenerator(token.DefaultGenerator()),
+		authorizationserver.AccessTokenGenerator(token.OpaqueToken()),
 		// Refresh Token Generator
-		authorizationserver.RefreshTokenGenerator(token.AccessToken(jwt.RefreshTokenSigner(jose.ES384, keyProvider()))),
+		authorizationserver.RefreshTokenGenerator(token.OpaqueToken()),
 		// Token storage
 		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Device authorization session storage
@@ -163,6 +169,11 @@ func main() {
 		panic(err)
 	}
 
+	introspectionEncoder, err := introspectionEncoder(keyProvider())
+	if err != nil {
+		panic(err)
+	}
+
 	// Create router
 	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as))
 	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as))
@@ -171,7 +182,7 @@ func main() {
 	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as, inmemory.Clients(), requestDecoder, jarmEncoder), secHeaders, basicAuth))
 	http.Handle("/device_authorization", middleware.Adapt(handlers.DeviceAuthorization(as)))
 	http.Handle("/token", middleware.Adapt(handlers.Token(as, dpopVerifier), clientAuth))
-	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as), clientAuth))
+	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as, introspectionEncoder), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))
 	http.Handle("/device", middleware.Adapt(handlers.Device(as), secHeaders, basicAuth))
 	http.Handle("/register", handlers.DCR(as))

@@ -49,8 +49,8 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	// Default options
 	defaultOptions := &options{
 		authorizationCodeGenerator:      generator.DefaultAuthorizationCode(),
-		accessTokenGenerator:            tokengen.DefaultGenerator(),
-		refreshTokenGenerator:           tokengen.DefaultGenerator(),
+		accessTokenGenerator:            tokengen.OpaqueToken(),
+		refreshTokenGenerator:           tokengen.OpaqueToken(),
 		clientReader:                    nil,
 		clientWriter:                    nil,
 		tokenManager:                    nil,

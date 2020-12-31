@@ -18,26 +18,27 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/golang/protobuf/ptypes/wrappers"
+	"strings"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/clientauthentication"
 )
 
 // TokenIntrospection handles token introspection HTTP requests.
-func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler {
+func TokenIntrospection(as authorizationserver.AuthorizationServer, introspectionEncoder token.Generator) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
 		var (
-			ctx           = r.Context()
-			token         = r.FormValue("token")
-			tokenTypeHint = r.FormValue("token_type_hint")
+			ctx              = r.Context()
+			tokenRaw         = r.FormValue("token")
+			tokenTypeHintRaw = r.FormValue("token_type_hint")
 		)
 
 		// Retrieve client front context
@@ -49,13 +50,9 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 
 		// Prepare msg
 		msg := &corev1.TokenIntrospectionRequest{
-			Client: client,
-			Token:  token,
-		}
-		if tokenTypeHint != "" {
-			msg.TokenTypeHint = &wrappers.StringValue{
-				Value: tokenTypeHint,
-			}
+			Client:        client,
+			Token:         tokenRaw,
+			TokenTypeHint: optionalString(tokenTypeHintRaw),
 		}
 
 		// Send request to reactor
@@ -71,24 +68,39 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer) http.Handler
 			return
 		}
 
-		resp := map[string]interface{}{
-			"active": introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		acceptRaw := r.Header.Get("Accept")
+		if strings.Contains(acceptRaw, "application/token-introspection+jwt") {
+			out, err := introspectionEncoder.Generate(r.Context(), introRes.Token)
+			if err != nil {
+				log.Println("unable to sign introspection response: %w", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Add("Content-Type", "application/token-introspection+jwt")
+			fmt.Fprintln(w, out)
+
+		} else {
+			active := (introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE) && token.IsUsable(introRes.Token)
+			resp := map[string]interface{}{
+				"active": active,
+			}
+			if active {
+				resp["token_type"] = "Bearer"
+				resp["scope"] = introRes.Token.Metadata.Scope
+				resp["client_id"] = introRes.Token.Metadata.ClientId
+				resp["exp"] = introRes.Token.Metadata.ExpiresAt
+				resp["iat"] = introRes.Token.Metadata.IssuedAt
+				resp["nbf"] = introRes.Token.Metadata.NotBefore
+				resp["sub"] = introRes.Token.Metadata.Subject
+				resp["aud"] = introRes.Token.Metadata.Audience
+				resp["iss"] = introRes.Token.Metadata.Issuer
+				resp["jti"] = introRes.Token.TokenId
+			}
+
+			// Send json reponse
+			withJSON(w, r, http.StatusOK, resp)
 		}
 
-		if introRes.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE {
-			resp["token_type"] = "Bearer"
-			resp["scope"] = introRes.Token.Metadata.Scope
-			resp["client_id"] = introRes.Token.Metadata.ClientId
-			resp["exp"] = introRes.Token.Metadata.ExpiresAt
-			resp["iat"] = introRes.Token.Metadata.IssuedAt
-			resp["nbf"] = introRes.Token.Metadata.NotBefore
-			resp["sub"] = introRes.Token.Metadata.Subject
-			resp["aud"] = introRes.Token.Metadata.Audience
-			resp["iss"] = introRes.Token.Metadata.Issuer
-			resp["jti"] = introRes.Token.TokenId
-		}
-
-		// Send json reponse
-		withJSON(w, r, http.StatusOK, resp)
 	})
 }

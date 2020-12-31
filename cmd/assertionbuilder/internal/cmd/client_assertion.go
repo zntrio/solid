@@ -42,13 +42,16 @@ var clientAssertionCmd = func() *cobra.Command {
 func runClientAssertion(ctx context.Context, p *clientAssertionParams) {
 	g := token.ClientAssertion(jwt.ClientAssertionSigner(jose.ES384, keyProvider()))
 
-	raw, err := g.Generate(ctx, uniuri.NewLen(16), &corev1.TokenMeta{
-		Issuer:    p.issuer,
-		Subject:   p.subject,
-		Audience:  p.audience,
-		IssuedAt:  uint64(time.Now().Unix()),
-		ExpiresAt: uint64(time.Now().Add(2 * time.Hour).Unix()),
-	}, nil)
+	raw, err := g.Generate(ctx, &corev1.Token{
+		TokenId: uniuri.NewLen(16),
+		Metadata: &corev1.TokenMeta{
+			Issuer:    p.issuer,
+			Subject:   p.subject,
+			Audience:  p.audience,
+			IssuedAt:  uint64(time.Now().Unix()),
+			ExpiresAt: uint64(time.Now().Add(2 * time.Hour).Unix()),
+		},
+	})
 	if err != nil {
 		panic(err)
 	}

@@ -143,6 +143,7 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] Generic API
     * [x] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
     * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
+    * [x] JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10)
   * Token
     * Scheme
       * [x] Bearer - [rfc6750](https://tools.ietf.org/html/rfc6750)

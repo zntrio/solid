@@ -101,6 +101,9 @@ message ClientMeta {
   google.protobuf.StringValue tls_client_auth_san_ip = 27;
   google.protobuf.StringValue tls_client_auth_san_email = 28;
   google.protobuf.BoolValue tls_client_certificate_bound_access_tokens = 29;
+  google.protobuf.StringValue introspection_signed_response_alg = 30;
+  google.protobuf.StringValue introspection_encrypted_response_alg = 31;
+  google.protobuf.StringValue introspection_encrypted_response_enc = 32;
 }
 
 message SoftwareStatement {

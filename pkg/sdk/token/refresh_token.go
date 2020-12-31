@@ -30,20 +30,20 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// AccessToken instantiate an access token generator.
-func AccessToken(signer Signer) Generator {
-	return &accessTokenGenerator{
+// RefreshToken instantiate an refresh token generator.
+func RefreshToken(signer Signer) Generator {
+	return &refreshTokenGenerator{
 		signer: signer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
-type accessTokenGenerator struct {
+type refreshTokenGenerator struct {
 	signer Signer
 }
 
-func (c *accessTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
+func (c *refreshTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
 	// Check arguments
 	if types.IsNil(c.signer) {
 		return "", fmt.Errorf("unable to use nil signer")
@@ -94,14 +94,14 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (s
 
 // -----------------------------------------------------------------------------
 
-func (c *accessTokenGenerator) validateMeta(meta *corev1.TokenMeta) error {
+func (c *refreshTokenGenerator) validateMeta(meta *corev1.TokenMeta) error {
 	// Check arguments
 	if meta == nil {
 		return fmt.Errorf("token meta must not be nil")
 	}
 
 	now := uint64(time.Now().Unix())
-	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix())
+	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(14 * 12 * time.Hour).Unix())
 
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,

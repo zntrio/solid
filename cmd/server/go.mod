@@ -10,6 +10,7 @@ require (
 	github.com/imdario/mergo v0.3.11
 	github.com/json-iterator/go v1.1.10
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
+	go.mozilla.org/cose v0.0.0-20200930124131-25dc96df8228
 	google.golang.org/protobuf v1.25.0
 	zntr.io/solid v0.0.0-00010101000000-000000000000
 )

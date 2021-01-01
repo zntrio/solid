@@ -24,6 +24,7 @@ import (
 	"net/http"
 
 	"github.com/square/go-jose/v3"
+	"go.mozilla.org/cose"
 
 	"zntr.io/solid/cmd/server/internal/handlers"
 	"zntr.io/solid/cmd/server/internal/middleware"
@@ -33,6 +34,7 @@ import (
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/token"
+	"zntr.io/solid/pkg/sdk/token/cwt"
 	"zntr.io/solid/pkg/sdk/token/jwt"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/storage/inmemory"
@@ -136,8 +138,8 @@ func main() {
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
 		// Access Token Generator
 		authorizationserver.AccessTokenGenerator(token.OpaqueToken()),
-		// Refresh Token Generator
-		authorizationserver.RefreshTokenGenerator(token.OpaqueToken()),
+		// Refresh Token Generator (CWT)
+		authorizationserver.RefreshTokenGenerator(token.RefreshToken(cwt.RefreshTokenSigner(cose.ES384, keyProvider()))),
 		// Token storage
 		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Device authorization session storage

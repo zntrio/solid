@@ -65,14 +65,22 @@ func (c *clientAssertionGenerator) Generate(ctx context.Context, t *corev1.Token
 		return "", fmt.Errorf("unable to generate claims, invalid meta: %w", err)
 	}
 
-	// Prepare claims
-	claims := map[string]interface{}{
-		"iss": t.Metadata.Issuer,
-		"iat": t.Metadata.IssuedAt,
-		"exp": t.Metadata.ExpiresAt,
-		"sub": t.Metadata.Subject,
-		"aud": t.Metadata.Audience,
-		"jti": t.TokenId,
+	claims := struct {
+		Iss string `json:"iss,omitempty" cbor:"1,keyasint,omitempty"`
+		Sub string `json:"sub,omitempty" cbor:"2,keyasint,omitempty"`
+		Aud string `json:"aud,omitempty" cbor:"3,keyasint,omitempty"`
+		Exp uint64 `json:"exp,omitempty" cbor:"4,keyasint,omitempty"`
+		Nbf uint64 `json:"nbf,omitempty" cbor:"5,keyasint,omitempty"`
+		Iat uint64 `json:"iat,omitempty" cbor:"6,keyasint,omitempty"`
+		JTI string `json:"jti,omitempty" cbor:"7,keyasint,omitempty"`
+	}{
+		Iss: t.Metadata.Issuer,
+		Sub: t.Metadata.Subject,
+		Aud: t.Metadata.Audience,
+		Exp: t.Metadata.ExpiresAt,
+		Nbf: t.Metadata.NotBefore,
+		Iat: t.Metadata.IssuedAt,
+		JTI: t.TokenId,
 	}
 
 	// Sign the assertion

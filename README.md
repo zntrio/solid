@@ -154,7 +154,7 @@ I made sample server and various integrations inside `examples/` folder.
     * Authentication by value
       * [x] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
       * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
-      * [ ] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
+      * [x] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
 * Storage
   * [x] API
     * Client

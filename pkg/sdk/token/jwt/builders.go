@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"github.com/square/go-jose/v3"
+
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"
 )

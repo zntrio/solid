@@ -375,6 +375,12 @@ message ServerMetadata {
   // introspection endpoint to encrypt the response (content encryption).
   // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
   repeated string introspection_encryption_enc_values_supported = 55;
+
+  // OPTIONAL. A JWT containing metadata values about the authorization server as
+  // claims.  This is a string value consisting of the entire signed JWT.
+  // A "signed_metadata" metadata value SHOULD NOT appear as a claim in the JWT.
+  // https://tools.ietf.org/html/rfc8414#section-2.1
+  string signed_metadata = 56;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

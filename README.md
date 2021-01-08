@@ -120,31 +120,31 @@ I made sample server and various integrations inside `examples/` folder.
 ### Framework
 
 * OAuth
+  * Discovery
+    * OAuth 2.0 Authorization Server Metadata - [rfc8414](https://tools.ietf.org/html/rfc8414)
   * Client authentication
     * [x] `private_key_jwt` client authentication
     * [ ] `tls_client_auth` client authentication
-  * Core
+  * Grant Types
     * [x] `client_credentials` grant type
     * [x] `authorization_code` grant type
       * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
       * [x] [Pushed Authorization Request (PAR)](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
       * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-30) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
+      * [x] [OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/)
     * [x] `refresh_token` grant type
-    * [x] `device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
-    * [x] `token_exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
-    * [x] Pairwise subject identifier
+    * [x] `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
+    * [x] `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
+    * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
+  * Resource
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
-    * [x] [OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/)
   * Client
     * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
     * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
-  * Token Management
-    * [x] Generic API
-    * [x] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
-    * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
-    * [x] JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10)
-  * Token
+  * Tokens
+    * Privacy
+      * [x] Pairwise subject identifier
     * Scheme
       * [x] Bearer - [rfc6750](https://tools.ietf.org/html/rfc6750)
       * [x] DPoP - [draft-fett-oauth-dpop-02](https://tools.ietf.org/html/draft-ietf-oauth-dpop-02)
@@ -155,6 +155,11 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
       * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
       * [x] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
+  * Token Management
+    * [x] Generic API
+    * [x] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
+    * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
+    * [x] JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10)
 * Storage
   * [x] API
     * Client

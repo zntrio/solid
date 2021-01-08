@@ -76,3 +76,13 @@ func TokenIntrospection(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvider
 		embedJWK:    false,
 	}
 }
+
+// ServerMetadata represents JWT Server Metadata Assertion signer.
+func ServerMetadata(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "oauth-authorization-server+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}

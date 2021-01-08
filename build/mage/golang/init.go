@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	goVersion = "go1.14"
+	goVersion = "go1.15"
 )
 
 func init() {

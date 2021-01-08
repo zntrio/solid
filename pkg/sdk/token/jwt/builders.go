@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"github.com/square/go-jose/v3"
+
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"
 )
@@ -70,6 +71,16 @@ func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvi
 func TokenIntrospection(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   "token-introspection+jwt",
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}
+
+// ServerMetadata represents JWT Server Metadata Assertion signer.
+func ServerMetadata(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return &defaultSigner{
+		tokenType:   "oauth-authorization-server+jwt",
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,

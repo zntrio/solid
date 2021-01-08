@@ -177,8 +177,8 @@ func main() {
 	}
 
 	// Create router
-	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as))
-	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as))
+	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as, jwt.ServerMetadata(jose.ES384, keyProvider())))
+	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as, jwt.ServerMetadata(jose.ES384, keyProvider())))
 	http.Handle("/.well-known/jwks.json", handlers.JWKS(as, keySetProvider()))
 	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as, dpopVerifier), clientAuth))
 	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as, inmemory.Clients(), requestDecoder, jarmEncoder), secHeaders, basicAuth))

@@ -29,7 +29,7 @@ import (
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
-func Test_accessTokenGenerator_Generate(t *testing.T) {
+func Test_clientAssertionGenerator_Generate(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		t   *corev1.Token
@@ -79,13 +79,10 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 				t: &corev1.Token{
 					TokenId: "123456789",
 					Metadata: &corev1.TokenMeta{
-						Issuer:    "http://localhost:8080",
-						Audience:  "azertyuiop",
-						ClientId:  "789456",
-						Subject:   "test",
-						Scope:     "openid",
+						Audience:  "http://localhost:8080",
+						Issuer:    "client-1",
+						Subject:   "client-1",
 						IssuedAt:  1,
-						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
 				},
@@ -102,40 +99,11 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 				t: &corev1.Token{
 					TokenId: "123456789",
 					Metadata: &corev1.TokenMeta{
-						Issuer:    "http://localhost:8080",
-						Audience:  "azertyuiop",
-						ClientId:  "789456",
-						Subject:   "test",
-						Scope:     "openid",
+						Audience:  "http://localhost:8080",
+						Issuer:    "client-1",
+						Subject:   "client-1",
 						IssuedAt:  1,
-						NotBefore: 2,
 						ExpiresAt: 3601,
-					},
-				},
-			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
-			},
-			wantErr: false,
-			want:    "fake-token",
-		},
-		{
-			name: "valid with confirmation",
-			args: args{
-				t: &corev1.Token{
-					TokenId: "123456789",
-					Metadata: &corev1.TokenMeta{
-						Issuer:    "http://localhost:8080",
-						Audience:  "azertyuiop",
-						ClientId:  "789456",
-						Subject:   "test",
-						Scope:     "openid",
-						IssuedAt:  1,
-						NotBefore: 2,
-						ExpiresAt: 3601,
-					},
-					Confirmation: &corev1.TokenConfirmation{
-						Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
 					},
 				},
 			},
@@ -159,14 +127,14 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 				tt.prepare(serializer)
 			}
 
-			c := token.AccessToken(serializer)
+			c := token.ClientAssertion(serializer)
 			got, err := c.Generate(tt.args.ctx, tt.args.t)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("accessTokenGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("clientAssertionGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("accessTokenGenerator.Generate() = %v, want %v", got, tt.want)
+				t.Errorf("clientAssertionGenerator.Generate() = %v, want %v", got, tt.want)
 			}
 		})
 	}

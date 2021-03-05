@@ -30,11 +30,17 @@ type Generator interface {
 	Generate(ctx context.Context, t *corev1.Token) (string, error)
 }
 
-//go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/token Signer
+//go:generate mockgen -destination mock/serializer.gen.go -package mock zntr.io/solid/pkg/sdk/token Serializer
 
-// Signer describe Token signer contract.
-type Signer interface {
-	Sign(ctx context.Context, claims interface{}) (string, error)
+// Serializer describes Token claims serializer contract.
+type Serializer interface {
+	Serialize(ctx context.Context, claims interface{}) (string, error)
+	ContentType() string
+}
+
+// Encrypter describes token encryption contract.
+type Encrypter interface {
+	Encrypt(ctx context.Context, contentType, token string, aad []byte) (string, error)
 }
 
 //go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/pkg/sdk/token Verifier

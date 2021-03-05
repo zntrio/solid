@@ -26,60 +26,51 @@ import (
 
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"
-	"zntr.io/solid/pkg/sdk/types"
 )
 
-// DefaultSigner declare a default PASETO signer.
-func DefaultSigner(tokenType string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   fmt.Sprintf("%s+paseto", tokenType),
-		keyProvider: keyProvider,
+// Encrypter returns a token encrypter service.
+func Encrypter(encryptionKeyProviderFunc jwk.KeyProviderFunc) token.Encrypter {
+	return &defaultEncrypter{
+		encryptionKeyProvider: encryptionKeyProviderFunc,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
-type defaultSigner struct {
-	tokenType   string
-	keyProvider jwk.KeyProviderFunc
+type defaultEncrypter struct {
+	encryptionKeyProvider jwk.KeyProviderFunc
 }
 
-func (ds *defaultSigner) Serialize(ctx context.Context, claims interface{}) (string, error) {
+func (ds *defaultEncrypter) Encrypt(ctx context.Context, tokenType, token string, aad []byte) (string, error) {
 	// Check arguments
-	if types.IsNil(claims) {
-		return "", errors.New("unable to sign nil claim object")
+	if ds.encryptionKeyProvider == nil {
+		return "", errors.New("unable to use nil encryptionKeyProvider")
 	}
 
-	// Retrieve signing key
-	key, err := ds.keyProvider(ctx)
+	// Retrieve encryption key
+	encryptionKey, err := ds.encryptionKeyProvider(ctx)
 	if err != nil {
-		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
+		return "", fmt.Errorf("unable to retrieve an encryption key: %w", err)
 	}
 
 	// Check
-	if key == nil {
-		return "", fmt.Errorf("key provider returned a nil key")
+	if encryptionKey == nil {
+		return "", fmt.Errorf("encryptionKey provider returned a nil key")
 	}
-	if key.KeyID == "" {
-		return "", fmt.Errorf("key provider returned a unidentifiable key")
+	if encryptionKey.KeyID == "" {
+		return "", fmt.Errorf("encryptionKey provider returned an unidentifiable key")
 	}
-
-	// Prepare footer
-	footer := map[string]string{
-		"kid": key.KeyID,
-		"typ": ds.tokenType,
+	rawKey, ok := encryptionKey.Key.([]byte)
+	if !ok {
+		return "", fmt.Errorf("encryptionKey provider returned an invalid key type: %T", encryptionKey.Key)
 	}
 
 	// Prepare a signer
-	raw, err := pasetolib.NewV2().Sign(key.Key, claims, footer)
+	raw, err := pasetolib.NewV2().Encrypt(rawKey, token, aad)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}
 
 	// No error
 	return raw, nil
-}
-
-func (ds *defaultSigner) ContentType() string {
-	return "PASETO"
 }

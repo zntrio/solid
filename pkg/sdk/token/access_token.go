@@ -32,22 +32,22 @@ import (
 // -----------------------------------------------------------------------------
 
 // AccessToken instantiate an access token generator.
-func AccessToken(signer Signer) Generator {
+func AccessToken(serializer Serializer) Generator {
 	return &accessTokenGenerator{
-		signer: signer,
+		serializer: serializer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type accessTokenGenerator struct {
-	signer Signer
+	serializer Serializer
 }
 
 func (c *accessTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
 	// Check arguments
-	if types.IsNil(c.signer) {
-		return "", fmt.Errorf("unable to use nil signer")
+	if types.IsNil(c.serializer) {
+		return "", fmt.Errorf("unable to use nil serializer")
 	}
 	if t == nil {
 		return "", fmt.Errorf("unable to generate claims from nil token")
@@ -94,10 +94,10 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (s
 		claims.Cnf = t.Confirmation
 	}
 
-	// Sign the assertion
-	raw, err := c.signer.Sign(ctx, claims)
+	// Serialize the assertion
+	raw, err := c.serializer.Serialize(ctx, claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign access token: %w", err)
+		return "", fmt.Errorf("unable to serialize access token: %w", err)
 	}
 
 	// No error

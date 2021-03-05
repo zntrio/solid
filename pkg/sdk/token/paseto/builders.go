@@ -15,83 +15,73 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package cwt
+package paseto
 
 import (
-	"go.mozilla.org/cose"
-
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"
 )
 
-// AccessTokenSigner represents CWT Access Token signer.
-func AccessTokenSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// AccessTokenSigner represents Paseto Access Token signer.
+func AccessTokenSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "at",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// RefreshTokenSigner represents CWT Refresh Token signer.
-func RefreshTokenSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// RefreshTokenSigner represents Paseto Refresh Token signer.
+func RefreshTokenSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "rt",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// RequestSigner represents CWT Request Token signer.
-func RequestSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// RequestSigner represents Paseto Request Token signer.
+func RequestSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "oauth-authz-req",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// JARMSigner represents CWT JARM Token signer.
-func JARMSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// JARMSigner represents Paseto JARM Token signer.
+func JARMSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "jarm",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// DPoPSigner represents CWT DPoP Token signer.
-func DPoPSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// DPoPSigner represents Paseto DPoP Token signer.
+func DPoPSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "dpop",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// ClientAssertionSigner represents CWT Client Assertion signer.
-func ClientAssertionSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// ClientAssertionSigner represents Paseto Client Assertion signer.
+func ClientAssertionSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "client-assertion",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// TokenIntrospectionSigner represents CWT Token Introspection Assertion signer.
-func TokenIntrospectionSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// TokenIntrospectionSigner represents Paseto Token Introspection Assertion signer.
+func TokenIntrospectionSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "token-introspection",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }
 
-// ServerMetadataSigner represents CWT Server Metadata Assertion signer.
-func ServerMetadataSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// ServerMetadataSigner represents Paseto Server Metadata Assertion signer.
+func ServerMetadataSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   "oauth-authorization-server",
-		alg:         alg,
 		keyProvider: keyProvider,
 	}
 }

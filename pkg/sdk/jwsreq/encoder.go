@@ -31,14 +31,14 @@ import (
 // -----------------------------------------------------------------------------
 
 // AuthorizationRequestEncoder returns an authorization request encoder instance.
-func AuthorizationRequestEncoder(signer token.Signer) AuthorizationEncoder {
+func AuthorizationRequestEncoder(serializer token.Serializer) AuthorizationEncoder {
 	return &tokenEncoder{
-		signer: signer,
+		serializer: serializer,
 	}
 }
 
 type tokenEncoder struct {
-	signer token.Signer
+	serializer token.Serializer
 }
 
 func (enc *tokenEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error) {
@@ -62,8 +62,8 @@ func (enc *tokenEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationReq
 		return "", fmt.Errorf("unable to serialize request payload: %w", err)
 	}
 
-	// Sign request
-	req, err := enc.signer.Sign(ctx, claims)
+	// Serialize request
+	req, err := enc.serializer.Serialize(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign request: %w", err)
 	}

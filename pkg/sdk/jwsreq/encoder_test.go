@@ -32,7 +32,7 @@ import (
 
 func Test_jwtEncoder_Encode(t *testing.T) {
 	type fields struct {
-		signer token.Signer
+		serializer token.Serializer
 	}
 	type args struct {
 		ctx context.Context
@@ -42,7 +42,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*tokenmock.MockSigner)
+		prepare func(*tokenmock.MockSerializer)
 		want    string
 		wantErr bool
 	}{
@@ -73,8 +73,8 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Prompt:              &wrapperspb.StringValue{Value: "consent"},
 				},
 			},
-			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(signer *tokenmock.MockSerializer) {
+				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -94,8 +94,8 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Prompt:              &wrapperspb.StringValue{Value: "consent"},
 				},
 			},
-			prepare: func(signer *tokenmock.MockSigner) {
-				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(signer *tokenmock.MockSerializer) {
+				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -106,7 +106,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockSigner := tokenmock.NewMockSigner(ctrl)
+			mockSigner := tokenmock.NewMockSerializer(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {

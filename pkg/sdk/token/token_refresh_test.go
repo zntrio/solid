@@ -29,7 +29,7 @@ import (
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
-func Test_accessTokenGenerator_Generate(t *testing.T) {
+func Test_refreshTokenGenerator_Generate(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		t   *corev1.Token
@@ -159,14 +159,14 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 				tt.prepare(serializer)
 			}
 
-			c := token.AccessToken(serializer)
+			c := token.RefreshToken(serializer)
 			got, err := c.Generate(tt.args.ctx, tt.args.t)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("accessTokenGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("refreshTokenGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("accessTokenGenerator.Generate() = %v, want %v", got, tt.want)
+				t.Errorf("refreshTokenGenerator.Generate() = %v, want %v", got, tt.want)
 			}
 		})
 	}

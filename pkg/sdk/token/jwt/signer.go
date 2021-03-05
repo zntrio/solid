@@ -36,7 +36,7 @@ type defaultSigner struct {
 	embedJWK    bool
 }
 
-func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, error) {
+func (ds *defaultSigner) Serialize(ctx context.Context, claims interface{}) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
@@ -59,7 +59,7 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 		return "", fmt.Errorf("key provider returned a unidentifiable key")
 	}
 	// Prepare JWT header
-	options := (&jose.SignerOptions{}).WithType(jose.ContentType(ds.tokenType))
+	options := (&jose.SignerOptions{}).WithType(jose.ContentType(fmt.Sprintf("%s+jwt", ds.tokenType)))
 	options = options.WithHeader(jose.HeaderKey("kid"), key.KeyID)
 	options.EmbedJWK = ds.embedJWK
 
@@ -77,4 +77,8 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 
 	// No error
 	return raw, nil
+}
+
+func (ds *defaultSigner) ContentType() string {
+	return "JWT"
 }

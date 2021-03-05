@@ -29,14 +29,14 @@ import (
 // -----------------------------------------------------------------------------
 
 // Encoder builds a Response Mode encoder instance.
-func Encoder(signer token.Signer) ResponseEncoder {
+func Encoder(serializer token.Serializer) ResponseEncoder {
 	return &tokenEncoder{
-		signer: signer,
+		serializer: serializer,
 	}
 }
 
 type tokenEncoder struct {
-	signer token.Signer
+	serializer token.Serializer
 }
 
 func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error) {
@@ -80,8 +80,8 @@ func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *corev1.A
 		}
 	}
 
-	// Sign the claims to generate token
-	raw, err := d.signer.Sign(ctx, claims)
+	// Serialize the claims to generate token
+	raw, err := d.serializer.Serialize(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to encode JARM assertion: %w", err)
 	}

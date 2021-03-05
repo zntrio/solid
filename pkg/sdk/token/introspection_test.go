@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 
@@ -29,7 +30,7 @@ import (
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
 )
 
-func Test_accessTokenGenerator_Generate(t *testing.T) {
+func Test_introspectionGenerator_Generate(t *testing.T) {
 	type args struct {
 		ctx context.Context
 		t   *corev1.Token
@@ -64,16 +65,6 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid meta",
-			args: args{
-				t: &corev1.Token{
-					TokenId:  "azerty",
-					Metadata: &corev1.TokenMeta{},
-				},
-			},
-			wantErr: true,
-		},
-		{
 			name: "signer error",
 			args: args{
 				t: &corev1.Token{
@@ -97,10 +88,12 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		},
 		// ---------------------------------------------------------------------
 		{
-			name: "valid",
+			name: "valid - expired",
 			args: args{
 				t: &corev1.Token{
-					TokenId: "123456789",
+					TokenId:   "123456789",
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_EXPIRED,
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
@@ -120,22 +113,21 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			want:    "fake-token",
 		},
 		{
-			name: "valid with confirmation",
+			name: "valid - active",
 			args: args{
 				t: &corev1.Token{
-					TokenId: "123456789",
+					TokenId:   "123456789",
+					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &corev1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",
 						Subject:   "test",
 						Scope:     "openid",
-						IssuedAt:  1,
-						NotBefore: 2,
-						ExpiresAt: 3601,
-					},
-					Confirmation: &corev1.TokenConfirmation{
-						Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+						IssuedAt:  uint64(time.Now().Unix()) - 1,
+						NotBefore: uint64(time.Now().Unix()) - 1,
+						ExpiresAt: uint64(time.Now().Unix()) + 30,
 					},
 				},
 			},
@@ -159,14 +151,14 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 				tt.prepare(serializer)
 			}
 
-			c := token.AccessToken(serializer)
+			c := token.Introspection(serializer)
 			got, err := c.Generate(tt.args.ctx, tt.args.t)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("accessTokenGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("introspectionGenerator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("accessTokenGenerator.Generate() = %v, want %v", got, tt.want)
+				t.Errorf("introspectionGenerator.Generate() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -25,7 +25,7 @@ import (
 // AccessTokenSigner represents Paseto Access Token signer.
 func AccessTokenSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "at",
+		tokenType:   token.TypeAccessToken,
 		keyProvider: keyProvider,
 	}
 }
@@ -33,7 +33,7 @@ func AccessTokenSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 // RefreshTokenSigner represents Paseto Refresh Token signer.
 func RefreshTokenSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "rt",
+		tokenType:   token.TypeRefreshToken,
 		keyProvider: keyProvider,
 	}
 }
@@ -41,7 +41,7 @@ func RefreshTokenSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 // RequestSigner represents Paseto Request Token signer.
 func RequestSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "oauth-authz-req",
+		tokenType:   token.TypeAuthzRequest,
 		keyProvider: keyProvider,
 	}
 }
@@ -49,7 +49,7 @@ func RequestSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 // JARMSigner represents Paseto JARM Token signer.
 func JARMSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "jarm",
+		tokenType:   token.TypeAuthzResponseMode,
 		keyProvider: keyProvider,
 	}
 }
@@ -57,7 +57,7 @@ func JARMSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 // DPoPSigner represents Paseto DPoP Token signer.
 func DPoPSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "dpop",
+		tokenType:   token.TypeDPoP,
 		keyProvider: keyProvider,
 	}
 }
@@ -65,7 +65,7 @@ func DPoPSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 // ClientAssertionSigner represents Paseto Client Assertion signer.
 func ClientAssertionSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "client-assertion",
+		tokenType:   token.TypeClientAssertion,
 		keyProvider: keyProvider,
 	}
 }
@@ -73,7 +73,7 @@ func ClientAssertionSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 // TokenIntrospectionSigner represents Paseto Token Introspection Assertion signer.
 func TokenIntrospectionSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "token-introspection",
+		tokenType:   token.TypeTokenInstrospection,
 		keyProvider: keyProvider,
 	}
 }
@@ -81,7 +81,7 @@ func TokenIntrospectionSigner(keyProvider jwk.KeyProviderFunc) token.Serializer 
 // ServerMetadataSigner represents Paseto Server Metadata Assertion signer.
 func ServerMetadataSigner(keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "oauth-authorization-server",
+		tokenType:   token.TypeServerMetadata,
 		keyProvider: keyProvider,
 	}
 }

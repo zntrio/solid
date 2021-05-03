@@ -35,8 +35,7 @@ func DefaultAuthorizationCode() AuthorizationCode {
 
 // -----------------------------------------------------------------------------
 
-type authorizationCodeGenerator struct {
-}
+type authorizationCodeGenerator struct{}
 
 func (c *authorizationCodeGenerator) Generate(_ context.Context) (string, error) {
 	code := uniuri.NewLen(DefaultAuthorizationCodeLen)

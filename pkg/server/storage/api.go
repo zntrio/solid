@@ -155,9 +155,14 @@ type DPoP interface {
 	Exists(ctx context.Context, id string) (bool, error)
 }
 
+//go:generate mockgen -destination mock/resource_reader.gen.go -package mock zntr.io/solid/pkg/server/storage ResourceReader
+
+// ResourceReader describes resource resolver contract.
 type ResourceReader interface {
 	GetByURI(ctx context.Context, urn string) (*corev1.Resource, error)
 }
+
+//go:generate mockgen -destination mock/resource.gen.go -package mock zntr.io/solid/pkg/server/storage Resource
 
 type Resource interface {
 	ResourceReader

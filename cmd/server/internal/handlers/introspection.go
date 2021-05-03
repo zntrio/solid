@@ -101,6 +101,5 @@ func TokenIntrospection(as authorizationserver.AuthorizationServer, introspectio
 			// Send json reponse
 			withJSON(w, r, http.StatusOK, resp)
 		}
-
 	})
 }

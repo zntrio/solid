@@ -25,4 +25,5 @@ message Resource {
   string urn = 1;
   string description = 2;
   repeated string urls = 3;
+  repeated string scopes = 4;
 }

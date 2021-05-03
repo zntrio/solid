@@ -71,7 +71,7 @@ func New(ctx context.Context, issuer string, opts ...Option) (AuthorizationServe
 	}
 
 	// Initialize services
-	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager)
+	authorizations := authorization.New(defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.resourceReader)
 	devices := device.New(defaultOptions.clientReader, defaultOptions.deviceCodeSessionManager)
 	tokens := token.New(defaultOptions.accessTokenGenerator, defaultOptions.refreshTokenGenerator, defaultOptions.clientReader, defaultOptions.authorizationRequestManager, defaultOptions.authorizationCodeSessionManager, defaultOptions.deviceCodeSessionManager, defaultOptions.tokenManager, defaultOptions.resourceReader)
 	clients := client.New(defaultOptions.clientWriter, profile.Strict())

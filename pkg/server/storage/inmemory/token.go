@@ -88,7 +88,7 @@ func (s *tokenStorage) Delete(ctx context.Context, id string) error {
 
 	s.mutex.Lock()
 	delete(s.idIndex, t.TokenId)
-	delete(s.idIndex, t.Value)
+	delete(s.valueIndex, t.Value)
 	s.mutex.Unlock()
 
 	// No error

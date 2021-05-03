@@ -65,10 +65,16 @@ func (ds *defaultEncrypter) Encrypt(ctx context.Context, tokenType, token string
 		return "", fmt.Errorf("encryptionKey provider returned an invalid key type: %T", encryptionKey.Key)
 	}
 
+	// Prepare footer
+	footer := map[string]string{
+		"kid": encryptionKey.KeyID,
+		"aad": string(aad),
+	}
+
 	// Prepare a signer
-	raw, err := pasetolib.NewV2().Encrypt(rawKey, token, aad)
+	raw, err := pasetolib.NewV2().Encrypt(rawKey, token, footer)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign paseto token: %w", err)
+		return "", fmt.Errorf("unable to encrypt paseto token: %w", err)
 	}
 
 	// No error

@@ -27,7 +27,7 @@ import (
 // AccessTokenSigner represents JWT Access Token signer.
 func AccessTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "at",
+		tokenType:   token.TypeAccessToken,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,
@@ -37,7 +37,7 @@ func AccessTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderF
 // RefreshTokenSigner represents JWT Refresh Token signer.
 func RefreshTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "rt",
+		tokenType:   token.TypeRefreshToken,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,
@@ -47,7 +47,7 @@ func RefreshTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvider
 // RequestSigner represents JWT Request Token signer.
 func RequestSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "oauth-authz-req",
+		tokenType:   token.TypeAuthzRequest,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,
@@ -57,7 +57,7 @@ func RequestSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc)
 // JARMSigner represents JWT JARM Token signer.
 func JARMSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "jarm",
+		tokenType:   token.TypeAuthzResponseMode,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,
@@ -67,7 +67,7 @@ func JARMSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) to
 // DPoPSigner represents JWT DPoP Token signer.
 func DPoPSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "dpop",
+		tokenType:   token.TypeDPoP,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    true,
@@ -77,7 +77,7 @@ func DPoPSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) to
 // ClientAssertionSigner represents JWT Client Assertion signer.
 func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "client-assertion",
+		tokenType:   token.TypeClientAssertion,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,
@@ -87,7 +87,7 @@ func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvi
 // TokenIntrospectionSigner represents JWT Token Introspection Assertion signer.
 func TokenIntrospectionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "token-introspection",
+		tokenType:   token.TypeTokenInstrospection,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,
@@ -97,7 +97,7 @@ func TokenIntrospectionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyPr
 // ServerMetadataSigner represents JWT Server Metadata Assertion signer.
 func ServerMetadataSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   "oauth-authorization-server",
+		tokenType:   token.TypeServerMetadata,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,

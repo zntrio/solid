@@ -38,8 +38,7 @@ func OpaqueToken() Generator {
 
 // -----------------------------------------------------------------------------
 
-type tokenGenerator struct {
-}
+type tokenGenerator struct{}
 
 func (c *tokenGenerator) Generate(_ context.Context, _ *corev1.Token) (string, error) {
 	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultOpaqueTokenLen))

@@ -53,7 +53,8 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		}
 
 		var (
-			ctx = r.Context()
+			ctx       = r.Context()
+			dpopProof = r.Header.Get("DPoP")
 		)
 
 		// Parse form
@@ -69,12 +70,12 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 		}
 
 		// Check dpop proof
-		/*jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
+		jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
 		if err != nil {
 			log.Println("unable to validate dpop proof:", err)
 			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
 			return
-		}*/
+		}
 
 		// Prepare client request decoder
 		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
@@ -100,9 +101,9 @@ func PushedAuthorizationRequest(as authorizationserver.AuthorizationServer, dpop
 			Client:               client,
 			Issuer:               issuer,
 			AuthorizationRequest: ar,
-			/*Confirmation: &corev1.TokenConfirmation{
+			Confirmation: &corev1.TokenConfirmation{
 				Jkt: jkt,
-			}*/
+			},
 		})
 		parRes, ok := res.(*corev1.RegistrationResponse)
 		if !ok {

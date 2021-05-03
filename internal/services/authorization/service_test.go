@@ -476,6 +476,7 @@ func Test_service_Authorize(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+			resources := storagemock.NewMockResourceReader(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -483,7 +484,7 @@ func Test_service_Authorize(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions, resources)
 
 			// Do the request
 			got, err := underTest.Authorize(tt.args.ctx, tt.args.req)
@@ -504,9 +505,10 @@ func Test_service_Authorize_Fuzz(t *testing.T) {
 	authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 	clients := storagemock.NewMockClientReader(ctrl)
 	authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+	resources := storagemock.NewMockResourceReader(ctrl)
 
 	// Prepare service
-	underTest := New(clients, authorizationRequests, authorizationCodeSessions)
+	underTest := New(clients, authorizationRequests, authorizationCodeSessions, resources)
 
 	// Making sure the function never panics
 	for i := 0; i < 1000; i++ {
@@ -790,6 +792,7 @@ func Test_service_Register(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+			resources := storagemock.NewMockResourceReader(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -797,7 +800,7 @@ func Test_service_Register(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions, resources)
 
 			// Do the request
 			got, err := underTest.Register(tt.args.ctx, tt.args.req)
@@ -818,9 +821,10 @@ func Test_service_Register_Fuzz(t *testing.T) {
 	authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 	clients := storagemock.NewMockClientReader(ctrl)
 	authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+	resources := storagemock.NewMockResourceReader(ctrl)
 
 	// Prepare service
-	underTest := New(clients, authorizationRequests, authorizationCodeSessions)
+	underTest := New(clients, authorizationRequests, authorizationCodeSessions, resources)
 
 	// Making sure the function never panics
 	for i := 0; i < 1000; i++ {

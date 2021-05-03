@@ -80,7 +80,12 @@ func (ds *defaultEncrypter) Encrypt(ctx context.Context, tokenType, token string
 	}
 
 	// Encrypt input token
-	wrapped, err := encrypter.EncryptWithAuthData([]byte(token), aad)
+	var wrapped *jose.JSONWebEncryption
+	if aad == nil {
+		wrapped, err = encrypter.Encrypt([]byte(token))
+	} else {
+		wrapped, err = encrypter.EncryptWithAuthData([]byte(token), aad)
+	}
 
 	// Generate the final proof
 	raw, err := wrapped.CompactSerialize()

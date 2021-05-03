@@ -45,9 +45,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 	messageBuilder := func(r *http.Request, client *corev1.Client) *corev1.TokenRequest {
 		r.ParseForm()
 
-		var (
-			grantType = r.FormValue("grant_type")
-		)
+		grantType := r.FormValue("grant_type")
 
 		msg := &corev1.TokenRequest{
 			Issuer:    as.Issuer().String(),
@@ -55,7 +53,7 @@ func Token(as authorizationserver.AuthorizationServer, dpopVerifier dpop.Verifie
 			GrantType: grantType,
 			Audience:  optionalString(r.FormValue("audience")),
 			Scope:     optionalString(r.FormValue("scope")),
-			Resource:  optionalString(r.FormValue("resource")),
+			Resource:  r.Form["resource"],
 		}
 
 		switch grantType {

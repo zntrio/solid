@@ -24,7 +24,6 @@ import (
 	"net/http"
 
 	"github.com/square/go-jose/v3"
-	"go.mozilla.org/cose"
 
 	"zntr.io/solid/cmd/server/internal/handlers"
 	"zntr.io/solid/cmd/server/internal/middleware"
@@ -34,8 +33,8 @@ import (
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/token"
-	"zntr.io/solid/pkg/sdk/token/cwt"
 	"zntr.io/solid/pkg/sdk/token/jwt"
+	"zntr.io/solid/pkg/sdk/token/paseto"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/storage/inmemory"
 )
@@ -136,16 +135,16 @@ func main() {
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
-		// Access Token Generator
-		authorizationserver.AccessTokenGenerator(token.OpaqueToken()),
-		// Refresh Token Generator (CWT)
-		authorizationserver.RefreshTokenGenerator(token.RefreshToken(cwt.RefreshTokenSigner(cose.ES384, keyProvider()))),
-		// Token storage
-		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Device authorization session storage
 		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 		// Resource storage
 		authorizationserver.ResourceReader(inmemory.Resources()),
+		// Token storage
+		authorizationserver.TokenManager(inmemory.Tokens()),
+		// Access Token Generator
+		authorizationserver.AccessTokenGenerator(token.OpaqueToken()),
+		// Refresh Token Generator (Paseto)
+		authorizationserver.RefreshTokenGenerator(token.RefreshToken(paseto.RefreshTokenSigner(pasetoKeyProvider()))),
 	)
 	if err != nil {
 		panic(err)

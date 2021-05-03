@@ -6,7 +6,6 @@ replace github.com/kr/session => github.com/Zenithar/session v0.1.1-0.2020092907
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
-	github.com/common-nighthawk/go-figure v0.0.0-20200609044655-c4b36f998cf2 // indirect
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/fatih/color v1.10.0
 	github.com/fxamacker/cbor/v2 v2.2.1-0.20200429214022-fc263b46c618

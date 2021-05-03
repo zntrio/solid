@@ -4509,37 +4509,6 @@ Contents of probable licence file $GOMODCACHE/github.com/cncf/udpa/go@v0.0.0-201
 
 
 --------------------------------------------------------------------------------
-Module  : github.com/common-nighthawk/go-figure
-Version : v0.0.0-20200609044655-c4b36f998cf2
-Time    : 2020-06-09T04:46:55Z
-Licence : MIT
-
-Contents of probable licence file $GOMODCACHE/github.com/common-nighthawk/go-figure@v0.0.0-20200609044655-c4b36f998cf2/LICENSE:
-
-MIT License
-
-Copyright (c) 2018 Daniel Deutsch
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
---------------------------------------------------------------------------------
 Module  : github.com/coreos/bbolt
 Version : v1.3.2
 Time    : 2019-01-28T18:11:30Z
@@ -6203,11 +6172,11 @@ SOFTWARE.
 
 --------------------------------------------------------------------------------
 Module  : github.com/gogo/protobuf
-Version : v1.2.1
-Time    : 2019-02-18T06:30:03Z
+Version : v1.3.2
+Time    : 2021-01-10T08:01:47Z
 Licence : BSD-3-Clause
 
-Contents of probable licence file $GOMODCACHE/github.com/gogo/protobuf@v1.2.1/LICENSE:
+Contents of probable licence file $GOMODCACHE/github.com/gogo/protobuf@v1.3.2/LICENSE:
 
 Copyright (c) 2013, The GoGo Authors. All rights reserved.
 
@@ -13953,11 +13922,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 Module  : github.com/kisielk/errcheck
-Version : v1.1.0
-Time    : 2018-05-22T14:10:03Z
+Version : v1.5.0
+Time    : 2021-01-05T19:12:31Z
 Licence : MIT
 
-Contents of probable licence file $GOMODCACHE/github.com/kisielk/errcheck@v1.1.0/LICENSE:
+Contents of probable licence file $GOMODCACHE/github.com/kisielk/errcheck@v1.5.0/LICENSE:
 
 Copyright (c) 2013 Kamil Kisiel
 
@@ -18476,11 +18445,11 @@ SOFTWARE.
 
 --------------------------------------------------------------------------------
 Module  : github.com/yuin/goldmark
-Version : v1.1.32
-Time    : 2020-06-04T06:26:24Z
+Version : v1.2.1
+Time    : 2020-07-30T13:33:42Z
 Licence : MIT
 
-Contents of probable licence file $GOMODCACHE/github.com/yuin/goldmark@v1.1.32/LICENSE:
+Contents of probable licence file $GOMODCACHE/github.com/yuin/goldmark@v1.2.1/LICENSE:
 
 MIT License
 
@@ -19057,11 +19026,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 Module  : golang.org/x/sync
-Version : v0.0.0-20200625203802-6e8e738ad208
-Time    : 2020-06-25T20:38:02Z
+Version : v0.0.0-20201020160332-67f06af15bc9
+Time    : 2020-10-20T16:03:32Z
 Licence : BSD-3-Clause
 
-Contents of probable licence file $GOMODCACHE/golang.org/x/sync@v0.0.0-20200625203802-6e8e738ad208/LICENSE:
+Contents of probable licence file $GOMODCACHE/golang.org/x/sync@v0.0.0-20201020160332-67f06af15bc9/LICENSE:
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
 
@@ -19205,11 +19174,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 Module  : golang.org/x/tools
-Version : v0.0.0-20200825202427-b303f430e36d
-Time    : 2020-08-25T20:24:27Z
+Version : v0.0.0-20210106214847-113979e3529a
+Time    : 2021-01-06T21:48:47Z
 Licence : BSD-3-Clause
 
-Contents of probable licence file $GOMODCACHE/golang.org/x/tools@v0.0.0-20200825202427-b303f430e36d/LICENSE:
+Contents of probable licence file $GOMODCACHE/golang.org/x/tools@v0.0.0-20210106214847-113979e3529a/LICENSE:
 
 Copyright (c) 2009 The Go Authors. All rights reserved.
 

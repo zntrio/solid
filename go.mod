@@ -4,6 +4,9 @@ go 1.16
 
 replace github.com/kr/session => github.com/Zenithar/session v0.1.1-0.20200929071535-c4de738d3339
 
+// Nancy findings
+replace github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+
 require (
 	github.com/Masterminds/semver/v3 v3.1.1
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5

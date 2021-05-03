@@ -28,8 +28,8 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/kr/session"
-	"github.com/square/go-jose/v3"
 	"google.golang.org/protobuf/encoding/protojson"
+	"gopkg.in/square/go-jose.v2"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"

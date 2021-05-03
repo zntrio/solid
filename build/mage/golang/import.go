@@ -38,5 +38,14 @@ func Import() error {
 		}
 	}
 
+	for pth := range CollectedGoFiles {
+		args := []string{"-w", "-local", "zntr.io/solid"}
+		args = append(args, pth)
+
+		if err := sh.RunV("gci", args...); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

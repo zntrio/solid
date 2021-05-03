@@ -23,8 +23,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/square/go-jose/v3"
 	"go.mozilla.org/cose"
+	"gopkg.in/square/go-jose.v2"
 
 	"zntr.io/solid/cmd/server/internal/handlers"
 	"zntr.io/solid/cmd/server/internal/middleware"

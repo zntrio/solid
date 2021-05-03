@@ -22,7 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	josejwt "github.com/square/go-jose/v3/jwt"
+	josejwt "gopkg.in/square/go-jose.v2/jwt"
 )
 
 type tokenAdapter struct {

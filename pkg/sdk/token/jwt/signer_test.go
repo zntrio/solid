@@ -23,7 +23,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/square/go-jose/v3"
+	"gopkg.in/square/go-jose.v2"
 
 	"zntr.io/solid/pkg/sdk/jwk"
 )

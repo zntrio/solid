@@ -18,7 +18,7 @@
 package client
 
 import (
-	"github.com/square/go-jose/v3"
+	"gopkg.in/square/go-jose.v2"
 )
 
 // RequestURIResponse contains all request_uri creation related information.

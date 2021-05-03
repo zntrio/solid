@@ -20,8 +20,8 @@ package jwk
 import (
 	"errors"
 
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 )
 
 // ErrInvalidTokenSignature is raised when token is signed with a private key

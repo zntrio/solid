@@ -34,8 +34,10 @@ type buildOpts struct {
 	binaryName  string
 	packageName string
 	cgoEnabled  bool
+	pieEnabled  bool
 	goOS        string
 	goArch      string
+	goArm       string
 }
 
 // BuildOption is used to define function option pattern.
@@ -43,10 +45,17 @@ type BuildOption func(*buildOpts)
 
 // -----------------------------------------------------------------------------
 
-// WithCGO enbales CGO compilation
+// WithCGO enables CGO compilation
 func WithCGO() BuildOption {
 	return func(opts *buildOpts) {
 		opts.cgoEnabled = true
+	}
+}
+
+// WithPIE enables Position Independent Executable compilation
+func WithPIE() BuildOption {
+	return func(opts *buildOpts) {
+		opts.pieEnabled = true
 	}
 }
 
@@ -64,14 +73,22 @@ func GOARCH(value string) BuildOption {
 	}
 }
 
+// GOARM sets the GOARM value during build
+func GOARM(value string) BuildOption {
+	return func(opts *buildOpts) {
+		opts.goArm = value
+	}
+}
+
 // -----------------------------------------------------------------------------
 
-// Build the given binary usign the given package.
-func Build(name, packageName string, opts ...BuildOption) func() error {
+// Build the given binary using the given package.
+func Build(name, packageName, version string, opts ...BuildOption) func() error {
 	const (
 		defaultCgoEnabled = false
 		defaultGoOs       = runtime.GOOS
 		defaultGoArch     = runtime.GOARCH
+		defaultGoArm      = ""
 	)
 
 	// Default build options
@@ -81,6 +98,7 @@ func Build(name, packageName string, opts ...BuildOption) func() error {
 		cgoEnabled:  defaultCgoEnabled,
 		goOS:        defaultGoOs,
 		goArch:      defaultGoArch,
+		goArm:       defaultGoArm,
 	}
 
 	// Apply options
@@ -89,32 +107,46 @@ func Build(name, packageName string, opts ...BuildOption) func() error {
 	}
 
 	return func() error {
+		// Retrieve git info first
 		mg.SerialDeps(git.CollectInfo)
 
-		fmt.Printf(" > Building %s [%s] [os:%s arch:%s cgo:%v]\n", defaultOpts.binaryName, defaultOpts.packageName, defaultOpts.goOS, defaultOpts.goArch, defaultOpts.cgoEnabled)
-
 		// Generate artifact name
-		artifactName := fmt.Sprintf("%s-%s-%s", name, defaultOpts.goOS, defaultOpts.goArch)
+		artifactName := fmt.Sprintf("%s-%s-%s%s", name, defaultOpts.goOS, defaultOpts.goArch, defaultOpts.goArm)
+
+		// Compilation flags
+		compilationFlags := []string{}
 
 		// Check if CGO is enabled
 		if defaultOpts.cgoEnabled {
 			artifactName = fmt.Sprintf("%s-cgo", artifactName)
+			compilationFlags = append(compilationFlags, "cgo")
 		}
 
-		// Prepare build flags
-		version, err := git.TagMatch(fmt.Sprintf("cmd/%s*", name))
-		if err != nil {
-			return err
+		// Enable PIE if requested
+		buildMode := "-buildmode=exe"
+		if defaultOpts.pieEnabled {
+			buildMode = "-buildmode=pie"
+			artifactName = fmt.Sprintf("%s-pie", artifactName)
+			compilationFlags = append(compilationFlags, "pie")
 		}
+
+		// Check compilation flags
+		strCompilationFlags := "defaults"
+		if len(compilationFlags) > 0 {
+			strCompilationFlags = strings.Join(compilationFlags, ",")
+		}
+
+		fmt.Fprintf(os.Stdout, " > Building %s [%s] [os:%s arch:%s%s flags:%v tag:%v]\n", defaultOpts.binaryName, defaultOpts.packageName, defaultOpts.goOS, defaultOpts.goArch, defaultOpts.goArm, strCompilationFlags, version)
 
 		// Inject version information
 		varsSetByLinker := map[string]string{
-			"zntr.io/solid/build/version.Version":   version,
-			"zntr.io/solid/build/version.Revision":  git.Revision,
-			"zntr.io/solid/build/version.Branch":    git.Branch,
-			"zntr.io/solid/build/version.BuildUser": os.Getenv("USER"),
-			"zntr.io/solid/build/version.BuildDate": time.Now().Format(time.RFC3339),
-			"zntr.io/solid/build/version.GoVersion": runtime.Version(),
+			"zntr.io/solid/build/version.Version":          version,
+			"zntr.io/solid/build/version.Revision":         git.Revision,
+			"zntr.io/solid/build/version.Branch":           git.Branch,
+			"zntr.io/solid/build/version.BuildUser":        os.Getenv("USER"),
+			"zntr.io/solid/build/version.BuildDate":        time.Now().Format(time.RFC3339),
+			"zntr.io/solid/build/version.GoVersion":        runtime.Version(),
+			"zntr.io/solid/build/version.CompilationFlags": strCompilationFlags,
 		}
 		var linkerArgs []string
 		for name, value := range varsSetByLinker {
@@ -136,13 +168,16 @@ func Build(name, packageName string, opts ...BuildOption) func() error {
 		if defaultOpts.cgoEnabled {
 			env["CGO_ENABLED"] = "1"
 		}
+		if defaultOpts.goArm != "" {
+			env["GOARM"] = defaultOpts.goArm
+		}
 
 		// Generate output filename
-		filename := fmt.Sprintf("../../bin/%s", artifactName)
+		filename := fmt.Sprintf("bin/%s", artifactName)
 		if defaultOpts.goOS == "windows" {
 			filename = fmt.Sprintf("%s.exe", filename)
 		}
 
-		return sh.RunWith(env, "go", "build", "-mod=readonly", "-ldflags", ldflagsValue, "-o", filename, packageName)
+		return sh.RunWith(env, "go", "build", buildMode, "-mod=readonly", "-ldflags", ldflagsValue, "-o", filename, packageName)
 	}
 }

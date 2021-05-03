@@ -25,8 +25,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/square/go-jose/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"gopkg.in/square/go-jose.v2"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"

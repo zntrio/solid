@@ -18,12 +18,16 @@
 package golang
 
 import (
+	"path/filepath"
+
 	"github.com/fatih/color"
 	"github.com/magefile/mage/sh"
 )
 
 // License checks allowed license of vendored dependencies.
-func License() error {
-	color.Cyan("## Check license")
-	return sh.RunV("wwhrd", "check", "-f", "../../.wwhrd.yml")
+func License(basePath string) func() error {
+	return func() error {
+		color.Cyan("## Check license")
+		return sh.RunV("wwhrd", "check", "-f", filepath.Clean(filepath.Join(basePath, ".wwhrd.yml")))
+	}
 }

@@ -23,8 +23,10 @@ package tools
 
 // tool dependencies
 import (
+	_ "github.com/daixiang0/gci"
 	_ "github.com/dvyukov/go-fuzz/go-fuzz"
 	_ "github.com/dvyukov/go-fuzz/go-fuzz-build"
+	_ "github.com/elastic/go-licenser"
 	_ "github.com/frapposelli/wwhrd"
 	_ "github.com/golang/mock/mockgen"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"

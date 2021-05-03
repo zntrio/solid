@@ -28,7 +28,7 @@ import (
 	"net/url"
 
 	"github.com/dchest/uniuri"
-	"github.com/square/go-jose/v3"
+	"gopkg.in/square/go-jose.v2"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"

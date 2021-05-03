@@ -35,8 +35,7 @@ func DefaultClientID() ClientID {
 
 // -----------------------------------------------------------------------------
 
-type clientIDGenerator struct {
-}
+type clientIDGenerator struct{}
 
 func (c *clientIDGenerator) Generate(_ context.Context) (string, error) {
 	code := uniuri.NewLen(DefaultClientIDLen)

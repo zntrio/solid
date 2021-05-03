@@ -28,10 +28,10 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
-	"github.com/square/go-jose/v3"
-	"github.com/square/go-jose/v3/jwt"
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"

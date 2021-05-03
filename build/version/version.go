@@ -26,27 +26,29 @@ import (
 
 // Build information. Populated at build-time.
 var (
-	Version   = "unknown"
-	Revision  = "unknown"
-	Branch    = "unknown"
-	BuildUser = "unknown"
-	BuildDate = "unknown"
-	GoVersion = "unknown"
+	Version          = "unknown"
+	Revision         = "unknown"
+	Branch           = "unknown"
+	BuildUser        = "unknown"
+	BuildDate        = "unknown"
+	GoVersion        = "unknown"
+	CompilationFlags = "unknown"
 )
 
 // Map provides the iterable version information.
 var Map = map[string]string{
-	"version":   Version,
-	"revision":  Revision,
-	"branch":    Branch,
-	"buildUser": BuildUser,
-	"buildDate": BuildDate,
-	"goVersion": GoVersion,
+	"version":           Version,
+	"revision":          Revision,
+	"branch":            Branch,
+	"build_user":        BuildUser,
+	"build_date":        BuildDate,
+	"go_version":        GoVersion,
+	"compilation_flags": CompilationFlags,
 }
 
 // Full returns full composed version string
 func Full() string {
-	return fmt.Sprintf("%s [%s] (Go: %s, User: %s, Date: %s)", Version, Branch, GoVersion, BuildUser, BuildDate)
+	return fmt.Sprintf("%s [%s:%s] (Go: %s, Flags: %s, User: %s, Date: %s)", Version, Branch, Revision, GoVersion, CompilationFlags, BuildUser, BuildDate)
 }
 
 // JSON returns json representation of build info

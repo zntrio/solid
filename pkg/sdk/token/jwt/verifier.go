@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/square/go-jose/v3/jwt"
+	"gopkg.in/square/go-jose.v2/jwt"
 
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"

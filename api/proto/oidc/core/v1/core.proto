@@ -285,7 +285,7 @@ message AuthorizationRequest {
   // target resource is hosted.  Multiple "resource" parameters MAY be
   // used to indicate that the requested token is intended to be used
   // at multiple resources.
-  google.protobuf.StringValue resource = 20;
+  repeated string resource = 20;
 
   // OPTIONAL.
   // Issuer url used for JARM decoding.

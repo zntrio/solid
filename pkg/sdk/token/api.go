@@ -23,6 +23,29 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 )
 
+// -----------------------------------------------------------------------------
+
+const (
+	// TypeAccessToken describes AccessToken header type.
+	TypeAccessToken = "at"
+	// TypeRefreshToken describes RefreshToken header type.
+	TypeRefreshToken = "rt"
+	// TypeAuthzRequest describes Authorization Request header type.
+	TypeAuthzRequest = "oauth-authz-req"
+	// TypeAuthzResponseMode describes Authorization Response Mode header type.
+	TypeAuthzResponseMode = "jarm"
+	// TypeDPoP describes DPoP header type.
+	TypeDPoP = "dpop"
+	// TypeClientAssertion describes client assertion header type.
+	TypeClientAssertion = "client-assertion"
+	// TypeTokenInstrospection describes token instrospection response header type.
+	TypeTokenInstrospection = "token-introspection"
+	// TypeServerMetadata describes authorization server metdata response header type.
+	TypeServerMetadata = "oauth-authorization-server"
+)
+
+// -----------------------------------------------------------------------------
+
 //go:generate mockgen -destination mock/generator.gen.go -package mock zntr.io/solid/pkg/sdk/token Generator
 
 // Generator describes claims generator contract.
@@ -30,11 +53,17 @@ type Generator interface {
 	Generate(ctx context.Context, t *corev1.Token) (string, error)
 }
 
-//go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/pkg/sdk/token Signer
+//go:generate mockgen -destination mock/serializer.gen.go -package mock zntr.io/solid/pkg/sdk/token Serializer
 
-// Signer describe Token signer contract.
-type Signer interface {
-	Sign(ctx context.Context, claims interface{}) (string, error)
+// Serializer describes Token claims serializer contract.
+type Serializer interface {
+	Serialize(ctx context.Context, claims interface{}) (string, error)
+	ContentType() string
+}
+
+// Encrypter describes token encryption contract.
+type Encrypter interface {
+	Encrypt(ctx context.Context, contentType, token string, aad []byte) (string, error)
 }
 
 //go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/pkg/sdk/token Verifier
@@ -48,7 +77,7 @@ type Verifier interface {
 
 //go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/pkg/sdk/token Token
 
-// Token represents a jwt token contract.
+// Token represents a token contract.
 type Token interface {
 	Algorithm() (string, error)
 	Type() (string, error)

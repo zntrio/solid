@@ -33,7 +33,7 @@ import (
 )
 
 // DefaultSigner declare a default CWT signer.
-func DefaultSigner(tokenType string, alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
+func DefaultSigner(tokenType string, alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   fmt.Sprintf("%s+cwt", tokenType),
 		alg:         alg,
@@ -49,7 +49,7 @@ type defaultSigner struct {
 	keyProvider jwk.KeyProviderFunc
 }
 
-func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, error) {
+func (ds *defaultSigner) Serialize(ctx context.Context, claims interface{}) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
@@ -80,7 +80,7 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 
 	sig := cose.NewSignature()
 	sig.Headers.Unprotected["kid"] = key.KeyID
-	sig.Headers.Protected["typ"] = ds.tokenType
+	sig.Headers.Protected["typ"] = fmt.Sprintf("%s+cwt", ds.tokenType)
 	sig.Headers.Protected["alg"] = ds.alg.Name
 
 	// Prepare claims
@@ -107,4 +107,8 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 
 	// No error
 	return base64.RawURLEncoding.EncodeToString(assertion), nil
+}
+
+func (ds *defaultSigner) ContentType() string {
+	return "CWT"
 }

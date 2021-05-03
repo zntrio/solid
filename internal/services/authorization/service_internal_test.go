@@ -45,7 +45,7 @@ func Test_service_validate(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockClientReader)
+		prepare func(*storagemock.MockClientReader, *storagemock.MockResourceReader)
 		want    *corev1.Error
 		wantErr bool
 	}{
@@ -340,7 +340,7 @@ func Test_service_validate(t *testing.T) {
 					CodeChallengeMethod: "S256",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -362,7 +362,7 @@ func Test_service_validate(t *testing.T) {
 					CodeChallengeMethod: "S256",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -384,7 +384,7 @@ func Test_service_validate(t *testing.T) {
 					CodeChallengeMethod: "S256",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{"client_credentials"},
 				}, nil)
@@ -408,7 +408,7 @@ func Test_service_validate(t *testing.T) {
 					CodeChallengeMethod: "S256",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"id_token"},
@@ -433,7 +433,7 @@ func Test_service_validate(t *testing.T) {
 					CodeChallengeMethod: "S256",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -442,6 +442,75 @@ func Test_service_validate(t *testing.T) {
 			},
 			wantErr: true,
 			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
+		{
+			name: "resource - invalid",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Resource: []string{
+						"http://example.com/not-existant",
+					},
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, resources *storagemock.MockResourceReader) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				}, nil)
+				resources.EXPECT().GetByURI(gomock.Any(), "http://example.com/not-existant").Return(nil, storage.ErrNotFound)
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidTarget().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
+		{
+			name: "resource - scope mismatch",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid iam:Groups.write",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Resource: []string{
+						"http://example.com/api/v1",
+					},
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, resources *storagemock.MockResourceReader) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				}, nil)
+				resources.EXPECT().GetByURI(gomock.Any(), "http://example.com/api/v1").Return(&corev1.Resource{
+					Urn: "urn:example:api:v1",
+					Urls: []string{
+						"http://example.com/api/v1",
+					},
+					Scopes: []string{
+						"iam:Groups.read",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidTarget().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		// ---------------------------------------------------------------------
 		{
@@ -461,7 +530,7 @@ func Test_service_validate(t *testing.T) {
 					Prompt:              &wrappers.StringValue{Value: "consent"},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -488,7 +557,7 @@ func Test_service_validate(t *testing.T) {
 					Prompt:              &wrappers.StringValue{Value: "consent"},
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockResourceReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
@@ -508,16 +577,18 @@ func Test_service_validate(t *testing.T) {
 			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			clients := storagemock.NewMockClientReader(ctrl)
 			sessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+			resources := storagemock.NewMockResourceReader(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(clients)
+				tt.prepare(clients, resources)
 			}
 
 			s := &service{
 				clients:                   clients,
 				authorizationRequests:     authorizationRequests,
 				authorizationCodeSessions: sessions,
+				resources:                 resources,
 			}
 			got, err := s.validate(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

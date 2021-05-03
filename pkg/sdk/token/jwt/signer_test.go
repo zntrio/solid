@@ -207,7 +207,7 @@ func Test_defaultSigner_Sign(t *testing.T) {
 				alg:         tt.fields.alg,
 				keyProvider: tt.fields.keyProvider,
 			}
-			_, err := ds.Sign(tt.args.ctx, tt.args.claims)
+			_, err := ds.Serialize(tt.args.ctx, tt.args.claims)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultSigner.Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return

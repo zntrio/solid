@@ -24,7 +24,6 @@ import (
 	"net/http"
 
 	"github.com/square/go-jose/v3"
-	"go.mozilla.org/cose"
 
 	"zntr.io/solid/cmd/server/internal/handlers"
 	"zntr.io/solid/cmd/server/internal/middleware"
@@ -34,8 +33,8 @@ import (
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/jwsreq"
 	"zntr.io/solid/pkg/sdk/token"
-	"zntr.io/solid/pkg/sdk/token/cwt"
 	"zntr.io/solid/pkg/sdk/token/jwt"
+	"zntr.io/solid/pkg/sdk/token/paseto"
 	"zntr.io/solid/pkg/server/authorizationserver"
 	"zntr.io/solid/pkg/server/storage/inmemory"
 )
@@ -120,7 +119,7 @@ func jarmEncoder(keyProvider jwk.KeyProviderFunc) (jarm.ResponseEncoder, error) 
 
 func introspectionEncoder(keyProvider jwk.KeyProviderFunc) (token.Generator, error) {
 	// Token introspection signer
-	introspectionSigner := jwt.TokenIntrospection(jose.ES384, keyProvider)
+	introspectionSigner := jwt.TokenIntrospectionSigner(jose.ES384, keyProvider)
 	return token.Introspection(introspectionSigner), nil
 }
 
@@ -136,16 +135,16 @@ func main() {
 		authorizationserver.AuthorizationRequestManager(inmemory.AuthorizationRequests()),
 		// Authorization code storage
 		authorizationserver.AuthorizationCodeSessionManager(inmemory.AuthorizationCodeSessions()),
-		// Access Token Generator
-		authorizationserver.AccessTokenGenerator(token.OpaqueToken()),
-		// Refresh Token Generator (CWT)
-		authorizationserver.RefreshTokenGenerator(token.RefreshToken(cwt.RefreshTokenSigner(cose.ES384, keyProvider()))),
-		// Token storage
-		authorizationserver.TokenManager(inmemory.Tokens()),
 		// Device authorization session storage
 		authorizationserver.DeviceCodeSessionManager(inmemory.DeviceCodeSessions(generator.DefaultDeviceUserCode())),
 		// Resource storage
 		authorizationserver.ResourceReader(inmemory.Resources()),
+		// Token storage
+		authorizationserver.TokenManager(inmemory.Tokens()),
+		// Access Token Generator
+		authorizationserver.AccessTokenGenerator(token.OpaqueToken()),
+		// Refresh Token Generator (Paseto)
+		authorizationserver.RefreshTokenGenerator(token.RefreshToken(paseto.RefreshTokenSigner(pasetoKeyProvider()))),
 	)
 	if err != nil {
 		panic(err)
@@ -177,8 +176,8 @@ func main() {
 	}
 
 	// Create router
-	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as, jwt.ServerMetadata(jose.ES384, keyProvider())))
-	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as, jwt.ServerMetadata(jose.ES384, keyProvider())))
+	http.Handle("/.well-known/oauth-authorization-server", handlers.Metadata(as, jwt.ServerMetadataSigner(jose.ES384, keyProvider())))
+	http.Handle("/.well-known/openid-configuration", handlers.Metadata(as, jwt.ServerMetadataSigner(jose.ES384, keyProvider())))
 	http.Handle("/.well-known/jwks.json", handlers.JWKS(as, keySetProvider()))
 	http.Handle("/par", middleware.Adapt(handlers.PushedAuthorizationRequest(as, dpopVerifier), clientAuth))
 	http.Handle("/authorize", middleware.Adapt(handlers.Authorization(as, inmemory.Clients(), requestDecoder, jarmEncoder), secHeaders, basicAuth))

@@ -44,14 +44,16 @@ type service struct {
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequest
 	authorizationCodeSessions storage.AuthorizationCodeSessionWriter
+	resources                 storage.ResourceReader
 }
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter) services.Authorization {
+func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, resources storage.ResourceReader) services.Authorization {
 	return &service{
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
+		resources:                 resources,
 	}
 }
 
@@ -301,6 +303,33 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 			} else if req.Prompt.Value != "consent" {
 				// Prompt value must contain `consent` for offline_access request
 				scopes.Remove(oidc.ScopeOfflineAccess)
+			}
+		}
+
+		// Validate resources and scopes
+		if len(req.Resource) > 0 {
+			var resourceScopes types.StringArray
+			// Collect all scopes
+			for _, r := range req.Resource {
+				res, err := s.resources.GetByURI(ctx, r)
+				if err != nil {
+					return rfcerrors.InvalidTarget().State(req.State).Build(), fmt.Errorf("unable to resolve request resource '%s': %w", r, err)
+				}
+				for _, s := range res.Scopes {
+					resourceScopes.AddIfNotContains(s)
+				}
+			}
+
+			// Validate scopes
+			protocolScopes := types.StringArray([]string{oidc.ScopeOfflineAccess, oidc.ScopeOpenID})
+			for _, s := range scopes {
+				if protocolScopes.Contains(s) {
+					// Ignore protocol scope
+					continue
+				}
+				if !resourceScopes.Contains(s) {
+					return rfcerrors.InvalidTarget().State(req.State).Build(), fmt.Errorf("invalid scope '%s' found for resources", s)
+				}
 			}
 		}
 

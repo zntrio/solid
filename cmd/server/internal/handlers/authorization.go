@@ -43,7 +43,6 @@ import (
 
 // Authorization handles authorization HTTP requests.
 func Authorization(as authorizationserver.AuthorizationServer, clients storage.ClientReader, requestDecoder jwsreq.AuthorizationDecoder, jarmEncoder jarm.ResponseEncoder) http.Handler {
-
 	issuer := as.Issuer().String()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +129,6 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 // -----------------------------------------------------------------------------
 
 func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *corev1.AuthorizationCodeResponse) {
-
 	// Build redirection uri
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {

@@ -34,24 +34,24 @@ import (
 
 // -----------------------------------------------------------------------------
 
-// DefaultProver uses the given signer to generate a DPoP Proof.
-func DefaultProver(signer token.Signer) Prover {
+// DefaultProver uses the given serializer to generate a DPoP Proof.
+func DefaultProver(serializer token.Serializer) Prover {
 	// Build instance
 	return &defaultProver{
-		signer: signer,
+		serializer: serializer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type defaultProver struct {
-	signer token.Signer
+	serializer token.Serializer
 }
 
 func (p *defaultProver) Prove(htm, htu string) (string, error) {
 	// Check parameters
-	if types.IsNil(p.signer) {
-		return "", errors.New("unable to prove with nil signer")
+	if types.IsNil(p.serializer) {
+		return "", errors.New("unable to prove with nil serializer")
 	}
 	if htm == "" {
 		return "", fmt.Errorf("htm must not be blank")
@@ -82,8 +82,8 @@ func (p *defaultProver) Prove(htm, htu string) (string, error) {
 		IssuedAt:   uint64(time.Now().UTC().Unix()),
 	}
 
-	// Sign claims
-	proof, err := p.signer.Sign(context.Background(), claims)
+	// Serialize claims
+	proof, err := p.serializer.Serialize(context.Background(), claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to generate DPoP proof: %w", err)
 	}

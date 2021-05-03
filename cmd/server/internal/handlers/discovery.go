@@ -28,7 +28,7 @@ import (
 )
 
 // Metadata handle OIDC Discovery HTTP requests.
-func Metadata(as authorizationserver.AuthorizationServer, signer token.Signer) http.Handler {
+func Metadata(as authorizationserver.AuthorizationServer, serializer token.Serializer) http.Handler {
 	// Get issuer
 	issuer := as.Issuer().String()
 
@@ -64,7 +64,7 @@ func Metadata(as authorizationserver.AuthorizationServer, signer token.Signer) h
 		md.SignedMetadata = ""
 
 		// Create signed metadata
-		signedMeta, err := signer.Sign(r.Context(), md)
+		signedMeta, err := serializer.Serialize(r.Context(), md)
 		if err != nil {
 			http.Error(w, "unable to sign metadata", http.StatusInternalServerError)
 			return

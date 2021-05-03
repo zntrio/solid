@@ -29,25 +29,25 @@ import (
 // -----------------------------------------------------------------------------
 
 // Introspection instantiate an introspection assertion generator.
-func Introspection(signer Signer) Generator {
+func Introspection(serializer Serializer) Generator {
 	return &introspectionAssertionGenerator{
-		signer: signer,
+		serializer: serializer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type introspectionAssertionGenerator struct {
-	signer Signer
+	serializer Serializer
 }
 
 func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
 	// Check arguments
-	if types.IsNil(c.signer) {
-		return "", fmt.Errorf("unable to use nil signer")
+	if types.IsNil(c.serializer) {
+		return "", fmt.Errorf("unable to use nil serializer")
 	}
 	if t == nil {
-		return "", fmt.Errorf("unable to sign nil token")
+		return "", fmt.Errorf("unable to serialize nil token")
 	}
 	if t.Metadata == nil {
 		return "", fmt.Errorf("token meta must not be nil")
@@ -75,10 +75,10 @@ func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *corev
 		"token_introspection": tokenIntrospection,
 	}
 
-	// Sign the assertion
-	raw, err := c.signer.Sign(ctx, claims)
+	// Serialize the assertion
+	raw, err := c.serializer.Serialize(ctx, claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign client assertion: %w", err)
+		return "", fmt.Errorf("unable to serialize client assertion: %w", err)
 	}
 
 	// No error

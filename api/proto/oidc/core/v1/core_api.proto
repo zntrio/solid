@@ -165,7 +165,7 @@ message TokenRequest {
   // target resource is hosted.  Multiple "resource" parameters MAY be
   // used to indicate that the requested token is intended to be used
   // at multiple resources.
-  google.protobuf.StringValue resource = 6;
+  repeated string resource = 6;
 
   // OPTIONAL.  The logical name of the target service where the client
   // intends to use the requested security token.  This serves a

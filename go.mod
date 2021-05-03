@@ -6,7 +6,6 @@ replace github.com/kr/session => github.com/Zenithar/session v0.1.1-0.2020092907
 
 require (
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fatih/color v1.9.0
 	github.com/fxamacker/cbor/v2 v2.2.1-0.20200429214022-fc263b46c618
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
@@ -19,11 +18,9 @@ require (
 	github.com/o1egl/paseto v1.0.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/spf13/cobra v1.0.0
-	github.com/square/go-jose v2.5.1+incompatible
 	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	go.mozilla.org/cose v0.0.0-20200930124131-25dc96df8228
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43
 	google.golang.org/protobuf v1.25.0
-	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
 )

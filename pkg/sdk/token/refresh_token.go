@@ -32,22 +32,22 @@ import (
 // -----------------------------------------------------------------------------
 
 // RefreshToken instantiate an refresh token generator.
-func RefreshToken(signer Signer) Generator {
+func RefreshToken(serializer Serializer) Generator {
 	return &refreshTokenGenerator{
-		signer: signer,
+		serializer: serializer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type refreshTokenGenerator struct {
-	signer Signer
+	serializer Serializer
 }
 
 func (c *refreshTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
 	// Check arguments
-	if types.IsNil(c.signer) {
-		return "", fmt.Errorf("unable to use nil signer")
+	if types.IsNil(c.serializer) {
+		return "", fmt.Errorf("unable to use nil serializeer")
 	}
 	if t == nil {
 		return "", fmt.Errorf("unable to generate claims from nil token")
@@ -88,10 +88,10 @@ func (c *refreshTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (
 		Scope:    t.Metadata.Scope,
 	}
 
-	// Sign the assertion
-	raw, err := c.signer.Sign(ctx, claims)
+	// Serialize the assertion
+	raw, err := c.serializer.Serialize(ctx, claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign access token: %w", err)
+		return "", fmt.Errorf("unable to serialize access token: %w", err)
 	}
 
 	// No error

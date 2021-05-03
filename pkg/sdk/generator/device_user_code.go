@@ -46,8 +46,7 @@ func DefaultDeviceUserCode() DeviceUserCode {
 	return &deviceCodeAlphaGenerator{}
 }
 
-type deviceCodeAlphaGenerator struct {
-}
+type deviceCodeAlphaGenerator struct{}
 
 func (c *deviceCodeAlphaGenerator) Generate(_ context.Context) (string, error) {
 	code := uniuri.NewLenChars(DefaultAlphaDeviceCodeLen, DefaultAlphaDeviceCodeCharset)
@@ -61,8 +60,7 @@ func DefaultNumDeviceUserCode() DeviceUserCode {
 	return &deviceCodeNumGenerator{}
 }
 
-type deviceCodeNumGenerator struct {
-}
+type deviceCodeNumGenerator struct{}
 
 func (c *deviceCodeNumGenerator) Generate(_ context.Context) (string, error) {
 	code := uniuri.NewLenChars(DefaultNumDeviceCodeLen, DefaultNumDeviceCodeCharset)

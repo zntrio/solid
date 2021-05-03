@@ -40,7 +40,7 @@ func Resources() storage.Resource {
 				Urn:         "urn:example:backend-api",
 				Description: "Backend API",
 				Urls: []string{
-					"https://Fbackend.example.com/api",
+					"https://backend.example.com/api",
 				},
 			},
 		},

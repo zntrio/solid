@@ -87,13 +87,13 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	// Check request reference usage
 	if req.AuthorizationRequest.RequestUri != nil {
 		// Check request_uri syntax
-		if !requestURIMatcher.MatchString(req.AuthorizationRequest.RequestUri.Value) {
+		if !requestURIMatcher.MatchString(*req.AuthorizationRequest.RequestUri) {
 			res.Error = rfcerrors.InvalidRequest().Build()
-			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", req.AuthorizationRequest.RequestUri.Value)
+			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", *req.AuthorizationRequest.RequestUri)
 		}
 
 		// Check if request uri exists in storage
-		ar, err := s.authorizationRequests.Get(ctx, req.Issuer, req.AuthorizationRequest.RequestUri.Value)
+		ar, err := s.authorizationRequests.Get(ctx, req.Issuer, *req.AuthorizationRequest.RequestUri)
 		if err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError().Build()
@@ -104,7 +104,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		}
 
 		// Burn after read
-		if err := s.authorizationRequests.Delete(ctx, req.Issuer, req.AuthorizationRequest.RequestUri.Value); err != nil {
+		if err := s.authorizationRequests.Delete(ctx, req.Issuer, *req.AuthorizationRequest.RequestUri); err != nil {
 			if err != storage.ErrNotFound {
 				res.Error = rfcerrors.ServerError().Build()
 			} else {
@@ -147,21 +147,6 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	res.ExpiresIn = expiresIn
 	// Assign issuer
 	res.Issuer = req.Issuer
-
-	// Assign response mode
-	if req.AuthorizationRequest.ResponseMode != nil {
-		res.ResponseMode = req.AuthorizationRequest.ResponseMode.Value
-	}
-
-	// Expand alias according to response type.
-	if res.ResponseMode == oidc.ResponseModeJWT {
-		switch req.AuthorizationRequest.ResponseType {
-		case oidc.ResponseTypeCode:
-			res.ResponseMode = oidc.ResponseModeQueryJWT
-		case oidc.ResponseTypeToken:
-			res.ResponseMode = oidc.ResponseModeFragmentJWT
-		}
-	}
 
 	return res, err
 }
@@ -261,6 +246,62 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("redirect_uri has an invalid syntax: %w", err)
 	}
 
+	// Validate response mode if specified.
+	switch req.ResponseType {
+	case oidc.ResponseTypeCode:
+	case oidc.ResponseTypeToken:
+	default:
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("unsupported response_type")
+	}
+
+	// Validate response mode if specified.
+	if req.ResponseMode != nil {
+		// Validate response mode
+		switch *req.ResponseMode {
+		case oidc.ResponseModeQuery, oidc.ResponseModeFragment, oidc.ResponseModeFormPost:
+		case oidc.ResponseModeJWT, oidc.ResponseModeFormPOSTJWT, oidc.ResponseModeQueryJWT, oidc.ResponseModeFragmentJWT:
+		default:
+			return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("unsupported response_mode")
+		}
+
+		// 	Expand alias according to response type.
+		if *req.ResponseMode == oidc.ResponseModeJWT {
+			switch req.ResponseType {
+			case oidc.ResponseTypeCode:
+				req.ResponseMode = types.StringRef(oidc.ResponseModeQueryJWT)
+			case oidc.ResponseTypeToken:
+				req.ResponseMode = types.StringRef(oidc.ResponseModeFragmentJWT)
+			}
+		}
+	}
+
+	// Check scopes
+	scopes := types.StringArray(strings.Fields(req.Scope))
+
+	// If has openid scopes
+	if scopes.Contains(oidc.ScopeOpenID) {
+		// OIDC Tokens required
+
+		// https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess
+		if scopes.Contains(oidc.ScopeOfflineAccess) {
+			// Check if prompt is given
+			if req.Prompt == nil {
+				scopes.Remove(oidc.ScopeOfflineAccess)
+			} else if *req.Prompt != oidc.PromptConsent {
+				// Prompt value must contain `consent` for offline_access request
+				scopes.Remove(oidc.ScopeOfflineAccess)
+			}
+		}
+
+		// Reassign cleaned scopes
+		req.Scope = strings.Join(scopes, " ")
+	}
+
+	// No error
+	return s.validateClientCapabilities(ctx, req)
+}
+
+func (s *service) validateClientCapabilities(ctx context.Context, req *corev1.AuthorizationRequest) (*corev1.Error, error) {
 	// Check client ID
 	client, err := s.clients.Get(ctx, req.ClientId)
 	if err != nil {
@@ -286,26 +327,11 @@ func (s *service) validate(ctx context.Context, req *corev1.AuthorizationRequest
 		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("client doesn't support `%s` as redirect_uri type", req.RedirectUri)
 	}
 
-	// Check scopes
-	scopes := types.StringArray(strings.Fields(req.Scope))
-
-	// If has openid scopes
-	if scopes.Contains(oidc.ScopeOpenID) {
-		// OIDC Tokens required
-
-		// https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess
-		if scopes.Contains(oidc.ScopeOfflineAccess) {
-			// Check if prompt is given
-			if req.Prompt == nil {
-				scopes.Remove(oidc.ScopeOfflineAccess)
-			} else if req.Prompt.Value != "consent" {
-				// Prompt value must contain `consent` for offline_access request
-				scopes.Remove(oidc.ScopeOfflineAccess)
-			}
+	// Validate client response_modes
+	if req.ResponseMode != nil {
+		if !types.StringArray(client.ResponseModes).Contains(*req.ResponseMode) {
+			return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("client doesn't support `%s` as response_mode", *req.ResponseMode)
 		}
-
-		// Reassign cleaned scopes
-		req.Scope = strings.Join(scopes, " ")
 	}
 
 	// No error

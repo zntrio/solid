@@ -51,6 +51,9 @@ func Clients() storage.Client {
 				ResponseTypes: []string{
 					"code",
 				},
+				ResponseModes: []string{
+					oidc.ResponseModeQueryJWT,
+				},
 				RedirectUris: []string{
 					"http://127.0.0.1:8085/oidc/as/127.0.0.1",
 				},

@@ -21,8 +21,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/authorizationserver"
@@ -47,19 +45,12 @@ func TokenRevocation(as authorizationserver.AuthorizationServer) http.Handler {
 			return
 		}
 
-		// Prepare msg
-		msg := &corev1.TokenRevocationRequest{
-			Client: client,
-			Token:  token,
-		}
-		if tokenTypeHint != "" {
-			msg.TokenTypeHint = &wrappers.StringValue{
-				Value: tokenTypeHint,
-			}
-		}
-
 		// Send request to reactor
-		res, err := as.Do(r.Context(), msg)
+		res, err := as.Do(r.Context(), &corev1.TokenRevocationRequest{
+			Client:        client,
+			Token:         token,
+			TokenTypeHint: optionalString(tokenTypeHint),
+		})
 		revoRes, ok := res.(*corev1.TokenRevocationResponse)
 		if !ok {
 			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())

@@ -22,8 +22,6 @@ import (
 	"log"
 	"net/http"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/server/authorizationserver"
@@ -50,29 +48,15 @@ func DeviceAuthorization(as authorizationserver.AuthorizationServer) http.Handle
 
 		// Parameters
 		var (
-			ctx         = r.Context()
-			clientIDRaw = r.FormValue("client_id")
-			scopeRaw    = r.FormValue("scope")
-			audienceRaw = r.FormValue("audience")
+			ctx = r.Context()
 		)
 
-		// Prepare request
-		req := &corev1.DeviceAuthorizationRequest{
-			ClientId: clientIDRaw,
-		}
-		if scopeRaw != "" {
-			req.Scope = &wrapperspb.StringValue{
-				Value: scopeRaw,
-			}
-		}
-		if audienceRaw != "" {
-			req.Audience = &wrapperspb.StringValue{
-				Value: audienceRaw,
-			}
-		}
-
 		// Send to reactor
-		res, err := as.Do(ctx, req)
+		res, err := as.Do(ctx, &corev1.DeviceAuthorizationRequest{
+			ClientId: r.FormValue("client_id"),
+			Scope:    optionalString(r.FormValue("scope")),
+			Audience: optionalString(r.FormValue("audience")),
+		})
 		authRes, ok := res.(*corev1.DeviceAuthorizationResponse)
 		if !ok {
 			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())

@@ -23,7 +23,6 @@ option go_package = "oidc/core/v1;corev1";
 
 import "oidc/core/v1/client.proto";
 import "oidc/core/v1/error.proto";
-import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
 
@@ -39,10 +38,10 @@ service ClientRegistrationAPI {
 // -----------------------------------------------------------------------------
 
 message ClientAuthenticationRequest {
-  google.protobuf.StringValue client_id = 1;
-  google.protobuf.StringValue client_secret = 2;
-  google.protobuf.StringValue client_assertion_type = 3;
-  google.protobuf.StringValue client_assertion = 4;
+  optional string client_id = 1;
+  optional string client_secret = 2;
+  optional string client_assertion_type = 3;
+  optional string client_assertion = 4;
 }
 
 message ClientAuthenticationResponse {

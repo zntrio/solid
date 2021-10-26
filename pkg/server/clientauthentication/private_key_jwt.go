@@ -67,7 +67,7 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client_assertion_type must be defined")
 	}
-	if req.ClientAssertionType.Value != oidc.AssertionTypeJWTBearer {
+	if *req.ClientAssertionType != oidc.AssertionTypeJWTBearer {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client_assertion_type must equals '%s'", oidc.AssertionTypeJWTBearer)
 	}
@@ -75,13 +75,13 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client_assertion must be defined")
 	}
-	if req.ClientAssertion.Value == "" {
+	if *req.ClientAssertion == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client_assertion must not be empty")
 	}
 
 	// Decode assertion without validation first
-	rawAssertion, err := jose.ParseSigned(req.ClientAssertion.Value)
+	rawAssertion, err := jose.ParseSigned(*req.ClientAssertion)
 	if err != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("assertion is syntaxically invalid: %w", err)

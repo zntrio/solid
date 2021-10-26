@@ -33,6 +33,7 @@ import (
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	"zntr.io/solid/pkg/sdk/token"
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
@@ -437,9 +438,7 @@ func Test_service_Token(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
-					Scope: &wrappers.StringValue{
-						Value: "openid admin",
-					},
+					Scope: types.StringRef("openid admin"),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator, _ *storagemock.MockAuthorizationCodeSession, sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken) {

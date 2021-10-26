@@ -22,10 +22,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/clientauthentication"
 	"zntr.io/solid/pkg/server/storage"
 )
@@ -58,12 +57,8 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				// Process authentication
 				if client.ClientType == corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL {
 					resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-						ClientAssertionType: &wrappers.StringValue{
-							Value: r.FormValue("client_assertion_type"),
-						},
-						ClientAssertion: &wrappers.StringValue{
-							Value: r.FormValue("client_assertion"),
-						},
+						ClientAssertionType: types.StringRef(r.FormValue("client_assertion_type")),
+						ClientAssertion:     types.StringRef(r.FormValue("client_assertion")),
 					})
 					if err != nil {
 						log.Println("unable to authenticate client:", err)
@@ -80,12 +75,8 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				}
 			} else {
 				resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: r.FormValue("client_assertion_type"),
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: r.FormValue("client_assertion"),
-					},
+					ClientAssertionType: types.StringRef(r.FormValue("client_assertion_type")),
+					ClientAssertion:     types.StringRef(r.FormValue("client_assertion")),
 				})
 				if err != nil {
 					log.Println("unable to authenticate client:", err)

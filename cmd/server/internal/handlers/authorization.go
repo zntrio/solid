@@ -61,10 +61,10 @@ func Authorization(as authorizationserver.AuthorizationServer, clients storage.C
 			requestRaw = q.Get("request")
 		)
 
-		// Retrieve subject form context
+		// Retrieve subject from context
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
+			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 

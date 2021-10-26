@@ -21,8 +21,6 @@ package oidc.core.v1;
 
 option go_package = "oidc/core/v1;corev1";
 
-import "google/protobuf/wrappers.proto";
-
 // -----------------------------------------------------------------------------
 
 // Display defines values to set how to displays the authentication and consent
@@ -115,7 +113,7 @@ message GrantTokenExchange {
   // authorization server and may be dictated by knowledge of the
   // requirements of the service or resource indicated by the
   // "resource" or "audience" parameter.
-  google.protobuf.StringValue requested_token_type = 1;
+  optional string requested_token_type = 1;
 
   // REQUIRED.  A security token that represents the identity of the
   // party on behalf of whom the request is being made.  Typically, the
@@ -132,13 +130,13 @@ message GrantTokenExchange {
   // acting party.  Typically, this will be the party that is
   // authorized to use the requested security token and act on behalf
   // of the subject.
-  google.protobuf.StringValue actor_token = 4;
+  optional string actor_token = 4;
 
   // An identifier, as described in Section 3, that indicates the type
   // of the security token in the "actor_token" parameter.  This is
   // REQUIRED when the "actor_token" parameter is present in the
   // request but MUST NOT be included otherwise.
-  google.protobuf.StringValue actor_token_type = 5;
+  optional string actor_token_type = 5;
 }
 
 // An Authentication Request is an OAuth 2.0 Authorization Request that requests
@@ -181,7 +179,7 @@ message AuthorizationRequest {
   // returning parameters from the Authorization Endpoint. This use of this
   // parameter is NOT RECOMMENDED when the Response Mode that would be requested
   // is the default mode specified for the Response Type.
-  google.protobuf.StringValue response_mode = 6;
+  optional string response_mode = 6;
 
   // OPTIONAL. String value used to associate a Client session with an ID Token,
   // and to mitigate replay attacks. The value is passed through unmodified from
@@ -192,12 +190,12 @@ message AuthorizationRequest {
 
   // OPTIONAL. ASCII string value that specifies how the Authorization Server
   // displays the authentication and consent user interface pages to the End-User.
-  google.protobuf.StringValue display = 8;
+  optional string display = 8;
 
   // OPTIONAL. Space delimited, case sensitive list of ASCII string values that
   // specifies whether the Authorization Server prompts the End-User for
   // reauthentication and consent.
-  google.protobuf.StringValue prompt = 9;
+  optional string prompt = 9;
 
   // OPTIONAL. Maximum Authentication Age. Specifies the allowable elapsed time
   // in seconds since the last time the End-User was actively authenticated by
@@ -206,7 +204,7 @@ message AuthorizationRequest {
   // corresponds to the OpenID 2.0 PAPE [OpenID.PAPE] max_auth_age request
   // parameter.) When max_age is used, the ID Token returned MUST include an
   // auth_time Claim Value.
-  google.protobuf.UInt64Value max_age = 10;
+  optional uint64 max_age = 10;
 
   // OPTIONAL. End-User's preferred languages and scripts for the user
   // interface, represented as a space-separated list of BCP47 [RFC5646]
@@ -215,7 +213,7 @@ message AuthorizationRequest {
   // (without a region designation), followed by English (without a region
   // designation). An error SHOULD NOT result if some or all of the requested
   // locales are not supported by the OpenID Provider.
-  google.protobuf.StringValue ui_locales = 11;
+  optional string ui_locales = 11;
 
   // OPTIONAL. ID Token previously issued by the Authorization Server being
   // passed as a hint about the End-User's current or past authenticated session
@@ -233,7 +231,7 @@ message AuthorizationRequest {
   // token to the Authentication Server using a key that enables the server to
   // decrypt the ID Token, and use the re-encrypted ID token as the
   // id_token_hint value.
-  google.protobuf.StringValue id_token_hint = 12;
+  optional string id_token_hint = 12;
 
   // OPTIONAL. Requested Authentication Context Class Reference values.
   // Space-separated string that specifies the acr values that the Authorization
@@ -242,20 +240,20 @@ message AuthorizationRequest {
   // Authentication Context Class satisfied by the authentication performed is
   // returned as the acr Claim Value, as specified in Section 2. The acr Claim
   // is requested as a Voluntary Claim by this parameter.
-  google.protobuf.StringValue acr_values = 13;
+  optional string acr_values = 13;
 
   // OPTIONAL. This parameter enables OpenID Connect requests to be passed in a
   // single, self-contained parameter and to be optionally signed and/or
   // encrypted. The parameter value is a Request Object value, as specified in
   // Section 6.1. It represents the request as a JWT whose Claims are the
   // request parameters.
-  google.protobuf.StringValue request = 14;
+  optional string request = 14;
 
   // OPTIONAL. This parameter enables OpenID Connect requests to be passed by
   // reference, rather than by value. The request_uri value is a URL using the
   // https scheme referencing a resource containing a Request Object value,
   // which is a JWT containing the request parameters.
-  google.protobuf.StringValue request_uri = 15;
+  optional string request_uri = 15;
 
   // REQUIRED. This parameter enables PKCE flow.
   string code_challenge = 16;
@@ -268,7 +266,7 @@ message AuthorizationRequest {
 
   // OPTIONAL.
   // https://tools.ietf.org/html/draft-fett-oauth-dpop-04#section-5
-  string dpop_proof = 19;
+  optional string dpop_proof = 19;
 
   // OPTIONAL
   // https://tools.ietf.org/html/rfc8707
@@ -285,9 +283,9 @@ message AuthorizationRequest {
   // target resource is hosted.  Multiple "resource" parameters MAY be
   // used to indicate that the requested token is intended to be used
   // at multiple resources.
-  google.protobuf.StringValue resource = 20;
+  optional string resource = 20;
 
   // OPTIONAL.
   // Issuer url used for JARM decoding.
-  string iss = 21;
+  optional string iss = 21;
 }

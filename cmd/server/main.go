@@ -187,7 +187,6 @@ func main() {
 	http.Handle("/token/introspect", middleware.Adapt(handlers.TokenIntrospection(as, introspectionEncoder), clientAuth))
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(as), clientAuth))
 	http.Handle("/device", middleware.Adapt(handlers.Device(as), secHeaders, basicAuth))
-	http.Handle("/register", handlers.DCR(as))
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

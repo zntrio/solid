@@ -29,7 +29,6 @@ import (
 
 	"github.com/dchest/uniuri"
 	"golang.org/x/oauth2"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
@@ -165,7 +164,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 		State:               state,
 		Audience:            c.opts.Audience,
 		ResponseType:        "code",
-		ResponseMode:        &wrapperspb.StringValue{Value: "query.jwt"},
+		ResponseMode:        types.StringRef(oidc.ResponseModeQueryJWT),
 		ClientId:            c.opts.ClientID,
 		Nonce:               nonce,
 		Scope:               fmt.Sprintf("openid %s", strings.Join(c.opts.Scopes, " ")),
@@ -176,7 +175,7 @@ func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state stri
 
 	// Check offline access requirements
 	if types.StringArray(c.opts.Scopes).Contains(oidc.ScopeOfflineAccess) {
-		ar.Prompt = &wrapperspb.StringValue{Value: "consent"}
+		ar.Prompt = types.StringRef(oidc.PromptConsent)
 	}
 
 	// Authorization request encoder
@@ -242,7 +241,7 @@ func (c *httpClient) AuthenticationURL(ctx context.Context, requestURI string) (
 
 	// Authorization request encoder
 	request, err := c.authorizationRequestEncoder.Encode(ctx, &corev1.AuthorizationRequest{
-		RequestUri: &wrapperspb.StringValue{Value: requestURI},
+		RequestUri: types.StringRef(requestURI),
 	})
 	if err != nil {
 		return "", fmt.Errorf("unable to encode request: %w", err)
@@ -275,7 +274,7 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 	params.Add("redirect_uri", c.opts.RedirectURI)
 	params.Add("code_verifier", pkceCodeVerifier)
 	params.Add("client_assertion", assertion)
-	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
 
 	// Query token endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL.String(), strings.NewReader(params.Encode()))

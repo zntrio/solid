@@ -69,10 +69,10 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 		Issuer: req.Issuer,
 	}
 	if req.Scope != nil {
-		tokenMeta.Scope = req.Scope.Value
+		tokenMeta.Scope = *req.Scope
 	}
 	if req.Audience != nil {
-		tokenMeta.Audience = req.Audience.Value
+		tokenMeta.Audience = *req.Audience
 	}
 
 	// Generate access token

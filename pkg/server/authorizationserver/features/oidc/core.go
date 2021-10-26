@@ -27,7 +27,7 @@ import (
 
 // Core enable basic features.
 func Core() features.Feature {
-	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client) {
+	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device) {
 		// Register authorization request handler.
 		r.RegisterHandler(&corev1.AuthorizationCodeRequest{}, core.AuthorizeHandler(authorizations))
 		// REgister token request handler.
@@ -37,7 +37,7 @@ func Core() features.Feature {
 
 // Introspection enable token introspection features.
 func Introspection() features.Feature {
-	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client) {
+	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device) {
 		// Register intropection request handler.
 		r.RegisterHandler(&corev1.TokenIntrospectionRequest{}, core.IntrospectionHandler(tokens))
 	}
@@ -45,7 +45,7 @@ func Introspection() features.Feature {
 
 // Revocation enable token revocation features.
 func Revocation() features.Feature {
-	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client) {
+	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device) {
 		// Register revocation request handler.
 		r.RegisterHandler(&corev1.TokenRevocationRequest{}, core.RevocationHandler(tokens))
 	}
@@ -53,18 +53,10 @@ func Revocation() features.Feature {
 
 // Device enable device grant flow features.
 func Device() features.Feature {
-	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client) {
+	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device) {
 		// Register device authorization request handler.
 		r.RegisterHandler(&corev1.DeviceAuthorizationRequest{}, core.DeviceAuthorizeHandler(devices))
 		// Register user code validation request handler.
 		r.RegisterHandler(&corev1.DeviceCodeValidationRequest{}, core.UserCodeValidationHandler(devices))
-	}
-}
-
-// DCR enable dynamic client registration features.
-func DCR() features.Feature {
-	return func(r reactor.Reactor, authorizations services.Authorization, tokens services.Token, devices services.Device, clients services.Client) {
-		// Register device authorization request handler.
-		r.RegisterHandler(&corev1.ClientRegistrationRequest{}, core.ClientRegistrationHandler(clients))
 	}
 }

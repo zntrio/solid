@@ -107,7 +107,7 @@ func (c *refreshTokenGenerator) validateMeta(meta *corev1.TokenMeta) error {
 	}
 
 	now := uint64(time.Now().Unix())
-	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(14 * 12 * time.Hour).Unix())
+	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(14 * 24 * time.Hour).Unix())
 
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,

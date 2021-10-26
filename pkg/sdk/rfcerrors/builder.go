@@ -18,9 +18,8 @@
 package rfcerrors
 
 import (
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/pkg/sdk/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -66,10 +65,10 @@ func (eb *defaultErrorBuilder) Build() *corev1.Error {
 		ErrorDescription: eb.errorDescription,
 	}
 	if eb.state != "" {
-		err.State = &wrapperspb.StringValue{Value: eb.state}
+		err.State = types.StringRef(eb.state)
 	}
 	if eb.errorURI != "" {
-		err.ErrorUri = &wrapperspb.StringValue{Value: eb.errorURI}
+		err.ErrorUri = types.StringRef(eb.errorURI)
 	}
 
 	// Return error instance

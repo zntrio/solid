@@ -21,26 +21,66 @@ package oidc.core.v1;
 
 option go_package = "oidc/core/v1;corev1";
 
-import "google/protobuf/wrappers.proto";
-
 // ClientType describes OIDC Client type enumeration.
-// https://tools.ietf.org/html/rfc6749#section-2.1
+// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-04#section-2.1
 enum ClientType {
   // Default value
   CLIENT_TYPE_INVALID = 0;
   // Explicit unknown
   CLIENT_TYPE_UNKNOWN = 1;
-  // Clients capable of maintaining the confidentiality of their
-  // credentials (e.g., client implemented on a secure server with
-  // restricted access to the client credentials), or capable of secure
-  // client authentication using other means.
+  // Clients that have credentials and have a prior relationship with the AS are
+  // designated as "confidential clients". A client that has been registered at
+  // the authorization server by a registered application developer, where the
+  // client is expected to be run as server-side code, would be considered a
+  // confidential client.
   CLIENT_TYPE_CONFIDENTIAL = 2;
-  // Clients incapable of maintaining the confidentiality of their
-  // credentials (e.g., clients executing on the device used by the
-  // resource owner, such as an installed native application or a web
-  // browser-based application), and incapable of secure client
-  // authentication via any other means.
-  CLIENT_TYPE_PUBLIC = 3;
+  // Clients that have credentials but no prior relationship with the AS are
+  // designated as "credentialed clients". A client that runs on an end-user's
+  // device, and uses Dynamic Client Registration ([RFC7591]) to establish
+  // credentials the first time the app runs, would be considered a credentialed
+  // client.
+  CLIENT_TYPE_CREDENTIALED = 3;
+  // Clients without credentials are called "public clients". An application
+  // deployed as a single-page app on a static web host would be considered a
+  // public client.
+  CLIENT_TYPE_PUBLIC = 4;
+}
+
+// ClientProfile describes client profile enumeration.
+// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-04#section-2.1
+enum ClientProfile {
+  // Default value
+  CLIENT_PROFILE_INVALID = 0;
+  // Explicit unknown
+  CLIENT_PROFILE_UNKNOWN = 1;
+  // A web application is a confidential client
+  // running on a web server.  Resource owners access the client via an
+  // HTML user interface rendered in a user agent on the device used by
+  // the resource owner.  The client credentials as well as any access
+  // tokens issued to the client are stored on the web server and are
+  // not exposed to or accessible by the resource owner.
+  CLIENT_PROFILE_WEB_APPLICATION = 2;
+  // A browser-based application is a public
+  // client in which the client code is downloaded from a web server
+  // and executes within a user agent (e.g., web browser) on the device
+  // used by the resource owner.  Protocol data and credentials are
+  // easily accessible (and often visible) to the resource owner.
+  // Since such applications reside within the user agent, they can
+  // make seamless use of the user agent capabilities when requesting
+  // authorization.
+  CLIENT_PROFILE_BROWSER_BASED_APPLICATION = 3;
+  // A native application is a public client
+  // installed and executed on the device used by the resource owner.
+  // Protocol data and credentials are accessible to the resource
+  // owner.  It is assumed that any client authentication credentials
+  // included in the application can be extracted.  On the other hand,
+  // dynamically issued credentials such as access tokens or refresh
+  // tokens can receive an acceptable level of protection.  At a
+  // minimum, these credentials are protected from hostile servers with
+  // which the application may interact.  On some platforms, these
+  // credentials might be protected from other applications residing on
+  // the same device.
+  CLIENT_PROFILE_NATIVE_APPLICATION = 4;
 }
 
 // Client defines internal OIDC client properties.
@@ -49,61 +89,67 @@ message Client {
   ClientType client_type = 2;
   repeated string redirect_uris = 3;
   repeated string response_types = 4;
-  repeated string grant_types = 5;
-  string application_type = 6;
-  repeated string contacts = 7;
-  string client_name = 8;
-  string logo_uri = 9;
-  string client_uri = 10;
-  string policy_uri = 11;
-  string tos_uri = 12;
-  string jwks_uri = 13;
-  bytes jwks = 14;
-  bytes client_secret = 15;
-  string subject_type = 16;
-  string sector_identifier = 17;
-  string token_endpoint_auth_method = 18;
-  string tls_client_auth_subject_dn = 19;
-  string tls_client_auth_san_dns = 20;
-  string tls_client_auth_san_uri = 21;
-  string tls_client_auth_san_ip = 22;
-  string tls_client_auth_san_email = 23;
-  bool tls_client_certificate_bound_access_tokens = 24;
+  repeated string response_modes = 5;
+  repeated string grant_types = 6;
+  string application_type = 7;
+  repeated string contacts = 8;
+  string client_name = 9;
+  string logo_uri = 10;
+  string client_uri = 11;
+  string policy_uri = 12;
+  string tos_uri = 13;
+  string jwks_uri = 14;
+  bytes jwks = 15;
+  bytes client_secret = 16;
+  string subject_type = 17;
+  string sector_identifier = 18;
+  string token_endpoint_auth_method = 19;
+  string tls_client_auth_subject_dn = 20;
+  string tls_client_auth_san_dns = 21;
+  string tls_client_auth_san_uri = 22;
+  string tls_client_auth_san_ip = 23;
+  string tls_client_auth_san_email = 24;
+  bool tls_client_certificate_bound_access_tokens = 25;
+  bool require_pushed_authorization_requests = 26;
+  bool require_signed_request_object = 27;
 }
 
 message ClientMeta {
-  google.protobuf.StringValue application_type = 1;
+  optional string application_type = 1;
   repeated string redirect_uris = 2;
-  google.protobuf.StringValue token_endpoint_auth_method = 3;
+  optional string token_endpoint_auth_method = 3;
   repeated string grant_types = 4;
   repeated string response_types = 5;
-  google.protobuf.StringValue client_name = 6;
+  optional string client_name = 6;
   map<string, string> client_name_i18n = 7;
-  google.protobuf.StringValue client_uri = 8;
-  google.protobuf.StringValue logo_uri = 9;
+  optional string client_uri = 8;
+  optional string logo_uri = 9;
   map<string, string> logo_uri_i18n = 10;
-  google.protobuf.StringValue scope = 11;
+  optional string scope = 11;
   repeated string contacts = 12;
-  google.protobuf.StringValue tos_uri = 13;
+  optional string tos_uri = 13;
   map<string, string> tos_uri_i18n = 14;
-  google.protobuf.StringValue policy_uri = 15;
+  optional string policy_uri = 15;
   map<string, string> policy_uri_i18n = 16;
-  google.protobuf.StringValue jwk_uri = 17;
-  google.protobuf.BytesValue jwks = 18;
-  google.protobuf.StringValue software_id = 19;
-  google.protobuf.StringValue software_version = 20;
-  google.protobuf.StringValue software_statement = 21;
-  google.protobuf.StringValue subject_type = 22;
-  google.protobuf.StringValue sector_identifier = 23;
-  google.protobuf.StringValue tls_client_auth_subject_dn = 24;
-  google.protobuf.StringValue tls_client_auth_san_dns = 25;
-  google.protobuf.StringValue tls_client_auth_san_uri = 26;
-  google.protobuf.StringValue tls_client_auth_san_ip = 27;
-  google.protobuf.StringValue tls_client_auth_san_email = 28;
-  google.protobuf.BoolValue tls_client_certificate_bound_access_tokens = 29;
-  google.protobuf.StringValue introspection_signed_response_alg = 30;
-  google.protobuf.StringValue introspection_encrypted_response_alg = 31;
-  google.protobuf.StringValue introspection_encrypted_response_enc = 32;
+  optional string jwk_uri = 17;
+  optional bytes jwks = 18;
+  optional string software_id = 19;
+  optional string software_version = 20;
+  optional string software_statement = 21;
+  optional string subject_type = 22;
+  optional string sector_identifier = 23;
+  optional string tls_client_auth_subject_dn = 24;
+  optional string tls_client_auth_san_dns = 25;
+  optional string tls_client_auth_san_uri = 26;
+  optional string tls_client_auth_san_ip = 27;
+  optional string tls_client_auth_san_email = 28;
+  optional bool tls_client_certificate_bound_access_tokens = 29;
+  optional string introspection_signed_response_alg = 30;
+  optional string introspection_encrypted_response_alg = 31;
+  optional string introspection_encrypted_response_enc = 32;
+  repeated string response_modes = 33;
+  optional bool require_pushed_authorization_requests = 34;
+  optional bool require_signed_request_object = 35;
 }
 
 message SoftwareStatement {

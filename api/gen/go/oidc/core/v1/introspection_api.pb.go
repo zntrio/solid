@@ -24,10 +24,11 @@
 package corev1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -227,14 +228,17 @@ func file_oidc_core_v1_introspection_api_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_introspection_api_proto_rawDescData
 }
 
-var file_oidc_core_v1_introspection_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_oidc_core_v1_introspection_api_proto_goTypes = []interface{}{
-	(*TokenIntrospectionRequest)(nil),  // 0: oidc.core.v1.TokenIntrospectionRequest
-	(*TokenIntrospectionResponse)(nil), // 1: oidc.core.v1.TokenIntrospectionResponse
-	(*Client)(nil),                     // 2: oidc.core.v1.Client
-	(*Error)(nil),                      // 3: oidc.core.v1.Error
-	(*Token)(nil),                      // 4: oidc.core.v1.Token
-}
+var (
+	file_oidc_core_v1_introspection_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_oidc_core_v1_introspection_api_proto_goTypes  = []interface{}{
+		(*TokenIntrospectionRequest)(nil),  // 0: oidc.core.v1.TokenIntrospectionRequest
+		(*TokenIntrospectionResponse)(nil), // 1: oidc.core.v1.TokenIntrospectionResponse
+		(*Client)(nil),                     // 2: oidc.core.v1.Client
+		(*Error)(nil),                      // 3: oidc.core.v1.Error
+		(*Token)(nil),                      // 4: oidc.core.v1.Token
+	}
+)
+
 var file_oidc_core_v1_introspection_api_proto_depIdxs = []int32{
 	2, // 0: oidc.core.v1.TokenIntrospectionRequest.client:type_name -> oidc.core.v1.Client
 	3, // 1: oidc.core.v1.TokenIntrospectionResponse.error:type_name -> oidc.core.v1.Error

@@ -192,7 +192,7 @@ linters:
     - errorlint
     - exportloopref
     - exhaustive
-    - forbidigo
+    # - forbidigo
     - funlen
     # - gochecknoinits
     - goconst

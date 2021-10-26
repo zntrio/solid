@@ -24,10 +24,11 @@
 package corev1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1114,19 +1115,22 @@ func file_oidc_core_v1_client_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_client_proto_rawDescData
 }
 
-var file_oidc_core_v1_client_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_oidc_core_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_oidc_core_v1_client_proto_goTypes = []interface{}{
-	(ClientType)(0),           // 0: oidc.core.v1.ClientType
-	(ClientProfile)(0),        // 1: oidc.core.v1.ClientProfile
-	(*Client)(nil),            // 2: oidc.core.v1.Client
-	(*ClientMeta)(nil),        // 3: oidc.core.v1.ClientMeta
-	(*SoftwareStatement)(nil), // 4: oidc.core.v1.SoftwareStatement
-	nil,                       // 5: oidc.core.v1.ClientMeta.ClientNameI18nEntry
-	nil,                       // 6: oidc.core.v1.ClientMeta.LogoUriI18nEntry
-	nil,                       // 7: oidc.core.v1.ClientMeta.TosUriI18nEntry
-	nil,                       // 8: oidc.core.v1.ClientMeta.PolicyUriI18nEntry
-}
+var (
+	file_oidc_core_v1_client_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_oidc_core_v1_client_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
+	file_oidc_core_v1_client_proto_goTypes   = []interface{}{
+		(ClientType)(0),           // 0: oidc.core.v1.ClientType
+		(ClientProfile)(0),        // 1: oidc.core.v1.ClientProfile
+		(*Client)(nil),            // 2: oidc.core.v1.Client
+		(*ClientMeta)(nil),        // 3: oidc.core.v1.ClientMeta
+		(*SoftwareStatement)(nil), // 4: oidc.core.v1.SoftwareStatement
+		nil,                       // 5: oidc.core.v1.ClientMeta.ClientNameI18nEntry
+		nil,                       // 6: oidc.core.v1.ClientMeta.LogoUriI18nEntry
+		nil,                       // 7: oidc.core.v1.ClientMeta.TosUriI18nEntry
+		nil,                       // 8: oidc.core.v1.ClientMeta.PolicyUriI18nEntry
+	}
+)
+
 var file_oidc_core_v1_client_proto_depIdxs = []int32{
 	0, // 0: oidc.core.v1.Client.client_type:type_name -> oidc.core.v1.ClientType
 	5, // 1: oidc.core.v1.ClientMeta.client_name_i18n:type_name -> oidc.core.v1.ClientMeta.ClientNameI18nEntry

@@ -24,10 +24,11 @@
 package corev1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -1230,29 +1231,32 @@ func file_oidc_core_v1_core_api_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_core_api_proto_rawDescData
 }
 
-var file_oidc_core_v1_core_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-var file_oidc_core_v1_core_api_proto_goTypes = []interface{}{
-	(*AuthorizationCodeRequest)(nil),     // 0: oidc.core.v1.AuthorizationCodeRequest
-	(*AuthorizationCodeResponse)(nil),    // 1: oidc.core.v1.AuthorizationCodeResponse
-	(*RegistrationRequest)(nil),          // 2: oidc.core.v1.RegistrationRequest
-	(*RegistrationResponse)(nil),         // 3: oidc.core.v1.RegistrationResponse
-	(*TokenRequest)(nil),                 // 4: oidc.core.v1.TokenRequest
-	(*TokenResponse)(nil),                // 5: oidc.core.v1.TokenResponse
-	(*DeviceAuthorizationRequest)(nil),   // 6: oidc.core.v1.DeviceAuthorizationRequest
-	(*DeviceAuthorizationResponse)(nil),  // 7: oidc.core.v1.DeviceAuthorizationResponse
-	(*DeviceCodeValidationRequest)(nil),  // 8: oidc.core.v1.DeviceCodeValidationRequest
-	(*DeviceCodeValidationResponse)(nil), // 9: oidc.core.v1.DeviceCodeValidationResponse
-	(*Client)(nil),                       // 10: oidc.core.v1.Client
-	(*AuthorizationRequest)(nil),         // 11: oidc.core.v1.AuthorizationRequest
-	(*Error)(nil),                        // 12: oidc.core.v1.Error
-	(*TokenConfirmation)(nil),            // 13: oidc.core.v1.TokenConfirmation
-	(*GrantAuthorizationCode)(nil),       // 14: oidc.core.v1.GrantAuthorizationCode
-	(*GrantClientCredentials)(nil),       // 15: oidc.core.v1.GrantClientCredentials
-	(*GrantDeviceCode)(nil),              // 16: oidc.core.v1.GrantDeviceCode
-	(*GrantRefreshToken)(nil),            // 17: oidc.core.v1.GrantRefreshToken
-	(*GrantTokenExchange)(nil),           // 18: oidc.core.v1.GrantTokenExchange
-	(*Token)(nil),                        // 19: oidc.core.v1.Token
-}
+var (
+	file_oidc_core_v1_core_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+	file_oidc_core_v1_core_api_proto_goTypes  = []interface{}{
+		(*AuthorizationCodeRequest)(nil),     // 0: oidc.core.v1.AuthorizationCodeRequest
+		(*AuthorizationCodeResponse)(nil),    // 1: oidc.core.v1.AuthorizationCodeResponse
+		(*RegistrationRequest)(nil),          // 2: oidc.core.v1.RegistrationRequest
+		(*RegistrationResponse)(nil),         // 3: oidc.core.v1.RegistrationResponse
+		(*TokenRequest)(nil),                 // 4: oidc.core.v1.TokenRequest
+		(*TokenResponse)(nil),                // 5: oidc.core.v1.TokenResponse
+		(*DeviceAuthorizationRequest)(nil),   // 6: oidc.core.v1.DeviceAuthorizationRequest
+		(*DeviceAuthorizationResponse)(nil),  // 7: oidc.core.v1.DeviceAuthorizationResponse
+		(*DeviceCodeValidationRequest)(nil),  // 8: oidc.core.v1.DeviceCodeValidationRequest
+		(*DeviceCodeValidationResponse)(nil), // 9: oidc.core.v1.DeviceCodeValidationResponse
+		(*Client)(nil),                       // 10: oidc.core.v1.Client
+		(*AuthorizationRequest)(nil),         // 11: oidc.core.v1.AuthorizationRequest
+		(*Error)(nil),                        // 12: oidc.core.v1.Error
+		(*TokenConfirmation)(nil),            // 13: oidc.core.v1.TokenConfirmation
+		(*GrantAuthorizationCode)(nil),       // 14: oidc.core.v1.GrantAuthorizationCode
+		(*GrantClientCredentials)(nil),       // 15: oidc.core.v1.GrantClientCredentials
+		(*GrantDeviceCode)(nil),              // 16: oidc.core.v1.GrantDeviceCode
+		(*GrantRefreshToken)(nil),            // 17: oidc.core.v1.GrantRefreshToken
+		(*GrantTokenExchange)(nil),           // 18: oidc.core.v1.GrantTokenExchange
+		(*Token)(nil),                        // 19: oidc.core.v1.Token
+	}
+)
+
 var file_oidc_core_v1_core_api_proto_depIdxs = []int32{
 	10, // 0: oidc.core.v1.AuthorizationCodeRequest.client:type_name -> oidc.core.v1.Client
 	11, // 1: oidc.core.v1.AuthorizationCodeRequest.authorization_request:type_name -> oidc.core.v1.AuthorizationRequest

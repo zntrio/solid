@@ -24,10 +24,11 @@
 package corev1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -206,13 +207,16 @@ func file_oidc_core_v1_revocation_api_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_revocation_api_proto_rawDescData
 }
 
-var file_oidc_core_v1_revocation_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_oidc_core_v1_revocation_api_proto_goTypes = []interface{}{
-	(*TokenRevocationRequest)(nil),  // 0: oidc.core.v1.TokenRevocationRequest
-	(*TokenRevocationResponse)(nil), // 1: oidc.core.v1.TokenRevocationResponse
-	(*Client)(nil),                  // 2: oidc.core.v1.Client
-	(*Error)(nil),                   // 3: oidc.core.v1.Error
-}
+var (
+	file_oidc_core_v1_revocation_api_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+	file_oidc_core_v1_revocation_api_proto_goTypes  = []interface{}{
+		(*TokenRevocationRequest)(nil),  // 0: oidc.core.v1.TokenRevocationRequest
+		(*TokenRevocationResponse)(nil), // 1: oidc.core.v1.TokenRevocationResponse
+		(*Client)(nil),                  // 2: oidc.core.v1.Client
+		(*Error)(nil),                   // 3: oidc.core.v1.Error
+	}
+)
+
 var file_oidc_core_v1_revocation_api_proto_depIdxs = []int32{
 	2, // 0: oidc.core.v1.TokenRevocationRequest.client:type_name -> oidc.core.v1.Client
 	3, // 1: oidc.core.v1.TokenRevocationResponse.error:type_name -> oidc.core.v1.Error

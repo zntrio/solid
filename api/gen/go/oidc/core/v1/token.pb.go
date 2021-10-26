@@ -24,10 +24,11 @@
 package corev1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -670,17 +671,20 @@ func file_oidc_core_v1_token_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_token_proto_rawDescData
 }
 
-var file_oidc_core_v1_token_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_oidc_core_v1_token_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_oidc_core_v1_token_proto_goTypes = []interface{}{
-	(TokenType)(0),             // 0: oidc.core.v1.TokenType
-	(TokenStatus)(0),           // 1: oidc.core.v1.TokenStatus
-	(*TokenMeta)(nil),          // 2: oidc.core.v1.TokenMeta
-	(*Actor)(nil),              // 3: oidc.core.v1.Actor
-	(*Token)(nil),              // 4: oidc.core.v1.Token
-	(*TokenConfirmation)(nil),  // 5: oidc.core.v1.TokenConfirmation
-	(*OAuthTokenResponse)(nil), // 6: oidc.core.v1.OAuthTokenResponse
-}
+var (
+	file_oidc_core_v1_token_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+	file_oidc_core_v1_token_proto_msgTypes  = make([]protoimpl.MessageInfo, 5)
+	file_oidc_core_v1_token_proto_goTypes   = []interface{}{
+		(TokenType)(0),             // 0: oidc.core.v1.TokenType
+		(TokenStatus)(0),           // 1: oidc.core.v1.TokenStatus
+		(*TokenMeta)(nil),          // 2: oidc.core.v1.TokenMeta
+		(*Actor)(nil),              // 3: oidc.core.v1.Actor
+		(*Token)(nil),              // 4: oidc.core.v1.Token
+		(*TokenConfirmation)(nil),  // 5: oidc.core.v1.TokenConfirmation
+		(*OAuthTokenResponse)(nil), // 6: oidc.core.v1.OAuthTokenResponse
+	}
+)
+
 var file_oidc_core_v1_token_proto_depIdxs = []int32{
 	3, // 0: oidc.core.v1.Actor.act:type_name -> oidc.core.v1.Actor
 	0, // 1: oidc.core.v1.Token.token_type:type_name -> oidc.core.v1.TokenType

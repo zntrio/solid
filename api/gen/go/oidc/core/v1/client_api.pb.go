@@ -24,10 +24,11 @@
 package corev1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -346,16 +347,19 @@ func file_oidc_core_v1_client_api_proto_rawDescGZIP() []byte {
 	return file_oidc_core_v1_client_api_proto_rawDescData
 }
 
-var file_oidc_core_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_oidc_core_v1_client_api_proto_goTypes = []interface{}{
-	(*ClientAuthenticationRequest)(nil),  // 0: oidc.core.v1.ClientAuthenticationRequest
-	(*ClientAuthenticationResponse)(nil), // 1: oidc.core.v1.ClientAuthenticationResponse
-	(*ClientRegistrationRequest)(nil),    // 2: oidc.core.v1.ClientRegistrationRequest
-	(*ClientRegistrationResponse)(nil),   // 3: oidc.core.v1.ClientRegistrationResponse
-	(*Error)(nil),                        // 4: oidc.core.v1.Error
-	(*Client)(nil),                       // 5: oidc.core.v1.Client
-	(*ClientMeta)(nil),                   // 6: oidc.core.v1.ClientMeta
-}
+var (
+	file_oidc_core_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+	file_oidc_core_v1_client_api_proto_goTypes  = []interface{}{
+		(*ClientAuthenticationRequest)(nil),  // 0: oidc.core.v1.ClientAuthenticationRequest
+		(*ClientAuthenticationResponse)(nil), // 1: oidc.core.v1.ClientAuthenticationResponse
+		(*ClientRegistrationRequest)(nil),    // 2: oidc.core.v1.ClientRegistrationRequest
+		(*ClientRegistrationResponse)(nil),   // 3: oidc.core.v1.ClientRegistrationResponse
+		(*Error)(nil),                        // 4: oidc.core.v1.Error
+		(*Client)(nil),                       // 5: oidc.core.v1.Client
+		(*ClientMeta)(nil),                   // 6: oidc.core.v1.ClientMeta
+	}
+)
+
 var file_oidc_core_v1_client_api_proto_depIdxs = []int32{
 	4, // 0: oidc.core.v1.ClientAuthenticationResponse.error:type_name -> oidc.core.v1.Error
 	5, // 1: oidc.core.v1.ClientAuthenticationResponse.client:type_name -> oidc.core.v1.Client

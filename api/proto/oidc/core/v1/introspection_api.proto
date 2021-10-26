@@ -24,7 +24,6 @@ option go_package = "oidc/core/v1;corev1";
 import "oidc/core/v1/client.proto";
 import "oidc/core/v1/error.proto";
 import "oidc/core/v1/token.proto";
-import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
 
@@ -56,7 +55,7 @@ message TokenIntrospectionRequest {
   // is able to detect the token type automatically.  Values for this
   // field are defined in the "OAuth Token Type Hints" registry defined
   // in OAuth Token Revocation [RFC7009]
-  google.protobuf.StringValue token_type_hint = 3;
+  optional string token_type_hint = 3;
 }
 
 // https://tools.ietf.org/html/rfc7662#section-2.2

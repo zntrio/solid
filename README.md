@@ -129,8 +129,8 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] `client_credentials` grant type
     * [x] `authorization_code` grant type
       * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
-      * [x] [Pushed Authorization Request (PAR)](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [draft-ietf-oauth-par-01](https://tools.ietf.org/html/draft-ietf-oauth-par-01)
-      * [x] [JWT Encoded Authorization Requests (JAR)](https://tools.ietf.org/html/draft-ietf-oauth-jwsreq-30) (JAR)
+      * [x] [Pushed Authorization Request (PAR)](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [rfc9126](https://www.rfc-editor.org/rfc/rfc9126.html)
+      * [x] [JWT Encoded Authorization Requests (JAR)](https://datatracker.ietf.org/doc/html/rfc9101) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
       * [x] [OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/)
     * [x] `refresh_token` grant type

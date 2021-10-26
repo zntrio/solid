@@ -23,24 +23,18 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
-	"zntr.io/solid/pkg/sdk/generator"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
 
 func Test_service_Authorize(t *testing.T) {
-	type fields struct {
-		codeGenerator         generator.AuthorizationCode
-		clients               storage.ClientReader
-		authorizationRequests storage.AuthorizationRequest
-	}
 	type args struct {
 		ctx context.Context
 		req *corev1.AuthorizationCodeRequest
@@ -84,9 +78,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -103,9 +95,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -122,9 +112,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "123-456-789",
-						},
+						RequestUri: types.StringRef("123-456-789"),
 					},
 				},
 			},
@@ -141,9 +129,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -163,9 +149,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -185,9 +169,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -208,9 +190,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -328,9 +308,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt: &wrappers.StringValue{
-							Value: "login",
-						},
+						Prompt:              types.StringRef(oidc.PromptLogin),
 					},
 				},
 			},
@@ -353,9 +331,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt: &wrappers.StringValue{
-							Value: "login",
-						},
+						Prompt:              types.StringRef(oidc.PromptLogin),
 					},
 				}).Return("1234567891234567890", uint64(60), nil)
 			},
@@ -379,9 +355,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-						},
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
 				},
 			},
@@ -395,7 +369,7 @@ func Test_service_Authorize(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 				ar.EXPECT().Delete(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
 			},
@@ -413,9 +387,7 @@ func Test_service_Authorize(t *testing.T) {
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					AuthorizationRequest: &corev1.AuthorizationRequest{
-						RequestUri: &wrappers.StringValue{
-							Value: "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac",
-						},
+						RequestUri: types.StringRef("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac"),
 					},
 				},
 			},
@@ -430,7 +402,7 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 				ar.EXPECT().Delete(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
@@ -451,7 +423,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt:              &wrappers.StringValue{Value: "consent"},
+						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				}).Return("1234567891234567890", uint64(60), nil)
 			},
@@ -664,7 +636,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt:              &wrappers.StringValue{Value: "consent"},
+						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
 			},
@@ -700,7 +672,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt:              &wrappers.StringValue{Value: "consent"},
+						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
 			},
@@ -715,7 +687,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				}).Return("", uint64(90), fmt.Errorf("foo"))
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:      "s6BhdRkqt3",
@@ -748,7 +720,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt:              &wrappers.StringValue{Value: "consent"},
+						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
 			},
@@ -763,7 +735,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				}).Return("123-456-789", uint64(90), nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:      "s6BhdRkqt3",

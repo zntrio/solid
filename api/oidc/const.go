@@ -74,6 +74,21 @@ const (
 // Response Modes --------------------------------------------------------------
 
 const (
+	// ResponseModeQuery - Authorization Response parameters are encoded in the
+	// query string added to the redirect_uri when redirecting back to the OAuth
+	// Client.
+	ResponseModeQuery = "query"
+	// ResponseModeFragment - Authorization Response parameters are encoded in
+	// the fragment added to the redirect_uri when redirecting back to the OAuth
+	// Client.
+	ResponseModeFragment = "fragment"
+	// ResponseModeFormPost - Authorization Response parameters are encoded as
+	// HTML form values that are auto-submitted in the User Agent, and thus are
+	// transmitted via the HTTP POST method to the Client, with the result
+	// parameters being encoded in the body using the
+	// application/x-www-form-urlencoded format.
+	ResponseModeFormPost = "form_post"
+
 	// ResponseModeJWT represents JARM encoded response.
 	ResponseModeJWT = "jwt"
 	// ResponseModeQueryJWT represents JARM encoded response as query parameter.
@@ -147,4 +162,27 @@ const (
 	TokenExchangeSAML2Type = "urn:ietf:params:oauth:token-type:saml2"
 	// TokenExchangeJWTType indicates that the token is a JWT.
 	TokenExchangeJWTType = "urn:ietf:params:oauth:token-type:jwt"
+)
+
+// Prompt ----------------------------------------------------------------------
+
+const (
+
+	// PromptNone - The Authorization Server MUST NOT display any authentication or consent user interface pages.
+	// An error is returned if an End-User is not already authenticated or the Client does not have pre-configured
+	// consent for the requested Claims or does not fulfill other conditions for processing the request. The error
+	// code will typically be login_required, interaction_required, or another code defined in Section 3.1.2.6. This
+	// can be used as a method to check for existing authentication and/or consent.
+	PromptNone = "none"
+	// PromptLogin -  The Authorization Server SHOULD prompt the End-User for reauthentication. If it cannot
+	// reauthenticate the End-User, it MUST return an error, typically login_required.
+	PromptLogin = "login"
+	// PromptConsent - The Authorization Server SHOULD prompt the End-User for consent before returning information to
+	// the Client. If it cannot obtain consent, it MUST return an error, typically consent_required.
+	PromptConsent = "consent"
+	// The Authorization Server SHOULD prompt the End-User to select a user account. This enables an End-User who has
+	// multiple accounts at the Authorization Server to select amongst the multiple accounts that they might have
+	// current sessions for. If it cannot obtain an account selection choice made by the End-User, it MUST return an
+	// error, typically account_selection_required.
+	PromptSelectAccount = "select_account"
 )

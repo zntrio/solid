@@ -23,11 +23,12 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/token"
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
+	"zntr.io/solid/pkg/sdk/types"
 )
 
 func Test_jwtEncoder_Encode(t *testing.T) {
@@ -70,7 +71,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrapperspb.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				},
 			},
 			prepare: func(signer *tokenmock.MockSigner) {
@@ -91,7 +92,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrapperspb.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				},
 			},
 			prepare: func(signer *tokenmock.MockSigner) {

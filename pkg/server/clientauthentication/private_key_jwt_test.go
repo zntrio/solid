@@ -26,13 +26,13 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
@@ -72,9 +72,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: "",
-					},
+					ClientAssertionType: types.StringRef(""),
 				},
 			},
 			wantErr: true,
@@ -87,9 +85,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: "foo",
-					},
+					ClientAssertionType: types.StringRef("foo"),
 				},
 			},
 			wantErr: true,
@@ -102,9 +98,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 				},
 			},
 			wantErr: true,
@@ -117,12 +111,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: "",
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     types.StringRef(""),
 				},
 			},
 			wantErr: true,
@@ -135,12 +125,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: "..YB4gdhWUGRjWEsEbKDs7-",
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     types.StringRef("..YB4gdhWUGRjWEsEbKDs7-"),
 				},
 			},
 			wantErr: true,
@@ -153,12 +139,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NCwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo0MDAwL2FwaS9hdXRoL3Rva2VuL2RpcmVjdC8yNDUyMzEzODIwNSIsImV4cCI6MTUzNjEzMjcwOCwiaWF0IjoxNTM2MTMyNzA4fQ.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0",
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     types.StringRef("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NCwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo0MDAwL2FwaS9hdXRoL3Rva2VuL2RpcmVjdC8yNDUyMzEzODIwNSIsImV4cCI6MTUzNjEzMjcwOCwiaWF0IjoxNTM2MTMyNzA4fQ.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
 				},
 			},
 			wantErr: true,
@@ -171,19 +153,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			wantErr: true,
@@ -196,19 +174,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			wantErr: true,
@@ -221,19 +195,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			wantErr: true,
@@ -246,19 +216,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			wantErr: true,
@@ -271,19 +237,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  0,
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  0,
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			wantErr: true,
@@ -296,19 +258,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "45678941561",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "45678941561",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			wantErr: true,
@@ -321,12 +279,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: "eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NDYyMzc2MiIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDAwMC9hcGkvYXV0aC90b2tlbi9kaXJlY3QvMjQ1MjMxMzgyMDUiLCJleHAiOjE1MzYxMzI3MDgsImlhdCI6MTUzNjEzMjcwOH0.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0",
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     types.StringRef("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NDYyMzc2MiIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDAwMC9hcGkvYXV0aC90b2tlbi9kaXJlY3QvMjQ1MjMxMzgyMDUiLCJleHAiOjE1MzYxMzI3MDgsImlhdCI6MTUzNjEzMjcwOH0.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
 				},
 			},
 			wantErr: true,
@@ -339,19 +293,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -367,19 +317,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -395,19 +341,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -425,19 +367,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -455,19 +393,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -485,19 +419,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -515,19 +445,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -546,19 +472,15 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: &wrappers.StringValue{
-						Value: oidc.AssertionTypeJWTBearer,
-					},
-					ClientAssertion: &wrappers.StringValue{
-						Value: generateAssertion(t, &privateJWTClaims{
-							JTI:      "123456789",
-							Subject:  "38174623762",
-							Issuer:   "38174623762",
-							Audience: "http://localhost:8080/token",
-							Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
-							IssuedAt: uint64(time.Now().Unix()),
-						}),
-					},
+					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: "http://localhost:8080/token",
+						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {

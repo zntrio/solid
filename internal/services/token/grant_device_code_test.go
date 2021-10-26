@@ -25,12 +25,12 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/pkg/sdk/token/mock"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
@@ -601,9 +601,7 @@ func Test_service_deviceCode(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
-					Scope: &wrapperspb.StringValue{
-						Value: "offline_access",
-					},
+					Scope: types.StringRef(oidc.ScopeOfflineAccess),
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
@@ -614,9 +612,7 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					Request: &corev1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
-						Scope: &wrapperspb.StringValue{
-							Value: "offline_access",
-						},
+						Scope:    types.StringRef(oidc.ScopeOfflineAccess),
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
@@ -704,9 +700,7 @@ func Test_service_deviceCode(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
-					Scope: &wrapperspb.StringValue{
-						Value: "offline_access",
-					},
+					Scope: types.StringRef(oidc.ScopeOfflineAccess),
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
@@ -717,9 +711,7 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					Request: &corev1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
-						Scope: &wrapperspb.StringValue{
-							Value: "offline_access",
-						},
+						Scope:    types.StringRef(oidc.ScopeOfflineAccess),
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,

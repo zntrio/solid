@@ -85,10 +85,10 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 		Request: req,
 	}
 	if req.Scope != nil {
-		session.Scope = req.Scope.Value
+		session.Scope = *req.Scope
 	}
 	if req.Audience != nil {
-		session.Audience = req.Audience.Value
+		session.Audience = *req.Audience
 	}
 
 	// Store device code request

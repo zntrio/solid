@@ -31,6 +31,7 @@ import (
 	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
 	"zntr.io/solid/api/oidc"
 	"zntr.io/solid/pkg/sdk/rfcerrors"
+	"zntr.io/solid/pkg/sdk/types"
 	"zntr.io/solid/pkg/server/storage"
 	storagemock "zntr.io/solid/pkg/server/storage/mock"
 )
@@ -325,6 +326,26 @@ func Test_service_validate(t *testing.T) {
 			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
+			name: "unsupported response_mode",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					ResponseMode:        types.StringRef("test"),
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
+		{
 			name: "error client not found",
 			args: args{
 				ctx: context.Background(),
@@ -443,6 +464,34 @@ func Test_service_validate(t *testing.T) {
 			wantErr: true,
 			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
+		{
+			name: "client doesn't support response_mode",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					ResponseMode:        types.StringRef(oidc.ResponseModeQueryJWT),
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+					ResponseModes: []string{oidc.ResponseModeQuery},
+				}, nil)
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
 		// ---------------------------------------------------------------------
 		{
 			name: "valid : application uri",
@@ -458,7 +507,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "com.example.app:/oauth2redirect",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -485,7 +534,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              &wrappers.StringValue{Value: "consent"},
+					Prompt:              types.StringRef(oidc.PromptConsent),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {

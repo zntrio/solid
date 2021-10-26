@@ -25,7 +25,6 @@ import "oidc/core/v1/core.proto";
 import "oidc/core/v1/error.proto";
 import "oidc/core/v1/client.proto";
 import "oidc/core/v1/token.proto";
-import "google/protobuf/wrappers.proto";
 
 // -----------------------------------------------------------------------------
 
@@ -108,7 +107,7 @@ message RegistrationRequest {
   AuthorizationRequest authorization_request = 3;
 
   // OPTIONAL. DPoP Proof confirmation.
-  TokenConfirmation confirmation = 4;
+  optional TokenConfirmation confirmation = 4;
 }
 
 message RegistrationResponse {
@@ -145,10 +144,10 @@ message TokenRequest {
   string grant_type = 3;
 
   // OPTIONAL. Scope to use for token request
-  google.protobuf.StringValue scope = 4;
+  optional string scope = 4;
 
   // OPTIONAL. Token confirmation.
-  TokenConfirmation token_confirmation = 5;
+  optional TokenConfirmation token_confirmation = 5;
 
   // OPTIONAL
   // https://tools.ietf.org/html/rfc8707
@@ -165,7 +164,7 @@ message TokenRequest {
   // target resource is hosted.  Multiple "resource" parameters MAY be
   // used to indicate that the requested token is intended to be used
   // at multiple resources.
-  google.protobuf.StringValue resource = 6;
+  optional string resource = 6;
 
   // OPTIONAL.  The logical name of the target service where the client
   // intends to use the requested security token.  This serves a
@@ -184,7 +183,7 @@ message TokenRequest {
   // "audience" and "resource" parameters may be used together to
   // indicate multiple target services with a mix of logical names and
   // resource URIs.
-  google.protobuf.StringValue audience = 7;
+  optional string audience = 7;
 
   // REQUIRED.
   oneof grant {
@@ -206,17 +205,17 @@ message TokenResponse {
   // REQUIRED. Access token information used to generate the final one.
   Token access_token = 2;
   // OPTIONAL. Refresh token information used to generate the final one.
-  Token refresh_token = 3;
+  optional Token refresh_token = 3;
   // OPTIONAL. ID Token information.
-  Token id_token = 4;
+  optional Token id_token = 4;
   // REQUIRED. Issuer url.
   string issuer = 5;
   // OPTIONAL. An identifier, as described in Section 3, for the representation
   // of the issued security token. REQUIRED for RFC8693.
-  string issued_token_type = 6;
+  optional string issued_token_type = 6;
   // OPTIONAL if the scope of the issued security token is identical to
   // the scope requested by the client; otherwise, it is REQUIRED.
-  string scope = 7;
+  optional string scope = 7;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.1
@@ -228,10 +227,10 @@ message DeviceAuthorizationRequest {
 
   // OPTIONAL.  The scope of the access request as defined by
   // Section 3.3 of [RFC6749].
-  google.protobuf.StringValue scope = 2;
+  optional string scope = 2;
 
   // OPTIONAL.  The target audience.
-  google.protobuf.StringValue audience = 3;
+  optional string audience = 3;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.2
@@ -248,7 +247,7 @@ message DeviceAuthorizationResponse {
   // OPTIONAL.  A verification URI that includes the "user_code" (or
   // other information with the same function as the "user_code"),
   // which is designed for non-textual transmission.
-  string verification_uri_complete = 5;
+  optional string verification_uri_complete = 5;
   // REQUIRED.  The lifetime in seconds of the "device_code" and
   // "user_code".
   fixed64 expires_in = 6;

@@ -152,7 +152,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	// Prepare token metadata
 	scope := st.Metadata.Scope
 	if req.Scope != nil {
-		scope = req.Scope.Value
+		scope = *req.Scope
 	}
 
 	// Create access token spec
@@ -174,13 +174,13 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 
 	// Add optional meta
 	if req.Audience != nil {
-		aud, err := s.resources.GetByURI(ctx, req.Audience.Value)
+		aud, err := s.resources.GetByURI(ctx, *req.Audience)
 		if err != nil && errors.Is(err, storage.ErrNotFound) {
 			return fmt.Errorf("unable to validate audience: %w", err)
 		}
 		if errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.InvalidTarget().Build()
-			return fmt.Errorf("audience '%s' not found", req.Audience.Value)
+			return fmt.Errorf("audience '%s' not found", *req.Audience)
 		}
 
 		// Assign urn
@@ -206,11 +206,11 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	// Assign access token
 	res.Issuer = st.Metadata.Issuer
 	res.AccessToken = at
-	res.IssuedTokenType = oidc.TokenExchangeAccessTokenType
+	res.IssuedTokenType = types.StringRef(oidc.TokenExchangeAccessTokenType)
 
 	// Assign scope if different
 	if st.Metadata.Scope != scope {
-		res.Scope = scope
+		res.Scope = types.StringRef(scope)
 	}
 
 	// No error

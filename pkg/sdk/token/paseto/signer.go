@@ -18,12 +18,14 @@
 package paseto
 
 import (
+	"bytes"
 	"context"
+	"crypto/ed25519"
+	"encoding/json"
 	"errors"
 	"fmt"
 
-	pasetolib "github.com/o1egl/paseto"
-
+	pasetov4 "zntr.io/paseto/v4"
 	"zntr.io/solid/pkg/sdk/jwk"
 	"zntr.io/solid/pkg/sdk/token"
 	"zntr.io/solid/pkg/sdk/types"
@@ -49,6 +51,9 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
 	}
+	if ds.keyProvider == nil {
+		return "", errors.New("unable to use nil keyProvider")
+	}
 
 	// Retrieve signing key
 	key, err := ds.keyProvider(ctx)
@@ -63,6 +68,10 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 	if key.KeyID == "" {
 		return "", fmt.Errorf("key provider returned a unidentifiable key")
 	}
+	keyRaw, ok := key.Key.(ed25519.PrivateKey)
+	if !ok {
+		return "", fmt.Errorf("key provider returned an invalid key type")
+	}
 
 	// Prepare footer
 	footer := map[string]string{
@@ -70,12 +79,24 @@ func (ds *defaultSigner) Sign(ctx context.Context, claims interface{}) (string, 
 		"typ": ds.tokenType,
 	}
 
-	// Prepare a signer
-	raw, err := pasetolib.NewV2().Sign(key.Key, claims, footer)
+	// Encode claims
+	m := bytes.Buffer{}
+	if err := json.NewEncoder(&m).Encode(claims); err != nil {
+		return "", fmt.Errorf("unable to encode message payload: %w", err)
+	}
+
+	// Encode footer
+	f := bytes.Buffer{}
+	if err := json.NewEncoder(&f).Encode(footer); err != nil {
+		return "", fmt.Errorf("unable to encode token footer: %w", err)
+	}
+
+	// Sign with paseto v4
+	raw, err := pasetov4.Sign(m.Bytes(), keyRaw, f.String(), "")
 	if err != nil {
 		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}
 
 	// No error
-	return raw, nil
+	return string(raw), nil
 }

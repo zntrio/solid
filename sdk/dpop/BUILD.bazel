@@ -1,0 +1,37 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dpop",
+    srcs = [
+        "api.go",
+        "claims.go",
+        "prover.go",
+        "url.go",
+        "verifier.go",
+    ],
+    importpath = "zntr.io/solid/sdk/dpop",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//sdk/token",
+        "//sdk/types",
+        "//server/storage",
+        "@com_github_dchest_uniuri//:uniuri",
+        "@org_golang_x_crypto//blake2b",
+    ],
+)
+
+go_test(
+    name = "dpop_test",
+    srcs = [
+        "prover_test.go",
+        "verifier_test.go",
+    ],
+    embed = [":dpop"],
+    deps = [
+        "//sdk/token",
+        "//sdk/token/mock",
+        "//server/storage",
+        "//server/storage/mock",
+        "@com_github_golang_mock//gomock",
+    ],
+)

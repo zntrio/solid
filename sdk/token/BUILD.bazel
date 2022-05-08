@@ -1,0 +1,41 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "token",
+    srcs = [
+        "access_token.go",
+        "api.go",
+        "client_assertion.go",
+        "encrypted.go",
+        "errors.go",
+        "helpers.go",
+        "introspection.go",
+        "refresh_token.go",
+        "token.go",
+    ],
+    importpath = "zntr.io/solid/sdk/token",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "//sdk/types",
+        "@com_github_dchest_uniuri//:uniuri",
+        "@com_github_go_ozzo_ozzo_validation_v4//:ozzo-validation",
+        "@com_github_go_ozzo_ozzo_validation_v4//is",
+    ],
+)
+
+go_test(
+    name = "token_test",
+    srcs = [
+        "access_token_test.go",
+        "client_assertion_test.go",
+        "introspection_test.go",
+        "refresh_token_test.go",
+    ],
+    deps = [
+        ":token",
+        "//api/oidc/core/v1:core",
+        "//sdk/token/mock",
+        "@com_github_golang_mock//gomock",
+    ],
+)

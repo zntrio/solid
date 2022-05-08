@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "inmemory",
+    srcs = [
+        "authorization_code_session.go",
+        "authorization_request.go",
+        "client.go",
+        "device_code_session.go",
+        "proof.go",
+        "resource.go",
+        "token.go",
+    ],
+    importpath = "zntr.io/solid/server/storage/inmemory",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "//oidc",
+        "//sdk/generator",
+        "//server/storage",
+        "@com_github_dchest_uniuri//:uniuri",
+        "@com_github_patrickmn_go_cache//:go-cache",
+    ],
+)

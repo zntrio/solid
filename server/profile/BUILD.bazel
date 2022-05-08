@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "profile",
+    srcs = [
+        "api.go",
+        "client.go",
+        "profile_strict.go",
+        "server.go",
+    ],
+    importpath = "zntr.io/solid/server/profile",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//oidc",
+        "//sdk/types",
+    ],
+)

@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "paseto",
+    srcs = ["signer.go"],
+    importpath = "zntr.io/solid/sdk/token/paseto",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//sdk/jwk",
+        "//sdk/token",
+        "//sdk/types",
+        "@io_zntr_paseto//v4:paseto",
+    ],
+)
+
+go_test(
+    name = "paseto_test",
+    srcs = ["signer_test.go"],
+    embed = [":paseto"],
+    deps = [
+        "//sdk/jwk",
+        "@in_gopkg_square_go_jose_v2//:go-jose_v2",
+    ],
+)

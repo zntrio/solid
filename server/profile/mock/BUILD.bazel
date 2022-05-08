@@ -1,0 +1,16 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mock",
+    srcs = [
+        "client.gen.go",
+        "server.gen.go",
+    ],
+    importpath = "zntr.io/solid/server/profile/mock",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//sdk/types",
+        "//server/profile",
+        "@com_github_golang_mock//gomock",
+    ],
+)

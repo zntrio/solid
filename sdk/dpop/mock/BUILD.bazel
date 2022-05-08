@@ -1,0 +1,9 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mock",
+    srcs = ["authentication_processor.gen.go"],
+    importpath = "zntr.io/solid/sdk/dpop/mock",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_golang_mock//gomock"],
+)

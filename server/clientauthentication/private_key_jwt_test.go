@@ -29,8 +29,8 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/api/oidc"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"

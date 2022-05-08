@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "mock",
+    srcs = [
+        "authorization_code_session.gen.go",
+        "authorization_code_session_reader.gen.go",
+        "authorization_code_session_writer.gen.go",
+        "authorization_request.gen.go",
+        "authorization_request_reader.gen.go",
+        "authorization_request_writer.gen.go",
+        "client.gen.go",
+        "client_writer.gen.go",
+        "clientreader.gen.go",
+        "device_code_session.gen.go",
+        "device_code_session_reader.gen.go",
+        "device_code_session_writer.gen.go",
+        "doc.go",
+        "dpop.gen.go",
+        "resource.gen.go",
+        "resource_reader.gen.go",
+        "token.gen.go",
+        "token_reader.gen.go",
+        "token_writer.gen.go",
+    ],
+    importpath = "zntr.io/solid/server/storage/mock",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "@com_github_golang_mock//gomock",
+        "@com_github_golang_mock//mockgen/model",
+    ],
+)

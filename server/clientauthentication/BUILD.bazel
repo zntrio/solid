@@ -1,0 +1,43 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "clientauthentication",
+    srcs = [
+        "api.go",
+        "context.go",
+        "private_key_jwt.go",
+    ],
+    importpath = "zntr.io/solid/server/clientauthentication",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "//oidc",
+        "//sdk/jwk",
+        "//sdk/rfcerrors",
+        "//server/storage",
+        "@in_gopkg_square_go_jose_v2//:go-jose_v2",
+    ],
+)
+
+go_test(
+    name = "clientauthentication_test",
+    srcs = [
+        "context_test.go",
+        "private_key_jwt_test.go",
+    ],
+    embed = [":clientauthentication"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "//oidc",
+        "//sdk/rfcerrors",
+        "//sdk/types",
+        "//server/storage",
+        "//server/storage/mock",
+        "@com_github_golang_mock//gomock",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_google_go_cmp//cmp/cmpopts",
+        "@in_gopkg_square_go_jose_v2//:go-jose_v2",
+        "@in_gopkg_square_go_jose_v2//jwt",
+        "@io_bazel_rules_go//proto/wkt:wrappers_go_proto",
+    ],
+)

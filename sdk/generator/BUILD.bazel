@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "generator",
+    srcs = [
+        "api.go",
+        "authorization_code.go",
+        "client.go",
+        "device_user_code.go",
+    ],
+    importpath = "zntr.io/solid/sdk/generator",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_dchest_uniuri//:uniuri"],
+)
+
+go_test(
+    name = "generator_test",
+    srcs = [
+        "authorization_code_test.go",
+        "device_user_code_test.go",
+    ],
+    embed = [":generator"],
+)

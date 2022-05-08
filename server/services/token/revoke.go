@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/storage"
 )

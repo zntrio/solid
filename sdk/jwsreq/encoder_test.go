@@ -24,8 +24,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	"zntr.io/solid/api/oidc"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 	"zntr.io/solid/sdk/types"

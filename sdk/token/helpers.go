@@ -20,7 +20,7 @@ package token
 import (
 	"time"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
 // IsUsable check token usability constraint.

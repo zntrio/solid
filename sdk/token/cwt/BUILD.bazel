@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cwt",
+    srcs = [
+        "builders.go",
+        "signer.go",
+    ],
+    importpath = "zntr.io/solid/sdk/token/cwt",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//sdk/jwk",
+        "//sdk/token",
+        "//sdk/types",
+        "@com_github_fxamacker_cbor_v2//:cbor",
+        "@org_mozilla_go_cose//:cose",
+    ],
+)

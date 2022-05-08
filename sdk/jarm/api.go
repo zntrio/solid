@@ -20,7 +20,7 @@ package jarm
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
 const (

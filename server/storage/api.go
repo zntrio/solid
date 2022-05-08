@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
 // ErrNotFound is returned when the query return no result.

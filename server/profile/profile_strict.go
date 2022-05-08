@@ -17,7 +17,7 @@
 
 package profile
 
-import "zntr.io/solid/api/oidc"
+import "zntr.io/solid/oidc"
 
 var strictProfile = &defaultServerProfile{
 	clientProfiles: map[string]Client{

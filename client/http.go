@@ -32,9 +32,9 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
-	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
-	"zntr.io/solid/api/oidc"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
+	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	jwsreq "zntr.io/solid/sdk/jwsreq"
 	"zntr.io/solid/sdk/pkce"

@@ -23,7 +23,7 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 
-	discoveryv1 "zntr.io/solid/api/gen/go/oidc/discovery/v1"
+	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 )
 
 // Client describes OIDC client contract.

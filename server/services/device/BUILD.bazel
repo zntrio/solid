@@ -1,0 +1,35 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "device",
+    srcs = ["service.go"],
+    importpath = "zntr.io/solid/server/services/device",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "//oidc",
+        "//sdk/rfcerrors",
+        "//sdk/types",
+        "//server/services",
+        "//server/storage",
+    ],
+)
+
+go_test(
+    name = "device_test",
+    srcs = ["service_test.go"],
+    embed = [":device"],
+    deps = [
+        "//api/oidc/core/v1:core",
+        "//oidc",
+        "//sdk/generator",
+        "//sdk/rfcerrors",
+        "//sdk/types",
+        "//server/storage",
+        "//server/storage/mock",
+        "@com_github_golang_mock//gomock",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_google_go_cmp//cmp/cmpopts",
+        "@io_bazel_rules_go//proto/wkt:wrappers_go_proto",
+    ],
+)

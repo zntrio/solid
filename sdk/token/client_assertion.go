@@ -26,7 +26,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 
-	corev1 "zntr.io/solid/api/gen/go/oidc/core/v1"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/types"
 )
 

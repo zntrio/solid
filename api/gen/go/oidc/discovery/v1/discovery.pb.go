@@ -1149,7 +1149,7 @@ func file_oidc_discovery_v1_discovery_proto_rawDescGZIP() []byte {
 
 var (
 	file_oidc_discovery_v1_discovery_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-	file_oidc_discovery_v1_discovery_proto_goTypes  = []interface{}{
+	file_oidc_discovery_v1_discovery_proto_goTypes  = []any{
 		(*ServerMetadata)(nil), // 0: oidc.discovery.v1.ServerMetadata
 		(*MTLSEndpoints)(nil),  // 1: oidc.discovery.v1.MTLSEndpoints
 	}
@@ -1170,7 +1170,7 @@ func file_oidc_discovery_v1_discovery_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_discovery_v1_discovery_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_discovery_v1_discovery_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ServerMetadata); i {
 			case 0:
 				return &v.state
@@ -1182,7 +1182,7 @@ func file_oidc_discovery_v1_discovery_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_discovery_v1_discovery_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_discovery_v1_discovery_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*MTLSEndpoints); i {
 			case 0:
 				return &v.state

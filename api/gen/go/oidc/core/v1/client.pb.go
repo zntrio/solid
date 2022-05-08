@@ -1118,7 +1118,7 @@ func file_oidc_core_v1_client_proto_rawDescGZIP() []byte {
 var (
 	file_oidc_core_v1_client_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 	file_oidc_core_v1_client_proto_msgTypes  = make([]protoimpl.MessageInfo, 7)
-	file_oidc_core_v1_client_proto_goTypes   = []interface{}{
+	file_oidc_core_v1_client_proto_goTypes   = []any{
 		(ClientType)(0),           // 0: oidc.core.v1.ClientType
 		(ClientProfile)(0),        // 1: oidc.core.v1.ClientProfile
 		(*Client)(nil),            // 2: oidc.core.v1.Client
@@ -1150,7 +1150,7 @@ func file_oidc_core_v1_client_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_core_v1_client_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Client); i {
 			case 0:
 				return &v.state
@@ -1162,7 +1162,7 @@ func file_oidc_core_v1_client_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_client_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*ClientMeta); i {
 			case 0:
 				return &v.state
@@ -1174,7 +1174,7 @@ func file_oidc_core_v1_client_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_client_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*SoftwareStatement); i {
 			case 0:
 				return &v.state
@@ -1187,7 +1187,7 @@ func file_oidc_core_v1_client_proto_init() {
 			}
 		}
 	}
-	file_oidc_core_v1_client_proto_msgTypes[1].OneofWrappers = []interface{}{}
+	file_oidc_core_v1_client_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

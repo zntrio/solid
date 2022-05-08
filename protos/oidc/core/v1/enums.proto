@@ -1,0 +1,80 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.core.v1;
+
+option go_package = "oidc/core/v1;corev1";
+
+// -----------------------------------------------------------------------------
+
+// Display defines values to set how to displays the authentication and consent
+// user interface pages to the End-User.
+enum Display {
+  // Default value when nothing specificied.
+  DISPLAY_INVALID = 0;
+  // Value to set as unknown.
+  DISPLAY_UNKNOWN = 1;
+  // The Authorization Server SHOULD display the authentication and consent UI
+  // consistent with a full User Agent page view. If the display parameter is
+  // not specified, this is the default display mode.
+  DISPLAY_PAGE = 2;
+  // The Authorization Server SHOULD display the authentication and consent UI
+  // consistent with a popup User Agent window. The popup User Agent window
+  // should be of an appropriate size for a login-focused dialog and should not
+  // obscure the entire window that it is popping up over.
+  DISPLAY_POPUP = 3;
+  // The Authorization Server SHOULD display the authentication and consent UI
+  // consistent with a device that leverages a touch interface.
+  DISPLAY_TOUCH = 4;
+  // The Authorization Server SHOULD display the authentication and consent UI
+  // consistent with a "feature phone" type display.
+  DISPLAY_WAP = 5;
+}
+
+// Prompt defines values for required prompt actions.
+enum Prompt {
+    // Default value when nothing specificied.
+    PROMPT_INVALID = 0;
+    // Value to set as unknown.
+    PROMPT_UNKNOWN = 1;
+    // The Authorization Server MUST NOT display any authentication or consent
+    // user interface pages. An error is returned if an End-User is not already
+    // authenticated or the Client does not have pre-configured consent for the
+    // requested Claims or does not fulfill other conditions for processing the
+    // request. The error code will typically be login_required,
+    // interaction_required, or another code defined in Section 3.1.2.6. This
+    // can be used as a method to check for existing authentication and/or
+    // consent.
+    PROMPT_NONE = 2;
+    // The Authorization Server SHOULD prompt the End-User for reauthentication.
+    // If it cannot reauthenticate the End-User, it MUST return an error,
+    // typically login_required.
+    PROMPT_LOGIN = 3;
+    // The Authorization Server SHOULD prompt the End-User for consent before
+    // returning information to the Client. If it cannot obtain consent, it MUST
+    // return an error, typically consent_required.
+    PROMPT_CONSENT = 4;
+    // The Authorization Server SHOULD prompt the End-User to select a user
+    // account. This enables an End-User who has multiple accounts at the
+    // Authorization Server to select amongst the multiple accounts that they
+    // might have current sessions for. If it cannot obtain an account selection
+    // choice made by the End-User, it MUST return an error, typically
+    // account_selection_required.
+    PROMPT_SELECT_ACCOUNT = 5;
+}

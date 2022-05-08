@@ -949,7 +949,7 @@ func file_oidc_core_v1_core_proto_rawDescGZIP() []byte {
 var (
 	file_oidc_core_v1_core_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 	file_oidc_core_v1_core_proto_msgTypes  = make([]protoimpl.MessageInfo, 6)
-	file_oidc_core_v1_core_proto_goTypes   = []interface{}{
+	file_oidc_core_v1_core_proto_goTypes   = []any{
 		(Display)(0),                   // 0: oidc.core.v1.Display
 		(Prompt)(0),                    // 1: oidc.core.v1.Prompt
 		(*GrantAuthorizationCode)(nil), // 2: oidc.core.v1.GrantAuthorizationCode
@@ -975,7 +975,7 @@ func file_oidc_core_v1_core_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_core_v1_core_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*GrantAuthorizationCode); i {
 			case 0:
 				return &v.state
@@ -987,7 +987,7 @@ func file_oidc_core_v1_core_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*GrantRefreshToken); i {
 			case 0:
 				return &v.state
@@ -999,7 +999,7 @@ func file_oidc_core_v1_core_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*GrantDeviceCode); i {
 			case 0:
 				return &v.state
@@ -1011,7 +1011,7 @@ func file_oidc_core_v1_core_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*GrantClientCredentials); i {
 			case 0:
 				return &v.state
@@ -1023,7 +1023,7 @@ func file_oidc_core_v1_core_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*GrantTokenExchange); i {
 			case 0:
 				return &v.state
@@ -1035,7 +1035,7 @@ func file_oidc_core_v1_core_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*AuthorizationRequest); i {
 			case 0:
 				return &v.state
@@ -1048,8 +1048,8 @@ func file_oidc_core_v1_core_proto_init() {
 			}
 		}
 	}
-	file_oidc_core_v1_core_proto_msgTypes[4].OneofWrappers = []interface{}{}
-	file_oidc_core_v1_core_proto_msgTypes[5].OneofWrappers = []interface{}{}
+	file_oidc_core_v1_core_proto_msgTypes[4].OneofWrappers = []any{}
+	file_oidc_core_v1_core_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

@@ -130,7 +130,7 @@ func file_oidc_core_v1_resource_proto_rawDescGZIP() []byte {
 
 var (
 	file_oidc_core_v1_resource_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-	file_oidc_core_v1_resource_proto_goTypes  = []interface{}{
+	file_oidc_core_v1_resource_proto_goTypes  = []any{
 		(*Resource)(nil), // 0: oidc.core.v1.Resource
 	}
 )
@@ -149,7 +149,7 @@ func file_oidc_core_v1_resource_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_core_v1_resource_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_resource_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*Resource); i {
 			case 0:
 				return &v.state

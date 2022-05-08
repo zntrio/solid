@@ -1233,7 +1233,7 @@ func file_oidc_core_v1_core_api_proto_rawDescGZIP() []byte {
 
 var (
 	file_oidc_core_v1_core_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
-	file_oidc_core_v1_core_api_proto_goTypes  = []interface{}{
+	file_oidc_core_v1_core_api_proto_goTypes  = []any{
 		(*AuthorizationCodeRequest)(nil),     // 0: oidc.core.v1.AuthorizationCodeRequest
 		(*AuthorizationCodeResponse)(nil),    // 1: oidc.core.v1.AuthorizationCodeResponse
 		(*RegistrationRequest)(nil),          // 2: oidc.core.v1.RegistrationRequest
@@ -1299,7 +1299,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 	file_oidc_core_v1_client_proto_init()
 	file_oidc_core_v1_token_proto_init()
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_core_v1_core_api_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*AuthorizationCodeRequest); i {
 			case 0:
 				return &v.state
@@ -1311,7 +1311,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*AuthorizationCodeResponse); i {
 			case 0:
 				return &v.state
@@ -1323,7 +1323,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*RegistrationRequest); i {
 			case 0:
 				return &v.state
@@ -1335,7 +1335,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*RegistrationResponse); i {
 			case 0:
 				return &v.state
@@ -1347,7 +1347,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*TokenRequest); i {
 			case 0:
 				return &v.state
@@ -1359,7 +1359,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*TokenResponse); i {
 			case 0:
 				return &v.state
@@ -1371,7 +1371,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[6].Exporter = func(v any, i int) any {
 			switch v := v.(*DeviceAuthorizationRequest); i {
 			case 0:
 				return &v.state
@@ -1383,7 +1383,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[7].Exporter = func(v any, i int) any {
 			switch v := v.(*DeviceAuthorizationResponse); i {
 			case 0:
 				return &v.state
@@ -1395,7 +1395,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[8].Exporter = func(v any, i int) any {
 			switch v := v.(*DeviceCodeValidationRequest); i {
 			case 0:
 				return &v.state
@@ -1407,7 +1407,7 @@ func file_oidc_core_v1_core_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_core_api_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_core_api_proto_msgTypes[9].Exporter = func(v any, i int) any {
 			switch v := v.(*DeviceCodeValidationResponse); i {
 			case 0:
 				return &v.state
@@ -1420,17 +1420,17 @@ func file_oidc_core_v1_core_api_proto_init() {
 			}
 		}
 	}
-	file_oidc_core_v1_core_api_proto_msgTypes[2].OneofWrappers = []interface{}{}
-	file_oidc_core_v1_core_api_proto_msgTypes[4].OneofWrappers = []interface{}{
+	file_oidc_core_v1_core_api_proto_msgTypes[2].OneofWrappers = []any{}
+	file_oidc_core_v1_core_api_proto_msgTypes[4].OneofWrappers = []any{
 		(*TokenRequest_AuthorizationCode)(nil),
 		(*TokenRequest_ClientCredentials)(nil),
 		(*TokenRequest_DeviceCode)(nil),
 		(*TokenRequest_RefreshToken)(nil),
 		(*TokenRequest_TokenExchange)(nil),
 	}
-	file_oidc_core_v1_core_api_proto_msgTypes[5].OneofWrappers = []interface{}{}
-	file_oidc_core_v1_core_api_proto_msgTypes[6].OneofWrappers = []interface{}{}
-	file_oidc_core_v1_core_api_proto_msgTypes[7].OneofWrappers = []interface{}{}
+	file_oidc_core_v1_core_api_proto_msgTypes[5].OneofWrappers = []any{}
+	file_oidc_core_v1_core_api_proto_msgTypes[6].OneofWrappers = []any{}
+	file_oidc_core_v1_core_api_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

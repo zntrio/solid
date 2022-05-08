@@ -349,7 +349,7 @@ func file_oidc_core_v1_client_api_proto_rawDescGZIP() []byte {
 
 var (
 	file_oidc_core_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-	file_oidc_core_v1_client_api_proto_goTypes  = []interface{}{
+	file_oidc_core_v1_client_api_proto_goTypes  = []any{
 		(*ClientAuthenticationRequest)(nil),  // 0: oidc.core.v1.ClientAuthenticationRequest
 		(*ClientAuthenticationResponse)(nil), // 1: oidc.core.v1.ClientAuthenticationResponse
 		(*ClientRegistrationRequest)(nil),    // 2: oidc.core.v1.ClientRegistrationRequest
@@ -385,7 +385,7 @@ func file_oidc_core_v1_client_api_proto_init() {
 	file_oidc_core_v1_client_proto_init()
 	file_oidc_core_v1_error_proto_init()
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_core_v1_client_api_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_api_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ClientAuthenticationRequest); i {
 			case 0:
 				return &v.state
@@ -397,7 +397,7 @@ func file_oidc_core_v1_client_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_client_api_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_api_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*ClientAuthenticationResponse); i {
 			case 0:
 				return &v.state
@@ -409,7 +409,7 @@ func file_oidc_core_v1_client_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_client_api_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_api_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*ClientRegistrationRequest); i {
 			case 0:
 				return &v.state
@@ -421,7 +421,7 @@ func file_oidc_core_v1_client_api_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_client_api_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_client_api_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*ClientRegistrationResponse); i {
 			case 0:
 				return &v.state
@@ -434,7 +434,7 @@ func file_oidc_core_v1_client_api_proto_init() {
 			}
 		}
 	}
-	file_oidc_core_v1_client_api_proto_msgTypes[0].OneofWrappers = []interface{}{}
+	file_oidc_core_v1_client_api_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

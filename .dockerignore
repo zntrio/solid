@@ -1,5 +1,3 @@
 bin
 vendor
-tools/bin
-tools/vendor
 go.sum

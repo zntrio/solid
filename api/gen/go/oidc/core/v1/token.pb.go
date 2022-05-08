@@ -674,7 +674,7 @@ func file_oidc_core_v1_token_proto_rawDescGZIP() []byte {
 var (
 	file_oidc_core_v1_token_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 	file_oidc_core_v1_token_proto_msgTypes  = make([]protoimpl.MessageInfo, 5)
-	file_oidc_core_v1_token_proto_goTypes   = []interface{}{
+	file_oidc_core_v1_token_proto_goTypes   = []any{
 		(TokenType)(0),             // 0: oidc.core.v1.TokenType
 		(TokenStatus)(0),           // 1: oidc.core.v1.TokenStatus
 		(*TokenMeta)(nil),          // 2: oidc.core.v1.TokenMeta
@@ -706,7 +706,7 @@ func file_oidc_core_v1_token_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_oidc_core_v1_token_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_token_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*TokenMeta); i {
 			case 0:
 				return &v.state
@@ -718,7 +718,7 @@ func file_oidc_core_v1_token_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_token_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_token_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*Actor); i {
 			case 0:
 				return &v.state
@@ -730,7 +730,7 @@ func file_oidc_core_v1_token_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_token_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_token_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*Token); i {
 			case 0:
 				return &v.state
@@ -742,7 +742,7 @@ func file_oidc_core_v1_token_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_token_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_token_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*TokenConfirmation); i {
 			case 0:
 				return &v.state
@@ -754,7 +754,7 @@ func file_oidc_core_v1_token_proto_init() {
 				return nil
 			}
 		}
-		file_oidc_core_v1_token_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_oidc_core_v1_token_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*OAuthTokenResponse); i {
 			case 0:
 				return &v.state

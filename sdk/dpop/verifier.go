@@ -37,20 +37,12 @@ import (
 
 // DefaultVerifier returns a verifier instance with in-memory cache for proof
 // storage.
-func DefaultVerifier(proofs storage.DPoP, verifier token.Verifier) (Verifier, error) {
-	// Check arguments
-	if types.IsNil(proofs) {
-		return nil, fmt.Errorf("proof storage is mandatory and couldn't be nil")
-	}
-	if types.IsNil(verifier) {
-		return nil, fmt.Errorf("jwt verifier is mandatory and couldn't be nil")
-	}
-
+func DefaultVerifier(proofs storage.DPoP, verifier token.Verifier) Verifier {
 	// No error
 	return &defaultVerifier{
 		proofs:   proofs,
 		verifier: verifier,
-	}, nil
+	}
 }
 
 // -----------------------------------------------------------------------------

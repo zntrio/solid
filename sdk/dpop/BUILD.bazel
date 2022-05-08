@@ -30,7 +30,6 @@ go_test(
     deps = [
         "//sdk/token",
         "//sdk/token/mock",
-        "//server/storage",
         "//server/storage/mock",
         "@com_github_golang_mock//gomock",
     ],

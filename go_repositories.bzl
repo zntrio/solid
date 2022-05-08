@@ -1835,6 +1835,13 @@ def go_repositories():
         version = "v1.10.1",
     )
     go_repository(
+        name = "com_github_square_go_jose_v3",
+        importpath = "github.com/square/go-jose/v3",
+        sum = "h1:wD1IWQwAhdWclCwaf6DdzgCAe9Bfz1M+4AHRd7N786Y=",
+        version = "v3.0.0-20200630053402-0a67ce9b0693",
+    )
+
+    go_repository(
         name = "com_github_ssgreg_nlreturn_v2",
         importpath = "github.com/ssgreg/nlreturn/v2",
         sum = "h1:X4XDI7jstt3ySqGU86YGAURbxw3oTDPK9sPEi6YEwQ0=",

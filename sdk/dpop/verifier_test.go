@@ -28,51 +28,8 @@ import (
 
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
-	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
-
-func TestDefaultVerifier(t *testing.T) {
-	type args struct {
-		proofs   storage.DPoP
-		verifier token.Verifier
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    Verifier
-		wantErr bool
-	}{
-		{
-			name:    "nil",
-			wantErr: true,
-		},
-		{
-			name: "nil verifier",
-			args: args{
-				proofs: storagemock.NewMockDPoP(nil),
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid",
-			args: args{
-				proofs:   storagemock.NewMockDPoP(nil),
-				verifier: tokenmock.NewMockVerifier(nil),
-			},
-			wantErr: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := DefaultVerifier(tt.args.proofs, tt.args.verifier)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DefaultVerifier() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-		})
-	}
-}
 
 func Test_defaultVerifier_Verify(t *testing.T) {
 	type args struct {
@@ -352,7 +309,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				tt.prepare(mockStorage, mockVerifier, mockToken)
 			}
 
-			v, _ := DefaultVerifier(mockStorage, mockVerifier)
+			v := DefaultVerifier(mockStorage, mockVerifier)
 			got, err := v.Verify(tt.args.ctx, tt.args.htm, tt.args.htu, tt.args.proof)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultVerifier.Verify() error = %v, wantErr %v", err, tt.wantErr)

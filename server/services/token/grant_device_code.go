@@ -74,7 +74,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	}
 
 	// Resolve device code
-	session, err := s.deviceCodeSessions.GetByDeviceCode(ctx, grant.DeviceCode)
+	session, err := s.deviceCodeSessions.GetByDeviceCode(ctx, req.Issuer, grant.DeviceCode)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -123,18 +123,22 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	}
 
 	// Check subject attribute
-	if session.Subject == "" {
+	if session.Subject == nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("session has no subject for '%s'", grant.DeviceCode)
 	}
 
+	// Prepare token
+	tm := &corev1.TokenMeta{
+		Issuer:  req.Issuer,
+		Subject: *session.Subject,
+	}
+	if session.Scope != nil {
+		tm.Scope = *session.Scope
+	}
+
 	// Generate access token
-	at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
-		Issuer:   req.Issuer,
-		Scope:    session.Scope,
-		Audience: session.Audience,
-		Subject:  session.Subject,
-	}, req.TokenConfirmation)
+	at, err := s.generateAccessToken(ctx, client, tm, req.TokenConfirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to generate access token: %w", err)
@@ -143,26 +147,24 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	// Assign response
 	res.AccessToken = at
 
-	// Validate scopes
-	scopes := types.StringArray(strings.Fields(session.Scope))
+	// Has scope
+	if session.Scope != nil {
+		// Validate scopes
+		scopes := types.StringArray(strings.Fields(*session.Scope))
 
-	// Check if request has offline_access to generate refresh_token
-	if scopes.Contains(oidc.ScopeOfflineAccess) {
-		// Generate refresh token
-		rt, err := s.generateRefreshToken(ctx, client, &corev1.TokenMeta{
-			Issuer:   req.Issuer,
-			Scope:    session.Scope,
-			Audience: session.Audience,
-			Subject:  session.Subject,
-		}, at.Confirmation)
-		if err != nil {
-			res.AccessToken = nil
-			res.Error = rfcerrors.ServerError().Build()
-			return res, fmt.Errorf("unable to generate refresh token: %w", err)
+		// Check if request has offline_access to generate refresh_token
+		if scopes.Contains(oidc.ScopeOfflineAccess) {
+			// Generate refresh token
+			rt, err := s.generateRefreshToken(ctx, client, tm, at.Confirmation)
+			if err != nil {
+				res.AccessToken = nil
+				res.Error = rfcerrors.ServerError().Build()
+				return res, fmt.Errorf("unable to generate refresh token: %w", err)
+			}
+
+			// Assign response
+			res.RefreshToken = rt
 		}
-
-		// Assign response
-		res.RefreshToken = rt
 	}
 
 	// No error

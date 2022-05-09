@@ -20,37 +20,40 @@ package generator
 import (
 	"context"
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/dchest/uniuri"
 )
 
 const (
-	// DefaultAuthorizationCodeLen defines default authorization code length.
-	DefaultAuthorizationCodeLen = 32
+	// DefaultRequestURILen defines default request_uri length.
+	DefaultRequestURILen = 32
 )
 
-// DefaultAuthorizationCode returns the default authorization code generator.
-func DefaultAuthorizationCode() AuthorizationCode {
-	return &authorizationCodeGenerator{}
+var requestURIMatcher = regexp.MustCompile(`urn:solid:[A-Za-z0-9]{32}`)
+
+// DefaultRequestURI returns the default request uri generator.
+func DefaultRequestURI() RequestURI {
+	return &requestUriGenerator{}
 }
 
 // -----------------------------------------------------------------------------
 
-type authorizationCodeGenerator struct{}
+type requestUriGenerator struct{}
 
-func (c *authorizationCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
+func (c *requestUriGenerator) Generate(_ context.Context, _ string) (string, error) {
+	code := uniuri.NewLen(DefaultRequestURILen)
 	return code, nil
 }
 
-func (c *authorizationCodeGenerator) Validate(_ context.Context, issuer, in string) error {
+func (c *requestUriGenerator) Validate(_ context.Context, issuer, in string) error {
 	// Normalize
 	in = strings.TrimSpace(in)
 
-	// Check length
-	if len(in) != DefaultAuthorizationCodeLen {
-		return errors.New("invalid authorization code syntax")
+	// Check format
+	if !requestURIMatcher.MatchString(in) {
+		return errors.New("invalid request_uri syntax")
 	}
 
 	// No error

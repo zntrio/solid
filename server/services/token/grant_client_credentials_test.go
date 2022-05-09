@@ -245,7 +245,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -275,7 +275,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{

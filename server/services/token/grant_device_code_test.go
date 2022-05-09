@@ -196,7 +196,7 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, storage.ErrNotFound)
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -225,7 +225,7 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, fmt.Errorf("foo"))
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -254,7 +254,7 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, nil)
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, nil)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -283,7 +283,7 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{}, nil)
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{}, nil)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -312,7 +312,7 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Request: &corev1.DeviceAuthorizationRequest{},
 				}, nil)
 			},
@@ -343,7 +343,7 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -378,7 +378,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -414,7 +414,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -451,7 +451,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -488,7 +488,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -497,7 +497,7 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "",
+					Subject:   nil,
 				}, nil)
 			},
 			wantErr: true,
@@ -526,7 +526,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -535,7 +535,7 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "user-1",
+					Subject:   types.StringRef("user-1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
@@ -565,7 +565,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -574,10 +574,10 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "user1",
+					Subject:   types.StringRef("user1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -606,7 +606,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -616,13 +616,13 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "user1",
-					Scope:     "offline_access",
+					Subject:   types.StringRef("user1"),
+					Scope:     types.StringRef("offline_access"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("error")).After(atSave)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("error")).After(atSave)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -651,7 +651,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -660,10 +660,10 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "user1",
+					Subject:   types.StringRef("user1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
@@ -705,7 +705,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -715,13 +715,13 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "user1",
-					Scope:     "offline_access",
+					Subject:   types.StringRef("user1"),
+					Scope:     types.StringRef("offline_access"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{

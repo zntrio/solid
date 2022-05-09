@@ -15,28 +15,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package generator
+package pairwise
 
-import (
-	"context"
-	"fmt"
-	"testing"
-)
-
-func Test_devicecodeAlphaGenerator_Generate(t *testing.T) {
-	c := DefaultDeviceUserCode()
-	got, err := c.Generate(context.Background(), "https://honest.as.example.com")
-	if err != nil {
-		t.Fatalf("unexpected error occurs, got %v", err)
-	}
-	fmt.Println(got)
-}
-
-func Test_devicecodeNumGenerator_Generate(t *testing.T) {
-	c := DefaultNumDeviceUserCode()
-	got, err := c.Generate(context.Background(), "https://honest.as.example.com")
-	if err != nil {
-		t.Fatalf("unexpected error occurs, got %v", err)
-	}
-	fmt.Println(got)
+type Encoder interface {
+	// Encode given input with the implemented algorithm.
+	Encode(sectorID, subject string) (string, error)
 }

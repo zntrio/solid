@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"gopkg.in/square/go-jose.v2"
+
 	"zntr.io/solid/sdk/jwk"
 )
 

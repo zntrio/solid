@@ -29,7 +29,7 @@ import (
 )
 
 // TokenIntrospection handles token introspection HTTP requests.
-func TokenIntrospection(tokenz services.Token) http.Handler {
+func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
@@ -48,6 +48,7 @@ func TokenIntrospection(tokenz services.Token) http.Handler {
 
 		// Prepare msg
 		msg := &corev1.TokenIntrospectionRequest{
+			Issuer:        issuer,
 			Client:        client,
 			Token:         tokenRaw,
 			TokenTypeHint: optionalString(tokenTypeHintRaw),
@@ -80,6 +81,5 @@ func TokenIntrospection(tokenz services.Token) http.Handler {
 
 		// Send json reponse
 		withJSON(w, r, http.StatusOK, resp)
-
 	})
 }

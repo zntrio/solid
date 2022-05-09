@@ -31,7 +31,7 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 	// Prepare metadata
 	md := &discoveryv1.ServerMetadata{
 		Issuer:  issuer,
-		JwksUri: fmt.Sprintf("%s/.well-known/jwks.json", issuer),
+		JwksUri: fmt.Sprintf("%s/keys", issuer),
 		SubjectTypesSupported: []string{
 			oidc.SubjectTypePairwise,
 		},
@@ -54,8 +54,6 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 			oidc.GrantTypeRefreshToken,
 			oidc.GrantTypeDeviceCode,
 			oidc.GrantTypeTokenExchange,
-			oidc.GrantTypeJWTBearer,
-			oidc.GrantTypeSAML2Bearer,
 		},
 		TokenEndpoint: fmt.Sprintf("%s/token", issuer),
 		TokenEndpointAuthMethodsSupported: []string{
@@ -69,7 +67,7 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 		RevocationEndpoint:                                     fmt.Sprintf("%s/token/revoke", issuer),
 		RevocationEndpointAuthMethodsSupported:                 []string{oidc.AuthMethodPrivateKeyJWT},
 		RevocationEndpointAuthSigningAlgValuesSupported:        []string{"ES384"},
-		DeviceAuthorizationEndpoint:                            fmt.Sprintf("%s/device_authorization", issuer),
+		DeviceAuthorizationEndpoint:                            fmt.Sprintf("%s/device/authorize", issuer),
 		DpopSigningAlgValuesSupported:                          []string{"ES256"},
 		AuthorizationResponseIssParameterSupported:             true,
 		AuthorizationSigningAlgValuesSupported:                 []string{"ES256", "ES384"},

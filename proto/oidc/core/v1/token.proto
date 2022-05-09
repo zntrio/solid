@@ -41,7 +41,7 @@ enum TokenStatus {
 message TokenMeta {
   // REQUIRED. Token issuer URI
   string issuer = 1;
-  // OPTIONAL. Identity subject
+  // REQUIRED. Identity subject
   string subject = 2;
   // REQUIRED. Unix timestamp of the creation date
   fixed64 issued_at = 3;
@@ -69,24 +69,26 @@ message Actor {
 }
 
 message Token {
+  // REQUIRED. Token issuer.
+  string issuer = 1;
   // REQUIRED. Token type.
-  TokenType token_type = 1;
+  TokenType token_type = 2;
   // REQUIRED. Token identifier.
-  string token_id = 2;
+  string token_id = 3;
   // REQUIRED. Token meta output of token endpoint.
-  TokenMeta metadata = 3;
+  TokenMeta metadata = 4;
   // REQUIRED. Token status.
-  TokenStatus status = 4;
+  TokenStatus status = 5;
   // REQUIRED. Final token value.
-  string value = 5;
+  string value = 6;
   // OPTIONAL. Phantom token value.
-  optional string phantom = 6;
+  optional string phantom = 7;
   // OPTIONAL. Token confirmation
-  TokenConfirmation confirmation = 7;
+  TokenConfirmation confirmation = 8;
   // OPTIONAL. Actor.
-  repeated Actor actor = 8;
+  repeated Actor actor = 9;
   // OPTIONAL. Authorized Actor.
-  repeated Actor may_act = 9;
+  repeated Actor may_act = 10;
 }
 
 message TokenConfirmation {

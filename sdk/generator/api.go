@@ -25,14 +25,23 @@ import (
 
 // AuthorizationCode describes authorization code generator contract.
 type AuthorizationCode interface {
-	Generate(ctx context.Context) (string, error)
+	Validate(ctx context.Context, issuer, in string) error
+	Generate(ctx context.Context, issuer string) (string, error)
 }
 
 //go:generate mockgen -destination mock/device_user_code.gen.go -package mock zntr.io/solid/sdk/generator DeviceUserCode
 
 // DeviceUserCode describes device user code generator contract.
 type DeviceUserCode interface {
-	Generate(ctx context.Context) (string, error)
+	Generate(ctx context.Context, issuer string) (string, error)
+}
+
+//go:generate mockgen -destination mock/device_code.gen.go -package mock zntr.io/solid/sdk/generator DeviceCode
+
+// DeviceCode describes device code generator contract.
+type DeviceCode interface {
+	Validate(ctx context.Context, issuer, in string) error
+	Generate(ctx context.Context, issuer string) (string, error)
 }
 
 //go:generate mockgen -destination mock/client_id.gen.go -package mock zntr.io/solid/sdk/generator ClientID
@@ -40,4 +49,12 @@ type DeviceUserCode interface {
 // ClientID describes client identified generator contract.
 type ClientID interface {
 	Generate(ctx context.Context) (string, error)
+}
+
+//go:generate mockgen -destination mock/request_uri.gen.go -package mock zntr.io/solid/sdk/generator RequestURI
+
+// RequestURI describes request uri generator contract.
+type RequestURI interface {
+	Validate(ctx context.Context, issuer, in string) error
+	Generate(ctx context.Context, issuer string) (string, error)
 }

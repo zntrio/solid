@@ -26,31 +26,31 @@ import (
 )
 
 const (
-	// DefaultAuthorizationCodeLen defines default authorization code length.
-	DefaultAuthorizationCodeLen = 32
+	// DefaultDeviceCodeLen defines default device code length.
+	DefaultDeviceCodeLen = 32
 )
 
-// DefaultAuthorizationCode returns the default authorization code generator.
-func DefaultAuthorizationCode() AuthorizationCode {
-	return &authorizationCodeGenerator{}
+// DefaultDeviceCode returns the default device code generator.
+func DefaultDeviceCode() DeviceCode {
+	return &deviceCodeGenerator{}
 }
 
 // -----------------------------------------------------------------------------
 
-type authorizationCodeGenerator struct{}
+type deviceCodeGenerator struct{}
 
-func (c *authorizationCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
+func (c *deviceCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
+	code := uniuri.NewLen(DefaultDeviceCodeLen)
 	return code, nil
 }
 
-func (c *authorizationCodeGenerator) Validate(_ context.Context, issuer, in string) error {
+func (c *deviceCodeGenerator) Validate(_ context.Context, issuer, in string) error {
 	// Normalize
 	in = strings.TrimSpace(in)
 
 	// Check length
-	if len(in) != DefaultAuthorizationCodeLen {
-		return errors.New("invalid authorization code syntax")
+	if len(in) != DefaultDeviceCodeLen {
+		return errors.New("invalid device code syntax")
 	}
 
 	// No error

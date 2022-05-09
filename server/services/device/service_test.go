@@ -29,7 +29,7 @@ import (
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/oidc"
-	"zntr.io/solid/sdk/generator"
+	generatormock "zntr.io/solid/sdk/generator/mock"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
@@ -39,20 +39,14 @@ import (
 var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.DeviceAuthorizationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_service_Device(t *testing.T) {
-	type fields struct {
-		clients            storage.ClientReader
-		deviceCodeSessions storage.DeviceCodeSessionWriter
-		userCodeGen        generator.DeviceUserCode
-	}
 	type args struct {
 		ctx context.Context
 		req *corev1.DeviceAuthorizationRequest
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
-		prepare func(*storagemock.MockClientReader, *storagemock.MockDeviceCodeSession)
+		prepare func(*storagemock.MockClientReader, *storagemock.MockDeviceCodeSession, *generatormock.MockDeviceCode, *generatormock.MockDeviceUserCode)
 		want    *corev1.DeviceAuthorizationResponse
 		wantErr bool
 	}{
@@ -79,10 +73,24 @@ func Test_service_Device(t *testing.T) {
 			},
 		},
 		{
+			name: "empty issuer",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.DeviceAuthorizationRequest{
+					Issuer: "",
+				},
+			},
+			wantErr: true,
+			want: &corev1.DeviceAuthorizationResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
 			name: "empty client id",
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "",
 				},
 			},
@@ -96,10 +104,11 @@ func Test_service_Device(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession, _ *generatormock.MockDeviceCode, _ *generatormock.MockDeviceUserCode) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
@@ -112,10 +121,11 @@ func Test_service_Device(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession, _ *generatormock.MockDeviceCode, _ *generatormock.MockDeviceUserCode) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -128,10 +138,11 @@ func Test_service_Device(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession, _ *generatormock.MockDeviceCode, _ *generatormock.MockDeviceUserCode) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, nil)
 			},
 			wantErr: true,
@@ -144,10 +155,11 @@ func Test_service_Device(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession) {
+			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockDeviceCodeSession, _ *generatormock.MockDeviceCode, _ *generatormock.MockDeviceUserCode) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
@@ -163,15 +175,18 @@ func Test_service_Device(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "s6BhdRkqt3",
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSession) {
+			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSession, mdc *generatormock.MockDeviceCode, mduc *generatormock.MockDeviceUserCode) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				deviceCodes.EXPECT().Register(gomock.Any(), gomock.Any()).Return("", "", uint64(60), fmt.Errorf("foo"))
+				mdc.EXPECT().Generate(gomock.Any(), "https://honest.as.example.com").Return("GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", nil)
+				mduc.EXPECT().Generate(gomock.Any(), "https://honest.as.example.com").Return("WDJB-MJHT", nil)
+				deviceCodes.EXPECT().Register(gomock.Any(), "https://honest.as.example.com", "WDJB-MJHT", gomock.Any()).Return(uint64(60), fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.DeviceAuthorizationResponse{
@@ -184,19 +199,23 @@ func Test_service_Device(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.DeviceAuthorizationRequest{
+					Issuer:   "https://honest.as.example.com",
 					ClientId: "s6BhdRkqt3",
 					Scope:    types.StringRef("openid admin"),
 				},
 			},
-			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSession) {
+			prepare: func(clients *storagemock.MockClientReader, deviceCodes *storagemock.MockDeviceCodeSession, mdc *generatormock.MockDeviceCode, mduc *generatormock.MockDeviceUserCode) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				deviceCodes.EXPECT().Register(gomock.Any(), gomock.Any()).Return("GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", "WDJB-MJHT", uint64(120), nil)
+				mdc.EXPECT().Generate(gomock.Any(), "https://honest.as.example.com").Return("GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", nil)
+				mduc.EXPECT().Generate(gomock.Any(), "https://honest.as.example.com").Return("WDJB-MJHT", nil)
+				deviceCodes.EXPECT().Register(gomock.Any(), "https://honest.as.example.com", "WDJB-MJHT", gomock.Any()).Return(uint64(120), nil)
 			},
 			wantErr: false,
 			want: &corev1.DeviceAuthorizationResponse{
+				Issuer:     "https://honest.as.example.com",
 				DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 				UserCode:   "WDJB-MJHT",
 				ExpiresIn:  120,
@@ -212,14 +231,16 @@ func Test_service_Device(t *testing.T) {
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
 			deviceCodeSessions := storagemock.NewMockDeviceCodeSession(ctrl)
+			deviceCodes := generatormock.NewMockDeviceCode(ctrl)
+			userCodes := generatormock.NewMockDeviceUserCode(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(clients, deviceCodeSessions)
+				tt.prepare(clients, deviceCodeSessions, deviceCodes, userCodes)
 			}
 
 			// Prepare service
-			underTest := New(clients, deviceCodeSessions)
+			underTest := New(clients, deviceCodeSessions, deviceCodes, userCodes)
 
 			// Do the request
 			got, err := underTest.Authorize(tt.args.ctx, tt.args.req)

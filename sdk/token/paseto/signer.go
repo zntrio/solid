@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	pasetov4 "zntr.io/paseto/v4"
+
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/types"

@@ -67,7 +67,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 	}
 
 	// Store the token spec
-	if err := s.tokens.Create(ctx, at); err != nil {
+	if err := s.tokens.Create(ctx, meta.Issuer, at); err != nil {
 		return nil, fmt.Errorf("unable to register access token spec in token storage: %w", err)
 	}
 
@@ -109,7 +109,7 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 	}
 
 	// Store the token spec
-	if err := s.tokens.Create(ctx, at); err != nil {
+	if err := s.tokens.Create(ctx, meta.Issuer, at); err != nil {
 		return nil, fmt.Errorf("unable to register refresh token spec in token storage: %w", err)
 	}
 

@@ -47,12 +47,11 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 		r.ParseForm()
 
 		// Parameters
-		var (
-			ctx = r.Context()
-		)
+		ctx := r.Context()
 
 		// Send to reactor
 		res, err := devicez.Authorize(ctx, &corev1.DeviceAuthorizationRequest{
+			Issuer:   issuer,
 			ClientId: r.FormValue("client_id"),
 			Scope:    optionalString(r.FormValue("scope")),
 			Audience: optionalString(r.FormValue("audience")),

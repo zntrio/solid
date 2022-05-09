@@ -119,7 +119,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	}
 
 	// Check given token
-	st, err := s.tokens.GetByValue(ctx, grant.SubjectToken)
+	st, err := s.tokens.GetByValue(ctx, req.Issuer, grant.SubjectToken)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -199,7 +199,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	}
 
 	// Store the token spec
-	if err := s.tokens.Create(ctx, at); err != nil {
+	if err := s.tokens.Create(ctx, req.Issuer, at); err != nil {
 		return fmt.Errorf("unable to register access token spec in token storage: %w", err)
 	}
 

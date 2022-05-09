@@ -15,44 +15,58 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package generator
+package pairwise
 
 import (
-	"context"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"strings"
 
-	"github.com/dchest/uniuri"
+	"golang.org/x/crypto/blake2b"
 )
 
 const (
-	// DefaultAuthorizationCodeLen defines default authorization code length.
-	DefaultAuthorizationCodeLen = 32
+	minSaltLength = 16
 )
 
-// DefaultAuthorizationCode returns the default authorization code generator.
-func DefaultAuthorizationCode() AuthorizationCode {
-	return &authorizationCodeGenerator{}
+func Hash(salt []byte) Encoder {
+	return &hashEncoder{
+		salt: salt,
+	}
 }
 
 // -----------------------------------------------------------------------------
 
-type authorizationCodeGenerator struct{}
-
-func (c *authorizationCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
-	return code, nil
+type hashEncoder struct {
+	salt []byte
 }
 
-func (c *authorizationCodeGenerator) Validate(_ context.Context, issuer, in string) error {
-	// Normalize
-	in = strings.TrimSpace(in)
-
-	// Check length
-	if len(in) != DefaultAuthorizationCodeLen {
-		return errors.New("invalid authorization code syntax")
+func (t *hashEncoder) Encode(sectorID, subject string) (string, error) {
+	// Check salt
+	if len(t.salt) < minSaltLength {
+		return "", errors.New("unable to initialize blake2b hasher, salt too short")
 	}
 
-	// No error
-	return nil
+	// Normalize input
+	subject = strings.TrimSpace(subject)
+	if len(subject) == 0 {
+		return "", errors.New("subject can't be blank or empty")
+	}
+
+	// Initialize hasher
+	h, err := blake2b.New256(t.salt)
+	if err != nil {
+		return "", fmt.Errorf("unable to initialize blake2b hasher: %w", err)
+	}
+
+	// Hash the content
+	h.Write([]byte(sectorID))
+	h.Write([]byte(subject))
+
+	// Finalize
+	sub := h.Sum(nil)
+
+	// Encode hash as Raw Base64 URL
+	return base64.RawURLEncoding.EncodeToString(sub[:]), nil
 }

@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "pairwise",
+    srcs = [
+        "api.go",
+        "hash.go",
+    ],
+    importpath = "zntr.io/solid/sdk/pairwise",
+    visibility = ["//visibility:public"],
+    deps = ["@org_golang_x_crypto//blake2b"],
+)
+
+go_test(
+    name = "pairwise_test",
+    srcs = ["hash_test.go"],
+    embed = [":pairwise"],
+)

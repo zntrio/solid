@@ -19,10 +19,11 @@ package inmemory
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/dchest/uniuri"
 	"github.com/patrickmn/go-cache"
+	"golang.org/x/crypto/blake2b"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/server/storage"
@@ -44,29 +45,42 @@ func AuthorizationCodeSessions() storage.AuthorizationCodeSession {
 
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) Register(ctx context.Context, req *corev1.AuthorizationCodeSession) (string, uint64, error) {
-	// Authorization Code Generator
-	code := uniuri.NewLen(32)
-
+func (s *sessionStorage) Register(ctx context.Context, issuer, code string, req *corev1.AuthorizationCodeSession) (uint64, error) {
 	// Insert in cache
-	s.backend.Set(code, req, cache.DefaultExpiration)
+	s.backend.Set(s.deriveKey(issuer, code), req, cache.DefaultExpiration)
 
 	// No error
-	return code, uint64(60), nil
+	return uint64(60), nil
 }
 
-func (s *sessionStorage) Delete(ctx context.Context, code string) error {
-	s.backend.Delete(code)
+func (s *sessionStorage) Delete(ctx context.Context, issuer, code string) error {
+	s.backend.Delete(s.deriveKey(issuer, code))
 	// No error
 	return nil
 }
 
-func (s *sessionStorage) Get(ctx context.Context, code string) (*corev1.AuthorizationCodeSession, error) {
+func (s *sessionStorage) Get(ctx context.Context, issuer, code string) (*corev1.AuthorizationCodeSession, error) {
 	// Retrieve from cache
-	if x, found := s.backend.Get(code); found {
+	if x, found := s.backend.Get(s.deriveKey(issuer, code)); found {
 		req := x.(*corev1.AuthorizationCodeSession)
 		return req, nil
 	}
 
 	return nil, storage.ErrNotFound
+}
+
+// -----------------------------------------------------------------------------
+
+func (s *sessionStorage) deriveKey(issuer, code string) string {
+	// Create hasher
+	h, err := blake2b.New256([]byte(`Sj%u-#$yVfdaHE/@e-=2"MI<T];#tr'{|udMFn.@4abjM({8L'|j]{G2ecDK[W2"`))
+	if err != nil {
+		panic(err)
+	}
+
+	h.Write([]byte("solid:authorization-code-sessions:v1"))
+	h.Write([]byte(issuer))
+	h.Write([]byte(code))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

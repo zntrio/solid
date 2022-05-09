@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -35,6 +36,16 @@ func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospection
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("could not process nil request")
 	}
+	// Check issuer syntax
+	if req.Issuer == "" {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("issuer must not be blank")
+	}
+	_, err := url.ParseRequestURI(req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("issuer must be a valid url: %w", err)
+	}
 	if req.Client == nil {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("no client authentication found")
@@ -45,7 +56,7 @@ func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospection
 	}
 
 	// Retrieve client information
-	_, err := s.clients.Get(ctx, req.Client.ClientId)
+	_, err = s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.ServerError().Build()
@@ -56,13 +67,14 @@ func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospection
 	}
 
 	// Retrieve token by value
-	t, err := s.tokens.GetByValue(ctx, req.Token)
+	t, err := s.tokens.GetByValue(ctx, req.Issuer, req.Token)
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to retrieve to token: %w", err)
 	}
 	if err != nil && errors.Is(err, storage.ErrNotFound) {
 		res.Token = &corev1.Token{
+			Issuer: req.Issuer,
 			Value:  req.Token,
 			Status: corev1.TokenStatus_TOKEN_STATUS_INVALID,
 		}

@@ -195,7 +195,7 @@ func Test_service_refreshToken(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, storage.ErrNotFound)
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -223,7 +223,7 @@ func Test_service_refreshToken(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, fmt.Errorf("foo"))
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -251,7 +251,7 @@ func Test_service_refreshToken(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					Status:    corev1.TokenStatus_TOKEN_STATUS_REVOKED,
@@ -284,7 +284,7 @@ func Test_service_refreshToken(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -317,7 +317,7 @@ func Test_service_refreshToken(t *testing.T) {
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -351,7 +351,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(100, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -393,7 +393,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -437,7 +437,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -480,7 +480,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -523,7 +523,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -538,7 +538,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -567,7 +567,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -582,9 +582,9 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo")).After(atSave)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo")).After(atSave)
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -613,7 +613,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -628,10 +628,10 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
-				tokens.EXPECT().Revoke(gomock.Any(), "0123456789").Return(fmt.Errorf("foo"))
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &corev1.TokenResponse{
@@ -661,7 +661,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -676,7 +676,7 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
@@ -718,7 +718,7 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -733,10 +733,10 @@ func Test_service_refreshToken(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
-				tokens.EXPECT().Revoke(gomock.Any(), "0123456789").Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{

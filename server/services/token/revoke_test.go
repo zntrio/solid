@@ -56,10 +56,38 @@ func Test_service_Revoke(t *testing.T) {
 			},
 		},
 		{
+			name: "empty issuer",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.TokenRevocationRequest{
+					Issuer: "",
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenRevocationResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "invalid issuer",
+			args: args{
+				ctx: context.Background(),
+				req: &corev1.TokenRevocationRequest{
+					Issuer: "foo",
+				},
+			},
+			wantErr: true,
+			want: &corev1.TokenRevocationResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
 			name: "nil client authentication",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenRevocationRequest{},
+				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
+				},
 			},
 			wantErr: true,
 			want: &corev1.TokenRevocationResponse{
@@ -71,6 +99,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{},
 				},
 			},
@@ -84,6 +113,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{},
 					Token:  "",
 				},
@@ -99,6 +129,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -118,6 +149,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -138,6 +170,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -148,7 +181,7 @@ func Test_service_Revoke(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, storage.ErrNotFound)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want:    &corev1.TokenRevocationResponse{},
@@ -158,6 +191,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -168,7 +202,7 @@ func Test_service_Revoke(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, fmt.Errorf("foo"))
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want:    &corev1.TokenRevocationResponse{},
@@ -178,6 +212,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -186,12 +221,13 @@ func Test_service_Revoke(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
+					Issuer:  "https://honest.as.example.com",
 					Status:  corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenId: "123456789",
 					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				}, nil)
-				tokens.EXPECT().Revoke(gomock.Any(), "123456789").Return(fmt.Errorf("foo"))
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "123456789").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want:    &corev1.TokenRevocationResponse{},
@@ -202,6 +238,7 @@ func Test_service_Revoke(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &corev1.TokenRevocationRequest{
+					Issuer: "https://honest.as.example.com",
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -210,12 +247,13 @@ func Test_service_Revoke(t *testing.T) {
 			},
 			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
+					Issuer:  "https://honest.as.example.com",
 					Status:  corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenId: "123456789",
 					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				}, nil)
-				tokens.EXPECT().Revoke(gomock.Any(), "123456789").Return(nil)
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "123456789").Return(nil)
 			},
 			wantErr: false,
 			want:    &corev1.TokenRevocationResponse{},

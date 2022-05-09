@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dchest/uniuri"
 	"github.com/patrickmn/go-cache"
+	"golang.org/x/crypto/blake2b"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/server/storage"
@@ -45,29 +45,42 @@ func AuthorizationRequests() storage.AuthorizationRequest {
 
 // -----------------------------------------------------------------------------
 
-func (s *authorizationRequestStorage) Register(ctx context.Context, issuer string, req *corev1.AuthorizationRequest) (string, uint64, error) {
-	// Generate request uri
-	requestURI := fmt.Sprintf("urn:solid:%s", uniuri.NewLen(32))
-
+func (s *authorizationRequestStorage) Register(ctx context.Context, issuer, requestURI string, req *corev1.AuthorizationRequest) (uint64, error) {
 	// Insert in cache
-	s.backend.Set(requestURI, req, cache.DefaultExpiration)
+	s.backend.Set(s.deriveKey(issuer, requestURI), req, cache.DefaultExpiration)
 
 	// No error
-	return requestURI, 60, nil
+	return 60, nil
 }
 
 func (s *authorizationRequestStorage) Delete(ctx context.Context, issuer, requestURI string) error {
-	s.backend.Delete(requestURI)
+	s.backend.Delete(s.deriveKey(issuer, requestURI))
 	// No error
 	return nil
 }
 
 func (s *authorizationRequestStorage) Get(ctx context.Context, issuer, requestURI string) (*corev1.AuthorizationRequest, error) {
 	// Retrieve from cache
-	if x, found := s.backend.Get(requestURI); found {
+	if x, found := s.backend.Get(s.deriveKey(issuer, requestURI)); found {
 		req := x.(*corev1.AuthorizationRequest)
 		return req, nil
 	}
 
 	return nil, storage.ErrNotFound
+}
+
+// -----------------------------------------------------------------------------
+
+func (s *authorizationRequestStorage) deriveKey(issuer, requestURI string) string {
+	// Create hasher
+	h, err := blake2b.New256([]byte("!|XH/CNMA8WSlN*;*UKL!0tW[CU17EB4A.a)[WZbvKSl;F?G#PxjijvtFWS0C=T"))
+	if err != nil {
+		panic(err)
+	}
+
+	h.Write([]byte("solid:authorization-requests:v1"))
+	h.Write([]byte(issuer))
+	h.Write([]byte(requestURI))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

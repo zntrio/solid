@@ -36,8 +36,9 @@ import (
 )
 
 // PushedAuthorizationRequest handles PAR HTTP requests.
-func PushedAuthorizationRequest(authz services.Authorization, dpopVerifier dpop.Verifier) http.Handler {
+func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {
+		Issuer     string `json:"issuer"`
 		RequestURI string `json:"request_uri"`
 		ExpiresIn  uint64 `json:"expires_in"`
 	}
@@ -92,6 +93,7 @@ func PushedAuthorizationRequest(authz services.Authorization, dpopVerifier dpop.
 
 		// Send request to reactor
 		res, err := authz.Register(ctx, &corev1.RegistrationRequest{
+			Issuer:               issuer,
 			Client:               client,
 			AuthorizationRequest: ar,
 			Confirmation: &corev1.TokenConfirmation{
@@ -106,6 +108,7 @@ func PushedAuthorizationRequest(authz services.Authorization, dpopVerifier dpop.
 
 		// Send json response
 		withJSON(w, r, http.StatusCreated, &response{
+			Issuer:     res.Issuer,
 			RequestURI: res.RequestUri,
 			ExpiresIn:  res.ExpiresIn,
 		})

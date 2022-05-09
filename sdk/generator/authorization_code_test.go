@@ -24,7 +24,7 @@ import (
 
 func Test_codeGenerator_Generate(t *testing.T) {
 	c := DefaultAuthorizationCode()
-	got, err := c.Generate(context.Background())
+	got, err := c.Generate(context.Background(), "http://test.example.com")
 	if err != nil {
 		t.Fatalf("unexpected error occurs, got %v", err)
 	}

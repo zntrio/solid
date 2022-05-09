@@ -20,6 +20,7 @@ package token
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -34,6 +35,16 @@ func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("could not process nil request")
 	}
+	// Check issuer syntax
+	if req.Issuer == "" {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("issuer must not be blank")
+	}
+	_, err := url.ParseRequestURI(req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("issuer must be a valid url: %w", err)
+	}
 	if req.Client == nil {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("no client authentication found")
@@ -44,7 +55,7 @@ func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest
 	}
 
 	// Retrieve client information
-	_, err := s.clients.Get(ctx, req.Client.ClientId)
+	_, err = s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -55,13 +66,13 @@ func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest
 	}
 
 	// Retrieve token by value
-	t, err := s.tokens.GetByValue(ctx, req.Token)
+	t, err := s.tokens.GetByValue(ctx, req.Issuer, req.Token)
 	if err != nil {
 		return res, fmt.Errorf("unable to retrieve token '%s': %w", req.Token, err)
 	}
 
 	// Update token status
-	if err := s.tokens.Revoke(ctx, t.TokenId); err != nil {
+	if err := s.tokens.Revoke(ctx, req.Issuer, t.TokenId); err != nil {
 		return res, fmt.Errorf("unable to revoke token '%s': %w", req.Token, err)
 	}
 

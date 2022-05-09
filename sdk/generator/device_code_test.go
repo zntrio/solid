@@ -19,24 +19,16 @@ package generator
 
 import (
 	"context"
-	"fmt"
 	"testing"
 )
 
-func Test_devicecodeAlphaGenerator_Generate(t *testing.T) {
-	c := DefaultDeviceUserCode()
-	got, err := c.Generate(context.Background(), "https://honest.as.example.com")
+func Test_deviceCodeGenerator_Generate(t *testing.T) {
+	c := DefaultDeviceCode()
+	got, err := c.Generate(context.Background(), "http://test.example.com")
 	if err != nil {
 		t.Fatalf("unexpected error occurs, got %v", err)
 	}
-	fmt.Println(got)
-}
-
-func Test_devicecodeNumGenerator_Generate(t *testing.T) {
-	c := DefaultNumDeviceUserCode()
-	got, err := c.Generate(context.Background(), "https://honest.as.example.com")
-	if err != nil {
-		t.Fatalf("unexpected error occurs, got %v", err)
+	if len(got) != DefaultDeviceCodeLen {
+		t.Errorf("generated value has not the required length (%d)", DefaultDeviceCodeLen)
 	}
-	fmt.Println(got)
 }

@@ -28,7 +28,7 @@ import (
 )
 
 // TokenRevocation handles token revocation HTTP requests.
-func TokenRevocation(tokenz services.Token) http.Handler {
+func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 
@@ -47,6 +47,7 @@ func TokenRevocation(tokenz services.Token) http.Handler {
 
 		// Send request to reactor
 		res, err := tokenz.Revoke(ctx, &corev1.TokenRevocationRequest{
+			Issuer:        issuer,
 			Client:        client,
 			Token:         token,
 			TokenTypeHint: optionalString(tokenTypeHint),

@@ -315,7 +315,7 @@ func Test_service_Token(t *testing.T) {
 					ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
@@ -362,7 +362,7 @@ func Test_service_Token(t *testing.T) {
 					SubjectType:      oidc.SubjectTypePublic,
 					SectorIdentifier: "https://client.example.org",
 				}, nil)
-				sessions.EXPECT().Get(gomock.Any(), "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
 					Request: &corev1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -374,11 +374,11 @@ func Test_service_Token(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "1234567891234567890").Return(nil)
+				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
@@ -439,7 +439,7 @@ func Test_service_Token(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
 					Client: &corev1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -448,10 +448,10 @@ func Test_service_Token(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   "user1",
+					Subject:   types.StringRef("user1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{
@@ -494,7 +494,7 @@ func Test_service_Token(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -509,7 +509,7 @@ func Test_service_Token(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				tokens.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &corev1.TokenResponse{

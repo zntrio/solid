@@ -21,18 +21,16 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"regexp"
 	"strings"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
 	"zntr.io/solid/server/storage"
 )
-
-var requestURIMatcher = regexp.MustCompile(`urn:solid:[A-Za-z0-9]{32}`)
 
 const (
 	desiredMinNonceValueLength         = 8
@@ -44,14 +42,18 @@ type service struct {
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequest
 	authorizationCodeSessions storage.AuthorizationCodeSessionWriter
+	codeGenerator             generator.AuthorizationCode
+	requestURIGenerator       generator.RequestURI
 }
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter) services.Authorization {
+func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, codeGenerator generator.AuthorizationCode, requestURIGenerator generator.RequestURI) services.Authorization {
 	return &service{
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
+		codeGenerator:             codeGenerator,
+		requestURIGenerator:       requestURIGenerator,
 	}
 }
 
@@ -87,7 +89,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 	// Check request reference usage
 	if req.AuthorizationRequest.RequestUri != nil {
 		// Check request_uri syntax
-		if !requestURIMatcher.MatchString(*req.AuthorizationRequest.RequestUri) {
+		if err := s.requestURIGenerator.Validate(ctx, req.Issuer, *req.AuthorizationRequest.RequestUri); err != nil {
 			res.Error = rfcerrors.InvalidRequest().Build()
 			return res, fmt.Errorf("request_uri is syntaxically invalid '%s'", *req.AuthorizationRequest.RequestUri)
 		}
@@ -124,15 +126,22 @@ func (s *service) Authorize(ctx context.Context, req *corev1.AuthorizationCodeRe
 		return res, err
 	}
 
+	// Create an authorization code
+	code, err := s.codeGenerator.Generate(ctx, req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.ServerError().State(req.AuthorizationRequest.State).Build()
+		return res, fmt.Errorf("unable to generate authorization code: %w", err)
+	}
+
 	// Create an authorization session
-	code, expiresIn, err := s.authorizationCodeSessions.Register(ctx, &corev1.AuthorizationCodeSession{
+	expiresIn, err := s.authorizationCodeSessions.Register(ctx, req.Issuer, code, &corev1.AuthorizationCodeSession{
 		Issuer:  req.Issuer,
 		Subject: req.Subject,
 		Request: req.AuthorizationRequest,
 	})
 	if err != nil {
 		res.Error = rfcerrors.ServerError().State(req.AuthorizationRequest.State).Build()
-		return res, fmt.Errorf("unable to generate authorization code: %w", err)
+		return res, fmt.Errorf("unable to register authorization session: %w", err)
 	}
 
 	// Assign code to response
@@ -178,6 +187,12 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 		return res, fmt.Errorf("authorization request must not be nil")
 	}
 
+	// Check nested request
+	if req.AuthorizationRequest.RequestUri != nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("unable to register nested request")
+	}
+
 	// Validate authorization request
 	publicErr, err := s.validate(ctx, req.AuthorizationRequest)
 	if err != nil {
@@ -191,8 +206,15 @@ func (s *service) Register(ctx context.Context, req *corev1.RegistrationRequest)
 		return res, fmt.Errorf("unable to register request for another client")
 	}
 
+	// Generate request uri
+	requestURI, err := s.requestURIGenerator.Generate(ctx, req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("unable to generate request uri: %w", err)
+	}
+
 	// Register the authorization request
-	requestURI, expiresIn, err := s.authorizationRequests.Register(ctx, req.Issuer, req.AuthorizationRequest)
+	expiresIn, err := s.authorizationRequests.Register(ctx, req.Issuer, requestURI, req.AuthorizationRequest)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to register authorization request: %w", err)

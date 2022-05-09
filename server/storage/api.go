@@ -61,7 +61,7 @@ type AuthorizationRequestReader interface {
 
 // AuthorizationRequestWriter describes authorization request storage write-only operation contract.
 type AuthorizationRequestWriter interface {
-	Register(ctx context.Context, issuer string, req *corev1.AuthorizationRequest) (string, uint64, error)
+	Register(ctx context.Context, issuer, requestURI string, req *corev1.AuthorizationRequest) (uint64, error)
 	Delete(ctx context.Context, issuer, requestURI string) error
 }
 
@@ -77,17 +77,17 @@ type AuthorizationRequest interface {
 
 // TokenReader describes accessToken read-only operation storage contract.
 type TokenReader interface {
-	Get(ctx context.Context, id string) (*corev1.Token, error)
-	GetByValue(ctx context.Context, value string) (*corev1.Token, error)
+	Get(ctx context.Context, issuer, id string) (*corev1.Token, error)
+	GetByValue(ctx context.Context, issuer, value string) (*corev1.Token, error)
 }
 
 //go:generate mockgen -destination mock/token_writer.gen.go -package mock zntr.io/solid/server/storage TokenWriter
 
 // TokenWriter describes accessToken write-only operation contract.
 type TokenWriter interface {
-	Create(ctx context.Context, t *corev1.Token) error
-	Delete(ctx context.Context, id string) error
-	Revoke(ctx context.Context, id string) error
+	Create(ctx context.Context, issuer string, t *corev1.Token) error
+	Delete(ctx context.Context, issuer, id string) error
+	Revoke(ctx context.Context, issuer, id string) error
 }
 
 //go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/server/storage Token
@@ -102,15 +102,15 @@ type Token interface {
 
 // AuthorizationCodeSessionReader describes read-only storage operation contract.
 type AuthorizationCodeSessionReader interface {
-	Get(ctx context.Context, code string) (*corev1.AuthorizationCodeSession, error)
+	Get(ctx context.Context, issuer, code string) (*corev1.AuthorizationCodeSession, error)
 }
 
 //go:generate mockgen -destination mock/authorization_code_session_writer.gen.go -package mock zntr.io/solid/server/storage AuthorizationCodeSessionWriter
 
 // AuthorizationCodeSessionWriter describes write-only operation contract.
 type AuthorizationCodeSessionWriter interface {
-	Register(ctx context.Context, s *corev1.AuthorizationCodeSession) (string, uint64, error)
-	Delete(ctx context.Context, code string) error
+	Register(ctx context.Context, issuer, code string, s *corev1.AuthorizationCodeSession) (uint64, error)
+	Delete(ctx context.Context, issuer, code string) error
 }
 
 //go:generate mockgen -destination mock/authorization_code_session.gen.go -package mock zntr.io/solid/server/storage AuthorizationCodeSession
@@ -125,17 +125,17 @@ type AuthorizationCodeSession interface {
 
 // DeviceCodeSessionWriter describes deviceCode write-only operation contract.
 type DeviceCodeSessionWriter interface {
-	Register(ctx context.Context, r *corev1.DeviceCodeSession) (string, string, uint64, error)
-	Delete(ctx context.Context, id string) error
-	Authorize(ctx context.Context, userCode, subject string) error
+	Register(ctx context.Context, issuer, userCode string, r *corev1.DeviceCodeSession) (uint64, error)
+	Delete(ctx context.Context, issuer, userCode string) error
+	Validate(ctx context.Context, issuer, userCode string, r *corev1.DeviceCodeSession) error
 }
 
 //go:generate mockgen -destination mock/device_code_session_reader.gen.go -package mock zntr.io/solid/server/storage DeviceCodeSessionReader
 
 // DeviceCodeSessionReader describes deviceCode read-only operation contract.
 type DeviceCodeSessionReader interface {
-	GetByDeviceCode(ctx context.Context, deviceCode string) (*corev1.DeviceCodeSession, error)
-	GetByUserCode(ctx context.Context, userCode string) (*corev1.DeviceCodeSession, error)
+	GetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*corev1.DeviceCodeSession, error)
+	GetByUserCode(ctx context.Context, issuer, userCode string) (*corev1.DeviceCodeSession, error)
 }
 
 //go:generate mockgen -destination mock/device_code_session.gen.go -package mock zntr.io/solid/server/storage DeviceCodeSession

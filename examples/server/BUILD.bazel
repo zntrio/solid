@@ -15,6 +15,7 @@ go_library(
         "//sdk/generator",
         "//sdk/jarm",
         "//sdk/jwk",
+        "//sdk/pairwise",
         "//sdk/token",
         "//sdk/token/jwt",
         "//server/services/authorization",

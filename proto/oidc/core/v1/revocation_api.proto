@@ -34,11 +34,14 @@ service TokenRevocatonAPI {
 
 // https://tools.ietf.org/html/rfc7009#section-2.1
 message TokenRevocationRequest {
+  // REQUIRED. Token issuer URL.
+  string issuer = 1;
+
   // REQUIRED. Client that invoke the token revocation.
-  Client client = 1;
+  Client client = 2;
 
   // REQUIRED.  The token that the client wants to get revoked.
-  string token = 2;
+  string token = 3;
 
   // OPTIONAL.  A hint about the type of the token
   // submitted for revocation.  Clients MAY pass this parameter in
@@ -49,7 +52,7 @@ message TokenRevocationRequest {
   // this parameter, particularly if it is able to detect the
   // token type automatically.  This specification defines two
   // such values:
-  optional string token_type_hint = 3;
+  optional string token_type_hint = 4;
 }
 
 message TokenRevocationResponse {

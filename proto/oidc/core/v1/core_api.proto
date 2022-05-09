@@ -221,17 +221,20 @@ message TokenResponse {
 
 // https://tools.ietf.org/html/rfc8628#section-3.1
 message DeviceAuthorizationRequest {
+  // REQUIRED. Issuer uri.
+  string issuer = 1;
+
   // REQUIRED if the client is not authenticating with the
   // authorization server as described in Section 3.2.1. of [RFC6749].
   // The client identifier as described in Section 2.2 of [RFC6749].
-  string client_id = 1;
+  string client_id = 2;
 
   // OPTIONAL.  The scope of the access request as defined by
   // Section 3.3 of [RFC6749].
-  optional string scope = 2;
+  optional string scope = 3;
 
   // OPTIONAL.  The target audience.
-  optional string audience = 3;
+  optional string audience = 4;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.2
@@ -261,10 +264,12 @@ message DeviceAuthorizationResponse {
 }
 
 message DeviceCodeValidationRequest {
+  // REQUIRED. Issuer uri.
+  string issuer = 1;
   // REQUIRED. The end-user verification code.
-  string user_code = 1;
+  string user_code = 2;
   // REQUIRED. User identity.
-  string subject = 2;
+  string subject = 3;
 }
 
 message DeviceCodeValidationResponse {

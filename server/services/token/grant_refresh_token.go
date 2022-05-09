@@ -72,7 +72,7 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 	}
 
 	// Check given token
-	rt, err := s.tokens.GetByValue(ctx, grant.RefreshToken)
+	rt, err := s.tokens.GetByValue(ctx, req.Issuer, grant.RefreshToken)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -125,7 +125,7 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 		}
 
 		// Revoke old refresh token
-		if err := s.tokens.Revoke(ctx, rt.TokenId); err != nil {
+		if err := s.tokens.Revoke(ctx, req.Issuer, rt.TokenId); err != nil {
 			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("unable to revoke old refresh token '%s': %w", rt.Value, err)
 		}

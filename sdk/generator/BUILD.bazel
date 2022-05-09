@@ -6,7 +6,9 @@ go_library(
         "api.go",
         "authorization_code.go",
         "client.go",
+        "device_code.go",
         "device_user_code.go",
+        "request_uri.go",
     ],
     importpath = "zntr.io/solid/sdk/generator",
     visibility = ["//visibility:public"],
@@ -17,6 +19,7 @@ go_test(
     name = "generator_test",
     srcs = [
         "authorization_code_test.go",
+        "device_code_test.go",
         "device_user_code_test.go",
     ],
     embed = [":generator"],

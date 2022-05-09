@@ -35,6 +35,7 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jarm"
 	"zntr.io/solid/sdk/jwsreq"
+	"zntr.io/solid/sdk/pairwise"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token/jwt"
 	"zntr.io/solid/server/services"
@@ -42,7 +43,7 @@ import (
 )
 
 // Authorization handles authorization HTTP requests.
-func Authorization(issuer string, authz services.Authorization, clients storage.ClientReader, jarmEncoder jarm.ResponseEncoder) http.Handler {
+func Authorization(issuer string, authz services.Authorization, clients storage.ClientReader, jarmEncoder jarm.ResponseEncoder, pairwiseEncoder pairwise.Encoder) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
@@ -70,6 +71,15 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		if err != nil {
 			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
+		}
+
+		// Apply pairwise encoding
+		if client.SubjectType == oidc.SubjectTypePairwise {
+			sub, err = pairwiseEncoder.Encode(client.SectorIdentifier, sub)
+			if err != nil {
+				withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+				return
+			}
 		}
 
 		// Prepare client request decoder
@@ -123,7 +133,6 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 // -----------------------------------------------------------------------------
 
 func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *corev1.AuthorizationCodeResponse) {
-
 	// Build redirection uri
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {

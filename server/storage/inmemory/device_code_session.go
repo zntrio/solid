@@ -19,32 +19,28 @@ package inmemory
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
-	"github.com/dchest/uniuri"
 	"github.com/patrickmn/go-cache"
+	"golang.org/x/crypto/blake2b"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
-	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/server/storage"
 )
 
 type deviceCodeSessionStorage struct {
 	userCodeIndex   *cache.Cache
 	deviceCodeIndex *cache.Cache
-	userCodes       generator.DeviceUserCode
 }
 
 // DeviceCodeSessions returns a device authorization session manager.
-func DeviceCodeSessions(userCodes generator.DeviceUserCode) storage.DeviceCodeSession {
+func DeviceCodeSessions() storage.DeviceCodeSession {
 	// Initialize in-memory caches
 	userCodeCache := cache.New(2*time.Minute, 10*time.Minute)
 	deviceCodeCache := cache.New(2*time.Minute, 10*time.Minute)
 
 	return &deviceCodeSessionStorage{
-		userCodes:       userCodes,
 		userCodeIndex:   userCodeCache,
 		deviceCodeIndex: deviceCodeCache,
 	}
@@ -52,38 +48,24 @@ func DeviceCodeSessions(userCodes generator.DeviceUserCode) storage.DeviceCodeSe
 
 // -----------------------------------------------------------------------------
 
-func (s *deviceCodeSessionStorage) Register(ctx context.Context, req *corev1.DeviceCodeSession) (string, string, uint64, error) {
-	// Authorization Code Generator
-	deviceCode := uniuri.NewLen(32)
-
-	// Generate user code
-	userCode, err := s.userCodes.Generate(ctx)
-	if err != nil {
-		return "", "", uint64(0), fmt.Errorf("unable to generate user_code: %w", err)
-	}
-
-	// Assign to session
-	req.UserCode = userCode
-	req.ExpiresAt = uint64(time.Now().Add(120 * time.Second).Unix())
-	req.Status = corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING
-
+func (s *deviceCodeSessionStorage) Register(ctx context.Context, issuer, userCode string, req *corev1.DeviceCodeSession) (uint64, error) {
 	// Insert in cache
-	s.userCodeIndex.Set(userCode, req, cache.DefaultExpiration)
-	s.deviceCodeIndex.Set(deviceCode, req, cache.DefaultExpiration)
+	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req, cache.DefaultExpiration)
+	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req, cache.DefaultExpiration)
 
 	// No error
-	return deviceCode, userCode, uint64(120), nil
+	return uint64(120), nil
 }
 
-func (s *deviceCodeSessionStorage) Delete(ctx context.Context, code string) error {
-	s.userCodeIndex.Delete(code)
+func (s *deviceCodeSessionStorage) Delete(ctx context.Context, issuer, code string) error {
+	s.userCodeIndex.Delete(s.deriveUserCode(issuer, code))
 	// No error
 	return nil
 }
 
-func (s *deviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, deviceCode string) (*corev1.DeviceCodeSession, error) {
+func (s *deviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*corev1.DeviceCodeSession, error) {
 	// Retrieve from cache
-	if x, found := s.deviceCodeIndex.Get(deviceCode); found {
+	if x, found := s.deviceCodeIndex.Get(s.deriveDeviceCode(issuer, deviceCode)); found {
 		req := x.(*corev1.DeviceCodeSession)
 		return req, nil
 	}
@@ -91,9 +73,9 @@ func (s *deviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, deviceCo
 	return nil, storage.ErrNotFound
 }
 
-func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, userCode string) (*corev1.DeviceCodeSession, error) {
+func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, issuer, userCode string) (*corev1.DeviceCodeSession, error) {
 	// Retrieve from cache
-	if x, found := s.userCodeIndex.Get(userCode); found {
+	if x, found := s.userCodeIndex.Get(s.deriveUserCode(issuer, userCode)); found {
 		req := x.(*corev1.DeviceCodeSession)
 		return req, nil
 	}
@@ -101,29 +83,41 @@ func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, userCode s
 	return nil, storage.ErrNotFound
 }
 
-func (s *deviceCodeSessionStorage) Authorize(ctx context.Context, userCode, subject string) error {
-	// Check arguments
-	if userCode == "" {
-		return errors.New("unable to proceed with blank user_code")
-	}
-	if subject == "" {
-		return errors.New("unable to proceed with blank subject")
-	}
-
-	// Get by user code
-	session, err := s.GetByUserCode(ctx, userCode)
-	if err != nil {
-		return err
-	}
-
-	// Update user sndex
-	session.Status = corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED
-	session.Subject = subject
-
+func (s *deviceCodeSessionStorage) Validate(ctx context.Context, issuer, userCode string, req *corev1.DeviceCodeSession) error {
 	// Insert in cache
-	s.userCodeIndex.Set(userCode, session, cache.DefaultExpiration)
-	s.deviceCodeIndex.Set(session.DeviceCode, session, cache.DefaultExpiration)
+	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req, cache.DefaultExpiration)
+	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req, cache.DefaultExpiration)
 
 	// No error
 	return nil
+}
+
+// -----------------------------------------------------------------------------
+
+func (s *deviceCodeSessionStorage) deriveUserCode(issuer, code string) string {
+	// Create hasher
+	h, err := blake2b.New256([]byte(`bA(0Kq#UT>42Va[MEFs[M%owo8|jiTbf!SVr1h0RaT~$a6?L\rqeB$q>fSDLz0:`))
+	if err != nil {
+		panic(err)
+	}
+
+	h.Write([]byte("solid:device-authorization-user-code:v1"))
+	h.Write([]byte(issuer))
+	h.Write([]byte(code))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+func (s *deviceCodeSessionStorage) deriveDeviceCode(issuer, code string) string {
+	// Create hasher
+	h, err := blake2b.New256([]byte(`bA(0Kq#UT>42Va[MEFs[M%owo8|jiTbf!SVr1h0RaT~$a6?L\rqeB$q>fSDLz0:`))
+	if err != nil {
+		panic(err)
+	}
+
+	h.Write([]byte("solid:device-authorization-device-code:v1"))
+	h.Write([]byte(issuer))
+	h.Write([]byte(code))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

@@ -5,8 +5,10 @@ go_library(
     srcs = [
         "authorization_code.gen.go",
         "client_id.gen.go",
+        "device_code.gen.go",
         "device_user_code.gen.go",
         "doc.go",
+        "request_uri.gen.go",
     ],
     importpath = "zntr.io/solid/sdk/generator/mock",
     visibility = ["//visibility:public"],

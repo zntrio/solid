@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//api/oidc/core/v1:core",
         "//oidc",
+        "//sdk/generator",
         "//sdk/rfcerrors",
         "//sdk/types",
         "//server/services",
@@ -25,6 +26,7 @@ go_test(
     deps = [
         "//api/oidc/core/v1:core",
         "//oidc",
+        "//sdk/generator/mock",
         "//sdk/rfcerrors",
         "//sdk/types",
         "//server/storage",

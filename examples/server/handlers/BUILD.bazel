@@ -25,6 +25,7 @@ go_library(
         "//sdk/jarm",
         "//sdk/jwk",
         "//sdk/jwsreq",
+        "//sdk/pairwise",
         "//sdk/rfcerrors",
         "//sdk/token",
         "//sdk/token/jwt",

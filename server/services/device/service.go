@@ -24,6 +24,7 @@ import (
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
@@ -33,13 +34,17 @@ import (
 type service struct {
 	clients            storage.ClientReader
 	deviceCodeSessions storage.DeviceCodeSession
+	deviceCodes        generator.DeviceCode
+	userCodes          generator.DeviceUserCode
 }
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, deviceCodeSessions storage.DeviceCodeSession) services.Device {
+func New(clients storage.ClientReader, deviceCodeSessions storage.DeviceCodeSession, deviceCodes generator.DeviceCode, userCodes generator.DeviceUserCode) services.Device {
 	return &service{
 		clients:            clients,
 		deviceCodeSessions: deviceCodeSessions,
+		deviceCodes:        deviceCodes,
+		userCodes:          userCodes,
 	}
 }
 
@@ -54,6 +59,12 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+
+	// Check issuer
+	if req.Issuer == "" {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("unable to process empty issuer")
 	}
 
 	// Check client_id
@@ -79,20 +90,32 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 		return res, fmt.Errorf("client doesn't support '%s' as grant type", oidc.GrantTypeDeviceCode)
 	}
 
+	// Generate device code
+	deviceCode, err := s.deviceCodes.Generate(ctx, req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("unable to generate device code: %w", err)
+	}
+
+	// Generate device code
+	userCode, err := s.userCodes.Generate(ctx, req.Issuer)
+	if err != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("unable to generate user code: %w", err)
+	}
+
 	// Prepare session
 	session := &corev1.DeviceCodeSession{
-		Client:  client,
-		Request: req,
-	}
-	if req.Scope != nil {
-		session.Scope = *req.Scope
-	}
-	if req.Audience != nil {
-		session.Audience = *req.Audience
+		Issuer:     req.Issuer,
+		Client:     client,
+		Request:    req,
+		Scope:      req.Scope,
+		Audience:   req.Audience,
+		DeviceCode: deviceCode,
 	}
 
 	// Store device code request
-	deviceCode, userCode, expiresIn, err := s.deviceCodeSessions.Register(ctx, session)
+	expiresIn, err := s.deviceCodeSessions.Register(ctx, req.Issuer, userCode, session)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to create device request: %w", err)
@@ -106,6 +129,8 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 	res.ExpiresIn = expiresIn
 	// Polling interval
 	res.Interval = 5
+	// Assign issuer
+	res.Issuer = req.Issuer
 
 	// No error
 	return res, nil
@@ -118,6 +143,12 @@ func (s *service) Validate(ctx context.Context, req *corev1.DeviceCodeValidation
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+
+	// Check issuer
+	if req.Issuer == "" {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("unable to process empty issuer")
 	}
 
 	// Check user code
@@ -133,7 +164,7 @@ func (s *service) Validate(ctx context.Context, req *corev1.DeviceCodeValidation
 	}
 
 	// Resolve device code
-	session, err := s.deviceCodeSessions.GetByUserCode(ctx, req.UserCode)
+	session, err := s.deviceCodeSessions.GetByUserCode(ctx, req.Issuer, req.UserCode)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -145,15 +176,15 @@ func (s *service) Validate(ctx context.Context, req *corev1.DeviceCodeValidation
 
 	// Check session
 	if session == nil {
-		res.Error = rfcerrors.ServerError().Build()
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("retrieved nil session for '%s'", req.UserCode)
 	}
 	if session.Request == nil {
-		res.Error = rfcerrors.ServerError().Build()
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("session has nil request for '%s'", req.UserCode)
 	}
 	if session.Client == nil {
-		res.Error = rfcerrors.ServerError().Build()
+		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("session has nil client for '%s'", req.UserCode)
 	}
 
@@ -169,10 +200,20 @@ func (s *service) Validate(ctx context.Context, req *corev1.DeviceCodeValidation
 		return res, fmt.Errorf("user_code '%s' is already authorized", req.UserCode)
 	}
 
+	// Update session
+	session.Subject = types.StringRef(req.Subject)
+	session.Status = corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED
+
 	// Update ephemeral storage
-	if err := s.deviceCodeSessions.Authorize(ctx, session.UserCode, req.Subject); err != nil {
+	if err := s.deviceCodeSessions.Validate(ctx, req.Issuer, req.UserCode, session); err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("user_code '%s' could not be authorized: %v", req.UserCode, err)
+	}
+
+	// Delete request
+	if err := s.deviceCodeSessions.Delete(ctx, req.Issuer, req.UserCode); err != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("user authorization '%s' could not be deleted: %v", req.UserCode, err)
 	}
 
 	// No error

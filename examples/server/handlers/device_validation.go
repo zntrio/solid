@@ -29,7 +29,7 @@ import (
 )
 
 // Device handle device code validation.
-func Device(devicez services.Device) http.Handler {
+func Device(issuer string, devicez services.Device) http.Handler {
 	// Display user code form
 	displayForm := func(w http.ResponseWriter, r *http.Request, sub string) {
 		// Only POST verb
@@ -71,6 +71,7 @@ func Device(devicez services.Device) http.Handler {
 
 		// Send request to reactor
 		res, err := devicez.Validate(r.Context(), &corev1.DeviceCodeValidationRequest{
+			Issuer:   issuer,
 			Subject:  sub,
 			UserCode: r.PostFormValue("user_code"),
 		})

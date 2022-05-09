@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"sync"
 
+	"golang.org/x/crypto/blake2b"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/server/storage"
 )
@@ -42,11 +43,14 @@ func Tokens() storage.Token {
 
 // -----------------------------------------------------------------------------
 
-func (s *tokenStorage) Create(ctx context.Context, t *corev1.Token) error {
+func (s *tokenStorage) Create(ctx context.Context, issuer string, t *corev1.Token) error {
 	// Check parameters
 	if t == nil {
 		return fmt.Errorf("unable to store nil token")
 	}
+
+	// Compute token value hash
+	t.Value = s.deriveValue(issuer, t.Value)
 
 	s.mutex.Lock()
 	s.idIndex[t.TokenId] = t
@@ -57,7 +61,7 @@ func (s *tokenStorage) Create(ctx context.Context, t *corev1.Token) error {
 	return nil
 }
 
-func (s *tokenStorage) Get(ctx context.Context, id string) (*corev1.Token, error) {
+func (s *tokenStorage) Get(ctx context.Context, issuer, id string) (*corev1.Token, error) {
 	// Check is client exists
 	client, ok := s.idIndex[id]
 	if !ok {
@@ -68,9 +72,9 @@ func (s *tokenStorage) Get(ctx context.Context, id string) (*corev1.Token, error
 	return client, nil
 }
 
-func (s *tokenStorage) GetByValue(ctx context.Context, value string) (*corev1.Token, error) {
+func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*corev1.Token, error) {
 	// Check is client exists
-	client, ok := s.valueIndex[value]
+	client, ok := s.valueIndex[s.deriveValue(issuer, value)]
 	if !ok {
 		return nil, storage.ErrNotFound
 	}
@@ -79,9 +83,9 @@ func (s *tokenStorage) GetByValue(ctx context.Context, value string) (*corev1.To
 	return client, nil
 }
 
-func (s *tokenStorage) Delete(ctx context.Context, id string) error {
+func (s *tokenStorage) Delete(ctx context.Context, issuer, id string) error {
 	// Retrieve token
-	t, err := s.Get(ctx, id)
+	t, err := s.Get(ctx, issuer, id)
 	if err != nil {
 		return err
 	}
@@ -95,9 +99,9 @@ func (s *tokenStorage) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *tokenStorage) Revoke(ctx context.Context, id string) error {
+func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 	// Retrieve token
-	t, err := s.Get(ctx, id)
+	t, err := s.Get(ctx, issuer, id)
 	if err != nil {
 		return err
 	}
@@ -113,4 +117,20 @@ func (s *tokenStorage) Revoke(ctx context.Context, id string) error {
 
 	// No error
 	return nil
+}
+
+// -----------------------------------------------------------------------------
+
+func (s *tokenStorage) deriveValue(issuer, value string) string {
+	// Create hasher
+	h, err := blake2b.New256([]byte(`%JwQL_C=w^R@9?{J,=;LHe=&n0L1P{QrS=MsA}7H]V3fHd8&$noL&"hZH;&Uw)3`))
+	if err != nil {
+		panic(err)
+	}
+
+	h.Write([]byte("solid:token:v1"))
+	h.Write([]byte(issuer))
+	h.Write([]byte(value))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"net/http"
 
+	jsoniter "github.com/json-iterator/go"
+
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/types"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 func optionalString(value string) *string {

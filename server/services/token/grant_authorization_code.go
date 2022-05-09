@@ -99,7 +99,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	}
 
 	// Retrieve authorization request from code
-	ar, err := s.authorizationCodeSessions.Get(ctx, grant.Code)
+	ar, err := s.authorizationCodeSessions.Get(ctx, req.Issuer, grant.Code)
 	if err != nil {
 		if err != storage.ErrNotFound {
 			res.Error = rfcerrors.ServerError().Build()
@@ -116,7 +116,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	}
 
 	// Delete session
-	err = s.authorizationCodeSessions.Delete(ctx, grant.Code)
+	err = s.authorizationCodeSessions.Delete(ctx, req.Issuer, grant.Code)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to remove authorization session from code '%s': %w", grant.Code, err)

@@ -19,6 +19,8 @@ package dpop
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -48,7 +50,7 @@ type defaultProver struct {
 	signer token.Serializer
 }
 
-func (p *defaultProver) Prove(htm, htu string) (string, error) {
+func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 	// Check parameters
 	if types.IsNil(p.signer) {
 		return "", errors.New("unable to prove with nil signer")
@@ -74,12 +76,26 @@ func (p *defaultProver) Prove(htm, htu string) (string, error) {
 		return "", fmt.Errorf("invalid HTTP Method in proof '%s'", htm)
 	}
 
+	// Prepare options
+	dopts := &options{}
+	for _, o := range opts {
+		o(dopts)
+	}
+
 	// Create proof claims
 	claims := &proofClaims{
 		JTI:        uniuri.NewLen(JTICodeLength),
 		HTTPMethod: htm,
 		HTTPURL:    fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path),
 		IssuedAt:   uint64(time.Now().UTC().Unix()),
+	}
+
+	// If the DPoP proof is used in conjunction with the presentation of
+	// an access toke.
+	if dopts.token != nil {
+		// Compute the access token hash.
+		ath := sha256.Sum256([]byte(dopts.token.Value))
+		claims.AccessTokenHash = types.StringRef(base64.RawURLEncoding.EncodeToString(ath[:]))
 	}
 
 	// Sign claims

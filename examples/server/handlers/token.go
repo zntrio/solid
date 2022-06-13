@@ -115,7 +115,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 
 		// Send request to reactor
-		res, err := tokenz.Token(r.Context(), msg)
+		res, err := tokenz.Token(ctx, msg)
 		if err != nil {
 			log.Println("unable to process token request:", err)
 			withError(w, r, http.StatusBadRequest, res.Error)

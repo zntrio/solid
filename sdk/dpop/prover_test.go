@@ -23,6 +23,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
@@ -32,8 +33,9 @@ func Test_defaultProver_Prove(t *testing.T) {
 		signer token.Serializer
 	}
 	type args struct {
-		htm string
-		htu string
+		htm  string
+		htu  string
+		opts []Option
 	}
 	tests := []struct {
 		name    string
@@ -108,6 +110,32 @@ func Test_defaultProver_Prove(t *testing.T) {
 			wantErr: false,
 			want:    "fake-token",
 		},
+		{
+			name: "valid with token",
+			args: args{
+				htm: "POST",
+				htu: "https://server.com/resource",
+				opts: []Option{
+					WithToken(&corev1.Token{
+						Value: "1234567890",
+						Metadata: &corev1.TokenMeta{
+							Issuer:    "https://server.example.com",
+							Subject:   "someone@example.com",
+							NotBefore: 1562262611,
+							ExpiresAt: 1562266216,
+						},
+						Confirmation: &corev1.TokenConfirmation{
+							Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+						},
+					}),
+				},
+			},
+			prepare: func(signer *tokenmock.MockSerializer) {
+				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			},
+			wantErr: false,
+			want:    "fake-token",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -122,7 +150,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 			}
 
 			p := DefaultProver(mockSigner)
-			got, err := p.Prove(tt.args.htm, tt.args.htu)
+			got, err := p.Prove(tt.args.htm, tt.args.htu, tt.args.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultProver.Prove() error = %v, wantErr %v", err, tt.wantErr)
 				return

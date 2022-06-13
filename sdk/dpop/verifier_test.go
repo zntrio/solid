@@ -26,8 +26,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
+	"zntr.io/solid/sdk/types"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
@@ -37,6 +39,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 		htm   string
 		htu   string
 		proof string
+		opts  []Option
 	}
 	tests := []struct {
 		name    string
@@ -266,6 +269,134 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "error with token - token not bound",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithToken(&corev1.Token{
+						Value: "1234567890",
+						Metadata: &corev1.TokenMeta{
+							Issuer:    "https://server.example.com",
+							Subject:   "someone@example.com",
+							NotBefore: 1562262611,
+							ExpiresAt: 1562266216,
+						},
+						Confirmation: &corev1.TokenConfirmation{
+							Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+						},
+					}),
+				},
+			},
+			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod: http.MethodGet,
+							HTTPURL:    "https://server.com/resource",
+							IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:        "non-existent-jti",
+						}
+					}
+				}).Return(nil)
+				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
+				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "error with token - token mismatch",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithToken(&corev1.Token{
+						Value: "1234567890",
+						Metadata: &corev1.TokenMeta{
+							Issuer:    "https://server.example.com",
+							Subject:   "someone@example.com",
+							NotBefore: 1562262611,
+							ExpiresAt: 1562266216,
+						},
+						Confirmation: &corev1.TokenConfirmation{
+							Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
+						},
+					}),
+				},
+			},
+			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod:      http.MethodGet,
+							HTTPURL:         "https://server.com/resource",
+							IssuedAt:        uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:             "non-existent-jti",
+							AccessTokenHash: types.StringRef(""),
+						}
+					}
+				}).Return(nil)
+				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
+				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "error with token - proof mismatch",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithToken(&corev1.Token{
+						Value: "1234567890",
+						Metadata: &corev1.TokenMeta{
+							Issuer:    "https://server.example.com",
+							Subject:   "someone@example.com",
+							NotBefore: 1562262611,
+							ExpiresAt: 1562266216,
+						},
+						Confirmation: &corev1.TokenConfirmation{
+							Jkt: "another-fake-confirmation",
+						},
+					}),
+				},
+			},
+			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod:      http.MethodGet,
+							HTTPURL:         "https://server.com/resource",
+							IssuedAt:        uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:             "non-existent-jti",
+							AccessTokenHash: types.StringRef("x3Xnt1ft5jDNCqERO9ECZhqziCnKUqZCKreChi8mhkY"),
+						}
+					}
+				}).Return(nil)
+				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
+				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: true,
+		},
+		{
 			name: "valid",
 			args: args{
 				htm:   http.MethodGet,
@@ -294,6 +425,50 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			wantErr: false,
 			want:    "fake-confirmation",
 		},
+		{
+			name: "valid with token",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithToken(&corev1.Token{
+						Value: "1234567890",
+						Metadata: &corev1.TokenMeta{
+							Issuer:    "https://server.example.com",
+							Subject:   "someone@example.com",
+							NotBefore: 1562262611,
+							ExpiresAt: 1562266216,
+						},
+						Confirmation: &corev1.TokenConfirmation{
+							Jkt: "fake-confirmation",
+						},
+					}),
+				},
+			},
+			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod:      http.MethodGet,
+							HTTPURL:         "https://server.com/resource",
+							IssuedAt:        uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:             "non-existent-jti",
+							AccessTokenHash: types.StringRef("x3Xnt1ft5jDNCqERO9ECZhqziCnKUqZCKreChi8mhkY"),
+						}
+					}
+				}).Return(nil)
+				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
+				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: false,
+			want:    "fake-confirmation",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -310,7 +485,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			}
 
 			v := DefaultVerifier(mockStorage, mockVerifier)
-			got, err := v.Verify(tt.args.ctx, tt.args.htm, tt.args.htu, tt.args.proof)
+			got, err := v.Verify(tt.args.ctx, tt.args.htm, tt.args.htu, tt.args.proof, tt.args.opts...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultVerifier.Verify() error = %v, wantErr %v", err, tt.wantErr)
 				return

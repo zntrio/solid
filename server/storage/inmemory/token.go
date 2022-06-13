@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"golang.org/x/crypto/blake2b"
+
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/server/storage"
 )

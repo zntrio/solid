@@ -27,6 +27,9 @@ message GrantAuthorizationCode {
   string code = 1;
   string redirect_uri = 2;
   string code_verifier = 3;
+  // OPTIONAL. Authorization Code Binding to DPoP Key.
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-10
+  optional string dpop_jkt = 4;
 }
 
 message GrantRefreshToken {

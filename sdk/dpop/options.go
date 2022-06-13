@@ -17,10 +17,20 @@
 
 package dpop
 
-type proofClaims struct {
-	JTI             string  `json:"jti"`
-	HTTPMethod      string  `json:"htm"`
-	HTTPURL         string  `json:"htu"`
-	IssuedAt        uint64  `json:"iat"`
-	AccessTokenHash *string `json:"ath,omitempty"`
+import (
+	corev1 "zntr.io/solid/api/oidc/core/v1"
+)
+
+// -----------------------------------------------------------------------------
+
+type options struct {
+	token *corev1.Token
+}
+
+type Option func(*options)
+
+func WithToken(t *corev1.Token) func(opts *options) {
+	return func(opts *options) {
+		opts.token = t
+	}
 }

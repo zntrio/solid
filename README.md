@@ -147,7 +147,7 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] Pairwise subject identifier
     * Scheme
       * [x] Bearer - [rfc6750](https://tools.ietf.org/html/rfc6750)
-      * [x] DPoP - [draft-fett-oauth-dpop-02](https://tools.ietf.org/html/draft-ietf-oauth-dpop-02)
+      * [x] DPoP - [draft-fett-oauth-dpop-09](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09)
       * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
     * Authentication by reference
       * [x] Random string

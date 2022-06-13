@@ -19,7 +19,9 @@ package dpop
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -47,6 +49,8 @@ func DefaultVerifier(proofs storage.DPoP, verifier token.Verifier) Verifier {
 
 // -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+
 type defaultVerifier struct {
 	proofs   storage.DPoP
 	verifier token.Verifier
@@ -54,7 +58,7 @@ type defaultVerifier struct {
 
 // Verify given DPoP proof.
 // https://www.ietf.org/id/draft-ietf-oauth-dpop-01.html#section-4.2
-func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (string, error) {
+func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, opts ...Option) (string, error) {
 	// Check parameters
 	if htm == "" {
 		return "", fmt.Errorf("htm must not be blank")
@@ -64,6 +68,12 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (s
 	}
 	if proof == "" {
 		return "", fmt.Errorf("proof must not be blank")
+	}
+
+	// Prepare options
+	dopts := &options{}
+	for _, o := range opts {
+		o(dopts)
 	}
 
 	// Validate url
@@ -112,6 +122,28 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string) (s
 	thumb, err := token.PublicKeyThumbPrint()
 	if err != nil {
 		return "", fmt.Errorf("unable to compute confirmation: %w", err)
+	}
+
+	// If the DPoP proof is used in conjunction with the presentation of
+	// an access toke.
+	if dopts.token != nil {
+		// Check claim presence
+		if claims.AccessTokenHash == nil {
+			return "", errors.New("invalid proof / token association, token not bound")
+		}
+
+		// Compute the access token hash.
+		ath := sha256.Sum256([]byte(dopts.token.Value))
+		if expected := base64.RawURLEncoding.EncodeToString(ath[:]); !types.SecureCompareString(*claims.AccessTokenHash, expected) {
+			return "", errors.New("invalid proof / token association, token mismatch")
+		}
+
+		// Check access token confirmation
+		if dopts.token.Confirmation != nil {
+			if !types.SecureCompareString(thumb, dopts.token.Confirmation.Jkt) {
+				return "", errors.New("invalid proof / token association, proof mismatch")
+			}
+		}
 	}
 
 	// Return confirmation

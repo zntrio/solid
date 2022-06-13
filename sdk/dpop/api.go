@@ -35,12 +35,12 @@ const (
 
 // Prover describes prover contract
 type Prover interface {
-	Prove(htm string, htu string) (string, error)
+	Prove(htm string, htu string, opts ...Option) (string, error)
 }
 
 //go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/sdk/dpop Verifier
 
 // Verifier describes proof verifier contract.
 type Verifier interface {
-	Verify(ctx context.Context, htm, htu, proof string) (string, error)
+	Verify(ctx context.Context, htm, htu, proof string, opts ...Option) (string, error)
 }

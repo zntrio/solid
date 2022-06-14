@@ -26,7 +26,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 	"zntr.io/solid/sdk/types"
@@ -275,18 +274,8 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 				opts: []Option{
-					WithToken(&corev1.Token{
-						Value: "1234567890",
-						Metadata: &corev1.TokenMeta{
-							Issuer:    "https://server.example.com",
-							Subject:   "someone@example.com",
-							NotBefore: 1562262611,
-							ExpiresAt: 1562266216,
-						},
-						Confirmation: &corev1.TokenConfirmation{
-							Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
-						},
-					}),
+					WithTokenValue("1234567890"),
+					WithTokenConfirmation("0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"),
 				},
 			},
 			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
@@ -317,18 +306,8 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 				opts: []Option{
-					WithToken(&corev1.Token{
-						Value: "1234567890",
-						Metadata: &corev1.TokenMeta{
-							Issuer:    "https://server.example.com",
-							Subject:   "someone@example.com",
-							NotBefore: 1562262611,
-							ExpiresAt: 1562266216,
-						},
-						Confirmation: &corev1.TokenConfirmation{
-							Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
-						},
-					}),
+					WithTokenValue("another-token"),
+					WithTokenConfirmation("0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"),
 				},
 			},
 			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
@@ -360,18 +339,8 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 				opts: []Option{
-					WithToken(&corev1.Token{
-						Value: "1234567890",
-						Metadata: &corev1.TokenMeta{
-							Issuer:    "https://server.example.com",
-							Subject:   "someone@example.com",
-							NotBefore: 1562262611,
-							ExpiresAt: 1562266216,
-						},
-						Confirmation: &corev1.TokenConfirmation{
-							Jkt: "another-fake-confirmation",
-						},
-					}),
+					WithTokenValue("1234567890"),
+					WithTokenConfirmation("0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"),
 				},
 			},
 			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
@@ -432,18 +401,8 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 				opts: []Option{
-					WithToken(&corev1.Token{
-						Value: "1234567890",
-						Metadata: &corev1.TokenMeta{
-							Issuer:    "https://server.example.com",
-							Subject:   "someone@example.com",
-							NotBefore: 1562262611,
-							ExpiresAt: 1562266216,
-						},
-						Confirmation: &corev1.TokenConfirmation{
-							Jkt: "fake-confirmation",
-						},
-					}),
+					WithTokenValue("1234567890"),
+					WithTokenConfirmation("fake-confirmation"),
 				},
 			},
 			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {

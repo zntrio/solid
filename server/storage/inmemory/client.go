@@ -36,6 +36,49 @@ type clientStorage struct {
 func Clients() storage.Client {
 	return &clientStorage{
 		backend: map[string]*corev1.Client{
+			"t8p9duw4n2klximkv3kagaud796ul67g": {
+				ClientId:   "t8p9duw4n2klximkv3kagaud796ul67g",
+				ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				ClientName: "test-client",
+				Jwks: []byte(`{"keys":[
+					{
+						"kid":"t8p9duw4n2klximkv3kagaud796ul67g",
+						"kty":"EC",
+						"crv":"P-384",
+						"alg":"ES384",
+						"x":"yqLwlyN2qohjRcI_evlAXge2bvQWQQwGjsQNXEtfFMN613Wu6a5qfzu74vBkKJau",
+						"y":"aCVWx2cX2f7foQ0KtPGJ-TKjFMtcEWv1VQKJUL93B7ANbnwnj_Ox2DsYd64wUH8o"
+					}
+				]}`),
+				GrantTypes: []string{
+					oidc.GrantTypeClientCredentials, // Machine-to-machine
+				},
+				// Pairwise sector identitier
+				SubjectType:      oidc.SubjectTypePairwise,
+				SectorIdentifier: "http://127.0.0.1:8085",
+			},
+			"5stz52n91hr7aw9q1h5hbuvkt2ovevdw": {
+				ClientId:   "5stz52n91hr7aw9q1h5hbuvkt2ovevdw",
+				ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				ClientName: "resource-server",
+				Jwks: []byte(`{"keys":[
+					{
+						"kid":"5stz52n91hr7aw9q1h5hbuvkt2ovevdw",
+						"kty":"EC",
+						"crv":"P-384",
+						"alg":"ES384",
+						"x":"YvJISWbCgiUhED5jb_N6UEem2jwN4WU2kIgC3KsT1tXS2FB7PSKdFdx76vtUW2e3",
+						"y":"XYEHKEfIH8dd2xqZ8oTO8COnOs_OpFs71xvncT3c-3koJYix4Sb9c-drRRRRAqnK"
+					}
+				]}`),
+				GrantTypes: []string{
+					oidc.GrantTypeClientCredentials, // Machine-to-machine
+					oidc.GrantTypeTokenExchange,
+				},
+				// Pairwise sector identitier
+				SubjectType:      oidc.SubjectTypePairwise,
+				SectorIdentifier: "http://127.0.0.1:8085",
+			},
 			"6779ef20e75817b79602": {
 				ClientId:        "6779ef20e75817b79602",
 				ClientType:      corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,

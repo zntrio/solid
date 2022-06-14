@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"golang.org/x/crypto/blake2b"
+	"google.golang.org/protobuf/proto"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/server/storage"
@@ -50,12 +51,15 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *corev1.Toke
 		return fmt.Errorf("unable to store nil token")
 	}
 
+	// Clone the token object
+	tCopy := proto.Clone(t).(*corev1.Token)
+
 	// Compute token value hash
-	t.Value = s.deriveValue(issuer, t.Value)
+	tCopy.Value = s.deriveValue(issuer, t.Value)
 
 	s.mutex.Lock()
-	s.idIndex[t.TokenId] = t
-	s.valueIndex[t.Value] = t
+	s.idIndex[tCopy.TokenId] = tCopy
+	s.valueIndex[tCopy.Value] = tCopy
 	s.mutex.Unlock()
 
 	// No error

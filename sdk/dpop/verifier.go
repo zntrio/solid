@@ -125,22 +125,22 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, op
 	}
 
 	// If the DPoP proof is used in conjunction with the presentation of
-	// an access toke.
-	if dopts.token != nil {
+	// an access token.
+	if dopts.tokenValue != nil {
 		// Check claim presence
 		if claims.AccessTokenHash == nil {
 			return "", errors.New("invalid proof / token association, token not bound")
 		}
 
 		// Compute the access token hash.
-		ath := sha256.Sum256([]byte(dopts.token.Value))
+		ath := sha256.Sum256([]byte(*dopts.tokenValue))
 		if expected := base64.RawURLEncoding.EncodeToString(ath[:]); !types.SecureCompareString(*claims.AccessTokenHash, expected) {
 			return "", errors.New("invalid proof / token association, token mismatch")
 		}
 
 		// Check access token confirmation
-		if dopts.token.Confirmation != nil {
-			if !types.SecureCompareString(thumb, dopts.token.Confirmation.Jkt) {
+		if dopts.tokenConfirmation != nil {
+			if !types.SecureCompareString(thumb, *dopts.tokenConfirmation) {
 				return "", errors.New("invalid proof / token association, proof mismatch")
 			}
 		}

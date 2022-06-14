@@ -18,11 +18,11 @@
 package middleware
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/clientauthentication"
@@ -43,32 +43,39 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				clientIDRaw = q.Get("client_id")
 			)
 
-			// Retrieve client details
-			client, err := clients.Get(ctx, clientIDRaw)
-			if err != nil {
-				log.Println("unable to retrieve client:", err)
-				json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build())
-				return
-			}
+			if clientIDRaw != "" {
+				// Retrieve client details
+				client, err := clients.Get(ctx, clientIDRaw)
+				if err != nil {
+					log.Println("unable to retrieve client:", err)
+					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+					return
+				}
 
-			// Process authentication
-			if client.ClientType == corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL {
+				if client.ClientType == corev1.ClientType_CLIENT_TYPE_PUBLIC {
+					// Assign client to context
+					ctx = clientauthentication.Inject(ctx, client)
+				} else {
+					log.Println("missing client authentication")
+					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+					return
+				}
+			} else {
+				r.ParseForm()
+
+				// Process authentication
 				resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: types.StringRef(q.Get("client_assertion_type")),
-					ClientAssertion:     types.StringRef(q.Get("client_assertion")),
+					ClientAssertionType: types.StringRef(r.PostFormValue("client_assertion_type")),
+					ClientAssertion:     types.StringRef(r.PostFormValue("client_assertion")),
 				})
 				if err != nil {
 					log.Println("unable to authenticate client:", err)
-					json.NewEncoder(w).Encode(resAuth.GetError())
+					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 					return
 				}
 
 				// Assign client to context
 				ctx = clientauthentication.Inject(ctx, resAuth.Client)
-			}
-			if client.ClientType == corev1.ClientType_CLIENT_TYPE_PUBLIC {
-				// Assign client to context
-				ctx = clientauthentication.Inject(ctx, client)
 			}
 
 			// Delegate to next handler

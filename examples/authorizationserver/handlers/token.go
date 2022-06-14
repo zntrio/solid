@@ -22,7 +22,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -41,10 +44,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 	}
 
 	messageBuilder := func(r *http.Request, client *corev1.Client) *corev1.TokenRequest {
-		var (
-			q         = r.URL.Query()
-			grantType = q.Get("grant_type")
-		)
+		grantType := r.FormValue("grant_type")
 
 		msg := &corev1.TokenRequest{
 			Issuer:    issuer,
@@ -56,9 +56,9 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		case oidc.GrantTypeAuthorizationCode:
 			msg.Grant = &corev1.TokenRequest_AuthorizationCode{
 				AuthorizationCode: &corev1.GrantAuthorizationCode{
-					Code:         q.Get("code"),
-					CodeVerifier: q.Get("code_verifier"),
-					RedirectUri:  q.Get("redirect_uri"),
+					Code:         r.FormValue("code"),
+					CodeVerifier: r.FormValue("code_verifier"),
+					RedirectUri:  r.FormValue("redirect_uri"),
 				},
 			}
 		case oidc.GrantTypeClientCredentials:
@@ -68,13 +68,13 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		case oidc.GrantTypeDeviceCode:
 			msg.Grant = &corev1.TokenRequest_DeviceCode{
 				DeviceCode: &corev1.GrantDeviceCode{
-					DeviceCode: q.Get("device_code"),
+					DeviceCode: r.FormValue("device_code"),
 				},
 			}
 		case oidc.GrantTypeRefreshToken:
 			msg.Grant = &corev1.TokenRequest_RefreshToken{
 				RefreshToken: &corev1.GrantRefreshToken{
-					RefreshToken: q.Get("refresh_token"),
+					RefreshToken: r.FormValue("refresh_token"),
 				},
 			}
 		}
@@ -84,6 +84,12 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only POST verb
+		if r.Method != http.MethodPost {
+			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			return
+		}
+
 		var (
 			ctx       = r.Context()
 			dpopProof = r.Header.Get("DPoP")
@@ -92,7 +98,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+			respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -104,7 +110,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
 			if err != nil {
 				log.Println("unable to validate dpop proof:", err)
-				withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
+				respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
 				return
 			}
 
@@ -118,7 +124,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		res, err := tokenz.Token(ctx, msg)
 		if err != nil {
 			log.Println("unable to process token request:", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 
@@ -127,6 +133,8 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		if dpopProof != "" {
 			tokenType = "DPoP"
 		}
+
+		spew.Dump(res)
 
 		// Prepare response
 		jsonResponse := &response{
@@ -140,6 +148,6 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 
 		// Send json reponse
-		withJSON(w, r, http.StatusOK, jsonResponse)
+		respond.WithJSON(w, r, http.StatusOK, jsonResponse)
 	})
 }

@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/services"
@@ -41,7 +42,7 @@ func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+			respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -54,7 +55,7 @@ func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 		})
 		if err != nil {
 			log.Println("unable to process revocation request: %w", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 	})

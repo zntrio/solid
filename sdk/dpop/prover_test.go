@@ -23,7 +23,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
@@ -116,18 +115,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htm: "POST",
 				htu: "https://server.com/resource",
 				opts: []Option{
-					WithToken(&corev1.Token{
-						Value: "1234567890",
-						Metadata: &corev1.TokenMeta{
-							Issuer:    "https://server.example.com",
-							Subject:   "someone@example.com",
-							NotBefore: 1562262611,
-							ExpiresAt: 1562266216,
-						},
-						Confirmation: &corev1.TokenConfirmation{
-							Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
-						},
-					}),
+					WithTokenValue("1234567890"),
 				},
 			},
 			prepare: func(signer *tokenmock.MockSerializer) {

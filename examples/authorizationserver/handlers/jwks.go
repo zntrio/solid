@@ -20,6 +20,7 @@ package handlers
 import (
 	"net/http"
 
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
 )
@@ -30,11 +31,11 @@ func JWKS(keySetProvider jwk.KeySetProviderFunc) http.Handler {
 		// Retrieve the active keyset
 		ks, err := keySetProvider(r.Context())
 		if err != nil {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+			respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 
 		// Send the JWKS
-		withJSON(w, r, http.StatusOK, ks)
+		respond.WithJSON(w, r, http.StatusOK, ks)
 	})
 }

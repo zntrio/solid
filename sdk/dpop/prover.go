@@ -92,9 +92,9 @@ func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 
 	// If the DPoP proof is used in conjunction with the presentation of
 	// an access toke.
-	if dopts.token != nil {
+	if dopts.tokenValue != nil {
 		// Compute the access token hash.
-		ath := sha256.Sum256([]byte(dopts.token.Value))
+		ath := sha256.Sum256([]byte(*dopts.tokenValue))
 		claims.AccessTokenHash = types.StringRef(base64.RawURLEncoding.EncodeToString(ath[:]))
 	}
 

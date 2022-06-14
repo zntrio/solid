@@ -6,8 +6,8 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 
-	"zntr.io/solid/examples/server/handlers"
-	"zntr.io/solid/examples/server/middleware"
+	"zntr.io/solid/examples/authorizationserver/handlers"
+	"zntr.io/solid/examples/authorizationserver/middleware"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/jarm"

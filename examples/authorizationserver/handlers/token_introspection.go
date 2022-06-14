@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/server/clientauthentication"
@@ -42,7 +43,7 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+			respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
@@ -58,7 +59,7 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 		res, err := tokenz.Introspect(ctx, msg)
 		if err != nil {
 			log.Println("unable to process introspection request: %w", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 
@@ -67,7 +68,6 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			"active": active,
 		}
 		if active {
-			resp["token_type"] = "Bearer"
 			resp["scope"] = res.Token.Metadata.Scope
 			resp["client_id"] = res.Token.Metadata.ClientId
 			resp["exp"] = res.Token.Metadata.ExpiresAt
@@ -77,9 +77,17 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			resp["aud"] = res.Token.Metadata.Audience
 			resp["iss"] = res.Token.Metadata.Issuer
 			resp["jti"] = res.Token.TokenId
+
+			// Add confirmation
+			if res.Token.Confirmation != nil {
+				resp["token_type"] = "DPoP"
+				resp["cnf"] = res.Token.Confirmation
+			} else {
+				resp["token_type"] = "Bearer"
+			}
 		}
 
 		// Send json reponse
-		withJSON(w, r, http.StatusOK, resp)
+		respond.WithJSON(w, r, http.StatusOK, resp)
 	})
 }

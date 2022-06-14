@@ -31,7 +31,8 @@ import (
 	"gopkg.in/square/go-jose.v2"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
-	"zntr.io/solid/examples/server/middleware"
+	"zntr.io/solid/examples/authorizationserver/middleware"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jarm"
 	"zntr.io/solid/sdk/jwsreq"
@@ -47,7 +48,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only GET verb
 		if r.Method != http.MethodGet {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -62,14 +63,14 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		// Retrieve subject from context
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+			respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 			return
 		}
 
 		// Retrieve client
 		client, err := clients.Get(ctx, clientID)
 		if err != nil {
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -77,7 +78,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		if client.SubjectType == oidc.SubjectTypePairwise {
 			sub, err = pairwiseEncoder.Encode(client.SectorIdentifier, sub)
 			if err != nil {
-				withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+				respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 				return
 			}
 		}
@@ -97,7 +98,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
 		if err != nil {
 			log.Println("unable to decode request:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -110,7 +111,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		})
 		if err != nil {
 			log.Println("unable to process authorization request:", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 
@@ -137,7 +138,7 @@ func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *corev1.Au
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
 		log.Println("unable to process redirect uri:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -164,7 +165,7 @@ func responseTypeQueryJWT(w http.ResponseWriter, r *http.Request, authRes *corev
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
 		log.Println("unable to process redirect uri:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -172,7 +173,7 @@ func responseTypeQueryJWT(w http.ResponseWriter, r *http.Request, authRes *corev
 	jarmToken, err := jarmEncoder.Encode(r.Context(), authRes.Issuer, authRes)
 	if err != nil {
 		log.Println("unable to produce JARM token:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -192,7 +193,7 @@ func responseTypeFragmentJWT(w http.ResponseWriter, r *http.Request, authRes *co
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
 		log.Println("unable to process redirect uri:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -200,7 +201,7 @@ func responseTypeFragmentJWT(w http.ResponseWriter, r *http.Request, authRes *co
 	jarmToken, err := jarmEncoder.Encode(r.Context(), authRes.Issuer, authRes)
 	if err != nil {
 		log.Println("unable to produce JARM token:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -220,7 +221,7 @@ func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *co
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
 		log.Println("unable to process redirect uri:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -228,7 +229,7 @@ func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *co
 	jarmToken, err := jarmEncoder.Encode(r.Context(), authRes.Issuer, authRes)
 	if err != nil {
 		log.Println("unable to produce JARM token:", err)
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 
@@ -247,7 +248,7 @@ func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *co
 		"Response":    jarmToken,
 		"Nonce":       nonce,
 	}); err != nil {
-		withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 		return
 	}
 }

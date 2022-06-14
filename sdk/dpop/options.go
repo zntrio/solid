@@ -17,20 +17,23 @@
 
 package dpop
 
-import (
-	corev1 "zntr.io/solid/api/oidc/core/v1"
-)
-
 // -----------------------------------------------------------------------------
 
 type options struct {
-	token *corev1.Token
+	tokenValue        *string
+	tokenConfirmation *string
 }
 
 type Option func(*options)
 
-func WithToken(t *corev1.Token) func(opts *options) {
+func WithTokenValue(t string) func(opts *options) {
 	return func(opts *options) {
-		opts.token = t
+		opts.tokenValue = &t
+	}
+}
+
+func WithTokenConfirmation(jkt string) func(opts *options) {
+	return func(opts *options) {
+		opts.tokenConfirmation = &jkt
 	}
 }

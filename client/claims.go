@@ -19,6 +19,8 @@ package client
 
 import (
 	"gopkg.in/square/go-jose.v2"
+
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
 // RequestURIResponse contains all request_uri creation related information.
@@ -54,4 +56,10 @@ type jsonRequestURIResponse struct {
 type jsonJWKSResponse struct {
 	*jose.JSONWebKeySet `json:",inline"`
 	Expires             uint64 `json:"exp"`
+}
+
+type jsonTokenIntrospectionResponse struct {
+	*corev1.TokenMeta `json:",inline"`
+	Active            bool                      `json:"active"`
+	Confirmation      *corev1.TokenConfirmation `json:"cnf,omitempty"`
 }

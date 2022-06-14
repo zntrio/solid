@@ -23,20 +23,23 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 )
 
 // Client describes OIDC client contract.
 type Client interface {
 	Assertion() (string, error)
-	CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error)
-	AuthenticationURL(ctx context.Context, requestURI string) (string, error)
-	ExchangeCode(ctx context.Context, assertion, authorizationCode, pkceCodeVerifier string) (*oauth2.Token, error)
+	// CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error)
+	// AuthenticationURL(ctx context.Context, requestURI string) (string, error)
+	// ExchangeCode(ctx context.Context, assertion, authorizationCode, pkceCodeVerifier string) (*oauth2.Token, error)
 	PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint64, error)
 	ClientID() string
 	Audience() string
 	ServerMetadata() *discoveryv1.ServerMetadata
 	Issuer() string
+	Introspect(ctx context.Context, assertion, token string) (*corev1.Token, error)
+	ClientCredentials(ctx context.Context, assertion string) (*oauth2.Token, error)
 }
 
 // Options defines client options

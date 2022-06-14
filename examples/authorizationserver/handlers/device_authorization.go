@@ -23,6 +23,7 @@ import (
 	"net/http"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/services"
 )
@@ -40,7 +41,7 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
 		if r.Method != http.MethodPost {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -58,12 +59,12 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 		})
 		if err != nil {
 			log.Println("unable to process device authorization request:", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 
 		// Send json reponse
-		withJSON(w, r, http.StatusOK, &response{
+		respond.WithJSON(w, r, http.StatusOK, &response{
 			DeviceCode:      res.DeviceCode,
 			UserCode:        res.UserCode,
 			VerificationURI: fmt.Sprintf("%s/device", issuer),

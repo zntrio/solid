@@ -69,7 +69,7 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cor
 	}
 	if *req.ClientAssertionType != oidc.AssertionTypeJWTBearer {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("client_assertion_type must equals '%s'", oidc.AssertionTypeJWTBearer)
+		return res, fmt.Errorf("client_assertion_type must equals '%s', got '%s'", oidc.AssertionTypeJWTBearer, *req.ClientAssertionType)
 	}
 	if req.ClientAssertion == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()

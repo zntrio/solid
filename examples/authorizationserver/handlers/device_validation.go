@@ -23,7 +23,8 @@ import (
 	"net/http"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
-	"zntr.io/solid/examples/server/middleware"
+	"zntr.io/solid/examples/authorizationserver/middleware"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/services"
 )
@@ -34,7 +35,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 	displayForm := func(w http.ResponseWriter, r *http.Request, sub string) {
 		// Only POST verb
 		if r.Method != http.MethodGet {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -54,7 +55,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 
 		// Write template to output
 		if err := form.Execute(w, nil); err != nil {
-			withError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+			respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			return
 		}
 	}
@@ -65,7 +66,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 
 		// Only POST verb
 		if r.Method != http.MethodPost {
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -77,7 +78,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 		})
 		if err != nil {
 			log.Println("unable to process authorization request:", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 	}
@@ -88,7 +89,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 		// Retrieve subject form context
 		sub, ok := middleware.Subject(ctx)
 		if !ok || sub == "" {
-			withError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -98,7 +99,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 		case http.MethodPost:
 			validateUserCode(w, r, sub)
 		default:
-			withError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
 		}
 	})

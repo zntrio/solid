@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/token"
 )
@@ -92,6 +93,6 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 		md.SignedMetadata = signedMeta
 
 		// Return JSON
-		withJSON(w, r, http.StatusOK, md)
+		respond.WithJSON(w, r, http.StatusOK, md)
 	})
 }

@@ -35,23 +35,17 @@ import (
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	"zntr.io/solid/oidc"
-	"zntr.io/solid/sdk/dpop"
-	jwsreq "zntr.io/solid/sdk/jwsreq"
-	"zntr.io/solid/sdk/pkce"
-	"zntr.io/solid/sdk/types"
 )
 
 const bodyLimiterSize = 5 << 20 // 5 Mb
 
 // HTTP creates an HTTP OIDC Client.
-func HTTP(ctx context.Context, issuer string, prover dpop.Prover, authorizationRequestEncoder jwsreq.AuthorizationEncoder, opts *Options) (Client, error) {
+func HTTP(ctx context.Context, issuer string, opts *Options) (Client, error) {
 	// Initialize solid client
 	c := &httpClient{
-		opts:                        opts,
-		issuer:                      issuer,
-		prover:                      prover,
-		authorizationRequestEncoder: authorizationRequestEncoder,
-		httpClient:                  http.DefaultClient,
+		opts:       opts,
+		issuer:     issuer,
+		httpClient: http.DefaultClient,
 	}
 
 	// Query server metadata endpoint
@@ -84,14 +78,12 @@ func HTTP(ctx context.Context, issuer string, prover dpop.Prover, authorizationR
 // -----------------------------------------------------------------------------
 
 type httpClient struct {
-	issuer                      string
-	opts                        *Options
-	httpClient                  *http.Client
-	prover                      dpop.Prover
-	authorizationRequestEncoder jwsreq.AuthorizationEncoder
-	jwks                        *jose.JSONWebKeySet
-	jwksExpiration              uint64
-	serverMetadata              *discoveryv1.ServerMetadata
+	issuer         string
+	opts           *Options
+	httpClient     *http.Client
+	jwks           *jose.JSONWebKeySet
+	jwksExpiration uint64
+	serverMetadata *discoveryv1.ServerMetadata
 }
 
 // -----------------------------------------------------------------------------
@@ -135,6 +127,7 @@ func (c *httpClient) Assertion() (string, error) {
 	return raw, nil
 }
 
+/*
 func (c *httpClient) CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error) {
 	// Generate PKCE verifier
 	pkceVerifier, pkceChallenge, err := pkce.CodeVerifier()
@@ -320,6 +313,117 @@ func (c *httpClient) ExchangeCode(ctx context.Context, assertion, code, pkceCode
 
 	// No error
 	return &token, nil
+}*/
+
+func (c *httpClient) ClientCredentials(ctx context.Context, assertion string) (*oauth2.Token, error) {
+	// Parse authentication url endpoint
+	tokenURL, err := url.Parse(c.serverMetadata.TokenEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse token endpoint url: %w", err)
+	}
+
+	// Prepare parameters
+	params := url.Values{}
+	params.Add("grant_type", "client_credentials")
+	params.Add("client_assertion", assertion)
+	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
+
+	// Query token endpoint
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL.String(), strings.NewReader(params.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("unable to prepare token request: %w", err)
+	}
+
+	// Set approppriate header value
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Do the query
+	response, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve token: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		var err corev1.Error
+
+		// Decode json error
+		if err := json.NewDecoder(io.LimitReader(response.Body, bodyLimiterSize)).Decode(&err); err != nil {
+			return nil, fmt.Errorf("unable to decode json error for token retrieval request: %w", err)
+		}
+
+		return nil, fmt.Errorf("unable to request for token got %s, %s", err.Err, err.ErrorDescription)
+	}
+
+	// Decode payload
+	var token oauth2.Token
+	if err := json.NewDecoder(io.LimitReader(response.Body, bodyLimiterSize)).Decode(&token); err != nil {
+		return nil, fmt.Errorf("unable to decode json response: %w", err)
+	}
+
+	// No error
+	return &token, nil
+}
+
+func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*corev1.Token, error) {
+	// Parse introspection url endpoint
+	introspectionURL, err := url.Parse(c.serverMetadata.IntrospectionEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse introspection endpoint url: %w", err)
+	}
+
+	// Prepare parameters
+	params := url.Values{}
+	params.Add("token", token)
+	params.Add("client_assertion", assertion)
+	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
+
+	// Query token endpoint
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, introspectionURL.String(), strings.NewReader(params.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("unable to prepare introspection request: %w", err)
+	}
+
+	// Set approppriate header value
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Do the query
+	response, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve instorspection response: %w", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		var err corev1.Error
+
+		// Decode json error
+		if err := json.NewDecoder(io.LimitReader(response.Body, bodyLimiterSize)).Decode(&err); err != nil {
+			return nil, fmt.Errorf("unable to decode json error for token introspection request: %w", err)
+		}
+
+		return nil, fmt.Errorf("unable to request for token introspection got %s, %s", err.Err, err.ErrorDescription)
+	}
+
+	// Decode payload
+	var t jsonTokenIntrospectionResponse
+	if err := json.NewDecoder(io.LimitReader(response.Body, bodyLimiterSize)).Decode(&t); err != nil {
+		return nil, fmt.Errorf("unable to decode json response: %w", err)
+	}
+
+	tokenStatus := corev1.TokenStatus_TOKEN_STATUS_INVALID
+	if t.Active {
+		tokenStatus = corev1.TokenStatus_TOKEN_STATUS_ACTIVE
+	}
+
+	// Return token info
+	return &corev1.Token{
+		Issuer:       c.issuer,
+		Status:       tokenStatus,
+		Metadata:     t.TokenMeta,
+		Confirmation: t.Confirmation,
+		Value:        token,
+	}, nil
 }
 
 func (c *httpClient) PublicKeys(ctx context.Context) (*jose.JSONWebKeySet, uint64, error) {

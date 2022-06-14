@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-package handlers
+package respond
 
 import (
 	"fmt"
@@ -24,17 +24,9 @@ import (
 	jsoniter "github.com/json-iterator/go"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
-	"zntr.io/solid/sdk/types"
 )
 
-func optionalString(value string) *string {
-	if value != "" {
-		return types.StringRef(value)
-	}
-	return nil
-}
-
-func withError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {
+func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	// Marshal response as json
@@ -52,7 +44,7 @@ func withError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Err
 }
 
 // JSON serialize the data with matching requested encoding
-func withJSON(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
+func WithJSON(w http.ResponseWriter, r *http.Request, code int, data interface{}) {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 
 	// Marshal response as json

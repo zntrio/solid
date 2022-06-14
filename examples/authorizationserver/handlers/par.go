@@ -27,6 +27,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/jwsreq"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -68,7 +69,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
 		if err != nil {
 			log.Println("unable to validate dpop proof:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
 			return
 		}
 
@@ -87,7 +88,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
 		if err != nil {
 			log.Println("unable to decode request:", err)
-			withError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
 
@@ -102,12 +103,12 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		})
 		if err != nil {
 			log.Println("unable to register authorization request:", err)
-			withError(w, r, http.StatusBadRequest, res.Error)
+			respond.WithError(w, r, http.StatusBadRequest, res.Error)
 			return
 		}
 
 		// Send json response
-		withJSON(w, r, http.StatusCreated, &response{
+		respond.WithJSON(w, r, http.StatusCreated, &response{
 			Issuer:     res.Issuer,
 			RequestURI: res.RequestUri,
 			ExpiresIn:  res.ExpiresIn,

@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/davecgh/go-spew/spew"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -86,6 +87,8 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 				resp["token_type"] = "Bearer"
 			}
 		}
+
+		spew.Dump(res)
 
 		// Send json reponse
 		respond.WithJSON(w, r, http.StatusOK, resp)

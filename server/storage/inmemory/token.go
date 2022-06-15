@@ -30,16 +30,15 @@ import (
 )
 
 type tokenStorage struct {
-	idIndex    map[string]*corev1.Token
-	valueIndex map[string]*corev1.Token
-	mutex      sync.RWMutex
+	idIndex    sync.Map
+	valueIndex sync.Map
 }
 
 // Tokens returns a token manager.
 func Tokens() storage.Token {
 	return &tokenStorage{
-		idIndex:    map[string]*corev1.Token{},
-		valueIndex: map[string]*corev1.Token{},
+		idIndex:    sync.Map{},
+		valueIndex: sync.Map{},
 	}
 }
 
@@ -55,12 +54,10 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *corev1.Toke
 	tCopy := proto.Clone(t).(*corev1.Token)
 
 	// Compute token value hash
-	tCopy.Value = s.deriveValue(issuer, t.Value)
+	tCopy.Value = s.deriveValue(issuer, tCopy.Value)
 
-	s.mutex.Lock()
-	s.idIndex[tCopy.TokenId] = tCopy
-	s.valueIndex[tCopy.Value] = tCopy
-	s.mutex.Unlock()
+	s.idIndex.Store(tCopy.TokenId, tCopy)
+	s.valueIndex.Store(tCopy.Value, tCopy)
 
 	// No error
 	return nil
@@ -68,24 +65,24 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *corev1.Toke
 
 func (s *tokenStorage) Get(ctx context.Context, issuer, id string) (*corev1.Token, error) {
 	// Check is client exists
-	client, ok := s.idIndex[id]
+	client, ok := s.idIndex.Load(id)
 	if !ok {
 		return nil, storage.ErrNotFound
 	}
 
 	// No error
-	return client, nil
+	return client.(*corev1.Token), nil
 }
 
 func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*corev1.Token, error) {
 	// Check is client exists
-	client, ok := s.valueIndex[s.deriveValue(issuer, value)]
+	client, ok := s.valueIndex.Load(s.deriveValue(issuer, value))
 	if !ok {
 		return nil, storage.ErrNotFound
 	}
 
 	// No error
-	return client, nil
+	return client.(*corev1.Token), nil
 }
 
 func (s *tokenStorage) Delete(ctx context.Context, issuer, id string) error {
@@ -95,10 +92,8 @@ func (s *tokenStorage) Delete(ctx context.Context, issuer, id string) error {
 		return err
 	}
 
-	s.mutex.Lock()
-	delete(s.idIndex, t.TokenId)
-	delete(s.valueIndex, t.Value)
-	s.mutex.Unlock()
+	s.idIndex.Delete(t.TokenId)
+	s.valueIndex.Delete(t.Value)
 
 	// No error
 	return nil
@@ -115,10 +110,8 @@ func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 	t.Status = corev1.TokenStatus_TOKEN_STATUS_REVOKED
 
 	// Update maps
-	s.mutex.Lock()
-	s.idIndex[t.TokenId] = t
-	s.valueIndex[t.Value] = t
-	s.mutex.Unlock()
+	s.idIndex.Store(t.TokenId, t)
+	s.valueIndex.Store(t.Value, t)
 
 	// No error
 	return nil

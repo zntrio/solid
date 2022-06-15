@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -39,7 +37,7 @@ func main() {
 	}
 
 	// Let some time to persistence to sync.
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(1000 * time.Millisecond)
 
 	// Call the timestamp service
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8085", nil)
@@ -53,22 +51,14 @@ func main() {
 	// Use OAuth2 client
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		panic(err)
 	}
 
 	defer resp.Body.Close()
 	timestampRaw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		panic(err)
 	}
 
-	dst := &bytes.Buffer{}
-	if err := json.Indent(dst, timestampRaw, "", "  "); err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	fmt.Println(dst.String())
+	fmt.Println(string(timestampRaw))
 }

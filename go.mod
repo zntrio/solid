@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/daixiang0/gci v0.3.3
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/uniuri v0.0.0-20200228104902-7aecb25e1fe5
 	github.com/frapposelli/wwhrd v0.4.0
 	github.com/fxamacker/cbor/v2 v2.4.0
@@ -46,7 +47,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/charithe/durationcheck v0.0.9 // indirect
 	github.com/chavacava/garif v0.0.0-20210405164556-e8a0a408d6af // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denis-tingaikin/go-header v0.4.3 // indirect
 	github.com/dnephin/pflag v1.0.7 // indirect
 	github.com/emicklei/dot v0.15.0 // indirect
@@ -126,9 +126,9 @@ require (
 	github.com/phayes/checkstyle v0.0.0-20170904204023-bfd46e6a821d // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polyfloyd/go-errorlint v0.0.0-20211125173453-6d6d39c5bb8b // indirect
-	github.com/prometheus/client_golang v1.7.1 // indirect
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.10.0 // indirect
+	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/quasilyte/go-ruleguard v0.3.15 // indirect
 	github.com/quasilyte/gogrep v0.0.0-20220103110004-ffaa07af02e3 // indirect
@@ -185,7 +185,6 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 // indirect
 	github.com/json-iterator/go v1.1.12
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/square/go-jose/v3 v3.0.0-20200630053402-0a67ce9b0693
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect

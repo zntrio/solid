@@ -215,5 +215,5 @@ require (
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	zntr.io/paseto v1.1.0
+	zntr.io/paseto v1.2.0
 )

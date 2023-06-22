@@ -10,7 +10,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.4.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang/mock v1.6.0
-	github.com/golang/protobuf v1.5.2
+	github.com/golang/protobuf v1.5.3
 	github.com/golangci/golangci-lint v1.53.2
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gofuzz v1.2.0

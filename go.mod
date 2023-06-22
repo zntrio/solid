@@ -17,7 +17,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	go.mozilla.org/cose v0.0.0-20200930124131-25dc96df8228
 	golang.org/x/crypto v0.10.0
-	golang.org/x/oauth2 v0.8.0
+	golang.org/x/oauth2 v0.9.0
 	google.golang.org/grpc v1.46.2
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
 	google.golang.org/protobuf v1.30.0
@@ -211,7 +211,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	zntr.io/paseto v1.2.0

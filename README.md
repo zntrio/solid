@@ -119,47 +119,53 @@ I made sample server and various integrations inside `examples/` folder.
 
 ### Framework
 
-* OAuth
+* OAuth Core
+  * [OAuth 2.1](https://www.ietf.org/archive/id/draft-ietf-oauth-v2-1-09.html) - <https://oauth.net/2.1/>
+  * [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
+* OAuth Extensions
   * Discovery
-    * OAuth 2.0 Authorization Server Metadata - [rfc8414](https://tools.ietf.org/html/rfc8414)
+    * [RFC8414 - OAuth 2.0 Authorization Server Metadata](https://tools.ietf.org/html/rfc8414)
+  * Identity authentication
+    * [ ] [Nonce pattern authenticator](https://curity.io/resources/learn/nonce-authenticator-pattern/)
   * Client authentication
     * [x] `private_key_jwt` client authentication
     * [ ] `tls_client_auth` client authentication
   * Grant Types
     * [x] `client_credentials` grant type
     * [x] `authorization_code` grant type
-      * [x] [PKCE](https://oauth.net/2/pkce/) - [rfc7636](https://tools.ietf.org/html/rfc7636)
-      * [x] [Pushed Authorization Request (PAR)](https://oauth.net/2/pushed-authorization-requests/) (PAR) - [rfc9126](https://www.rfc-editor.org/rfc/rfc9126.html)
-      * [x] [JWT Encoded Authorization Requests (JAR)](https://datatracker.ietf.org/doc/html/rfc9101) (JAR)
-      * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm-ID1.html)
-      * [x] [OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/)
+      * [x] [RFC7636 - Proof Key for Code Exchange by OAuth Public Clients](https://tools.ietf.org/html/rfc7636) - <https://oauth.net/2/pkce/>
+      * [x] [RFC9126 - OAuth 2.0 Pushed Authorization Requests (PAR)](https://tools.ietf.org/html/rfc9126.html) - <https://oauth.net/2/pushed-authorization-requests/>
+      * [x] [RFC9101 - The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR)](https://tools.ietf.org/html/rfc9101) (JAR)
+      * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm.html)
+      * [x] [RFC9207 - OAuth 2.0 Authorization Server Issuer Identification](https://tools.ietf.org/html/rfc9207.html)
     * [x] `refresh_token` grant type
-    * [x] `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
-    * [x] `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
+    * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
+    * [x] RFC8693 - `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
     * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
+    * [ ] `urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation` [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
   * Resource
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
   * Client
-    * [ ] OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
-    * [ ] OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
+    * [ ] RFC7591 - OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
+    * [ ] RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
   * Tokens
     * Privacy
       * [x] Pairwise subject identifier
     * Scheme
-      * [x] Bearer - [rfc6750](https://tools.ietf.org/html/rfc6750)
-      * [x] DPoP - [draft-fett-oauth-dpop-09](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09)
-      * [ ] mTLS constrained tokens - [draft-ietf-oauth-mtls-17](https://tools.ietf.org/id/draft-ietf-oauth-mtls-17.html)
+      * [x] [RFC6750 - The OAuth 2.0 Authorization Framework: Bearer Token Usage](https://tools.ietf.org/html/rfc6750)
+      * [x] [(DRAFT) - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP)](https://tools.ietf.org/html/draft-ietf-oauth-dpop-16)
+      * [ ] [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
     * Authentication by reference
       * [x] Random string
     * Authentication by value
-      * [x] JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
+      * [x] RFC7519 - JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
       * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
-      * [x] CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
+      * [x] RFC8392 - CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
   * Token Management
     * [x] Generic API
-    * [x] Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
-    * [x] Revocation - [rfc7009](tools.ietf.org/html/rfc7009)
-    * [x] JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10)
+    * [x] RFC7662 - Token Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
+    * [x] RFC7009 - Token Revocation - [rfc7009](https://tools.ietf.org/html/rfc7009)
+    * [x] (DRAFT) - JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-12)
 * Storage
   * [x] API
     * Client

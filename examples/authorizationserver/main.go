@@ -12,8 +12,8 @@ import (
 	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/jarm"
 	"zntr.io/solid/sdk/pairwise"
-	sdktoken "zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/token/jwt"
+	"zntr.io/solid/sdk/token/verifiable"
 	"zntr.io/solid/server/services/authorization"
 	"zntr.io/solid/server/services/device"
 	"zntr.io/solid/server/services/token"
@@ -37,8 +37,8 @@ func main() {
 	deviceSessions := inmemory.DeviceCodeSessions()
 
 	// Token generator
-	accessTokens := sdktoken.OpaqueToken()
-	refreshTokens := sdktoken.OpaqueToken()
+	accessTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("very-secret-key-for-access-token-verification"))
+	refreshTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("very-secret-key-for-refresh-token-verification"))
 
 	// Prepare services
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs)

@@ -93,7 +93,7 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	}
 
 	// Sign with paseto v4
-	raw, err := pasetov4.Sign(m.Bytes(), keyRaw, f.String(), "")
+	raw, err := pasetov4.Sign(m.Bytes(), keyRaw, f.Bytes(), nil)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}

@@ -208,6 +208,7 @@ require (
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 // indirect
+	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/json-iterator/go v1.1.12
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

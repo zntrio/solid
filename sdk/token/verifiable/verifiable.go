@@ -32,11 +32,11 @@ func (c *tokenGenerator) Generate(_ context.Context, t *corev1.Token) (string, e
 	opts := []GenerateOption{}
 	switch t.TokenType {
 	case corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN:
-		opts = append(opts, WithTokenPrefix("sldat_"))
+		opts = append(opts, WithTokenPrefix("sldat"))
 	case corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN:
-		opts = append(opts, WithTokenPrefix("sldrt_"))
+		opts = append(opts, WithTokenPrefix("sldrt"))
 	case corev1.TokenType_TOKEN_TYPE_PHANTOM_TOKEN:
-		opts = append(opts, WithTokenPrefix("sldpt_"))
+		opts = append(opts, WithTokenPrefix("sldpt"))
 	default:
 	}
 

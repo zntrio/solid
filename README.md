@@ -142,7 +142,7 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
     * [x] RFC8693 - `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
     * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
-    * [ ] `urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation` [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
+    * [x] `urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation` [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
   * Resource
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
   * Client

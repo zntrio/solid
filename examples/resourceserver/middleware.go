@@ -28,6 +28,9 @@ var (
 			"t8p9duw4n2klximkv3kagaud796ul67g": {
 				"", // Allow client itself
 			},
+			"attestation-client": {
+				"", 
+			},
 		},
 	}
 )

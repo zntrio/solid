@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -55,7 +55,7 @@ func main() {
 	}
 
 	defer resp.Body.Close()
-	timestampRaw, err := ioutil.ReadAll(resp.Body)
+	timestampRaw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}

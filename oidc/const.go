@@ -57,8 +57,10 @@ const (
 const (
 	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
 	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-	// AssertionTypePasetoBearer repesents PASETO Bearer assertion name.
+	// AssertionTypePasetoBearer represents PASETO Bearer assertion name.
 	AssertionTypePasetoBearer = "urn:solid:params:oauth:client-assertion-type:paseto-bearer"
+	// AssertionTypeJWTClientAttestation represents JWT Client Attestation name.
+	AssertionTypeJWTClientAttestation = "urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation"
 )
 
 // Response Types --------------------------------------------------------------
@@ -112,6 +114,9 @@ const (
 	AuthMethodClientSecretBasic = "client_secret_basic"
 	// AuthMethodPrivateKeyJWT : The client uses JWT assertion.
 	AuthMethodPrivateKeyJWT = "private_key_jwt"
+	// AuthMethodClientAttestationJWT represents the client attestation 
+	// authentication mechanism.
+	AuthMethodClientAttestationJWT = "attest_jwt_client_auth"
 )
 
 // Application Type ------------------------------------------------------------

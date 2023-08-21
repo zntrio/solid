@@ -137,6 +137,33 @@ func Clients() storage.Client {
 				SubjectType:      oidc.SubjectTypePairwise,
 				SectorIdentifier: "http://127.0.0.1:8085",
 			},
+			"attestation-client": {
+				ClientId:        "attestation-client",
+				ClientType:      corev1.ClientType_CLIENT_TYPE_CREDENTIALED,
+				ApplicationType: "cli",
+				ClientName:      "cli-public-client",
+				GrantTypes: []string{
+					oidc.GrantTypeClientCredentials,
+				},
+				Contacts: []string{
+					"foo@bar.com",
+				},
+				TokenEndpointAuthMethod: oidc.AuthMethodClientAttestationJWT,
+			},
+			"urn:solid:attestation-server": {
+				ClientId:   "urn:solid:attestation-server",
+				ClientType: corev1.ClientType_CLIENT_TYPE_PUBLIC,
+				ClientName: "Remote Attestation Server",
+				Jwks: []byte(`{
+					"keys": [
+					  {
+						"kty": "OKP",
+						"crv": "Ed25519",
+						"x": "sV786Cr8zFU-NWb-6jNcKees_-t9dQg5hj_ZC9XA4aA"
+					  }
+					]
+				  }`),
+			},
 		},
 	}
 }

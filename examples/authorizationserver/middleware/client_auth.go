@@ -23,6 +23,7 @@ import (
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/clientauthentication"
@@ -33,6 +34,7 @@ import (
 func ClientAuthentication(clients storage.ClientReader) Adapter {
 	// Prepare client authentication
 	clientAuth := clientauthentication.PrivateKeyJWT(clients)
+	clientAttestationAuth := clientauthentication.ClientAttestation(clients)
 
 	// Return middleware
 	return func(h http.Handler) http.Handler {
@@ -63,17 +65,33 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 			} else {
 				r.ParseForm()
 
+				var (
+					authMethod = r.PostFormValue("client_assertion_type")
+					assertion = r.PostFormValue("client_assertion")
+					authenticator clientauthentication.AuthenticationProcessor
+				)
+
+				switch authMethod {
+				case oidc.AssertionTypeJWTBearer:
+					authenticator = clientAuth
+				case oidc.AssertionTypeJWTClientAttestation:
+					authenticator = clientAttestationAuth
+				default:
+					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
+					return
+				}
+
 				// Process authentication
-				resAuth, err := clientAuth.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
-					ClientAssertionType: types.StringRef(r.PostFormValue("client_assertion_type")),
-					ClientAssertion:     types.StringRef(r.PostFormValue("client_assertion")),
+				resAuth, err := authenticator.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+					ClientAssertionType: types.StringRef(authMethod),
+					ClientAssertion:     types.StringRef(assertion),
 				})
 				if err != nil {
 					log.Println("unable to authenticate client:", err)
 					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 					return
 				}
-
+									
 				// Assign client to context
 				ctx = clientauthentication.Inject(ctx, resAuth.Client)
 			}

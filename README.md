@@ -128,8 +128,12 @@ I made sample server and various integrations inside `examples/` folder.
   * Identity authentication
     * [ ] [Nonce pattern authenticator](https://curity.io/resources/learn/nonce-authenticator-pattern/)
   * Client authentication
-    * [x] `private_key_jwt` client authentication
-    * [ ] `tls_client_auth` client authentication
+    * Asymmetric authentication
+      * RFC7523 - [JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7523)
+      * RFC7521 - [Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7521.html)
+      * [x] `private_key_jwt` - <https://oauth.net/private-key-jwt/>
+      * [x] `attest_jwt_client_auth` - [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
+      * [ ] `tls_client_auth` - [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
   * Grant Types
     * [x] `client_credentials` grant type
     * [x] `authorization_code` grant type
@@ -142,7 +146,6 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
     * [x] RFC8693 - `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
     * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
-    * [x] `urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation` [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
   * Resource
     * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
   * Client
@@ -157,12 +160,12 @@ I made sample server and various integrations inside `examples/` folder.
       * [ ] [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
     * Authentication by reference
       * [x] Random string
+      * [x] Verifiable token (signed UUID)
     * Authentication by value
       * [x] RFC7519 - JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
       * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
       * [x] RFC8392 - CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
   * Token Management
-    * [x] Generic API
     * [x] RFC7662 - Token Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
     * [x] RFC7009 - Token Revocation - [rfc7009](https://tools.ietf.org/html/rfc7009)
     * [x] (DRAFT) - JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-12)
@@ -170,9 +173,11 @@ I made sample server and various integrations inside `examples/` folder.
   * [x] API
     * Client
       * [x] Confidential client
+      * [x] Credentialed client
       * [x] Public client
     * Requests
       * [x] Authorization request
+      * [x] DPoP
     * Tokens
       * [x] Storage
     * Sessions

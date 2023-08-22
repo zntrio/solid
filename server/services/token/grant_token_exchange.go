@@ -26,7 +26,9 @@ import (
 
 	"github.com/dchest/uniuri"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
@@ -34,8 +36,8 @@ import (
 )
 
 //nolint:funlen,gocyclo // to refactor
-func (s *service) tokenExchange(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
-	res := &corev1.TokenResponse{}
+func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
+	res := &flowv1.TokenResponse{}
 
 	// Check parameters
 	if client == nil {
@@ -99,7 +101,7 @@ func (s *service) tokenExchange(ctx context.Context, client *corev1.Client, req 
 	return res, nil
 }
 
-func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest, res *corev1.TokenResponse) error {
+func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest, res *flowv1.TokenResponse) error {
 	// Check parameters
 	if res == nil {
 		return fmt.Errorf("unable to process with nil result")
@@ -130,11 +132,11 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 	}
 
 	// Check token
-	if st.Status != corev1.TokenStatus_TOKEN_STATUS_ACTIVE {
+	if st.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return fmt.Errorf("subject_token in not active")
 	}
-	if st.TokenType != corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN {
+	if st.TokenType != tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return fmt.Errorf("subject_token must not be empty")
 	}
@@ -157,10 +159,10 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 
 	// Create access token spec
 	now := timeFunc()
-	at := &corev1.Token{
-		TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+	at := &tokenv1.Token{
+		TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
-		Metadata: &corev1.TokenMeta{
+		Metadata: &tokenv1.TokenMeta{
 			Issuer:    st.Metadata.Issuer,
 			Subject:   st.Metadata.Subject,
 			ClientId:  client.ClientId,
@@ -169,7 +171,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *corev1.C
 			Scope:     scope,
 		},
 		Confirmation: st.Confirmation,
-		Status:       corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
 	// Add optional meta

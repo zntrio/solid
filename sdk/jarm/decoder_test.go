@@ -27,6 +27,7 @@ import (
 	"github.com/golang/mock/gomock"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -47,7 +48,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		fields  fields
 		args    args
 		prepare func(*tokenmock.MockVerifier, *tokenmock.MockToken)
-		want    *corev1.AuthorizationCodeResponse
+		want    *flowv1.AuthorizeResponse
 		wantErr bool
 	}{
 		{
@@ -143,7 +144,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				}).Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationCodeResponse{
+			want: &flowv1.AuthorizeResponse{
 				Error: rfcerrors.InvalidToken().Build(),
 			},
 		},
@@ -173,7 +174,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				}).Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationCodeResponse{
+			want: &flowv1.AuthorizeResponse{
 				Error: rfcerrors.InvalidToken().Build(),
 			},
 		},
@@ -203,7 +204,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				}).Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.AuthorizationCodeResponse{
+			want: &flowv1.AuthorizeResponse{
 				Error: rfcerrors.InvalidToken().Build(),
 			},
 		},
@@ -229,7 +230,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				}).Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.AuthorizationCodeResponse{
+			want: &flowv1.AuthorizeResponse{
 				Error: &corev1.Error{
 					Err: "invalid_request",
 				},
@@ -261,7 +262,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				}).Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.AuthorizationCodeResponse{
+			want: &flowv1.AuthorizeResponse{
 				Code:   "PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
 				State:  "S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw",
 				Issuer: "https://accounts.example.com",

@@ -25,7 +25,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/types"
 )
 
@@ -44,7 +44,7 @@ type refreshTokenGenerator struct {
 	signer Serializer
 }
 
-func (c *refreshTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
+func (c *refreshTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
 	// Check arguments
 	if types.IsNil(c.signer) {
 		return "", fmt.Errorf("unable to use nil signer")
@@ -75,7 +75,7 @@ func (c *refreshTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (
 		JTI      string                    `json:"jti,omitempty" cbor:"7,keyasint,omitempty"`
 		ClientID string                    `json:"client_id,omitempty" cbor:"100,keyasint,omitempty"`
 		Scope    string                    `json:"scope,omitempty" cbor:"101,keyasint,omitempty"`
-		Cnf      *corev1.TokenConfirmation `json:"cnf,omitempty" cbor:"102,keyasint,omitempty"`
+		Cnf      *tokenv1.TokenConfirmation `json:"cnf,omitempty" cbor:"102,keyasint,omitempty"`
 	}{
 		Iss:      t.Metadata.Issuer,
 		Sub:      t.Metadata.Subject,
@@ -100,7 +100,7 @@ func (c *refreshTokenGenerator) Generate(ctx context.Context, t *corev1.Token) (
 
 // -----------------------------------------------------------------------------
 
-func (c *refreshTokenGenerator) validateMeta(meta *corev1.TokenMeta) error {
+func (c *refreshTokenGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 	// Check arguments
 	if meta == nil {
 		return fmt.Errorf("token meta must not be nil")

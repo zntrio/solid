@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/token"
 )
 
@@ -19,7 +19,7 @@ type tokenGenerator struct{
 	generator Generator
 }
 
-func (c *tokenGenerator) Generate(_ context.Context, t *corev1.Token) (string, error) {
+func (c *tokenGenerator) Generate(_ context.Context, t *tokenv1.Token) (string, error) {
 	// Check arguments
 	switch {
 	case c.generator == nil:
@@ -31,11 +31,11 @@ func (c *tokenGenerator) Generate(_ context.Context, t *corev1.Token) (string, e
 	// Prepare token generation options
 	opts := []GenerateOption{}
 	switch t.TokenType {
-	case corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN:
+	case tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN:
 		opts = append(opts, WithTokenPrefix("sldat"))
-	case corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN:
+	case tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN:
 		opts = append(opts, WithTokenPrefix("sldrt"))
-	case corev1.TokenType_TOKEN_TYPE_PHANTOM_TOKEN:
+	case tokenv1.TokenType_TOKEN_TYPE_PHANTOM_TOKEN:
 		opts = append(opts, WithTokenPrefix("sldpt"))
 	default:
 	}

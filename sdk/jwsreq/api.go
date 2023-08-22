@@ -20,7 +20,7 @@ package jwsreq
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 )
 
 const (
@@ -33,14 +33,14 @@ const (
 
 // AuthorizationDecoder describes authorization decoder contract.
 type AuthorizationDecoder interface {
-	Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error)
+	Decode(ctx context.Context, value string) (*flowv1.AuthorizationRequest, error)
 }
 
 //go:generate mockgen -destination mock/authorization_encoder.gen.go -package mock zntr.io/solid/sdk/jwsreq AuthorizationEncoder
 
 // AuthorizationEncoder describes authorization encoder contract.
 type AuthorizationEncoder interface {
-	Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error)
+	Encode(ctx context.Context, ar *flowv1.AuthorizationRequest) (string, error)
 }
 
 //go:generate mockgen -destination mock/authorization.gen.go -package mock zntr.io/solid/sdk/jwsreq Authorization

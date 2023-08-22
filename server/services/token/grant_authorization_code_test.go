@@ -27,7 +27,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	sessionv1 "zntr.io/solid/api/oidc/session/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -38,25 +41,25 @@ import (
 func Test_service_authorizationCode(t *testing.T) {
 	type args struct {
 		ctx    context.Context
-		client *corev1.Client
-		req    *corev1.TokenRequest
+		client *clientv1.Client
+		req    *flowv1.TokenRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockAuthorizationCodeSession, *storagemock.MockToken, *tokenmock.MockGenerator, *tokenmock.MockGenerator)
-		want    *corev1.TokenResponse
+		want    *flowv1.TokenResponse
 		wantErr bool
 	}{
 		{
 			name: "nil request",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
+				client: &clientv1.Client{},
 				req:    nil,
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -65,10 +68,10 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx:    context.Background(),
 				client: nil,
-				req:    &corev1.TokenRequest{},
+				req:    &flowv1.TokenRequest{},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -76,14 +79,14 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "nil grant",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeAuthorizationCode,
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -91,18 +94,18 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "",
-					Client:    &corev1.Client{},
+					Client:    &clientv1.Client{},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{},
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -110,18 +113,18 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "invalid issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "foo",
-					Client:    &corev1.Client{},
+					Client:    &clientv1.Client{},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{},
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -129,19 +132,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeClientCredentials},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
 						},
@@ -149,7 +152,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
@@ -157,19 +160,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing code",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
 						},
@@ -177,7 +180,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -185,19 +188,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "code too long",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         uniuri.NewLen(1025),
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -206,7 +209,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -214,19 +217,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing code_verifier",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:        "1234567891234567890",
 							RedirectUri: "https://client.example.org/cb",
 						},
@@ -234,7 +237,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -242,19 +245,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "code_verifier too short",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "foo",
 							RedirectUri:  "https://client.example.org/cb",
@@ -263,7 +266,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -271,19 +274,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "code_verifier too short",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: uniuri.NewLen(129),
 							RedirectUri:  "https://client.example.org/cb",
@@ -292,7 +295,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -300,19 +303,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "missing redirect_uri",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 						},
@@ -320,7 +323,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -328,19 +331,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "authorization request not found",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -352,7 +355,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -360,19 +363,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "authorization request storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -384,7 +387,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -392,19 +395,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "nil authorization request",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb12346",
@@ -413,12 +416,12 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
 					Request: nil,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
@@ -426,19 +429,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "session deletion error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb12346",
@@ -447,8 +450,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -462,7 +465,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -470,19 +473,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "redirect_uri mismatch",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb12346",
@@ -491,8 +494,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -506,7 +509,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
@@ -514,19 +517,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "redirect_uri mismatch: client changes between request",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb1",
@@ -535,8 +538,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -550,7 +553,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
@@ -558,19 +561,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "invalid code_verifier",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "foofoofoofoofoofoofoofoofoofoofoofoofoofoofoo",
 							RedirectUri:  "https://client.example.org/cb",
@@ -579,8 +582,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -594,7 +597,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
@@ -602,19 +605,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "invalid code_challenge_method",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -623,8 +626,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -638,7 +641,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
@@ -647,19 +650,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: generate access token error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -668,8 +671,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -684,7 +687,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -692,19 +695,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: empty generated access token",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -713,8 +716,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -729,7 +732,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -737,19 +740,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: access token storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -758,8 +761,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email",
@@ -775,7 +778,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -783,19 +786,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: generate refresh token error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -804,8 +807,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -822,7 +825,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -830,19 +833,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: empty generated refresh token",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -851,8 +854,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -869,7 +872,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -877,19 +880,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: refresh token storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -898,8 +901,8 @@ func Test_service_authorizationCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -917,7 +920,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo")).After(atSave)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -926,19 +929,19 @@ func Test_service_authorizationCode(t *testing.T) {
 			name: "openid: valid",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &corev1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &corev1.GrantAuthorizationCode{
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
@@ -948,8 +951,8 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&corev1.AuthorizationCodeSession{
-					Request: &corev1.AuthorizationRequest{
+				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
 						Scope:               "openid profile email offline_access",
@@ -967,12 +970,12 @@ func Test_service_authorizationCode(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: nil,
-				AccessToken: &corev1.Token{
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+				AccessToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -982,10 +985,10 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
-				RefreshToken: &corev1.Token{
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+				RefreshToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",

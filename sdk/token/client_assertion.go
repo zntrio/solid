@@ -26,7 +26,7 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/types"
 )
 
@@ -45,7 +45,7 @@ type clientAssertionGenerator struct {
 	serializer Serializer
 }
 
-func (c *clientAssertionGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
+func (c *clientAssertionGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
 	// Check arguments
 	if types.IsNil(c.serializer) {
 		return "", fmt.Errorf("unable to use nil serializer")
@@ -95,7 +95,7 @@ func (c *clientAssertionGenerator) Generate(ctx context.Context, t *corev1.Token
 
 // -----------------------------------------------------------------------------
 
-func (c *clientAssertionGenerator) validateMeta(meta *corev1.TokenMeta) error {
+func (c *clientAssertionGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 	// Check arguments
 	if meta == nil {
 		return fmt.Errorf("token meta must not be nil")

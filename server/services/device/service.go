@@ -22,7 +22,8 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -52,8 +53,8 @@ var timeFunc = time.Now
 
 // -----------------------------------------------------------------------------
 
-func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error) {
-	res := &corev1.DeviceAuthorizationResponse{}
+func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorizationRequest) (*flowv1.DeviceAuthorizationResponse, error) {
+	res := &flowv1.DeviceAuthorizationResponse{}
 
 	// Check req nullity
 	if req == nil {
@@ -105,7 +106,7 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 	}
 
 	// Prepare session
-	session := &corev1.DeviceCodeSession{
+	session := &sessionv1.DeviceCodeSession{
 		Issuer:     req.Issuer,
 		Client:     client,
 		Request:    req,
@@ -136,8 +137,8 @@ func (s *service) Authorize(ctx context.Context, req *corev1.DeviceAuthorization
 	return res, nil
 }
 
-func (s *service) Validate(ctx context.Context, req *corev1.DeviceCodeValidationRequest) (*corev1.DeviceCodeValidationResponse, error) {
-	res := &corev1.DeviceCodeValidationResponse{}
+func (s *service) Validate(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error) {
+	res := &flowv1.DeviceCodeValidationResponse{}
 
 	// Check req nullity
 	if req == nil {
@@ -195,14 +196,14 @@ func (s *service) Validate(ctx context.Context, req *corev1.DeviceCodeValidation
 	}
 
 	// Check if it validated
-	if session.Status != corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING {
+	if session.Status != sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("user_code '%s' is already authorized", req.UserCode)
 	}
 
 	// Update session
 	session.Subject = types.StringRef(req.Subject)
-	session.Status = corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED
+	session.Status = sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED
 
 	// Update ephemeral storage
 	if err := s.deviceCodeSessions.Validate(ctx, req.Issuer, req.UserCode, session); err != nil {

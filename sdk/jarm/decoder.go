@@ -23,6 +23,7 @@ import (
 	"time"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
 )
@@ -59,7 +60,7 @@ type tokenDecoder struct {
 	verifier token.Verifier
 }
 
-func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error) {
+func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*flowv1.AuthorizeResponse, error) {
 	// Check arguments
 	if audience == "" {
 		return nil, fmt.Errorf("audience must not be blank")
@@ -93,7 +94,7 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 
 	// Decode claims
 	if claims.HasError() {
-		return &corev1.AuthorizationCodeResponse{
+		return &flowv1.AuthorizeResponse{
 			Error: &corev1.Error{
 				Err:              claims.Error,
 				ErrorDescription: claims.ErrorDescription,
@@ -103,25 +104,25 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 
 	// Check claims
 	if claims.Issuer != d.issuer {
-		return &corev1.AuthorizationCodeResponse{
+		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response token, '%s' does not match expected issuer", claims.Issuer)
 	}
 
 	if claims.Audience != audience {
-		return &corev1.AuthorizationCodeResponse{
+		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response token, '%s' does not match expected audience", claims.Audience)
 	}
 
 	if claims.ExpiresAt < uint64(time.Now().Unix()) {
-		return &corev1.AuthorizationCodeResponse{
+		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response, response token is expired")
 	}
 
 	// No error
-	return &corev1.AuthorizationCodeResponse{
+	return &flowv1.AuthorizeResponse{
 		Code:   claims.Code,
 		State:  claims.State,
 		Issuer: claims.Issuer,

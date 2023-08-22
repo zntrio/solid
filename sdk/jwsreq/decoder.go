@@ -25,7 +25,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/token"
 )
 
@@ -42,7 +42,7 @@ type tokenDecoder struct {
 	verifier token.Verifier
 }
 
-func (d *tokenDecoder) Decode(ctx context.Context, value string) (*corev1.AuthorizationRequest, error) {
+func (d *tokenDecoder) Decode(ctx context.Context, value string) (*flowv1.AuthorizationRequest, error) {
 	// Check arguments
 	if value == "" {
 		return nil, fmt.Errorf("value must not be blank")
@@ -61,7 +61,7 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*corev1.Author
 	}
 
 	// Verify token claims
-	var req corev1.AuthorizationRequest
+	var req flowv1.AuthorizationRequest
 	if err := protojson.Unmarshal(buf.Bytes(), &req); err != nil {
 		return nil, fmt.Errorf("unable to decode request payload: %w", err)
 	}

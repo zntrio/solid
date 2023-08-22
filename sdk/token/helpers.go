@@ -20,11 +20,11 @@ package token
 import (
 	"time"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 // IsUsable check token usability constraint.
-func IsUsable(t *corev1.Token) bool {
+func IsUsable(t *tokenv1.Token) bool {
 	// Check arguments
 	if t == nil {
 		return false

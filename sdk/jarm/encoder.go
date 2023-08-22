@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/token"
 )
 
@@ -39,7 +39,7 @@ type tokenEncoder struct {
 	signer token.Serializer
 }
 
-func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error) {
+func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *flowv1.AuthorizeResponse) (string, error) {
 	// Check arguments
 	if issuer == "" {
 		return "", fmt.Errorf("unable to process empty issuer")

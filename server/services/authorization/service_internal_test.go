@@ -28,7 +28,9 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	fuzz "github.com/google/gofuzz"
 
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
@@ -36,12 +38,12 @@ import (
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeRequest{}), cmpopts.IgnoreUnexported(corev1.AuthorizationCodeResponse{}), cmpopts.IgnoreUnexported(corev1.RegistrationRequest{}), cmpopts.IgnoreUnexported(corev1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeResponse{}), cmpopts.IgnoreUnexported(flowv1.RegistrationRequest{}), cmpopts.IgnoreUnexported(flowv1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_service_validate(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		req *corev1.AuthorizationRequest
+		req *flowv1.AuthorizationRequest
 	}
 	tests := []struct {
 		name    string
@@ -63,7 +65,7 @@ func Test_service_validate(t *testing.T) {
 			name: "empty request",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{},
+				req: &flowv1.AuthorizationRequest{},
 			},
 			wantErr: true,
 			want:    rfcerrors.InvalidRequest().Build(),
@@ -72,7 +74,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing scope",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					ClientId:            "s6BhdRkqt3",
@@ -90,7 +92,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing response_type",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -108,7 +110,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing client_id",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -126,7 +128,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing redirect_uri",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -144,7 +146,7 @@ func Test_service_validate(t *testing.T) {
 			name: "invalid redirect_uri",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -163,7 +165,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing state",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -181,7 +183,7 @@ func Test_service_validate(t *testing.T) {
 			name: "state too short",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -200,7 +202,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing audience",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					ResponseType:        "code",
 					Scope:               "openid profile email",
 					ClientId:            "s6BhdRkqt3",
@@ -218,7 +220,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing nonce",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -236,7 +238,7 @@ func Test_service_validate(t *testing.T) {
 			name: "nonce too short",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -255,7 +257,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing code_challenge",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -273,7 +275,7 @@ func Test_service_validate(t *testing.T) {
 			name: "code_challenge too short",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -292,7 +294,7 @@ func Test_service_validate(t *testing.T) {
 			name: "missing code_challenge_method",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:      "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:  "code",
 					Scope:         "openid profile email",
@@ -310,7 +312,7 @@ func Test_service_validate(t *testing.T) {
 			name: "unsupported code_challenge_method",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -329,7 +331,7 @@ func Test_service_validate(t *testing.T) {
 			name: "unsupported response_mode",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -349,7 +351,7 @@ func Test_service_validate(t *testing.T) {
 			name: "error client not found",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -371,7 +373,7 @@ func Test_service_validate(t *testing.T) {
 			name: "error client storage error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -393,7 +395,7 @@ func Test_service_validate(t *testing.T) {
 			name: "client don't support authorization code",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -406,7 +408,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes: []string{"client_credentials"},
 				}, nil)
 			},
@@ -417,7 +419,7 @@ func Test_service_validate(t *testing.T) {
 			name: "client don't support code response_type",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -430,7 +432,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"id_token"},
 				}, nil)
@@ -442,7 +444,7 @@ func Test_service_validate(t *testing.T) {
 			name: "client invalid redirect_uri",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -455,7 +457,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"http://foo.com"},
@@ -468,7 +470,7 @@ func Test_service_validate(t *testing.T) {
 			name: "client doesn't support response_mode",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email",
@@ -482,7 +484,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -497,7 +499,7 @@ func Test_service_validate(t *testing.T) {
 			name: "valid : application uri",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
@@ -511,7 +513,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"com.example.app:/oauth2redirect"},
@@ -524,7 +526,7 @@ func Test_service_validate(t *testing.T) {
 			name: "valid",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.AuthorizationRequest{
+				req: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
@@ -538,7 +540,7 @@ func Test_service_validate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -599,7 +601,7 @@ func Test_service_validate_Fuzz(t *testing.T) {
 		f := fuzz.New()
 
 		// Prepare arguments
-		var req corev1.AuthorizationRequest
+		var req flowv1.AuthorizationRequest
 		f.Fuzz(&req)
 
 		// Execute

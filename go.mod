@@ -16,7 +16,6 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/google/gofuzz v1.2.0
 	github.com/json-iterator/go v1.1.12
-	github.com/lestrrat-go/jwx/v2 v2.0.12
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/stretchr/testify v1.8.4
 	go.mozilla.org/cose v0.0.0-20220818192640-18d34e90336d

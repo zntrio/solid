@@ -25,7 +25,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -36,13 +37,13 @@ import (
 func Test_service_Introspect(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		req *corev1.TokenIntrospectionRequest
+		req *tokenv1.IntrospectRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockClientReader, *storagemock.MockToken)
-		want    *corev1.TokenIntrospectionResponse
+		want    *tokenv1.IntrospectResponse
 		wantErr bool
 	}{
 		{
@@ -51,7 +52,7 @@ func Test_service_Introspect(t *testing.T) {
 				ctx: context.Background(),
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -59,12 +60,12 @@ func Test_service_Introspect(t *testing.T) {
 			name: "empty issuer",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "",
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -72,12 +73,12 @@ func Test_service_Introspect(t *testing.T) {
 			name: "invalid issuer",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "foo",
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -85,12 +86,12 @@ func Test_service_Introspect(t *testing.T) {
 			name: "nil client authentication",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -98,13 +99,13 @@ func Test_service_Introspect(t *testing.T) {
 			name: "nil token",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{},
+					Client: &clientv1.Client{},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -112,14 +113,14 @@ func Test_service_Introspect(t *testing.T) {
 			name: "empty token",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{},
+					Client: &clientv1.Client{},
 					Token:  "",
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -128,9 +129,9 @@ func Test_service_Introspect(t *testing.T) {
 			name: "client not found",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
@@ -140,7 +141,7 @@ func Test_service_Introspect(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -148,9 +149,9 @@ func Test_service_Introspect(t *testing.T) {
 			name: "client storage error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
@@ -160,7 +161,7 @@ func Test_service_Introspect(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -169,26 +170,26 @@ func Test_service_Introspect(t *testing.T) {
 			name: "token not found",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
 				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: false,
-			want: &corev1.TokenIntrospectionResponse{
-				Token: &corev1.Token{
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
 					Issuer: "https://honest.as.example.com",
 					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
-					Status: corev1.TokenStatus_TOKEN_STATUS_INVALID,
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_UNKNOWN,
 				},
 			},
 		},
@@ -196,22 +197,22 @@ func Test_service_Introspect(t *testing.T) {
 			name: "token storage error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				}, nil)
 				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenIntrospectionResponse{
+			want: &tokenv1.IntrospectResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -220,29 +221,29 @@ func Test_service_Introspect(t *testing.T) {
 			name: "valid",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenIntrospectionRequest{
+				req: &tokenv1.IntrospectRequest{
 					Issuer: "https://honest.as.example.com",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
-				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&corev1.Client{}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&corev1.Token{
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
 					Issuer:  "https://honest.as.example.com",
-					Status:  corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenId: "123456789",
 					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				}, nil)
 			},
 			wantErr: false,
-			want: &corev1.TokenIntrospectionResponse{
-				Token: &corev1.Token{
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
 					Issuer: "https://honest.as.example.com",
 					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
-					Status: corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 				},
 			},
 		},

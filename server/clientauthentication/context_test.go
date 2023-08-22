@@ -25,15 +25,16 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(corev1.ClientAuthenticationRequest{}), cmpopts.IgnoreUnexported(corev1.ClientAuthenticationResponse{}), cmpopts.IgnoreUnexported(corev1.Client{}), cmpopts.IgnoreUnexported(corev1.Error{})}
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(clientv1.AuthenticateRequest{}), cmpopts.IgnoreUnexported(clientv1.AuthenticateResponse{}), cmpopts.IgnoreUnexported(clientv1.Client{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_Context_From(t *testing.T) {
 	ctx := context.Background()
 
-	want := &corev1.Client{}
+	want := &clientv1.Client{}
 	ctx2 := Inject(ctx, want)
 	got, ok := FromContext(ctx2)
 	if !ok {

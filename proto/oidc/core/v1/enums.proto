@@ -27,7 +27,7 @@ option go_package = "oidc/core/v1;corev1";
 // user interface pages to the End-User.
 enum Display {
   // Default value when nothing specificied.
-  DISPLAY_INVALID = 0;
+  DISPLAY_UNSPECIFIED = 0;
   // Value to set as unknown.
   DISPLAY_UNKNOWN = 1;
   // The Authorization Server SHOULD display the authentication and consent UI
@@ -49,32 +49,32 @@ enum Display {
 
 // Prompt defines values for required prompt actions.
 enum Prompt {
-    // Default value when nothing specificied.
-    PROMPT_INVALID = 0;
-    // Value to set as unknown.
-    PROMPT_UNKNOWN = 1;
-    // The Authorization Server MUST NOT display any authentication or consent
-    // user interface pages. An error is returned if an End-User is not already
-    // authenticated or the Client does not have pre-configured consent for the
-    // requested Claims or does not fulfill other conditions for processing the
-    // request. The error code will typically be login_required,
-    // interaction_required, or another code defined in Section 3.1.2.6. This
-    // can be used as a method to check for existing authentication and/or
-    // consent.
-    PROMPT_NONE = 2;
-    // The Authorization Server SHOULD prompt the End-User for reauthentication.
-    // If it cannot reauthenticate the End-User, it MUST return an error,
-    // typically login_required.
-    PROMPT_LOGIN = 3;
-    // The Authorization Server SHOULD prompt the End-User for consent before
-    // returning information to the Client. If it cannot obtain consent, it MUST
-    // return an error, typically consent_required.
-    PROMPT_CONSENT = 4;
-    // The Authorization Server SHOULD prompt the End-User to select a user
-    // account. This enables an End-User who has multiple accounts at the
-    // Authorization Server to select amongst the multiple accounts that they
-    // might have current sessions for. If it cannot obtain an account selection
-    // choice made by the End-User, it MUST return an error, typically
-    // account_selection_required.
-    PROMPT_SELECT_ACCOUNT = 5;
+  // Default value when nothing specificied.
+  PROMPT_UNSPECIFIED = 0;
+  // Value to set as unknown.
+  PROMPT_UNKNOWN = 1;
+  // The Authorization Server MUST NOT display any authentication or consent
+  // user interface pages. An error is returned if an End-User is not already
+  // authenticated or the Client does not have pre-configured consent for the
+  // requested Claims or does not fulfill other conditions for processing the
+  // request. The error code will typically be login_required,
+  // interaction_required, or another code defined in Section 3.1.2.6. This
+  // can be used as a method to check for existing authentication and/or
+  // consent.
+  PROMPT_NONE = 2;
+  // The Authorization Server SHOULD prompt the End-User for reauthentication.
+  // If it cannot reauthenticate the End-User, it MUST return an error,
+  // typically login_required.
+  PROMPT_LOGIN = 3;
+  // The Authorization Server SHOULD prompt the End-User for consent before
+  // returning information to the Client. If it cannot obtain consent, it MUST
+  // return an error, typically consent_required.
+  PROMPT_CONSENT = 4;
+  // The Authorization Server SHOULD prompt the End-User to select a user
+  // account. This enables an End-User who has multiple accounts at the
+  // Authorization Server to select amongst the multiple accounts that they
+  // might have current sessions for. If it cannot obtain an account selection
+  // choice made by the End-User, it MUST return an error, typically
+  // account_selection_required.
+  PROMPT_SELECT_ACCOUNT = 5;
 }

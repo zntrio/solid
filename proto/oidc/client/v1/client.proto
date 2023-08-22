@@ -1,0 +1,157 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.client.v1;
+
+option go_package = "oidc/client/v1;clientv1";
+
+// ClientType describes OIDC Client type enumeration.
+// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-04#section-2.1
+enum ClientType {
+  // Default value
+  CLIENT_TYPE_UNSPECIFIED = 0;
+  // Clients that have credentials and have a prior relationship with the AS are
+  // designated as "confidential clients". A client that has been registered at
+  // the authorization server by a registered application developer, where the
+  // client is expected to be run as server-side code, would be considered a
+  // confidential client.
+  CLIENT_TYPE_CONFIDENTIAL = 1;
+  // Clients that have credentials but no prior relationship with the AS are
+  // designated as "credentialed clients". A client that runs on an end-user's
+  // device, and uses Dynamic Client Registration ([RFC7591]) to establish
+  // credentials the first time the app runs, would be considered a credentialed
+  // client.
+  CLIENT_TYPE_CREDENTIALED = 2;
+  // Clients without credentials are called "public clients". An application
+  // deployed as a single-page app on a static web host would be considered a
+  // public client.
+  CLIENT_TYPE_PUBLIC = 3;
+}
+
+// ClientProfile describes client profile enumeration.
+// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-04#section-2.1
+enum ClientProfile {
+  // Default value
+  CLIENT_PROFILE_UNSPECIFIED = 0;
+  // A web application is a confidential client
+  // running on a web server.  Resource owners access the client via an
+  // HTML user interface rendered in a user agent on the device used by
+  // the resource owner.  The client credentials as well as any access
+  // tokens issued to the client are stored on the web server and are
+  // not exposed to or accessible by the resource owner.
+  CLIENT_PROFILE_WEB_APPLICATION = 1;
+  // A browser-based application is a public
+  // client in which the client code is downloaded from a web server
+  // and executes within a user agent (e.g., web browser) on the device
+  // used by the resource owner.  Protocol data and credentials are
+  // easily accessible (and often visible) to the resource owner.
+  // Since such applications reside within the user agent, they can
+  // make seamless use of the user agent capabilities when requesting
+  // authorization.
+  CLIENT_PROFILE_BROWSER_BASED_APPLICATION = 2;
+  // A native application is a public client
+  // installed and executed on the device used by the resource owner.
+  // Protocol data and credentials are accessible to the resource
+  // owner.  It is assumed that any client authentication credentials
+  // included in the application can be extracted.  On the other hand,
+  // dynamically issued credentials such as access tokens or refresh
+  // tokens can receive an acceptable level of protection.  At a
+  // minimum, these credentials are protected from hostile servers with
+  // which the application may interact.  On some platforms, these
+  // credentials might be protected from other applications residing on
+  // the same device.
+  CLIENT_PROFILE_NATIVE_APPLICATION = 3;
+}
+
+// Client defines internal OIDC client properties.
+message Client {
+  string client_id = 1;
+  ClientType client_type = 2;
+  repeated string redirect_uris = 3;
+  repeated string response_types = 4;
+  repeated string response_modes = 5;
+  repeated string grant_types = 6;
+  string application_type = 7;
+  repeated string contacts = 8;
+  string client_name = 9;
+  string logo_uri = 10;
+  string client_uri = 11;
+  string policy_uri = 12;
+  string tos_uri = 13;
+  string jwks_uri = 14;
+  bytes jwks = 15;
+  bytes client_secret = 16;
+  string subject_type = 17;
+  string sector_identifier = 18;
+  string token_endpoint_auth_method = 19;
+  string tls_client_auth_subject_dn = 20;
+  string tls_client_auth_san_dns = 21;
+  string tls_client_auth_san_uri = 22;
+  string tls_client_auth_san_ip = 23;
+  string tls_client_auth_san_email = 24;
+  bool tls_client_certificate_bound_access_tokens = 25;
+  bool require_pushed_authorization_requests = 26;
+  bool require_signed_request_object = 27;
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-5.2
+  bool dpop_bound_access_tokens = 28;
+}
+
+message ClientMeta {
+  optional string application_type = 1;
+  repeated string redirect_uris = 2;
+  optional string token_endpoint_auth_method = 3;
+  repeated string grant_types = 4;
+  repeated string response_types = 5;
+  optional string client_name = 6;
+  map<string, string> client_name_i18n = 7;
+  optional string client_uri = 8;
+  optional string logo_uri = 9;
+  map<string, string> logo_uri_i18n = 10;
+  optional string scope = 11;
+  repeated string contacts = 12;
+  optional string tos_uri = 13;
+  map<string, string> tos_uri_i18n = 14;
+  optional string policy_uri = 15;
+  map<string, string> policy_uri_i18n = 16;
+  optional string jwk_uri = 17;
+  optional bytes jwks = 18;
+  optional string software_id = 19;
+  optional string software_version = 20;
+  optional string software_statement = 21;
+  optional string subject_type = 22;
+  optional string sector_identifier = 23;
+  optional string tls_client_auth_subject_dn = 24;
+  optional string tls_client_auth_san_dns = 25;
+  optional string tls_client_auth_san_uri = 26;
+  optional string tls_client_auth_san_ip = 27;
+  optional string tls_client_auth_san_email = 28;
+  optional bool tls_client_certificate_bound_access_tokens = 29;
+  optional string introspection_signed_response_alg = 30;
+  optional string introspection_encrypted_response_alg = 31;
+  optional string introspection_encrypted_response_enc = 32;
+  repeated string response_modes = 33;
+  optional bool require_pushed_authorization_requests = 34;
+  optional bool require_signed_request_object = 35;
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-5.2
+  optional bool dpop_bound_access_tokens = 36;
+}
+
+message SoftwareStatement {
+  string software_id = 1;
+}

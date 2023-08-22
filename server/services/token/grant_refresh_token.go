@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"net/url"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
@@ -30,8 +32,8 @@ import (
 )
 
 //nolint:funlen,gocyclo // to refactor
-func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
-	res := &corev1.TokenResponse{}
+func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
+	res := &flowv1.TokenResponse{}
 	grant := req.GetRefreshToken()
 
 	// Check parameters
@@ -83,11 +85,11 @@ func (s *service) refreshToken(ctx context.Context, client *corev1.Client, req *
 	}
 
 	// Check token
-	if rt.Status != corev1.TokenStatus_TOKEN_STATUS_ACTIVE {
+	if rt.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token in not active")
 	}
-	if rt.TokenType != corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN {
+	if rt.TokenType != tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token must not be empty")
 	}

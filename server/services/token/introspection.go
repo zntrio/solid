@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"net/url"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/storage"
 )
 
-func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospectionRequest) (*corev1.TokenIntrospectionResponse, error) {
-	res := &corev1.TokenIntrospectionResponse{}
+func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest) (*tokenv1.IntrospectResponse, error) {
+	res := &tokenv1.IntrospectResponse{}
 
 	// Check parameters
 	if req == nil {
@@ -73,10 +73,10 @@ func (s *service) Introspect(ctx context.Context, req *corev1.TokenIntrospection
 		return res, fmt.Errorf("unable to retrieve to token: %w", err)
 	}
 	if err != nil && errors.Is(err, storage.ErrNotFound) {
-		res.Token = &corev1.Token{
+		res.Token = &tokenv1.Token{
 			Issuer: req.Issuer,
 			Value:  req.Token,
-			Status: corev1.TokenStatus_TOKEN_STATUS_INVALID,
+			Status: tokenv1.TokenStatus_TOKEN_STATUS_UNKNOWN,
 		}
 		return res, nil
 	}

@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
@@ -33,7 +33,7 @@ import (
 func Test_introspectionGenerator_Generate(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		t   *corev1.Token
+		t   *tokenv1.Token
 	}
 	tests := []struct {
 		name    string
@@ -53,23 +53,23 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 		{
 			name: "nil token id",
 			args: args{
-				t: &corev1.Token{},
+				t: &tokenv1.Token{},
 			},
 			wantErr: true,
 		},
 		{
 			name: "nil meta",
 			args: args{
-				t: &corev1.Token{TokenId: "azerty"},
+				t: &tokenv1.Token{TokenId: "azerty"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "signer error",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId: "123456789",
-					Metadata: &corev1.TokenMeta{
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",
@@ -90,11 +90,11 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 		{
 			name: "valid - expired",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId:   "123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_EXPIRED,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_EXPIRED,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",
@@ -115,11 +115,11 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 		{
 			name: "valid - active",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId:   "123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",

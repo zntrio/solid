@@ -22,13 +22,13 @@ import (
 	"fmt"
 	"net/url"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/storage"
 )
 
-func (s *service) Revoke(ctx context.Context, req *corev1.TokenRevocationRequest) (*corev1.TokenRevocationResponse, error) {
-	res := &corev1.TokenRevocationResponse{}
+func (s *service) Revoke(ctx context.Context, req *tokenv1.RevokeRequest) (*tokenv1.RevokeResponse, error) {
+	res := &tokenv1.RevokeResponse{}
 
 	// Check parameters
 	if req == nil {

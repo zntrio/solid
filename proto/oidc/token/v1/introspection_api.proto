@@ -1,0 +1,69 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.token.v1;
+
+import "oidc/client/v1/client.proto";
+import "oidc/core/v1/error.proto";
+import "oidc/token/v1/token.proto";
+
+option go_package = "oidc/token/v1;tokenv1";
+
+// -----------------------------------------------------------------------------
+
+service IntrospectionService {
+  rpc Introspect(IntrospectRequest) returns (IntrospectResponse) {}
+}
+
+// -----------------------------------------------------------------------------
+
+// https://tools.ietf.org/html/rfc7662#section-2.1
+message IntrospectRequest {
+  // REQUIRED. Token issuer URL.
+  string issuer = 1;
+
+  // REQUIRED. Client that invoke the token introspection.
+  .oidc.client.v1.Client client = 2;
+
+  // REQUIRED.  The string value of the token.  For access tokens, this
+  // is the "access_token" value returned from the token endpoint
+  // defined in OAuth 2.0 [RFC6749], Section 5.1.  For refresh tokens,
+  // this is the "refresh_token" value returned from the token endpoint
+  // as defined in OAuth 2.0 [RFC6749], Section 5.1.  Other token types
+  // are outside the scope of this specification.
+  string token = 3;
+
+  // OPTIONAL.  A hint about the type of the token submitted for
+  // introspection.  The protected resource MAY pass this parameter to
+  // help the authorization server optimize the token lookup.  If the
+  // server is unable to locate the token using the given hint, it MUST
+  // extend its search across all of its supported token types.  An
+  // authorization server MAY ignore this parameter, particularly if it
+  // is able to detect the token type automatically.  Values for this
+  // field are defined in the "OAuth Token Type Hints" registry defined
+  // in OAuth Token Revocation [RFC7009]
+  optional string token_type_hint = 4;
+}
+
+// https://tools.ietf.org/html/rfc7662#section-2.2
+message IntrospectResponse {
+  .oidc.core.v1.Error error = 1;
+  // OPTIONAL. The matching token instance.
+  Token token = 2;
+}

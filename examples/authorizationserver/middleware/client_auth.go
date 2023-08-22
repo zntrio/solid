@@ -21,7 +21,7 @@ import (
 	"log"
 	"net/http"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -54,7 +54,7 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 					return
 				}
 
-				if client.ClientType == corev1.ClientType_CLIENT_TYPE_PUBLIC {
+				if client.ClientType == clientv1.ClientType_CLIENT_TYPE_PUBLIC {
 					// Assign client to context
 					ctx = clientauthentication.Inject(ctx, client)
 				} else {
@@ -82,7 +82,7 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				}
 
 				// Process authentication
-				resAuth, err := authenticator.Authenticate(ctx, &corev1.ClientAuthenticationRequest{
+				resAuth, err := authenticator.Authenticate(ctx, &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(authMethod),
 					ClientAssertion:     types.StringRef(assertion),
 				})

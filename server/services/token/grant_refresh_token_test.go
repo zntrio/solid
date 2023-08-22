@@ -26,7 +26,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -37,29 +39,29 @@ import (
 func Test_service_refreshToken(t *testing.T) {
 	type args struct {
 		ctx    context.Context
-		client *corev1.Client
-		req    *corev1.TokenRequest
+		client *clientv1.Client
+		req    *flowv1.TokenRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockToken, *tokenmock.MockGenerator, *tokenmock.MockGenerator)
-		want    *corev1.TokenResponse
+		want    *flowv1.TokenResponse
 		wantErr bool
 	}{
 		{
 			name: "nil client",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -67,10 +69,10 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "nil request",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
+				client: &clientv1.Client{},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -78,13 +80,13 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "nil grant",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					GrantType: oidc.GrantTypeAuthorizationCode,
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -92,18 +94,18 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "empty issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "",
-					Client:    &corev1.Client{},
+					Client:    &clientv1.Client{},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{},
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -111,18 +113,18 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "invalid issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "foo",
-					Client:    &corev1.Client{},
+					Client:    &clientv1.Client{},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{},
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -130,22 +132,22 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "empty refresh_token",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "",
 						},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -153,24 +155,24 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
@@ -178,17 +180,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token not found",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -198,7 +200,7 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -206,17 +208,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -226,7 +228,7 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -234,32 +236,32 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token is not active",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					Status:    corev1.TokenStatus_TOKEN_STATUS_REVOKED,
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_REVOKED,
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -267,32 +269,32 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token is not a refresh_token",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -300,32 +302,32 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token doesn't have metadata",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
 				},
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -333,17 +335,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token expired",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -351,12 +353,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(100, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Metadata: &corev1.TokenMeta{
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -367,7 +369,7 @@ func Test_service_refreshToken(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -375,17 +377,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "refresh token / client_id mismatch",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -393,12 +395,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Metadata: &corev1.TokenMeta{
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						ClientId:  "123458",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -410,7 +412,7 @@ func Test_service_refreshToken(t *testing.T) {
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -419,17 +421,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "error during accessToken generation",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -437,12 +439,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -454,7 +456,7 @@ func Test_service_refreshToken(t *testing.T) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -462,17 +464,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "empty access token value",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -480,12 +482,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -497,7 +499,7 @@ func Test_service_refreshToken(t *testing.T) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -505,17 +507,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "token storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -523,12 +525,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -541,7 +543,7 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -549,17 +551,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "rt generation error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -567,12 +569,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -587,7 +589,7 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo")).After(atSave)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -595,17 +597,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "rt revocation error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -613,12 +615,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -634,7 +636,7 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -643,17 +645,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "valid",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -661,12 +663,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -679,13 +681,13 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.TokenResponse{
-				AccessToken: &corev1.Token{
+			want: &flowv1.TokenResponse{
+				AccessToken: &tokenv1.Token{
 					Value:     "xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -700,17 +702,17 @@ func Test_service_refreshToken(t *testing.T) {
 			name: "valid with new rt",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeRefreshToken,
-					Grant: &corev1.TokenRequest_RefreshToken{
-						RefreshToken: &corev1.GrantRefreshToken{
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
 							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 						},
 					},
@@ -718,12 +720,12 @@ func Test_service_refreshToken(t *testing.T) {
 			},
 			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&corev1.Token{
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -739,13 +741,13 @@ func Test_service_refreshToken(t *testing.T) {
 				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.TokenResponse{
-				AccessToken: &corev1.Token{
+			want: &flowv1.TokenResponse{
+				AccessToken: &tokenv1.Token{
 					Value:     "xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
@@ -754,12 +756,12 @@ func Test_service_refreshToken(t *testing.T) {
 						ExpiresAt: 3601,
 					},
 				},
-				RefreshToken: &corev1.Token{
+				RefreshToken: &tokenv1.Token{
 					Value:     "JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr",
 					TokenId:   "0123456789",
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",

@@ -22,14 +22,16 @@ import (
 	"fmt"
 	"net/url"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 )
 
-func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
-	res := &corev1.TokenResponse{}
+func (s *service) clientCredentials(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
+	res := &flowv1.TokenResponse{}
 	grant := req.GetClientCredentials()
 
 	// Check parameters
@@ -61,7 +63,7 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 
 	// Ensure client type
 	switch client.ClientType {
-	case corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL, corev1.ClientType_CLIENT_TYPE_CREDENTIALED:
+	case clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL, clientv1.ClientType_CLIENT_TYPE_CREDENTIALED:
 		// Valid
 	default:
 		res.Error = rfcerrors.InvalidClient().Build()
@@ -75,7 +77,7 @@ func (s *service) clientCredentials(ctx context.Context, client *corev1.Client, 
 	}
 
 	// Prepare token
-	tokenMeta := &corev1.TokenMeta{
+	tokenMeta := &tokenv1.TokenMeta{
 		Issuer: req.Issuer,
 	}
 	if req.Scope != nil {

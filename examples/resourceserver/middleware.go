@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/client"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/token/jwt"
@@ -75,7 +75,7 @@ func authenticateWithBearer(w http.ResponseWriter, req *http.Request, cli client
 	}
 	spew.Dump(t)
 	switch {
-	case t.Status != corev1.TokenStatus_TOKEN_STATUS_ACTIVE:
+	case t.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE:
 		return nil, errors.New("Token is inactive.")
 	case t.Confirmation != nil:
 		return nil, errors.New("Token requires a PoP proof to be used.")
@@ -119,7 +119,7 @@ func authenticateWithDPoP(w http.ResponseWriter, req *http.Request, cli client.C
 		return nil, errors.New("Unable to get a successful token introspection response.")
 	}
 	switch {
-	case t.Status != corev1.TokenStatus_TOKEN_STATUS_ACTIVE:
+	case t.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE:
 		return nil, errors.New("Token is inactive.")
 	case t.Confirmation == nil:
 		return nil, errors.New("Request is using a DPoP with a token without PoP.")

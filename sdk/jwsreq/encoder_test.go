@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -37,7 +37,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 	}
 	type args struct {
 		ctx context.Context
-		ar  *corev1.AuthorizationRequest
+		ar  *flowv1.AuthorizationRequest
 	}
 	tests := []struct {
 		name    string
@@ -61,7 +61,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 		{
 			name: "signer error",
 			args: args{
-				ar: &corev1.AuthorizationRequest{
+				ar: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
@@ -82,7 +82,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				ar: &corev1.AuthorizationRequest{
+				ar: &flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",

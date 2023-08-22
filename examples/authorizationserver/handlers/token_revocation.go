@@ -21,7 +21,7 @@ import (
 	"log"
 	"net/http"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/clientauthentication"
@@ -47,7 +47,7 @@ func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 		}
 
 		// Send request to reactor
-		res, err := tokenz.Revoke(ctx, &corev1.TokenRevocationRequest{
+		res, err := tokenz.Revoke(ctx, &tokenv1.RevokeRequest{
 			Issuer:        issuer,
 			Client:        client,
 			Token:         token,

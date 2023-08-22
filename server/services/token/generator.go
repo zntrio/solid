@@ -24,7 +24,8 @@ import (
 
 	"github.com/dchest/uniuri"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 const (
@@ -33,15 +34,15 @@ const (
 
 var timeFunc = time.Now
 
-func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
+func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Client, meta *tokenv1.TokenMeta, cnf *tokenv1.TokenConfirmation) (*tokenv1.Token, error) {
 	var err error
 
 	// Create access token spec
 	now := timeFunc()
-	at := &corev1.Token{
-		TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+	at := &tokenv1.Token{
+		TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
-		Metadata: &corev1.TokenMeta{
+		Metadata: &tokenv1.TokenMeta{
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
@@ -52,7 +53,7 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 			Audience:  meta.Audience,
 		},
 		Confirmation: cnf,
-		Status:       corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
 	// Generate an access token
@@ -75,15 +76,15 @@ func (s *service) generateAccessToken(ctx context.Context, client *corev1.Client
 	return at, nil
 }
 
-func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Client, meta *corev1.TokenMeta, cnf *corev1.TokenConfirmation) (*corev1.Token, error) {
+func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Client, meta *tokenv1.TokenMeta, cnf *tokenv1.TokenConfirmation) (*tokenv1.Token, error) {
 	var err error
 
 	// Create access token spec
 	now := timeFunc()
-	at := &corev1.Token{
-		TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+	at := &tokenv1.Token{
+		TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 		TokenId:   uniuri.NewLen(jtiLength),
-		Metadata: &corev1.TokenMeta{
+		Metadata: &tokenv1.TokenMeta{
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
@@ -94,7 +95,7 @@ func (s *service) generateRefreshToken(ctx context.Context, client *corev1.Clien
 			Audience:  meta.Audience,
 		},
 		Confirmation: cnf,
-		Status:       corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
 	// Generate an access token

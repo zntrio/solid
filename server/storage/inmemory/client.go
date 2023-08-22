@@ -23,22 +23,22 @@ import (
 
 	"github.com/dchest/uniuri"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/server/storage"
 )
 
 type clientStorage struct {
-	backend map[string]*corev1.Client
+	backend map[string]*clientv1.Client
 }
 
 // Clients returns a client manager.
 func Clients() storage.Client {
 	return &clientStorage{
-		backend: map[string]*corev1.Client{
+		backend: map[string]*clientv1.Client{
 			"t8p9duw4n2klximkv3kagaud796ul67g": {
 				ClientId:   "t8p9duw4n2klximkv3kagaud796ul67g",
-				ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 				ClientName: "test-client",
 				Jwks: []byte(`{"keys":[
 					{
@@ -59,7 +59,7 @@ func Clients() storage.Client {
 			},
 			"5stz52n91hr7aw9q1h5hbuvkt2ovevdw": {
 				ClientId:   "5stz52n91hr7aw9q1h5hbuvkt2ovevdw",
-				ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 				ClientName: "resource-server",
 				Jwks: []byte(`{"keys":[
 					{
@@ -81,7 +81,7 @@ func Clients() storage.Client {
 			},
 			"6779ef20e75817b79602": {
 				ClientId:        "6779ef20e75817b79602",
-				ClientType:      corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				ClientType:      clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 				ApplicationType: "web",
 				ClientName:      "foo-test-client",
 				GrantTypes: []string{
@@ -123,7 +123,7 @@ func Clients() storage.Client {
 			},
 			"public-client": {
 				ClientId:        "public-client",
-				ClientType:      corev1.ClientType_CLIENT_TYPE_PUBLIC,
+				ClientType:      clientv1.ClientType_CLIENT_TYPE_PUBLIC,
 				ApplicationType: "cli",
 				ClientName:      "cli-public-client",
 				GrantTypes: []string{
@@ -139,7 +139,7 @@ func Clients() storage.Client {
 			},
 			"attestation-client": {
 				ClientId:        "attestation-client",
-				ClientType:      corev1.ClientType_CLIENT_TYPE_CREDENTIALED,
+				ClientType:      clientv1.ClientType_CLIENT_TYPE_CREDENTIALED,
 				ApplicationType: "cli",
 				ClientName:      "cli-public-client",
 				GrantTypes: []string{
@@ -152,7 +152,7 @@ func Clients() storage.Client {
 			},
 			"urn:solid:attestation-server": {
 				ClientId:   "urn:solid:attestation-server",
-				ClientType: corev1.ClientType_CLIENT_TYPE_PUBLIC,
+				ClientType: clientv1.ClientType_CLIENT_TYPE_PUBLIC,
 				ClientName: "Remote Attestation Server",
 				Jwks: []byte(`{
 					"keys": [
@@ -170,7 +170,7 @@ func Clients() storage.Client {
 
 // -----------------------------------------------------------------------------
 
-func (s *clientStorage) Get(ctx context.Context, id string) (*corev1.Client, error) {
+func (s *clientStorage) Get(ctx context.Context, id string) (*clientv1.Client, error) {
 	// Check is client exists
 	client, ok := s.backend[id]
 	if !ok {
@@ -181,7 +181,7 @@ func (s *clientStorage) Get(ctx context.Context, id string) (*corev1.Client, err
 	return client, nil
 }
 
-func (s *clientStorage) GetByName(ctx context.Context, name string) (*corev1.Client, error) {
+func (s *clientStorage) GetByName(ctx context.Context, name string) (*clientv1.Client, error) {
 	// Iterate over bakend map
 	for _, c := range s.backend {
 		if strings.EqualFold(c.ClientName, name) {
@@ -195,7 +195,7 @@ func (s *clientStorage) GetByName(ctx context.Context, name string) (*corev1.Cli
 
 // -----------------------------------------------------------------------------
 
-func (s *clientStorage) Register(ctx context.Context, c *corev1.Client) (string, error) {
+func (s *clientStorage) Register(ctx context.Context, c *clientv1.Client) (string, error) {
 	// Assign client id
 	c.ClientId = uniuri.NewLen(16)
 

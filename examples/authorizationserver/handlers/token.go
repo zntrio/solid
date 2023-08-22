@@ -24,7 +24,9 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
@@ -43,10 +45,10 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		Scope        string `json:"scope"`
 	}
 
-	messageBuilder := func(r *http.Request, client *corev1.Client) *corev1.TokenRequest {
+	messageBuilder := func(r *http.Request, client *clientv1.Client) *flowv1.TokenRequest {
 		grantType := r.FormValue("grant_type")
 
-		msg := &corev1.TokenRequest{
+		msg := &flowv1.TokenRequest{
 			Issuer:    issuer,
 			Client:    client,
 			GrantType: grantType,
@@ -54,26 +56,26 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 
 		switch grantType {
 		case oidc.GrantTypeAuthorizationCode:
-			msg.Grant = &corev1.TokenRequest_AuthorizationCode{
-				AuthorizationCode: &corev1.GrantAuthorizationCode{
+			msg.Grant = &flowv1.TokenRequest_AuthorizationCode{
+				AuthorizationCode: &flowv1.GrantAuthorizationCode{
 					Code:         r.FormValue("code"),
 					CodeVerifier: r.FormValue("code_verifier"),
 					RedirectUri:  r.FormValue("redirect_uri"),
 				},
 			}
 		case oidc.GrantTypeClientCredentials:
-			msg.Grant = &corev1.TokenRequest_ClientCredentials{
-				ClientCredentials: &corev1.GrantClientCredentials{},
+			msg.Grant = &flowv1.TokenRequest_ClientCredentials{
+				ClientCredentials: &flowv1.GrantClientCredentials{},
 			}
 		case oidc.GrantTypeDeviceCode:
-			msg.Grant = &corev1.TokenRequest_DeviceCode{
-				DeviceCode: &corev1.GrantDeviceCode{
+			msg.Grant = &flowv1.TokenRequest_DeviceCode{
+				DeviceCode: &flowv1.GrantDeviceCode{
 					DeviceCode: r.FormValue("device_code"),
 				},
 			}
 		case oidc.GrantTypeRefreshToken:
-			msg.Grant = &corev1.TokenRequest_RefreshToken{
-				RefreshToken: &corev1.GrantRefreshToken{
+			msg.Grant = &flowv1.TokenRequest_RefreshToken{
+				RefreshToken: &flowv1.GrantRefreshToken{
 					RefreshToken: r.FormValue("refresh_token"),
 				},
 			}
@@ -115,7 +117,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			}
 
 			// Add confirmation
-			msg.TokenConfirmation = &corev1.TokenConfirmation{
+			msg.TokenConfirmation = &tokenv1.TokenConfirmation{
 				Jkt: jkt,
 			}
 		}

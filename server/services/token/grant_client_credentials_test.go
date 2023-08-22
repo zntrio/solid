@@ -26,7 +26,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -36,29 +38,29 @@ import (
 func Test_service_clientCredentials(t *testing.T) {
 	type args struct {
 		ctx    context.Context
-		client *corev1.Client
-		req    *corev1.TokenRequest
+		client *clientv1.Client
+		req    *flowv1.TokenRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockToken, *tokenmock.MockGenerator)
-		want    *corev1.TokenResponse
+		want    *flowv1.TokenResponse
 		wantErr bool
 	}{
 		{
 			name: "nil client",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -66,10 +68,10 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "nil request",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
+				client: &clientv1.Client{},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -77,11 +79,11 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "nil grant",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req:    &corev1.TokenRequest{},
+				client: &clientv1.Client{},
+				req:    &flowv1.TokenRequest{},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -89,16 +91,16 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "empty issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer: "",
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -106,16 +108,16 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "invalid issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer: "123456",
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -123,24 +125,24 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "unsupported client type",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
-					ClientType:   corev1.ClientType_CLIENT_TYPE_PUBLIC,
+				client: &clientv1.Client{
+					ClientType:   clientv1.ClientType_CLIENT_TYPE_PUBLIC,
 					GrantTypes:   []string{oidc.GrantTypeAuthorizationCode},
 					RedirectUris: []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -148,24 +150,24 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
-					ClientType:   corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				client: &clientv1.Client{
+					ClientType:   clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 					GrantTypes:   []string{oidc.GrantTypeAuthorizationCode},
 					RedirectUris: []string{"https://client.example.org/cb"},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
@@ -174,18 +176,18 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "openid: access token generation error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
-					ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
@@ -193,7 +195,7 @@ func Test_service_clientCredentials(t *testing.T) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -201,18 +203,18 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "openid: empty access token generation",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
-					ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
@@ -220,7 +222,7 @@ func Test_service_clientCredentials(t *testing.T) {
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -228,18 +230,18 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "openid: access token storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
-					ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
@@ -248,7 +250,7 @@ func Test_service_clientCredentials(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -257,18 +259,18 @@ func Test_service_clientCredentials(t *testing.T) {
 			name: "valid",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
-					ClientType: corev1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 					GrantTypes: []string{oidc.GrantTypeClientCredentials},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeClientCredentials,
-					Grant: &corev1.TokenRequest_ClientCredentials{
-						ClientCredentials: &corev1.GrantClientCredentials{},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
 					},
 				},
 			},
@@ -278,12 +280,12 @@ func Test_service_clientCredentials(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: nil,
-				AccessToken: &corev1.Token{
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+				AccessToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
 						NotBefore: 2,

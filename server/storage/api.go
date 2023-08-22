@@ -21,7 +21,11 @@ import (
 	"context"
 	"errors"
 
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	sessionv1 "zntr.io/solid/api/oidc/session/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 // ErrNotFound is returned when the query return no result.
@@ -31,15 +35,15 @@ var ErrNotFound = errors.New("no result found")
 
 // ClientReader defines client storage read-only operation contract.
 type ClientReader interface {
-	Get(ctx context.Context, id string) (*corev1.Client, error)
-	GetByName(ctx context.Context, name string) (*corev1.Client, error)
+	Get(ctx context.Context, id string) (*clientv1.Client, error)
+	GetByName(ctx context.Context, name string) (*clientv1.Client, error)
 }
 
 //go:generate mockgen -destination mock/client_writer.gen.go -package mock zntr.io/solid/server/storage ClientWriter
 
 // ClientWriter describes client storage write-only operation contract.
 type ClientWriter interface {
-	Register(ctx context.Context, c *corev1.Client) (string, error)
+	Register(ctx context.Context, c *clientv1.Client) (string, error)
 }
 
 //go:generate mockgen -destination mock/client.gen.go -package mock zntr.io/solid/server/storage Client
@@ -54,14 +58,14 @@ type Client interface {
 
 // AuthorizationRequestReader describes authorization request storage read-only operation contract.
 type AuthorizationRequestReader interface {
-	Get(ctx context.Context, issuer, requestURI string) (*corev1.AuthorizationRequest, error)
+	Get(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error)
 }
 
 //go:generate mockgen -destination mock/authorization_request_writer.gen.go -package mock zntr.io/solid/server/storage AuthorizationRequestWriter
 
 // AuthorizationRequestWriter describes authorization request storage write-only operation contract.
 type AuthorizationRequestWriter interface {
-	Register(ctx context.Context, issuer, requestURI string, req *corev1.AuthorizationRequest) (uint64, error)
+	Register(ctx context.Context, issuer, requestURI string, req *flowv1.AuthorizationRequest) (uint64, error)
 	Delete(ctx context.Context, issuer, requestURI string) error
 }
 
@@ -77,15 +81,15 @@ type AuthorizationRequest interface {
 
 // TokenReader describes accessToken read-only operation storage contract.
 type TokenReader interface {
-	Get(ctx context.Context, issuer, id string) (*corev1.Token, error)
-	GetByValue(ctx context.Context, issuer, value string) (*corev1.Token, error)
+	Get(ctx context.Context, issuer, id string) (*tokenv1.Token, error)
+	GetByValue(ctx context.Context, issuer, value string) (*tokenv1.Token, error)
 }
 
 //go:generate mockgen -destination mock/token_writer.gen.go -package mock zntr.io/solid/server/storage TokenWriter
 
 // TokenWriter describes accessToken write-only operation contract.
 type TokenWriter interface {
-	Create(ctx context.Context, issuer string, t *corev1.Token) error
+	Create(ctx context.Context, issuer string, t *tokenv1.Token) error
 	Delete(ctx context.Context, issuer, id string) error
 	Revoke(ctx context.Context, issuer, id string) error
 }
@@ -102,14 +106,14 @@ type Token interface {
 
 // AuthorizationCodeSessionReader describes read-only storage operation contract.
 type AuthorizationCodeSessionReader interface {
-	Get(ctx context.Context, issuer, code string) (*corev1.AuthorizationCodeSession, error)
+	Get(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error)
 }
 
 //go:generate mockgen -destination mock/authorization_code_session_writer.gen.go -package mock zntr.io/solid/server/storage AuthorizationCodeSessionWriter
 
 // AuthorizationCodeSessionWriter describes write-only operation contract.
 type AuthorizationCodeSessionWriter interface {
-	Register(ctx context.Context, issuer, code string, s *corev1.AuthorizationCodeSession) (uint64, error)
+	Register(ctx context.Context, issuer, code string, s *sessionv1.AuthorizationCodeSession) (uint64, error)
 	Delete(ctx context.Context, issuer, code string) error
 }
 
@@ -125,17 +129,17 @@ type AuthorizationCodeSession interface {
 
 // DeviceCodeSessionWriter describes deviceCode write-only operation contract.
 type DeviceCodeSessionWriter interface {
-	Register(ctx context.Context, issuer, userCode string, r *corev1.DeviceCodeSession) (uint64, error)
+	Register(ctx context.Context, issuer, userCode string, r *sessionv1.DeviceCodeSession) (uint64, error)
 	Delete(ctx context.Context, issuer, userCode string) error
-	Validate(ctx context.Context, issuer, userCode string, r *corev1.DeviceCodeSession) error
+	Validate(ctx context.Context, issuer, userCode string, r *sessionv1.DeviceCodeSession) error
 }
 
 //go:generate mockgen -destination mock/device_code_session_reader.gen.go -package mock zntr.io/solid/server/storage DeviceCodeSessionReader
 
 // DeviceCodeSessionReader describes deviceCode read-only operation contract.
 type DeviceCodeSessionReader interface {
-	GetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*corev1.DeviceCodeSession, error)
-	GetByUserCode(ctx context.Context, issuer, userCode string) (*corev1.DeviceCodeSession, error)
+	GetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*sessionv1.DeviceCodeSession, error)
+	GetByUserCode(ctx context.Context, issuer, userCode string) (*sessionv1.DeviceCodeSession, error)
 }
 
 //go:generate mockgen -destination mock/device_code_session.gen.go -package mock zntr.io/solid/server/storage DeviceCodeSession

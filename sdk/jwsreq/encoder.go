@@ -24,7 +24,7 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/token"
 )
 
@@ -41,7 +41,7 @@ type tokenEncoder struct {
 	signer token.Serializer
 }
 
-func (enc *tokenEncoder) Encode(ctx context.Context, ar *corev1.AuthorizationRequest) (string, error) {
+func (enc *tokenEncoder) Encode(ctx context.Context, ar *flowv1.AuthorizationRequest) (string, error) {
 	// Check arguments
 	if ar == nil {
 		return "", fmt.Errorf("unable to encode nil request")

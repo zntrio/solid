@@ -23,8 +23,8 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 // Client describes OIDC client contract.
@@ -38,7 +38,7 @@ type Client interface {
 	Audience() string
 	ServerMetadata() *discoveryv1.ServerMetadata
 	Issuer() string
-	Introspect(ctx context.Context, assertion, token string) (*corev1.Token, error)
+	Introspect(ctx context.Context, assertion, token string) (*tokenv1.Token, error)
 	ClientCredentials(ctx context.Context, assertion string) (*oauth2.Token, error)
 }
 

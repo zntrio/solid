@@ -25,7 +25,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/crypto/blake2b"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/server/storage"
 )
 
@@ -45,7 +45,7 @@ func AuthorizationCodeSessions() storage.AuthorizationCodeSession {
 
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) Register(ctx context.Context, issuer, code string, req *corev1.AuthorizationCodeSession) (uint64, error) {
+func (s *sessionStorage) Register(ctx context.Context, issuer, code string, req *sessionv1.AuthorizationCodeSession) (uint64, error) {
 	// Insert in cache
 	s.backend.Set(s.deriveKey(issuer, code), req, cache.DefaultExpiration)
 
@@ -59,10 +59,10 @@ func (s *sessionStorage) Delete(ctx context.Context, issuer, code string) error 
 	return nil
 }
 
-func (s *sessionStorage) Get(ctx context.Context, issuer, code string) (*corev1.AuthorizationCodeSession, error) {
+func (s *sessionStorage) Get(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error) {
 	// Retrieve from cache
 	if x, found := s.backend.Get(s.deriveKey(issuer, code)); found {
-		req := x.(*corev1.AuthorizationCodeSession)
+		req := x.(*sessionv1.AuthorizationCodeSession)
 		return req, nil
 	}
 

@@ -34,6 +34,7 @@ import (
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 )
 
@@ -365,7 +366,7 @@ func (c *httpClient) ClientCredentials(ctx context.Context, assertion string) (*
 	return &token, nil
 }
 
-func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*corev1.Token, error) {
+func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*tokenv1.Token, error) {
 	// Parse introspection url endpoint
 	introspectionURL, err := url.Parse(c.serverMetadata.IntrospectionEndpoint)
 	if err != nil {
@@ -411,13 +412,13 @@ func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*
 		return nil, fmt.Errorf("unable to decode json response: %w", err)
 	}
 
-	tokenStatus := corev1.TokenStatus_TOKEN_STATUS_INVALID
+	tokenStatus := tokenv1.TokenStatus_TOKEN_STATUS_UNSPECIFIED
 	if t.Active {
-		tokenStatus = corev1.TokenStatus_TOKEN_STATUS_ACTIVE
+		tokenStatus = tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE
 	}
 
 	// Return token info
-	return &corev1.Token{
+	return &tokenv1.Token{
 		Issuer:       c.issuer,
 		Status:       tokenStatus,
 		Metadata:     t.TokenMeta,

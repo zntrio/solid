@@ -25,7 +25,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"google.golang.org/protobuf/proto"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/server/storage"
 )
 
@@ -44,14 +44,14 @@ func Tokens() storage.Token {
 
 // -----------------------------------------------------------------------------
 
-func (s *tokenStorage) Create(ctx context.Context, issuer string, t *corev1.Token) error {
+func (s *tokenStorage) Create(ctx context.Context, issuer string, t *tokenv1.Token) error {
 	// Check parameters
 	if t == nil {
 		return fmt.Errorf("unable to store nil token")
 	}
 
 	// Clone the token object
-	tCopy := proto.Clone(t).(*corev1.Token)
+	tCopy := proto.Clone(t).(*tokenv1.Token)
 
 	// Compute token value hash
 	tCopy.Value = s.deriveValue(issuer, tCopy.Value)
@@ -63,7 +63,7 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *corev1.Toke
 	return nil
 }
 
-func (s *tokenStorage) Get(ctx context.Context, issuer, id string) (*corev1.Token, error) {
+func (s *tokenStorage) Get(ctx context.Context, issuer, id string) (*tokenv1.Token, error) {
 	// Check is client exists
 	client, ok := s.idIndex.Load(id)
 	if !ok {
@@ -71,10 +71,10 @@ func (s *tokenStorage) Get(ctx context.Context, issuer, id string) (*corev1.Toke
 	}
 
 	// No error
-	return client.(*corev1.Token), nil
+	return client.(*tokenv1.Token), nil
 }
 
-func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*corev1.Token, error) {
+func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*tokenv1.Token, error) {
 	// Check is client exists
 	client, ok := s.valueIndex.Load(s.deriveValue(issuer, value))
 	if !ok {
@@ -82,7 +82,7 @@ func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*c
 	}
 
 	// No error
-	return client.(*corev1.Token), nil
+	return client.(*tokenv1.Token), nil
 }
 
 func (s *tokenStorage) Delete(ctx context.Context, issuer, id string) error {
@@ -107,7 +107,7 @@ func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 	}
 
 	// Set as revoked
-	t.Status = corev1.TokenStatus_TOKEN_STATUS_REVOKED
+	t.Status = tokenv1.TokenStatus_TOKEN_STATUS_REVOKED
 
 	// Update maps
 	s.idIndex.Store(t.TokenId, t)

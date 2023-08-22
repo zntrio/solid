@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
@@ -56,8 +56,8 @@ func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, client
 
 // ----------------------------------------------------------------------------
 
-func (s *service) Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
-	res := &corev1.TokenResponse{}
+func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
+	res := &flowv1.TokenResponse{}
 
 	// Validate request
 	if err := validateRequest(ctx, req); err != nil {

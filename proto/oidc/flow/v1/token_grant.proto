@@ -1,0 +1,85 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.flow.v1;
+
+option go_package = "oidc/flow/v1;flowv1";
+
+// -----------------------------------------------------------------------------
+
+message GrantAuthorizationCode {
+  string code = 1;
+  string redirect_uri = 2;
+  string code_verifier = 3;
+  // OPTIONAL. Authorization Code Binding to DPoP Key.
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-10
+  optional string dpop_jkt = 4;
+}
+
+message GrantRefreshToken {
+  string refresh_token = 1;
+}
+
+// https://tools.ietf.org/html/rfc8628#section-3.4
+message GrantDeviceCode {
+  // REQUIRED.  The device verification code, "device_code" from the
+  // device authorization response, defined in Section 3.2.
+  string device_code = 1;
+
+  // REQUIRED if the client is not authenticating with the
+  // authorization server as described in Section 3.2.1. of [RFC6749].
+  // The client identifier as described in Section 2.2 of [RFC6749].
+  string client_id = 2;
+}
+
+message GrantClientCredentials {}
+
+// https://tools.ietf.org/html/rfc8693#section-2.1
+message GrantTokenExchange {
+  // OPTIONAL.  An identifier, as described in Section 3, for the type
+  // of the requested security token.  If the requested type is
+  // unspecified, the issued token type is at the discretion of the
+  // authorization server and may be dictated by knowledge of the
+  // requirements of the service or resource indicated by the
+  // "resource" or "audience" parameter.
+  optional string requested_token_type = 1;
+
+  // REQUIRED.  A security token that represents the identity of the
+  // party on behalf of whom the request is being made.  Typically, the
+  // subject of this token will be the subject of the security token
+  // issued in response to the request.
+  string subject_token = 2;
+
+  // REQUIRED.  An identifier, as described in Section 3, that
+  // indicates the type of the security token in the "subject_token"
+  // parameter.
+  string subject_token_type = 3;
+
+  // OPTIONAL.  A security token that represents the identity of the
+  // acting party.  Typically, this will be the party that is
+  // authorized to use the requested security token and act on behalf
+  // of the subject.
+  optional string actor_token = 4;
+
+  // An identifier, as described in Section 3, that indicates the type
+  // of the security token in the "actor_token" parameter.  This is
+  // REQUIRED when the "actor_token" parameter is present in the
+  // request but MUST NOT be included otherwise.
+  optional string actor_token_type = 5;
+}

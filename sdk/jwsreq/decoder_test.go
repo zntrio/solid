@@ -28,13 +28,14 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
 
 var cmpOpts = []cmp.Option{
 	cmpopts.IgnoreUnexported(wrappers.StringValue{}),
-	cmpopts.IgnoreUnexported(corev1.AuthorizationRequest{}),
+	cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}),
 	cmpopts.IgnoreUnexported(corev1.Error{}),
 }
 
@@ -51,7 +52,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		fields  fields
 		args    args
 		prepare func(*tokenmock.MockVerifier)
-		want    *corev1.AuthorizationRequest
+		want    *flowv1.AuthorizationRequest
 		wantErr bool
 	}{
 		{
@@ -126,7 +127,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				}).Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.AuthorizationRequest{
+			want: &flowv1.AuthorizationRequest{
 				Scope: "openid",
 			},
 		},

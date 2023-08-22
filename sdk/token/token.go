@@ -22,8 +22,7 @@ import (
 	"fmt"
 
 	"github.com/dchest/uniuri"
-
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 const (
@@ -40,7 +39,7 @@ func OpaqueToken() Generator {
 
 type tokenGenerator struct{}
 
-func (c *tokenGenerator) Generate(_ context.Context, _ *corev1.Token) (string, error) {
+func (c *tokenGenerator) Generate(_ context.Context, _ *tokenv1.Token) (string, error) {
 	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultOpaqueTokenLen))
 	return code, nil
 }

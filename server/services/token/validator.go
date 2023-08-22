@@ -21,12 +21,13 @@ import (
 	"context"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 )
 
 // ValidateRequest validates token request.
-var validateRequest = func(ctx context.Context, req *corev1.TokenRequest) *corev1.Error {
+var validateRequest = func(ctx context.Context, req *flowv1.TokenRequest) *corev1.Error {
 	// Check req nullity
 	if req == nil {
 		return &corev1.Error{

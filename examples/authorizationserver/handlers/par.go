@@ -26,7 +26,8 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/jwsreq"
@@ -93,11 +94,11 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		}
 
 		// Send request to reactor
-		res, err := authz.Register(ctx, &corev1.RegistrationRequest{
+		res, err := authz.Register(ctx, &flowv1.RegistrationRequest{
 			Issuer:               issuer,
 			Client:               client,
-			AuthorizationRequest: ar,
-			Confirmation: &corev1.TokenConfirmation{
+			Request: ar,
+			Confirmation: &tokenv1.TokenConfirmation{
 				Jkt: jkt,
 			},
 		})

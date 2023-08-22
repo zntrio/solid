@@ -26,7 +26,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
@@ -40,8 +42,8 @@ const (
 )
 
 //nolint:funlen,gocyclo,gocognit // to refactor
-func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
-	res := &corev1.TokenResponse{}
+func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
+	res := &flowv1.TokenResponse{}
 	grant := req.GetAuthorizationCode()
 
 	// Check parameters
@@ -153,7 +155,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 	// Generate OpenID tokens (AT / RT / IDT)
 	if scopes.Contains(oidc.ScopeOpenID) {
 		// Generate access token
-		at, err := s.generateAccessToken(ctx, client, &corev1.TokenMeta{
+		at, err := s.generateAccessToken(ctx, client, &tokenv1.TokenMeta{
 			Issuer:   req.Issuer,
 			Subject:  ar.Subject,
 			Audience: ar.Request.Audience,
@@ -167,7 +169,7 @@ func (s *service) authorizationCode(ctx context.Context, client *corev1.Client, 
 		// Check if request has offline_access to generate refresh_token
 		if scopes.Contains(oidc.ScopeOfflineAccess) {
 			// Generate refresh token
-			rt, err := s.generateRefreshToken(ctx, client, &corev1.TokenMeta{
+			rt, err := s.generateRefreshToken(ctx, client, &tokenv1.TokenMeta{
 				Issuer:   req.Issuer,
 				Subject:  ar.Subject,
 				Audience: ar.Request.Audience,

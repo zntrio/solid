@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
@@ -33,7 +33,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 	type args struct {
 		ctx    context.Context
 		issuer string
-		resp   *corev1.AuthorizationCodeResponse
+		resp   *flowv1.AuthorizeResponse
 	}
 	tests := []struct {
 		name    string
@@ -65,7 +65,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response has error",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					Error: rfcerrors.AccessDenied().Build(),
 				},
 			},
@@ -79,7 +79,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response has error with signer error",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					Error: rfcerrors.AccessDenied().Build(),
 				},
 			},
@@ -92,7 +92,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response client_id blank",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					ClientId: "",
 				},
 			},
@@ -102,7 +102,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response code blank",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					ClientId: "client-12345",
 					Code:     "",
 				},
@@ -113,7 +113,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response state blank",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					ClientId: "client-12345",
 					Code:     "AZERTYUIOP",
 					State:    "",
@@ -125,7 +125,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response expires_in zero",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					ClientId:  "client-12345",
 					Code:      "AZERTYUIOP",
 					State:     "QSDFGHJKLM",
@@ -138,7 +138,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "response valid with signer error",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					ClientId:  "client-12345",
 					Code:      "AZERTYUIOP",
 					State:     "QSDFGHJKLM",
@@ -154,7 +154,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			name: "valid",
 			args: args{
 				issuer: "https://example.com",
-				resp: &corev1.AuthorizationCodeResponse{
+				resp: &flowv1.AuthorizeResponse{
 					ClientId:  "client-12345",
 					Code:      "AZERTYUIOP",
 					State:     "QSDFGHJKLM",

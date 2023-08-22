@@ -29,7 +29,7 @@ import (
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
@@ -40,19 +40,19 @@ import (
 func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		req *corev1.ClientAuthenticationRequest
+		req *clientv1.AuthenticateRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockClientReader)
-		want    *corev1.ClientAuthenticationResponse
+		want    *clientv1.AuthenticateResponse
 		wantErr bool
 	}{
 		{
 			name:    "nil request",
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -60,10 +60,10 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "empty request",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{},
+				req: &clientv1.AuthenticateRequest{},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -71,12 +71,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "empty client_assertion_type",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(""),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -84,12 +84,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid client_assertion_type",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef("foo"),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -97,12 +97,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "nil client_assertion",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -110,13 +110,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "empty client_assertion",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion:     types.StringRef(""),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -124,13 +124,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion:     types.StringRef("..YB4gdhWUGRjWEsEbKDs7-"),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -138,13 +138,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: invalid json body",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion:     types.StringRef("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NCwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo0MDAwL2FwaS9hdXRoL3Rva2VuL2RpcmVjdC8yNDUyMzEzODIwNSIsImV4cCI6MTUzNjEzMjcwOCwiaWF0IjoxNTM2MTMyNzA4fQ.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -152,7 +152,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: jti empty",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "",
@@ -165,7 +165,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -173,7 +173,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: sub empty",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -186,7 +186,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -194,7 +194,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: iss empty",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -207,7 +207,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -215,7 +215,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: aud empty",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -228,7 +228,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -236,7 +236,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: exp equal 0",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -249,7 +249,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -257,7 +257,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: iss and sub mismatch",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -270,7 +270,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -278,13 +278,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "invalid JWT: expired assertion",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion:     types.StringRef("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NDYyMzc2MiIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDAwMC9hcGkvYXV0aC90b2tlbi9kaXJlY3QvMjQ1MjMxMzgyMDUiLCJleHAiOjE1MzYxMzI3MDgsImlhdCI6MTUzNjEzMjcwOH0.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
 				},
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -292,7 +292,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "client not found",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -308,7 +308,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -316,7 +316,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "client storage error",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -332,7 +332,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -340,7 +340,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "retrieve client have nil jwks",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -353,12 +353,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
 					Jwks: nil,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -366,7 +366,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "retrieve client have empty jwks",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -379,12 +379,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
 					Jwks: []byte{},
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -392,7 +392,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "retrieve client have invalid jwks json",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -405,12 +405,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
 					Jwks: []byte(`{"fo:"bar"}`),
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -418,7 +418,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "retrieve client have invalid jwks",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -431,12 +431,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
 					Jwks: []byte(`{"foo":"bar"}`),
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -444,7 +444,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "retrieve client have valid jwks but no sig key",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -457,12 +457,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
 					Jwks: clientJWKSWithENC,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.ClientAuthenticationResponse{
+			want: &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
@@ -471,7 +471,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			name: "valid",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.ClientAuthenticationRequest{
+				req: &clientv1.AuthenticateRequest{
 					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
 					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
@@ -484,13 +484,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
-				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&corev1.Client{
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
 					Jwks: clientJWKSWithSIG,
 				}, nil)
 			},
 			wantErr: false,
-			want: &corev1.ClientAuthenticationResponse{
-				Client: &corev1.Client{
+			want: &clientv1.AuthenticateResponse{
+				Client: &clientv1.Client{
 					Jwks: clientJWKSWithSIG,
 				},
 			},

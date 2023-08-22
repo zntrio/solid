@@ -22,7 +22,7 @@ import (
 	"log"
 	"net/http"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/services"
@@ -51,7 +51,7 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 		ctx := r.Context()
 
 		// Send to reactor
-		res, err := devicez.Authorize(ctx, &corev1.DeviceAuthorizationRequest{
+		res, err := devicez.Authorize(ctx, &flowv1.DeviceAuthorizationRequest{
 			Issuer:   issuer,
 			ClientId: r.FormValue("client_id"),
 			Scope:    optionalString(r.FormValue("scope")),

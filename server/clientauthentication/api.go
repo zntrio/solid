@@ -20,12 +20,12 @@ package clientauthentication
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 )
 
 //go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/server/clientauthentication AuthenticationProcessor
 
 // AuthenticationProcessor describes client authentication method contract.
 type AuthenticationProcessor interface {
-	Authenticate(ctx context.Context, req *corev1.ClientAuthenticationRequest) (*corev1.ClientAuthenticationResponse, error)
+	Authenticate(ctx context.Context, req *clientv1.AuthenticateRequest) (*clientv1.AuthenticateResponse, error)
 }

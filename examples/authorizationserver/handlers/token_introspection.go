@@ -22,7 +22,7 @@ import (
 	"net/http"
 
 	"github.com/davecgh/go-spew/spew"
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
@@ -49,7 +49,7 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 		}
 
 		// Prepare msg
-		msg := &corev1.TokenIntrospectionRequest{
+		msg := &tokenv1.IntrospectRequest{
 			Issuer:        issuer,
 			Client:        client,
 			Token:         tokenRaw,
@@ -64,7 +64,7 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			return
 		}
 
-		active := (res.Token.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE) && token.IsUsable(res.Token)
+		active := (res.Token.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE) && token.IsUsable(res.Token)
 		resp := map[string]interface{}{
 			"active": active,
 		}

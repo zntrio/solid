@@ -30,7 +30,7 @@ import (
 	"github.com/dchest/uniuri"
 	"gopkg.in/square/go-jose.v2"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/examples/authorizationserver/middleware"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
@@ -103,11 +103,11 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		}
 
 		// Send request to reactor
-		res, err := authz.Authorize(ctx, &corev1.AuthorizationCodeRequest{
-			Client:               client,
-			Issuer:               issuer,
-			Subject:              sub,
-			AuthorizationRequest: ar,
+		res, err := authz.Authorize(ctx, &flowv1.AuthorizeRequest{
+			Client:  client,
+			Issuer:  issuer,
+			Subject: sub,
+			Request: ar,
 		})
 		if err != nil {
 			log.Println("unable to process authorization request:", err)
@@ -133,7 +133,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 
 // -----------------------------------------------------------------------------
 
-func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *corev1.AuthorizationCodeResponse) {
+func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *flowv1.AuthorizeResponse) {
 	// Build redirection uri
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
@@ -160,7 +160,7 @@ func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *corev1.Au
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
-func responseTypeQueryJWT(w http.ResponseWriter, r *http.Request, authRes *corev1.AuthorizationCodeResponse, jarmEncoder jarm.ResponseEncoder) {
+func responseTypeQueryJWT(w http.ResponseWriter, r *http.Request, authRes *flowv1.AuthorizeResponse, jarmEncoder jarm.ResponseEncoder) {
 	// Build redirection uri
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
@@ -188,7 +188,7 @@ func responseTypeQueryJWT(w http.ResponseWriter, r *http.Request, authRes *corev
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
-func responseTypeFragmentJWT(w http.ResponseWriter, r *http.Request, authRes *corev1.AuthorizationCodeResponse, jarmEncoder jarm.ResponseEncoder) {
+func responseTypeFragmentJWT(w http.ResponseWriter, r *http.Request, authRes *flowv1.AuthorizeResponse, jarmEncoder jarm.ResponseEncoder) {
 	// Build redirection uri
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {
@@ -216,7 +216,7 @@ func responseTypeFragmentJWT(w http.ResponseWriter, r *http.Request, authRes *co
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }
 
-func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *corev1.AuthorizationCodeResponse, jarmEncoder jarm.ResponseEncoder) {
+func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *flowv1.AuthorizeResponse, jarmEncoder jarm.ResponseEncoder) {
 	// Build redirection uri
 	u, err := url.ParseRequestURI(authRes.RedirectUri)
 	if err != nil {

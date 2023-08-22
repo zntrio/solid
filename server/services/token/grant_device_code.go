@@ -23,7 +23,10 @@ import (
 	"net/url"
 	"strings"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	sessionv1 "zntr.io/solid/api/oidc/session/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
@@ -31,8 +34,8 @@ import (
 )
 
 //nolint:funlen,gocyclo // to refactor
-func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *corev1.TokenRequest) (*corev1.TokenResponse, error) {
-	res := &corev1.TokenResponse{}
+func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
+	res := &flowv1.TokenResponse{}
 	grant := req.GetDeviceCode()
 
 	// Check parameters
@@ -111,13 +114,13 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	}
 
 	// Check if it's validated
-	if session.Status == corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING {
+	if session.Status == sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING {
 		res.Error = rfcerrors.AuthorizationPending().Build()
 		return res, fmt.Errorf("token '%s' is waiting for authorization", grant.DeviceCode)
 	}
 
 	// Check token state
-	if session.Status != corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED {
+	if session.Status != sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED {
 		res.Error = rfcerrors.InvalidToken().Build()
 		return res, fmt.Errorf("token '%s' is invalid", grant.DeviceCode)
 	}
@@ -129,7 +132,7 @@ func (s *service) deviceCode(ctx context.Context, client *corev1.Client, req *co
 	}
 
 	// Prepare token
-	tm := &corev1.TokenMeta{
+	tm := &tokenv1.TokenMeta{
 		Issuer:  req.Issuer,
 		Subject: *session.Subject,
 	}

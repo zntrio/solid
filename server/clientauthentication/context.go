@@ -20,7 +20,7 @@ package clientauthentication
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 )
 
 type contextKey string
@@ -32,12 +32,12 @@ func (c contextKey) String() string {
 var contextKeyClientAuth = contextKey("client")
 
 // FromContext returns the client authentication bound to the context.
-func FromContext(ctx context.Context) (*corev1.Client, bool) {
-	client, ok := ctx.Value(contextKeyClientAuth).(*corev1.Client)
+func FromContext(ctx context.Context) (*clientv1.Client, bool) {
+	client, ok := ctx.Value(contextKeyClientAuth).(*clientv1.Client)
 	return client, ok
 }
 
 // Inject client instance in context.
-func Inject(ctx context.Context, client *corev1.Client) context.Context {
+func Inject(ctx context.Context, client *clientv1.Client) context.Context {
 	return context.WithValue(ctx, contextKeyClientAuth, client)
 }

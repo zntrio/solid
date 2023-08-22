@@ -24,7 +24,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
@@ -32,7 +32,7 @@ import (
 func Test_accessTokenGenerator_Generate(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		t   *corev1.Token
+		t   *tokenv1.Token
 	}
 	tests := []struct {
 		name    string
@@ -52,23 +52,23 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "nil token id",
 			args: args{
-				t: &corev1.Token{},
+				t: &tokenv1.Token{},
 			},
 			wantErr: true,
 		},
 		{
 			name: "nil meta",
 			args: args{
-				t: &corev1.Token{TokenId: "azerty"},
+				t: &tokenv1.Token{TokenId: "azerty"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid meta",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId:  "azerty",
-					Metadata: &corev1.TokenMeta{},
+					Metadata: &tokenv1.TokenMeta{},
 				},
 			},
 			wantErr: true,
@@ -76,9 +76,9 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "signer error",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId: "123456789",
-					Metadata: &corev1.TokenMeta{
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",
@@ -99,9 +99,9 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId: "123456789",
-					Metadata: &corev1.TokenMeta{
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",
@@ -122,9 +122,9 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 		{
 			name: "valid with confirmation",
 			args: args{
-				t: &corev1.Token{
+				t: &tokenv1.Token{
 					TokenId: "123456789",
-					Metadata: &corev1.TokenMeta{
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://localhost:8080",
 						Audience:  "azertyuiop",
 						ClientId:  "789456",
@@ -134,7 +134,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 						NotBefore: 2,
 						ExpiresAt: 3601,
 					},
-					Confirmation: &corev1.TokenConfirmation{
+					Confirmation: &tokenv1.TokenConfirmation{
 						Jkt: "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I",
 					},
 				},

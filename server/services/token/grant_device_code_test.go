@@ -26,7 +26,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	sessionv1 "zntr.io/solid/api/oidc/session/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
+
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -38,29 +42,29 @@ import (
 func Test_service_deviceCode(t *testing.T) {
 	type args struct {
 		ctx    context.Context
-		client *corev1.Client
-		req    *corev1.TokenRequest
+		client *clientv1.Client
+		req    *flowv1.TokenRequest
 	}
 	tests := []struct {
 		name    string
 		args    args
 		prepare func(*storagemock.MockDeviceCodeSession, *storagemock.MockToken, *tokenmock.MockGenerator, *tokenmock.MockGenerator)
-		want    *corev1.TokenResponse
+		want    *flowv1.TokenResponse
 		wantErr bool
 	}{
 		{
 			name: "nil client",
 			args: args{
 				ctx: context.Background(),
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{},
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -68,10 +72,10 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "nil request",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
+				client: &clientv1.Client{},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -79,13 +83,13 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "nil grant",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					GrantType: oidc.GrantTypeDeviceCode,
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -93,17 +97,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "empty issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{},
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -111,17 +115,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "invalid issuer",
 			args: args{
 				ctx:    context.Background(),
-				client: &corev1.Client{},
-				req: &corev1.TokenRequest{
+				client: &clientv1.Client{},
+				req: &flowv1.TokenRequest{
 					Issuer:    "foo",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{},
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -129,22 +133,22 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{},
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
@@ -152,24 +156,24 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "device_code is blank",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							DeviceCode: "",
 						},
 					},
 				},
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -178,17 +182,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "device_code not found",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -199,7 +203,7 @@ func Test_service_deviceCode(t *testing.T) {
 				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -207,17 +211,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "device_code storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -228,7 +232,7 @@ func Test_service_deviceCode(t *testing.T) {
 				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -236,17 +240,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "retrieved nil session",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "foo",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -257,7 +261,7 @@ func Test_service_deviceCode(t *testing.T) {
 				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -265,17 +269,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "retrieved session with nil request",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "foo",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -283,10 +287,10 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{}, nil)
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -294,17 +298,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "retrieved session with nil client",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "foo",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -312,12 +316,12 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Request: &corev1.DeviceAuthorizationRequest{},
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Request: &flowv1.DeviceAuthorizationRequest{},
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -325,17 +329,17 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "client_id mismatch",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer: "http://127.0.0.1:8080",
-					Client: &corev1.Client{
+					Client: &clientv1.Client{
 						ClientId: "foo",
 					},
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -343,17 +347,17 @@ func Test_service_deviceCode(t *testing.T) {
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
@@ -361,15 +365,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "session is expired",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -378,18 +382,18 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 0,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.TokenExpired().Build(),
 			},
 		},
@@ -397,15 +401,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "authorization pending",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -414,19 +418,19 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.AuthorizationPending().Build(),
 			},
 		},
@@ -434,15 +438,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "session invalid status",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -451,19 +455,19 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_INVALID,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_UNKNOWN,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidToken().Build(),
 			},
 		},
@@ -471,15 +475,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "session validated with no subject error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -488,20 +492,20 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   nil,
 				}, nil)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -509,15 +513,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "session validated with at generation error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -526,21 +530,21 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   types.StringRef("user-1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -548,15 +552,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "session validated with at storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -565,22 +569,22 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   types.StringRef("user1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -588,15 +592,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "refresh token storage error",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -606,16 +610,16 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 						Scope:    types.StringRef(oidc.ScopeOfflineAccess),
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   types.StringRef("user1"),
 					Scope:     types.StringRef("offline_access"),
 				}, nil)
@@ -625,7 +629,7 @@ func Test_service_deviceCode(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("error")).After(atSave)
 			},
 			wantErr: true,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
@@ -634,15 +638,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "valid",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -651,27 +655,27 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   types.StringRef("user1"),
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: nil,
-				AccessToken: &corev1.Token{
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+				AccessToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						IssuedAt:  1,
 						NotBefore: 2,
@@ -687,15 +691,15 @@ func Test_service_deviceCode(t *testing.T) {
 			name: "valid - offline_access",
 			args: args{
 				ctx: context.Background(),
-				client: &corev1.Client{
+				client: &clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 					ClientId:   "s6BhdRkqt3",
 				},
-				req: &corev1.TokenRequest{
+				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
-					Grant: &corev1.TokenRequest_DeviceCode{
-						DeviceCode: &corev1.GrantDeviceCode{
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
 							ClientId:   "s6BhdRkqt3",
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
@@ -705,16 +709,16 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&corev1.DeviceCodeSession{
-					Client: &corev1.Client{
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					Request: &corev1.DeviceAuthorizationRequest{
+					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
 						Scope:    types.StringRef(oidc.ScopeOfflineAccess),
 					},
 					ExpiresAt: 200,
-					Status:    corev1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
 					Subject:   types.StringRef("user1"),
 					Scope:     types.StringRef("offline_access"),
 				}, nil)
@@ -724,12 +728,12 @@ func Test_service_deviceCode(t *testing.T) {
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
 			},
 			wantErr: false,
-			want: &corev1.TokenResponse{
+			want: &flowv1.TokenResponse{
 				Error: nil,
-				AccessToken: &corev1.Token{
-					TokenType: corev1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+				AccessToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Scope:     "offline_access",
 						IssuedAt:  1,
@@ -740,10 +744,10 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
-				RefreshToken: &corev1.Token{
-					TokenType: corev1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    corev1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &corev1.TokenMeta{
+				RefreshToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Scope:     "offline_access",
 						IssuedAt:  1,

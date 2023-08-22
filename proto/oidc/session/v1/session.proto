@@ -1,0 +1,54 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.session.v1;
+
+import "oidc/client/v1/client.proto";
+import "oidc/flow/v1/flow.proto";
+import "oidc/flow/v1/flow_api.proto";
+
+option go_package = "oidc/session/v1;sessionv1";
+
+message AuthorizationCodeSession {
+  .oidc.client.v1.Client client = 1;
+  string issuer = 2;
+  string subject = 3;
+  .oidc.flow.v1.AuthorizationRequest request = 4;
+}
+
+enum DeviceCodeStatus {
+  DEVICE_CODE_STATUS_UNSPECIFIED = 0;
+  DEVICE_CODE_STATUS_UNKNOWN = 1;
+  DEVICE_CODE_STATUS_AUTHORIZATION_PENDING = 2;
+  DEVICE_CODE_STATUS_CONFIRMATION_PENDING = 3;
+  DEVICE_CODE_STATUS_VALIDATED = 4;
+}
+
+message DeviceCodeSession {
+  .oidc.client.v1.Client client = 1;
+  string issuer = 2;
+  fixed64 expires_at = 3;
+  .oidc.flow.v1.DeviceAuthorizationRequest request = 4;
+  DeviceCodeStatus status = 5;
+  string device_code = 6;
+  string confirmation_code = 7;
+  optional string subject = 8;
+  optional string scope = 9;
+  optional string audience = 10;
+}

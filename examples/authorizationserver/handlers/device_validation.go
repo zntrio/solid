@@ -22,7 +22,7 @@ import (
 	"log"
 	"net/http"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/examples/authorizationserver/middleware"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -71,7 +71,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 		}
 
 		// Send request to reactor
-		res, err := devicez.Validate(r.Context(), &corev1.DeviceCodeValidationRequest{
+		res, err := devicez.Validate(r.Context(), &flowv1.DeviceCodeValidationRequest{
 			Issuer:   issuer,
 			Subject:  sub,
 			UserCode: r.PostFormValue("user_code"),

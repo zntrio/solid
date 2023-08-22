@@ -20,31 +20,32 @@ package services
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 // Authorization describes authorization request processor.
 type Authorization interface {
 	// Authorize a request.
-	Authorize(ctx context.Context, req *corev1.AuthorizationCodeRequest) (*corev1.AuthorizationCodeResponse, error)
+	Authorize(ctx context.Context, req *flowv1.AuthorizeRequest) (*flowv1.AuthorizeResponse, error)
 	// Register a request.
-	Register(ctx context.Context, req *corev1.RegistrationRequest) (*corev1.RegistrationResponse, error)
+	Register(ctx context.Context, req *flowv1.RegistrationRequest) (*flowv1.RegistrationResponse, error)
 }
 
 // Token describes token request processor.
 type Token interface {
 	// Token handles token retrieval.
-	Token(ctx context.Context, req *corev1.TokenRequest) (*corev1.TokenResponse, error)
+	Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error)
 	// Introspect handles token introspection.
-	Introspect(ctx context.Context, req *corev1.TokenIntrospectionRequest) (*corev1.TokenIntrospectionResponse, error)
+	Introspect(ctx context.Context, req *tokenv1.IntrospectRequest) (*tokenv1.IntrospectResponse, error)
 	// Revoke given token.
-	Revoke(ctx context.Context, req *corev1.TokenRevocationRequest) (*corev1.TokenRevocationResponse, error)
+	Revoke(ctx context.Context, req *tokenv1.RevokeRequest) (*tokenv1.RevokeResponse, error)
 }
 
 // Device authorization service contract.
 type Device interface {
 	// Authorize process device authorization request.
-	Authorize(ctx context.Context, req *corev1.DeviceAuthorizationRequest) (*corev1.DeviceAuthorizationResponse, error)
+	Authorize(ctx context.Context, req *flowv1.DeviceAuthorizationRequest) (*flowv1.DeviceAuthorizationResponse, error)
 	// Validate user code
-	Validate(ctx context.Context, req *corev1.DeviceCodeValidationRequest) (*corev1.DeviceCodeValidationResponse, error)
+	Validate(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error)
 }

@@ -21,6 +21,7 @@ import (
 	"context"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 )
 
 const (
@@ -30,12 +31,12 @@ const (
 
 // ResponseDecoder describes Authorization Response Decoder contract.
 type ResponseDecoder interface {
-	Decode(ctx context.Context, audience, response string) (*corev1.AuthorizationCodeResponse, error)
+	Decode(ctx context.Context, audience, response string) (*flowv1.AuthorizeResponse, error)
 }
 
 // ResponseEncoder describes Authorization Response Encoder contract.
 type ResponseEncoder interface {
-	Encode(ctx context.Context, issuer string, resp *corev1.AuthorizationCodeResponse) (string, error)
+	Encode(ctx context.Context, issuer string, resp *flowv1.AuthorizeResponse) (string, error)
 }
 
 // Response repsents decoded JARM

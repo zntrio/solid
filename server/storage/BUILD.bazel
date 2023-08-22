@@ -1,9 +1,0 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "storage",
-    srcs = ["api.go"],
-    importpath = "zntr.io/solid/server/storage",
-    visibility = ["//visibility:public"],
-    deps = ["//api/oidc/core/v1:core"],
-)

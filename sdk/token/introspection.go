@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"time"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/types"
 )
 
@@ -41,7 +41,7 @@ type introspectionAssertionGenerator struct {
 	signer Serializer
 }
 
-func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *corev1.Token) (string, error) {
+func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
 	// Check arguments
 	if types.IsNil(c.signer) {
 		return "", fmt.Errorf("unable to use nil signer")
@@ -54,7 +54,7 @@ func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *corev
 	}
 
 	// Prepare claims
-	active := (t.Status == corev1.TokenStatus_TOKEN_STATUS_ACTIVE) && IsUsable(t)
+	active := (t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE) && IsUsable(t)
 	tokenIntrospection := map[string]any{
 		"active": active,
 	}

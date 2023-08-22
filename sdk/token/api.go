@@ -20,7 +20,7 @@ package token
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
 // -----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ const (
 
 // Generator describes claims generator contract.
 type Generator interface {
-	Generate(ctx context.Context, t *corev1.Token) (string, error)
+	Generate(ctx context.Context, t *tokenv1.Token) (string, error)
 }
 
 //go:generate mockgen -destination mock/serializer.gen.go -package mock zntr.io/solid/sdk/token Serializer

@@ -25,7 +25,7 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -53,8 +53,8 @@ type privateKeyJWTAuthentication struct {
 }
 
 //nolint:funlen,gocyclo // to refactor
-func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *corev1.ClientAuthenticationRequest) (*corev1.ClientAuthenticationResponse, error) {
-	res := &corev1.ClientAuthenticationResponse{}
+func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *clientv1.AuthenticateRequest) (*clientv1.AuthenticateResponse, error) {
+	res := &clientv1.AuthenticateResponse{}
 
 	// Validate request
 	if req == nil {

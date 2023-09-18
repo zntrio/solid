@@ -3,7 +3,7 @@ module zntr.io/solid
 go 1.20
 
 require (
-	github.com/daixiang0/gci v0.11.1
+	github.com/daixiang0/gci v0.11.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/dchest/uniuri v1.2.0
 	github.com/frapposelli/wwhrd v0.4.0

@@ -40,6 +40,8 @@ type privateJWTClaims struct {
 	Audience string `json:"aud"`
 	Expires  uint64 `json:"exp"`
 	IssuedAt uint64 `json:"iat"`
+	ACR      string `json:"acr"`
+	AuthTime uint64 `json:"auth_time"`
 }
 
 type jsonError struct {
@@ -60,6 +62,6 @@ type jsonJWKSResponse struct {
 
 type jsonTokenIntrospectionResponse struct {
 	*tokenv1.TokenMeta `json:",inline"`
-	Active            bool                      `json:"active"`
-	Confirmation      *tokenv1.TokenConfirmation `json:"cnf,omitempty"`
+	Active             bool                       `json:"active"`
+	Confirmation       *tokenv1.TokenConfirmation `json:"cnf,omitempty"`
 }

@@ -94,6 +94,6 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 		md.SignedMetadata = signedMeta
 
 		// Return JSON
-		respond.WithJSON(w, r, http.StatusOK, md)
+		respond.WithJSON(w, http.StatusOK, md)
 	})
 }

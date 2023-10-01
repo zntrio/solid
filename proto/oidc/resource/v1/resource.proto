@@ -17,9 +17,11 @@
 
 syntax = "proto3";
 
-package oidc.core.v1;
+package oidc.resource.v1;
 
-option go_package = "oidc/core/v1;corev1";
+option go_package = "oidc/resource/v1;resourcev1";
+
+// -----------------------------------------------------------------------------
 
 message Resource {
   string urn = 1;

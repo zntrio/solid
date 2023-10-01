@@ -20,18 +20,18 @@ package inmemory
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
+	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 	"zntr.io/solid/server/storage"
 )
 
 type resourceStorage struct {
-	backend map[string]*corev1.Resource
+	backend map[string]*resourcev1.Resource
 }
 
 // Resources returns a resource reader.
 func Resources() storage.Resource {
 	return &resourceStorage{
-		backend: map[string]*corev1.Resource{
+		backend: map[string]*resourcev1.Resource{
 			"urn:example:cooperation-context": {
 				Urn:         "urn:example:cooperation-context",
 				Description: "Example context",
@@ -49,7 +49,7 @@ func Resources() storage.Resource {
 
 // -----------------------------------------------------------------------------
 
-func (s *resourceStorage) GetByURI(ctx context.Context, urn string) (*corev1.Resource, error) {
+func (s *resourceStorage) GetByURI(ctx context.Context, urn string) (*resourcev1.Resource, error) {
 	// Check if resource exists
 	resource, ok := s.backend[urn]
 	if !ok {

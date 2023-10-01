@@ -21,7 +21,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/davecgh/go-spew/spew"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -86,11 +85,18 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			} else {
 				resp["token_type"] = "Bearer"
 			}
+
+			// Add step-up authentication related claims
+			// https://datatracker.ietf.org/doc/html/rfc9470#name-oauth-20-token-introspectio
+			if res.Token.Metadata.Acr != nil {
+				resp["acr"] = res.Token.Metadata.Acr
+			}
+			if res.Token.Metadata.AuthTime != nil {
+				resp["auth_time"] = res.Token.Metadata.AuthTime
+			}
 		}
 
-		spew.Dump(res)
-
 		// Send json reponse
-		respond.WithJSON(w, r, http.StatusOK, resp)
+		respond.WithJSON(w, http.StatusOK, resp)
 	})
 }

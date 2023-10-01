@@ -129,8 +129,8 @@ I made sample server and various integrations inside `examples/` folder.
     * [ ] [Nonce pattern authenticator](https://curity.io/resources/learn/nonce-authenticator-pattern/)
   * Client authentication
     * Asymmetric authentication
-      * RFC7523 - [JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7523)
-      * RFC7521 - [Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7521.html)
+      * [RFC7523 - JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7523)
+      * [RFC7521 - Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7521.html)
       * [x] `private_key_jwt` - <https://oauth.net/private-key-jwt/>
       * [x] `attest_jwt_client_auth` - [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
       * [ ] `tls_client_auth` - [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
@@ -142,51 +142,37 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [RFC9101 - The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR)](https://tools.ietf.org/html/rfc9101) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm.html)
       * [x] [RFC9207 - OAuth 2.0 Authorization Server Issuer Identification](https://tools.ietf.org/html/rfc9207.html)
+      * [ ] [RFC9396 - OAuth 2.0 Rich Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9396)
     * [x] `refresh_token` grant type
     * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
     * [x] RFC8693 - `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
     * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
   * Resource
-    * [x] [Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
+    * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
+    * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470)
+    * [x] [(DRAFT) OAuth 2.0 Protected Resource Metadata](https://tools.ietf.org/html/draft-ietf-oauth-resource-metadata-00.html)
   * Client
-    * [ ] RFC7591 - OAuth 2.0 Dynamic Client Registration - [rfc7591](https://tools.ietf.org/html/rfc7591)
-    * [ ] RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol - [rfc7591](https://tools.ietf.org/html/rfc7592)
+    * [ ] [RFC7591 - OAuth 2.0 Dynamic Client Registration](https://tools.ietf.org/html/rfc7591)
+    * [ ] [RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol](https://tools.ietf.org/html/rfc7592)
+    * [ ] [OAuth 2.0 Client ID Scheme](https://datatracker.ietf.org/doc/html/draft-looker-oauth-client-id-scheme)
   * Tokens
     * Privacy
       * [x] Pairwise subject identifier
     * Scheme
       * [x] [RFC6750 - The OAuth 2.0 Authorization Framework: Bearer Token Usage](https://tools.ietf.org/html/rfc6750)
-      * [x] [(DRAFT) - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP)](https://tools.ietf.org/html/draft-ietf-oauth-dpop-16)
+      * [x] [RFC9449 - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP)](https://datatracker.ietf.org/doc/html/rfc9449)
       * [ ] [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
     * Authentication by reference
       * [x] Random string
       * [x] Verifiable token (signed UUID)
     * Authentication by value
-      * [x] RFC7519 - JWT - [rfc7519](https://tools.ietf.org/html/rfc7519)
+      * [x] [RFC7519 - JSON Web Token (JWT)](https://tools.ietf.org/html/rfc7519)
       * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
-      * [x] RFC8392 - CWT - [rfc8392](https://tools.ietf.org/html/rfc8392)
+      * [x] [RFC8392 - CBOR Web Token (CWT)](https://tools.ietf.org/html/rfc8392)
   * Token Management
-    * [x] RFC7662 - Token Introspection - [rfc7662](https://tools.ietf.org/html/rfc7662)
-    * [x] RFC7009 - Token Revocation - [rfc7009](https://tools.ietf.org/html/rfc7009)
+    * [x] [RFC7662 - OAuth 2.0 Token Introspection](https://tools.ietf.org/html/rfc7662)
+    * [x] [RFC7009 - OAuth 2.0 Token Revocation](https://tools.ietf.org/html/rfc7009)
     * [x] (DRAFT) - JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-12)
-* Storage
-  * [x] API
-    * Client
-      * [x] Confidential client
-      * [x] Credentialed client
-      * [x] Public client
-    * Requests
-      * [x] Authorization request
-      * [x] DPoP
-    * Tokens
-      * [x] Storage
-    * Sessions
-      * [x] AuthorizationCode
-      * [x] DeviceCode
-  * [x] in-memory storage
-  * [ ] gRPC driven storage
-* Privacy
-  * [ ] Consent management
 
 ### Integrations
 

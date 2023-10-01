@@ -33,4 +33,6 @@ message Error {
   // OAuth 2.0 state value. REQUIRED if the Authorization Request included the
   // state parameter. Set to the value received from the Client.
   optional string state = 4;
+  // OPTIONAL. URI of the resource.
+  optional string resource = 5;
 }

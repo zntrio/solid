@@ -13,8 +13,31 @@ import (
 	"strings"
 	"time"
 
+	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	"zntr.io/solid/client"
+	"zntr.io/solid/sdk/types"
 )
+
+func ResourceMetadata(issuer string) http.Handler {
+	// Prepare metadata
+	md := &discoveryv1.ProtectedResourceMetadata{
+		Resource:  "http://127.0.0.1:8085",
+		ScopesProvided: []string{
+			"timestamp:read",
+		},
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Set response type
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+		// Prepare response
+		if err := json.NewEncoder(w).Encode(md); err != nil {
+			http.Error(w, "Unable to serialize response", http.StatusInternalServerError)
+			return
+		}
+	})	
+}
 
 func ResourceHandler(issuer string, pub ed25519.PublicKey, priv ed25519.PrivateKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -81,7 +104,8 @@ func main() {
 	}
 
 	// Create router
-	http.Handle("/", Authorizer(ResourceHandler(issuer, pub, priv), "timestamp:read", oidcClient))
+	http.Handle("/", Authorizer(ResourceHandler(issuer, pub, priv), "timestamp:read", oidcClient, types.StringArray{"urn:solid:loa:1fa:any"}, 30))
+	http.Handle("/.well-known/oauth-protected-resource", ResourceMetadata(issuer))
 
 	log.Fatal(http.ListenAndServe(":8085", nil))
 }

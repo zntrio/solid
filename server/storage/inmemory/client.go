@@ -53,6 +53,7 @@ func Clients() storage.Client {
 				GrantTypes: []string{
 					oidc.GrantTypeClientCredentials, // Machine-to-machine
 				},
+				DpopBoundAccessTokens: true,
 				// Pairwise sector identitier
 				SubjectType:      oidc.SubjectTypePairwise,
 				SectorIdentifier: "http://127.0.0.1:8085",

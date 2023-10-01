@@ -167,3 +167,12 @@ func InvalidTarget() ErrorBuilder {
 		errorDescription: "The requested resource is invalid, missing, unknown, or malformed.",
 	}
 }
+
+// InsufficientUserAuthentication returns a compliant `invalid_target` error.
+// https://datatracker.ietf.org/doc/html/rfc9470#name-authentication-requirements
+func InsufficientUserAuthentication() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err: "insufficient_user_authentication",
+		errorDescription: "The authentication event associated with the access token presented with the request does not meet the authentication requirements of the protected resource.",
+	}
+}

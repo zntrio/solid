@@ -22,8 +22,8 @@ import (
 	"errors"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
-	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
@@ -163,7 +163,7 @@ type DPoP interface {
 
 // ResourceReader describes resource resolver contract.
 type ResourceReader interface {
-	GetByURI(ctx context.Context, urn string) (*corev1.Resource, error)
+	GetByURI(ctx context.Context, urn string) (*resourcev1.Resource, error)
 }
 
 //go:generate mockgen -destination mock/resource.gen.go -package mock zntr.io/solid/server/storage Resource

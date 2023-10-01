@@ -36,6 +36,6 @@ func JWKS(keySetProvider jwk.KeySetProviderFunc) http.Handler {
 		}
 
 		// Send the JWKS
-		respond.WithJSON(w, r, http.StatusOK, ks)
+		respond.WithJSON(w, http.StatusOK, ks)
 	})
 }

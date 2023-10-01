@@ -218,7 +218,7 @@ type Client struct {
 	TlsClientCertificateBoundAccessTokens bool       `protobuf:"varint,25,opt,name=tls_client_certificate_bound_access_tokens,json=tlsClientCertificateBoundAccessTokens,proto3" json:"tls_client_certificate_bound_access_tokens,omitempty"`
 	RequirePushedAuthorizationRequests    bool       `protobuf:"varint,26,opt,name=require_pushed_authorization_requests,json=requirePushedAuthorizationRequests,proto3" json:"require_pushed_authorization_requests,omitempty"`
 	RequireSignedRequestObject            bool       `protobuf:"varint,27,opt,name=require_signed_request_object,json=requireSignedRequestObject,proto3" json:"require_signed_request_object,omitempty"`
-	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-5.2
+	// https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
 	DpopBoundAccessTokens bool `protobuf:"varint,28,opt,name=dpop_bound_access_tokens,json=dpopBoundAccessTokens,proto3" json:"dpop_bound_access_tokens,omitempty"`
 }
 
@@ -490,7 +490,7 @@ type ClientMeta struct {
 	ResponseModes                         []string          `protobuf:"bytes,33,rep,name=response_modes,json=responseModes,proto3" json:"response_modes,omitempty"`
 	RequirePushedAuthorizationRequests    *bool             `protobuf:"varint,34,opt,name=require_pushed_authorization_requests,json=requirePushedAuthorizationRequests,proto3,oneof" json:"require_pushed_authorization_requests,omitempty"`
 	RequireSignedRequestObject            *bool             `protobuf:"varint,35,opt,name=require_signed_request_object,json=requireSignedRequestObject,proto3,oneof" json:"require_signed_request_object,omitempty"`
-	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-5.2
+	// https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
 	DpopBoundAccessTokens *bool `protobuf:"varint,36,opt,name=dpop_bound_access_tokens,json=dpopBoundAccessTokens,proto3,oneof" json:"dpop_bound_access_tokens,omitempty"`
 }
 

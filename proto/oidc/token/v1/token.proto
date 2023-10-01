@@ -55,6 +55,16 @@ message TokenMeta {
   string scope = 7;
   // REQUIRED. Targeted application identifier.
   string audience = 8;
+  // OPTIONAL. String specifying an authentication context class reference value
+  // that identifies the authentication context class that was satisfied by the 
+  // user-authentication event performed.
+  // https://datatracker.ietf.org/doc/html/rfc9470#name-oauth-20-token-introspectio
+  optional string acr = 9;
+  // OPTIONAL. Time when the user authentication occurred. A JSON numeric value 
+  // representing the number of seconds from 1970-01-01T00:00:00Z UTC until the 
+  //date/time of the authentication event.
+  // https://datatracker.ietf.org/doc/html/rfc9470#name-oauth-20-token-introspectio
+  optional fixed64 auth_time = 10;
 }
 
 message Actor {

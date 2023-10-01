@@ -109,7 +109,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		}
 
 		// Send json response
-		respond.WithJSON(w, r, http.StatusCreated, &response{
+		respond.WithJSON(w, http.StatusCreated, &response{
 			Issuer:     res.Issuer,
 			RequestURI: res.RequestUri,
 			ExpiresIn:  res.ExpiresIn,

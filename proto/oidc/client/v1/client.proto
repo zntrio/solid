@@ -108,7 +108,7 @@ message Client {
   bool tls_client_certificate_bound_access_tokens = 25;
   bool require_pushed_authorization_requests = 26;
   bool require_signed_request_object = 27;
-  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-5.2
+  // https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
   bool dpop_bound_access_tokens = 28;
 }
 
@@ -148,7 +148,7 @@ message ClientMeta {
   repeated string response_modes = 33;
   optional bool require_pushed_authorization_requests = 34;
   optional bool require_signed_request_object = 35;
-  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-5.2
+  // https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
   optional bool dpop_bound_access_tokens = 36;
 }
 

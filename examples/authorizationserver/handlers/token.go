@@ -107,6 +107,11 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		// Prepare msg
 		msg := messageBuilder(r, client)
 
+		// Ensure DPoP enabled to use use DPoP.
+		if dpopProof == "" && client.DpopBoundAccessTokens {
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			return
+		}
 		if dpopProof != "" {
 			// Check dpop proof
 			jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
@@ -150,6 +155,6 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 
 		// Send json reponse
-		respond.WithJSON(w, r, http.StatusOK, jsonResponse)
+		respond.WithJSON(w, http.StatusOK, jsonResponse)
 	})
 }

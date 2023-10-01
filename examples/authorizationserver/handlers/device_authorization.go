@@ -64,7 +64,7 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 		}
 
 		// Send json reponse
-		respond.WithJSON(w, r, http.StatusOK, &response{
+		respond.WithJSON(w, http.StatusOK, &response{
 			DeviceCode:      res.DeviceCode,
 			UserCode:        res.UserCode,
 			VerificationURI: fmt.Sprintf("%s/device", issuer),

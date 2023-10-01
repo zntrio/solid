@@ -36,6 +36,7 @@ type defaultErrorBuilder struct {
 	errorDescription string
 	errorURI         string
 	state            string
+	resource 		 string
 }
 
 func (eb *defaultErrorBuilder) State(value string) ErrorBuilder {
@@ -58,6 +59,11 @@ func (eb *defaultErrorBuilder) ErrorURI(value string) ErrorBuilder {
 	return eb
 }
 
+func (eb *defaultErrorBuilder) Resource(value string) ErrorBuilder {
+	eb.resource = value
+	return eb
+}
+
 func (eb *defaultErrorBuilder) Build() *corev1.Error {
 	// Create error object
 	err := &corev1.Error{
@@ -69,6 +75,9 @@ func (eb *defaultErrorBuilder) Build() *corev1.Error {
 	}
 	if eb.errorURI != "" {
 		err.ErrorUri = types.StringRef(eb.errorURI)
+	}
+	if eb.resource != "" {
+		err.Resource = types.StringRef(eb.resource)
 	}
 
 	// Return error instance

@@ -21,7 +21,7 @@ require (
 	go.mozilla.org/cose v0.0.0-20220818192640-18d34e90336d
 	golang.org/x/crypto v0.14.0
 	golang.org/x/oauth2 v0.12.0
-	google.golang.org/grpc v1.58.2
+	google.golang.org/grpc v1.58.3
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
 	google.golang.org/protobuf v1.31.0
 	gopkg.in/square/go-jose.v2 v2.6.0

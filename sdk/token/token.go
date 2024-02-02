@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/dchest/uniuri"
+
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 

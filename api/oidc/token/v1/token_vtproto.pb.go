@@ -7,9 +7,10 @@ package tokenv1
 import (
 	binary "encoding/binary"
 	fmt "fmt"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 	bits "math/bits"
+
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (

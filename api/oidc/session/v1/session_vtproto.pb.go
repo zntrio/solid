@@ -7,9 +7,11 @@ package sessionv1
 import (
 	binary "encoding/binary"
 	fmt "fmt"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 	bits "math/bits"
+
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	v1 "zntr.io/solid/api/oidc/client/v1"
 	v11 "zntr.io/solid/api/oidc/flow/v1"
 )

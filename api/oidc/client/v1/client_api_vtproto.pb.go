@@ -6,8 +6,10 @@ package clientv1
 
 import (
 	fmt "fmt"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
+
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	v1 "zntr.io/solid/api/oidc/core/v1"
 )
 

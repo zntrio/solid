@@ -7,8 +7,10 @@ package flowv1
 import (
 	binary "encoding/binary"
 	fmt "fmt"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
+
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	v1 "zntr.io/solid/api/oidc/client/v1"
 	v11 "zntr.io/solid/api/oidc/core/v1"
 	v12 "zntr.io/solid/api/oidc/token/v1"

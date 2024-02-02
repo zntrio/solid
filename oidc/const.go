@@ -114,7 +114,7 @@ const (
 	AuthMethodClientSecretBasic = "client_secret_basic"
 	// AuthMethodPrivateKeyJWT : The client uses JWT assertion.
 	AuthMethodPrivateKeyJWT = "private_key_jwt"
-	// AuthMethodClientAttestationJWT represents the client attestation 
+	// AuthMethodClientAttestationJWT represents the client attestation
 	// authentication mechanism.
 	AuthMethodClientAttestationJWT = "attest_jwt_client_auth"
 )

@@ -95,8 +95,8 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 
 		// Send request to reactor
 		res, err := authz.Register(ctx, &flowv1.RegistrationRequest{
-			Issuer:               issuer,
-			Client:               client,
+			Issuer:  issuer,
+			Client:  client,
 			Request: ar,
 			Confirmation: &tokenv1.TokenConfirmation{
 				Jkt: jkt,

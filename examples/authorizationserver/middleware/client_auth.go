@@ -66,8 +66,8 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 				r.ParseForm()
 
 				var (
-					authMethod = r.PostFormValue("client_assertion_type")
-					assertion = r.PostFormValue("client_assertion")
+					authMethod    = r.PostFormValue("client_assertion_type")
+					assertion     = r.PostFormValue("client_assertion")
 					authenticator clientauthentication.AuthenticationProcessor
 				)
 
@@ -91,7 +91,7 @@ func ClientAuthentication(clients storage.ClientReader) Adapter {
 					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 					return
 				}
-									
+
 				// Assign client to context
 				ctx = clientauthentication.Inject(ctx, resAuth.Client)
 			}

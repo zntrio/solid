@@ -200,6 +200,6 @@ func run() error {
 	}
 
 	fmt.Println(string(timestampRaw))
-	
+
 	return nil
 }

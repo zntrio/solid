@@ -66,15 +66,15 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (
 
 	// Prepare claims
 	claims := struct {
-		Iss      string                    `json:"iss,omitempty" cbor:"1,keyasint,omitempty"`
-		Sub      string                    `json:"sub,omitempty" cbor:"2,keyasint,omitempty"`
-		Aud      string                    `json:"aud,omitempty" cbor:"3,keyasint,omitempty"`
-		Exp      uint64                    `json:"exp,omitempty" cbor:"4,keyasint,omitempty"`
-		Nbf      uint64                    `json:"nbf,omitempty" cbor:"5,keyasint,omitempty"`
-		Iat      uint64                    `json:"iat,omitempty" cbor:"6,keyasint,omitempty"`
-		JTI      string                    `json:"jti,omitempty" cbor:"7,keyasint,omitempty"`
-		ClientID string                    `json:"client_id,omitempty" cbor:"100,keyasint,omitempty"`
-		Scope    string                    `json:"scope,omitempty" cbor:"101,keyasint,omitempty"`
+		Iss      string                     `json:"iss,omitempty" cbor:"1,keyasint,omitempty"`
+		Sub      string                     `json:"sub,omitempty" cbor:"2,keyasint,omitempty"`
+		Aud      string                     `json:"aud,omitempty" cbor:"3,keyasint,omitempty"`
+		Exp      uint64                     `json:"exp,omitempty" cbor:"4,keyasint,omitempty"`
+		Nbf      uint64                     `json:"nbf,omitempty" cbor:"5,keyasint,omitempty"`
+		Iat      uint64                     `json:"iat,omitempty" cbor:"6,keyasint,omitempty"`
+		JTI      string                     `json:"jti,omitempty" cbor:"7,keyasint,omitempty"`
+		ClientID string                     `json:"client_id,omitempty" cbor:"100,keyasint,omitempty"`
+		Scope    string                     `json:"scope,omitempty" cbor:"101,keyasint,omitempty"`
 		Cnf      *tokenv1.TokenConfirmation `json:"cnf,omitempty" cbor:"102,keyasint,omitempty"`
 	}{
 		Iss:      t.Metadata.Issuer,

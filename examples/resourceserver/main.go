@@ -21,7 +21,7 @@ import (
 func ResourceMetadata(issuer string) http.Handler {
 	// Prepare metadata
 	md := &discoveryv1.ProtectedResourceMetadata{
-		Resource:  "http://127.0.0.1:8085",
+		Resource: "http://127.0.0.1:8085",
 		ScopesProvided: []string{
 			"timestamp:read",
 		},
@@ -36,7 +36,7 @@ func ResourceMetadata(issuer string) http.Handler {
 			http.Error(w, "Unable to serialize response", http.StatusInternalServerError)
 			return
 		}
-	})	
+	})
 }
 
 func ResourceHandler(issuer string, pub ed25519.PublicKey, priv ed25519.PrivateKey) http.Handler {

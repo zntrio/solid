@@ -63,7 +63,7 @@ type VerifiableUUIDExtractor interface {
 	Extractor[[]byte]
 }
 
-// UUIDGenerator wraps the returned UUID byte array from the given source to 
+// UUIDGenerator wraps the returned UUID byte array from the given source to
 // provide additional integrity protection to the content.
 //
 // The secret key is used to derive a unique secret used to seal the UUID value.

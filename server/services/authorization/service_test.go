@@ -621,8 +621,8 @@ func Test_service_Register(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &flowv1.RegistrationRequest{
-					Issuer:               "https://honest.as.example",
-					Client:               &clientv1.Client{},
+					Issuer:  "https://honest.as.example",
+					Client:  &clientv1.Client{},
 					Request: nil,
 				},
 			},
@@ -636,8 +636,8 @@ func Test_service_Register(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &flowv1.RegistrationRequest{
-					Issuer:               "https://honest.as.example",
-					Client:               &clientv1.Client{},
+					Issuer:  "https://honest.as.example",
+					Client:  &clientv1.Client{},
 					Request: &flowv1.AuthorizationRequest{},
 				},
 			},

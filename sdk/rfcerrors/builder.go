@@ -36,7 +36,7 @@ type defaultErrorBuilder struct {
 	errorDescription string
 	errorURI         string
 	state            string
-	resource 		 string
+	resource         string
 }
 
 func (eb *defaultErrorBuilder) State(value string) ErrorBuilder {

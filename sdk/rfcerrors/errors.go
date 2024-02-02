@@ -172,7 +172,7 @@ func InvalidTarget() ErrorBuilder {
 // https://datatracker.ietf.org/doc/html/rfc9470#name-authentication-requirements
 func InsufficientUserAuthentication() ErrorBuilder {
 	return &defaultErrorBuilder{
-		err: "insufficient_user_authentication",
+		err:              "insufficient_user_authentication",
 		errorDescription: "The authentication event associated with the access token presented with the request does not meet the authentication requirements of the protected resource.",
 	}
 }

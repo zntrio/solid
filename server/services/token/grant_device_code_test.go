@@ -30,7 +30,6 @@ import (
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
-
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"

@@ -120,17 +120,17 @@ I made sample server and various integrations inside `examples/` folder.
 ### Framework
 
 * OAuth Core
-  * [OAuth 2.1](https://www.ietf.org/archive/id/draft-ietf-oauth-v2-1-09.html) - <https://oauth.net/2.1/>
+  * [OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) - <https://oauth.net/2.1/>
   * [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
 * OAuth Extensions
   * Discovery
-    * [RFC8414 - OAuth 2.0 Authorization Server Metadata](https://tools.ietf.org/html/rfc8414)
+    * [x] [RFC8414 - OAuth 2.0 Authorization Server Metadata](https://tools.ietf.org/html/rfc8414)
   * Identity authentication
     * [ ] [Nonce pattern authenticator](https://curity.io/resources/learn/nonce-authenticator-pattern/)
   * Client authentication
     * Asymmetric authentication
-      * [RFC7523 - JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7523)
-      * [RFC7521 - Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7521.html)
+      * [x] [RFC7523 - JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7523)
+      * [x] [RFC7521 - Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7521.html)
       * [x] `private_key_jwt` - <https://oauth.net/private-key-jwt/>
       * [x] `attest_jwt_client_auth` - [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
       * [ ] `tls_client_auth` - [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
@@ -150,16 +150,17 @@ I made sample server and various integrations inside `examples/` folder.
   * Resource
     * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
     * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470)
-    * [x] [(DRAFT) OAuth 2.0 Protected Resource Metadata](https://tools.ietf.org/html/draft-ietf-oauth-resource-metadata-00.html)
+    * [x] [(DRAFT) OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-resource-metadata-03.html)
   * Client
     * [ ] [RFC7591 - OAuth 2.0 Dynamic Client Registration](https://tools.ietf.org/html/rfc7591)
     * [ ] [RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol](https://tools.ietf.org/html/rfc7592)
     * [ ] [OAuth 2.0 Client ID Scheme](https://datatracker.ietf.org/doc/html/draft-looker-oauth-client-id-scheme)
   * Tokens
     * Privacy
-      * [x] Pairwise subject identifier
+      * [x] [Pairwise subject identifier](https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg)
     * Scheme
       * [x] [RFC6750 - The OAuth 2.0 Authorization Framework: Bearer Token Usage](https://tools.ietf.org/html/rfc6750)
+      * [x] [RFC7800 - Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)](https://datatracker.ietf.org/doc/html/rfc7800) 
       * [x] [RFC9449 - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP)](https://datatracker.ietf.org/doc/html/rfc9449)
       * [ ] [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
     * Authentication by reference

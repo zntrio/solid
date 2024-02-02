@@ -15,7 +15,7 @@ func Token(source UUIDGeneratorFunc, secretKey []byte) token.Generator {
 	}
 }
 
-type tokenGenerator struct{
+type tokenGenerator struct {
 	generator Generator
 }
 

@@ -15,9 +15,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-var (
-	wrappedUUIDFormat = regexp.MustCompile("^[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59,60}$")
-)
+var wrappedUUIDFormat = regexp.MustCompile("^[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59,60}$")
 
 // UUIDGeneratorFunc represents the contract used to feed the wrapper with a
 // pre-generated UUID. This is used to pass the UUID byte array coming from your
@@ -63,7 +61,7 @@ type VerifiableUUIDExtractor interface {
 	Extractor[[]byte]
 }
 
-// UUIDGenerator wraps the returned UUID byte array from the given source to 
+// UUIDGenerator wraps the returned UUID byte array from the given source to
 // provide additional integrity protection to the content.
 //
 // The secret key is used to derive a unique secret used to seal the UUID value.

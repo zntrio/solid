@@ -10,12 +10,12 @@ import (
 
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/storage"
-
-	clientv1 "zntr.io/solid/api/oidc/client/v1"
 )
 
 // ClientAttestation authentication method.

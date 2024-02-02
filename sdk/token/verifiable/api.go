@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	defaultSeparator    = "_"
-	nonAuthorizedChars  = regexp.MustCompile("[^a-z0-9-]")
+	defaultSeparator   = "_"
+	nonAuthorizedChars = regexp.MustCompile("[^a-z0-9-]")
 )
 
 // ErrTokenNotAuthenticated is raised when you try to validate a non compliant value.

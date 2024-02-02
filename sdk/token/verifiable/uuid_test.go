@@ -9,6 +9,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/require"
+
 	"zntr.io/solid/sdk/randomness"
 )
 

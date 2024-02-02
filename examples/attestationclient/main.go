@@ -20,6 +20,7 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
+
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/oidc"
 )
@@ -200,6 +201,6 @@ func run() error {
 	}
 
 	fmt.Println(string(timestampRaw))
-	
+
 	return nil
 }

@@ -23,7 +23,7 @@ require (
 	golang.org/x/oauth2 v0.16.0
 	google.golang.org/grpc v1.61.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gotest.tools/gotestsum v1.11.0
 	mvdan.cc/gofumpt v0.5.0

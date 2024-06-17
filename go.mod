@@ -29,7 +29,7 @@ require (
 	google.golang.org/protobuf v1.34.0
 	gotest.tools/gotestsum v1.11.0
 	mvdan.cc/gofumpt v0.6.0
-	zntr.io/paseto v1.2.0
+	zntr.io/paseto v1.3.0
 )
 
 require (

@@ -25,8 +25,8 @@ require (
 	golang.org/x/crypto v0.24.0
 	golang.org/x/oauth2 v0.16.0
 	google.golang.org/grpc v1.61.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
-	google.golang.org/protobuf v1.34.0
+	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.4.0
+	google.golang.org/protobuf v1.34.1
 	gotest.tools/gotestsum v1.11.0
 	mvdan.cc/gofumpt v0.6.0
 	zntr.io/paseto v1.2.0

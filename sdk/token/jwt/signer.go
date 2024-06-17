@@ -22,8 +22,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/types"
@@ -70,7 +70,7 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	}
 
 	// Generate the final proof
-	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
+	raw, err := jwt.Signed(sig).Claims(claims).Serialize()
 	if err != nil {
 		return "", fmt.Errorf("unable to generate JWT: %w", err)
 	}

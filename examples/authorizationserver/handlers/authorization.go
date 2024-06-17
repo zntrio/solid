@@ -28,7 +28,7 @@ import (
 	"net/url"
 
 	"github.com/dchest/uniuri"
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/examples/authorizationserver/middleware"
@@ -92,7 +92,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 
 			// No error
 			return &jwks, nil
-		}, []string{"ES384"}))
+		}, []jose.SignatureAlgorithm{jose.ES384}))
 
 		// Decode request
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)

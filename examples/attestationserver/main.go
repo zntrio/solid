@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 )
 
 type attestationData struct {
@@ -60,7 +60,7 @@ func signHandler(priv ed25519.PrivateKey) http.Handler {
 			"cnf": map[string]any{
 				"jwk": data.ClientPublicKey.Public(),
 			},
-		}).CompactSerialize()
+		}).Serialize()
 
 		// Set response type
 		w.Header().Set("Content-Type", "application/client-attestation+jwt; charset=utf-8")

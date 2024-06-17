@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
@@ -33,9 +33,10 @@ import (
 )
 
 // PrivateKeyJWT authentication method.
-func PrivateKeyJWT(clients storage.ClientReader) AuthenticationProcessor {
+func PrivateKeyJWT(clients storage.ClientReader, supportedAlgorithms []jose.SignatureAlgorithm) AuthenticationProcessor {
 	return &privateKeyJWTAuthentication{
-		clients: clients,
+		clients:             clients,
+		supportedAlgorithms: supportedAlgorithms,
 	}
 }
 
@@ -49,7 +50,8 @@ type privateJWTClaims struct {
 }
 
 type privateKeyJWTAuthentication struct {
-	clients storage.ClientReader
+	clients             storage.ClientReader
+	supportedAlgorithms []jose.SignatureAlgorithm
 }
 
 //nolint:funlen,gocyclo // to refactor
@@ -81,7 +83,7 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 	}
 
 	// Decode assertion without validation first
-	rawAssertion, err := jose.ParseSigned(*req.ClientAssertion)
+	rawAssertion, err := jose.ParseSigned(*req.ClientAssertion, p.supportedAlgorithms)
 	if err != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("assertion is syntaxically invalid: %w", err)

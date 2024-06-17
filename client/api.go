@@ -20,8 +20,8 @@ package client
 import (
 	"context"
 
+	"github.com/go-jose/go-jose/v4"
 	"golang.org/x/oauth2"
-	"gopkg.in/square/go-jose.v2"
 
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"

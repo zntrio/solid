@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"golang.org/x/oauth2"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/oidc"
@@ -92,7 +92,7 @@ func computeClientPOP(priv *ecdsa.PrivateKey) (string, error) {
 		"nbf": now - 1,
 		"exp": now + 30, // Valid for 30s
 		"jti": uniuri.NewLen(8),
-	}).CompactSerialize()
+	}).Serialize()
 }
 
 func getToken(ctx context.Context, assertion string) (*oauth2.Token, error) {

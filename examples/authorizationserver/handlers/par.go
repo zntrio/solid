@@ -24,7 +24,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -83,7 +83,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 
 			// No error
 			return &jwks, nil
-		}, []string{"ES384"}))
+		}, []jose.SignatureAlgorithm{jose.ES384}))
 
 		// Decode request
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)

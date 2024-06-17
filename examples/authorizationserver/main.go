@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 
 	"zntr.io/solid/examples/authorizationserver/handlers"
 	"zntr.io/solid/examples/authorizationserver/middleware"
@@ -48,13 +48,13 @@ func main() {
 	// Middlewares
 	secHeaders := middleware.SecurityHaders()
 	basicAuth := middleware.BasicAuthentication()
-	clientAuth := middleware.ClientAuthentication(clients)
+	clientAuth := middleware.ClientAuthentication(clients, []jose.SignatureAlgorithm{jose.ES256, jose.ES384})
 
 	// Request encoders
 	keys := keyProvider()
 	keySet := keySetProvider()
 	jarmEncoder := jarm.Encoder(jwt.JARMSigner(jose.ES384, keys))
-	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, []string{"ES384"}))
+	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, []jose.SignatureAlgorithm{jose.ES384}))
 	pairwiseEncoder := pairwise.Hash([]byte("U|(vBPu45_Vkvv*Tr*8Y[^s?,$ka@bQziM5]9.+[{.n47]'zokA7-j8ypJ=W]WS"))
 	issuer := "http://127.0.0.1:8080"
 

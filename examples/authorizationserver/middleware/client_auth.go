@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/go-jose/go-jose/v4"
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
@@ -31,10 +32,10 @@ import (
 )
 
 // ClientAuthentication is a middleware to handle client authentication.
-func ClientAuthentication(clients storage.ClientReader) Adapter {
+func ClientAuthentication(clients storage.ClientReader, supportedAlgorithms []jose.SignatureAlgorithm) Adapter {
 	// Prepare client authentication
-	clientAuth := clientauthentication.PrivateKeyJWT(clients)
-	clientAttestationAuth := clientauthentication.ClientAttestation(clients)
+	clientAuth := clientauthentication.PrivateKeyJWT(clients, supportedAlgorithms)
+	clientAttestationAuth := clientauthentication.ClientAttestation(clients, supportedAlgorithms)
 
 	// Return middleware
 	return func(h http.Handler) http.Handler {

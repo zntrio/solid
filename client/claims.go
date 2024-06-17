@@ -18,7 +18,7 @@
 package client
 
 import (
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )

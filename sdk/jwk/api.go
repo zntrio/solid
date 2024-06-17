@@ -20,7 +20,7 @@ package jwk
 import (
 	"context"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 )
 
 // KeySetProviderFunc defines key set provider contract.

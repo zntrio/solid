@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/golang/mock/gomock"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
@@ -510,7 +510,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := PrivateKeyJWT(clients)
+			underTest := PrivateKeyJWT(clients, []jose.SignatureAlgorithm{jose.ES256})
 
 			got, err := underTest.Authenticate(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -548,7 +548,7 @@ func generateAssertion(t *testing.T, claims *privateJWTClaims) string {
 		return ""
 	}
 
-	raw, err := jwt.Signed(sig).Claims(claims).CompactSerialize()
+	raw, err := jwt.Signed(sig).Claims(claims).Serialize()
 	if err != nil {
 		t.Fatalf("unable to generate final assertion")
 	}

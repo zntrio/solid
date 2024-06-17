@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/client"
 	"zntr.io/solid/sdk/dpop"
@@ -141,7 +142,7 @@ func authenticateWithDPoP(w http.ResponseWriter, req *http.Request, cli client.C
 
 func Authorizer(next http.Handler, intent string, cli client.Client, acrValues types.StringArray, maxAuthAge uint64) http.Handler {
 	// Initialize the DPoP verifier.
-	dpopVerifier := dpop.DefaultVerifier(inmemory.DPoPProofs(), jwt.EmbeddedKeyVerifier([]string{"ES384"}))
+	dpopVerifier := dpop.DefaultVerifier(inmemory.DPoPProofs(), jwt.EmbeddedKeyVerifier([]jose.SignatureAlgorithm{jose.ES256, jose.ES384}))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (

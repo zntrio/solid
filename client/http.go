@@ -28,9 +28,9 @@ import (
 	"time"
 
 	"github.com/dchest/uniuri"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"golang.org/x/oauth2"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
@@ -119,7 +119,7 @@ func (c *httpClient) Assertion() (string, error) {
 		Audience: c.issuer,
 		Expires:  uint64(time.Now().Add(30 * time.Second).Unix()),
 		IssuedAt: uint64(time.Now().Unix()),
-	}).CompactSerialize()
+	}).Serialize()
 	if err != nil {
 		return "", fmt.Errorf("unable to sign client assertion: %w", err)
 	}

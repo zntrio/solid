@@ -22,18 +22,18 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
-	"zntr.io/solid/sdk/types"
 )
 
 // DefaultVerifier declare a default JWT verifier.
-func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms []string) token.Verifier {
+func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms []jose.SignatureAlgorithm) token.Verifier {
 	return &defaultVerifier{
 		keySetProvider:      keySetProvider,
-		supportedAlgorithms: types.StringArray(supportedAlgorithms),
+		supportedAlgorithms: supportedAlgorithms,
 	}
 }
 
@@ -41,12 +41,12 @@ func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms 
 
 type defaultVerifier struct {
 	keySetProvider      jwk.KeySetProviderFunc
-	supportedAlgorithms types.StringArray
+	supportedAlgorithms []jose.SignatureAlgorithm
 }
 
 func (v *defaultVerifier) Parse(token string) (token.Token, error) {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(token)
+	t, err := jwt.ParseSigned(token, v.supportedAlgorithms)
 	if err != nil {
 		return nil, errors.New("unable to parse signed token")
 	}
@@ -59,7 +59,7 @@ func (v *defaultVerifier) Parse(token string) (token.Token, error) {
 
 func (v *defaultVerifier) Verify(token string) error {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(token)
+	t, err := jwt.ParseSigned(token, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}
@@ -69,12 +69,6 @@ func (v *defaultVerifier) Verify(token string) error {
 		return fmt.Errorf("unable to process token without header")
 	}
 
-	// Validate algorithm
-	alg := t.Headers[0].Algorithm
-	if !v.supportedAlgorithms.Contains(alg) {
-		return fmt.Errorf("token uses an invalid or not supported algorithm `%s`", alg)
-	}
-
 	// No error
 	return nil
 }
@@ -82,7 +76,7 @@ func (v *defaultVerifier) Verify(token string) error {
 // Claims extracts claims from given raw token with verifier keyset provider.
 func (v *defaultVerifier) Claims(ctx context.Context, raw string, claims any) error {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(raw)
+	t, err := jwt.ParseSigned(raw, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}

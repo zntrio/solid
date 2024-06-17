@@ -20,15 +20,15 @@ package jwt
 import (
 	"testing"
 
+	"github.com/go-jose/go-jose/v4"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
-	"zntr.io/solid/sdk/types"
 )
 
 func Test_defaultVerifier_Parse(t *testing.T) {
 	type fields struct {
 		keySetProvider      jwk.KeySetProviderFunc
-		supportedAlgorithms types.StringArray
+		supportedAlgorithms []jose.SignatureAlgorithm
 	}
 	type args struct {
 		token string
@@ -60,6 +60,9 @@ func Test_defaultVerifier_Parse(t *testing.T) {
 		},
 		{
 			name: "valid",
+			fields: fields{
+				supportedAlgorithms: []jose.SignatureAlgorithm{jose.ES384},
+			},
 			args: args{
 				token: "eyJhbGciOiJFUzM4NCIsImtpZCI6ImZvbyIsInR5cCI6IiJ9.eyJ0ZXN0IjoiZXhhbXBsZSJ9.a-vdiRCDSIlZdm-gRIk4dxfvsHT90W6a-Lt9JiGF4CMJCrLgl0zZAI57rjTRZXGd3PB0tAoZ8dM0OUQTOIxORkdvQlPYpvM_fEppcYfRkwUO8n7iswsvS4GqSJgotacf",
 			},
@@ -84,7 +87,7 @@ func Test_defaultVerifier_Parse(t *testing.T) {
 func Test_defaultVerifier_Verify(t *testing.T) {
 	type fields struct {
 		keySetProvider      jwk.KeySetProviderFunc
-		supportedAlgorithms types.StringArray
+		supportedAlgorithms []jose.SignatureAlgorithm
 	}
 	type args struct {
 		token string
@@ -112,7 +115,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 		{
 			name: "alg not supported",
 			fields: fields{
-				supportedAlgorithms: types.StringArray([]string{"ES256"}),
+				supportedAlgorithms: []jose.SignatureAlgorithm{jose.ES256},
 			},
 			args: args{
 				token: "eyJhbGciOiJFUzM4NCIsImtpZCI6ImZvbyIsInR5cCI6IiJ9.eyJ0ZXN0IjoiZXhhbXBsZSJ9.a-vdiRCDSIlZdm-gRIk4dxfvsHT90W6a-Lt9JiGF4CMJCrLgl0zZAI57rjTRZXGd3PB0tAoZ8dM0OUQTOIxORkdvQlPYpvM_fEppcYfRkwUO8n7iswsvS4GqSJgotacf",
@@ -122,7 +125,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 		{
 			name: "valid",
 			fields: fields{
-				supportedAlgorithms: types.StringArray([]string{"ES384"}),
+				supportedAlgorithms: []jose.SignatureAlgorithm{jose.ES384},
 			},
 			args: args{
 				token: "eyJhbGciOiJFUzM4NCIsImtpZCI6ImZvbyIsInR5cCI6IiJ9.eyJ0ZXN0IjoiZXhhbXBsZSJ9.a-vdiRCDSIlZdm-gRIk4dxfvsHT90W6a-Lt9JiGF4CMJCrLgl0zZAI57rjTRZXGd3PB0tAoZ8dM0OUQTOIxORkdvQlPYpvM_fEppcYfRkwUO8n7iswsvS4GqSJgotacf",

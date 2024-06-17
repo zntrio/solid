@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
@@ -19,9 +19,10 @@ import (
 )
 
 // ClientAttestation authentication method.
-func ClientAttestation(clients storage.ClientReader) AuthenticationProcessor {
+func ClientAttestation(clients storage.ClientReader, supportedAlgorithms []jose.SignatureAlgorithm) AuthenticationProcessor {
 	return &clientAttestationAuthentication{
-		clients: clients,
+		clients:             clients,
+		supportedAlgorithms: supportedAlgorithms,
 	}
 }
 
@@ -40,7 +41,8 @@ type clientAttestationClaims struct {
 }
 
 type clientAttestationAuthentication struct {
-	clients storage.ClientReader
+	clients             storage.ClientReader
+	supportedAlgorithms []jose.SignatureAlgorithm
 }
 
 type clientAttestationPOPClaims struct {
@@ -89,7 +91,7 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 	}
 
 	// Decode PoP
-	rawPoP, err := jwt.ParseSigned(assertions[1])
+	rawPoP, err := jwt.ParseSigned(assertions[1], p.supportedAlgorithms)
 	if err != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, errors.New("invalid client attestation PoP")
@@ -134,7 +136,7 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 
 func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.Context, clientAttestation string) (*jose.JSONWebKey, error) {
 	// Parse attestation without cryptogrpahic verification first
-	rawAttestation, err := jose.ParseSigned(clientAttestation)
+	rawAttestation, err := jose.ParseSigned(clientAttestation, p.supportedAlgorithms)
 	if err != nil {
 		return nil, fmt.Errorf("client attestation is syntaxically invalid: %w", err)
 	}

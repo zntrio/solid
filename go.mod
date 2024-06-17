@@ -1,6 +1,8 @@
 module zntr.io/solid
 
-go 1.20
+go 1.21
+
+toolchain go1.22.3
 
 require (
 	github.com/daixiang0/gci v0.13.4
@@ -8,6 +10,7 @@ require (
 	github.com/dchest/uniuri v1.2.0
 	github.com/frapposelli/wwhrd v0.4.0
 	github.com/fxamacker/cbor/v2 v2.5.0
+	github.com/go-jose/go-jose/v4 v4.0.2
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang/mock v1.6.0
@@ -24,7 +27,6 @@ require (
 	google.golang.org/grpc v1.61.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
 	google.golang.org/protobuf v1.34.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 	gotest.tools/gotestsum v1.11.0
 	mvdan.cc/gofumpt v0.6.0
 	zntr.io/paseto v1.2.0

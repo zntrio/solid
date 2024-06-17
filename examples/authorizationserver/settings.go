@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"gopkg.in/square/go-jose.v2"
+	"github.com/go-jose/go-jose/v4"
 
 	"zntr.io/solid/sdk/jwk"
 )

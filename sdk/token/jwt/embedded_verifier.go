@@ -22,28 +22,28 @@ import (
 	"errors"
 	"fmt"
 
-	"gopkg.in/square/go-jose.v2/jwt"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 
 	"zntr.io/solid/sdk/token"
-	"zntr.io/solid/sdk/types"
 )
 
 // EmbeddedKeyVerifier declare an embedded Key JWT verifier.
-func EmbeddedKeyVerifier(supportedAlgorithms []string) token.Verifier {
+func EmbeddedKeyVerifier(supportedAlgorithms []jose.SignatureAlgorithm) token.Verifier {
 	return &embeddedKeyVerifier{
-		supportedAlgorithms: types.StringArray(supportedAlgorithms),
+		supportedAlgorithms: supportedAlgorithms,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type embeddedKeyVerifier struct {
-	supportedAlgorithms types.StringArray
+	supportedAlgorithms []jose.SignatureAlgorithm
 }
 
 func (v *embeddedKeyVerifier) Parse(token string) (token.Token, error) {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(token)
+	t, err := jwt.ParseSigned(token, v.supportedAlgorithms)
 	if err != nil {
 		return nil, errors.New("unable to parse signed token")
 	}
@@ -56,7 +56,7 @@ func (v *embeddedKeyVerifier) Parse(token string) (token.Token, error) {
 
 func (v *embeddedKeyVerifier) Verify(token string) error {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(token)
+	t, err := jwt.ParseSigned(token, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}
@@ -68,9 +68,6 @@ func (v *embeddedKeyVerifier) Verify(token string) error {
 
 	// Validate algorithm
 	alg := t.Headers[0].Algorithm
-	if !v.supportedAlgorithms.Contains(alg) {
-		return fmt.Errorf("token uses an invalid or not supported algorithm `%s`", alg)
-	}
 
 	// Validate embedded key existence
 	k := t.Headers[0].JSONWebKey
@@ -90,7 +87,7 @@ func (v *embeddedKeyVerifier) Verify(token string) error {
 // Claims extracts claims from given raw token with verifier keyset provider.
 func (v *embeddedKeyVerifier) Claims(ctx context.Context, raw string, claims any) error {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(raw)
+	t, err := jwt.ParseSigned(raw, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}

@@ -1,220 +1,139 @@
+version: "2"
+
 run:
-  # default concurrency is a available CPU number
+  # default concurrency is the number of available CPUs
   concurrency: 4
-  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  # timeout for analysis, e.g. 30s, 5m, default is disabled
   timeout: 20m
   # exit code when at least one issue was found, default is 1
   issues-exit-code: 1
   # include test files or not, default is true
   tests: false
-
-  # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
-  # If invoked with -mod=readonly, the go command is disallowed from the implicit
-  # automatic updating of go.mod described above. Instead, it fails when any changes
-  # to go.mod are needed. This setting is most useful to check that go.mod does not
-  # need updates, such as in a continuous integration and testing system.
-  # If invoked with -mod=vendor, the go command assumes that the vendor
-  # directory holds the correct copies of dependencies and ignores the
-  # dependency descriptions in go.mod.
+  # pass -mod=readonly to "go list": fails when go.mod needs updates. Useful in CI.
   modules-download-mode: readonly
-
   # Allow multiple parallel golangci-lint instances running.
   # If false (default) - golangci-lint acquires file lock on start.
   allow-parallel-runners: false
-
-# output configuration options
-output:
-  # print lines of code with issue, default is true
-  print-issued-lines: true
-
-  # print linter name in the end of issue text, default is true
-  print-linter-name: true
-
-  # add a prefix to the output file references; default is no prefix
-  path-prefix: ""
-
-  # sorts results by: filepath, line and column
-  sort-results: false
-
-  # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
-  # If invoked with -mod=readonly, the go command is disallowed from the implicit
-  # automatic updating of go.mod described above. Instead, it fails when any changes
-  # to go.mod are needed. This setting is most useful to check that go.mod does
-  # not need updates, such as in a continuous integration and testing system.
-  # If invoked with -mod=vendor, the go command assumes that the vendor
-  # directory holds the correct copies of dependencies and ignores
-  # the dependency descriptions in go.mod.
-  modules-download-mode: readonly
-
-  # Allow multiple parallel golangci-lint instances running.
-  # If false (default) - golangci-lint acquires file lock on start.
-  allow-parallel-runners: false
-
-linters-settings:
-  depguard:
-    rules:
-      Main:
-        allow:
-          - $gostd
-          - zntr.io/solid
-          - github.com/golang-jwt/jwt/v5
-          - github.com/lestrrat-go/jwx/v3
-          - golang.org/x/crypto
-          - github.com/google/go-cmp
-          - go.uber.org/mock
-          - google.golang.org/protobuf
-          - github.com/stretchr/testify
-          - buf.build/go/protovalidate
-          - github.com/go-ozzo/ozzo-validation/v4
-          - go.mozilla.org/cose
-          - github.com/pquerna/otp
-          - github.com/dchest/uniuri
-          - github.com/fxamacker/cbor/v2
-          - zntr.io/paseto/v4
-  gosec:
-    excludes:
-      - G101
-  dogsled:
-    # checks assignments with too many blank identifiers; default is 2
-    max-blank-identifiers: 2
-  dupl:
-    threshold: 150
-  errcheck:
-    # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
-    # default is false: such cases aren't reported by default.
-    check-type-assertions: false
-
-    # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
-    # default is false: such cases aren't reported by default.
-    check-blank: false
-
-  exhaustive:
-    # check switch statements in generated files also
-    check-generated: false
-    # indicates that switch statements are to be considered exhaustive if a
-    # 'default' case is present, even if all enum members aren't listed in the
-    # switch
-    default-signifies-exhaustive: false
-  govet:
-    enable:
-      - shadow
-  goimports:
-    local: "github.com/elastic"
-  gofmt:
-    simplify: true
-  gocyclo:
-    min-complexity: 15
-  misspell:
-    locale: US
-  lll:
-    line-length: 140
-    tab-width: 1
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(zntr.io/solid)
-  gocognit:
-    # minimal code complexity to report, 30 by default (but we recommend 10-20)
-    min-complexity: 20
-  goconst:
-    # minimal length of string constant, 3 by default
-    min-len: 3
-    # minimal occurrences count to trigger, 3 by default
-    min-occurrences: 3
-  nestif:
-    # minimal complexity of if statements to report, 5 by default
-    min-complexity: 4
-  gomnd:
-    settings:
-      mnd:
-        # don't include the "operation" and "assign"
-        checks: ["argument","case","condition","return"]
-  unused:
-    # treat code as a program (not a library) and report unused exported identifiers; default is false.
-    # XXX: if you enable this setting, unused will report a lot of false-positives in text editors:
-    # if it's called for subdir of a project it can't find funcs usages. All text editor integrations
-    # with golangci-lint call it on a directory with the changed file.
-    check-exported: false
-  unparam:
-    # call graph construction algorithm (cha, rta). In general, use cha for libraries,
-    # and rta for programs with main packages. Default is cha.
-    algo: cha
-
-    # Inspect exported functions, default is false. Set to true if no external program/library imports your code.
-    # XXX: if you enable this setting, unparam will report a lot of false-positives in text editors:
-    # if it's called for subdir of a project it can't find external interfaces. All text editor integrations
-    # with golangci-lint call it on a directory with the changed file.
-    check-exported: false
-  nakedret:
-    # make an issue if func has more lines of code than this setting and it has naked returns; default is 30
-    max-func-lines: 30
-  prealloc:
-    # Report preallocation suggestions only on simple loops that have no returns/breaks/continues/gotos in them.
-    # True by default.
-    simple: true
-    range-loops: true # Report preallocation suggestions on range loops, true by default
-    for-loops: false # Report preallocation suggestions on for loops, false by default
-  funlen:
-    lines: 100
-    statements: 50
-  gomodguard:
-    blocked:
-      modules:
-        - github.com/BurntSushi/toml:
-            recommandations:
-              - github.com/pelletier/go-toml
-  goheader:
-    template-path: .golangci-header.txt
-
-  gocritic:
-    # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
-    # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
-    # unslice is disabled: it misfires on fixed-size arrays (e.g. [16]byte),
-    # where the slice conversion is required by the language.
-    disabled-checks:
-      - unslice
-    enabled-tags:
-      - diagnostic
-      - performance
-      - style
-      - opinionated
-      - experimental
 
 linters:
   enable:
     - bodyclose
     - depguard
     - dogsled
-    # - dupl
     - errcheck
     - errorlint
     - exhaustive
-    # - forbidigo
     - funlen
-    # - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
-    - gofmt
     - goheader
-    - goimports
-    # - gomnd
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
-    # - lll
     - misspell
     - nakedret
     - noctx
     - nolintlint
     - rowserrcheck
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
     - whitespace
+  settings:
+    depguard:
+      rules:
+        Main:
+          allow:
+            - $gostd
+            - zntr.io/solid
+            - github.com/golang-jwt/jwt/v5
+            - github.com/lestrrat-go/jwx/v3
+            - golang.org/x/crypto
+            - github.com/google/go-cmp
+            - go.uber.org/mock
+            - google.golang.org/protobuf
+            - github.com/stretchr/testify
+            - buf.build/go/protovalidate
+            - github.com/go-ozzo/ozzo-validation/v4
+            - go.mozilla.org/cose
+            - github.com/pquerna/otp
+            - github.com/dchest/uniuri
+            - github.com/fxamacker/cbor/v2
+            - zntr.io/paseto/v4
+    gosec:
+      excludes:
+        - G101
+    dogsled:
+      # checks assignments with too many blank identifiers; default is 2
+      max-blank-identifiers: 2
+    errcheck:
+      # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
+      # default is false: such cases aren't reported by default.
+      check-type-assertions: false
+      # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+      # default is false: such cases aren't reported by default.
+      check-blank: false
+    exhaustive:
+      # switch statements are considered exhaustive if a 'default' case is present,
+      # even if all enum members aren't listed in the switch
+      default-signifies-exhaustive: false
+    govet:
+      enable:
+        - shadow
+    gocyclo:
+      min-complexity: 15
+    misspell:
+      locale: US
+    gocognit:
+      # minimal code complexity to report, 30 by default (but we recommend 10-20)
+      min-complexity: 20
+    goconst:
+      # minimal length of string constant, 3 by default
+      min-len: 3
+      # minimal occurrences count to trigger, 3 by default
+      min-occurrences: 3
+    nestif:
+      # minimal complexity of if statements to report, 5 by default
+      min-complexity: 4
+    nakedret:
+      # make an issue if func has more lines of code than this setting and it has naked returns; default is 30
+      max-func-lines: 30
+    funlen:
+      lines: 100
+      statements: 50
+    goheader:
+      template-path: .golangci-header.txt
+    gocritic:
+      # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
+      # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
+      # unslice is disabled: it misfires on fixed-size arrays (e.g. [16]byte),
+      # where the slice conversion is required by the language.
+      disabled-checks:
+        - unslice
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+        - opinionated
+        - experimental
+  exclusions:
+    # Generated protobuf code and gomock mocks are not linted.
+    paths:
+      - api
+      - ".*\\.gen\\.go$"
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(zntr.io/solid)
+    gofmt:
+      simplify: true

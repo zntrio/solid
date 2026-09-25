@@ -23,7 +23,7 @@ package tools
 import (
 	_ "github.com/daixiang0/gci"
 	_ "github.com/frapposelli/wwhrd"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
+	_ "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
 	_ "go.uber.org/mock/mockgen"
 	_ "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
@@ -39,6 +39,6 @@ import (
 //go:generate go build -v -o=./bin/gci github.com/daixiang0/gci
 //go:generate go build -v -o=./bin/wwhrd github.com/frapposelli/wwhrd
 //go:generate go build -v -o=./bin/mockgen go.uber.org/mock/mockgen
-//go:generate go build -v -o=./bin/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+//go:generate go build -v -o=./bin/golangci-lint github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 //go:generate go build -v -o=./bin/gotestsum gotest.tools/gotestsum
 //go:generate go build -v -o=./bin/gofumpt mvdan.cc/gofumpt

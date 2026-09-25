@@ -20,7 +20,7 @@ require (
 	go.mozilla.org/cose v0.0.0-20220818192640-18d34e90336d
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.57.0
-	google.golang.org/grpc v1.84.0
+	google.golang.org/grpc v1.83.2
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2
 	google.golang.org/protobuf v1.36.12
 	gotest.tools/gotestsum v1.13.0

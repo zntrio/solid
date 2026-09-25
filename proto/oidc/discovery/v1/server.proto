@@ -19,7 +19,7 @@ syntax = "proto3";
 
 package oidc.discovery.v1;
 
-option go_package = "oidc/discovery/v1;discoveryv1";
+option go_package = "zntr.io/solid/api/oidc/discovery/v1;discoveryv1";
 
 // https://tools.ietf.org/html/rfc8414
 
@@ -313,7 +313,7 @@ message ServerMetadata {
 
   // The URL of the pushed authorization request endpoint at which the client
   // can post an authorization request and get a request URI in exchange.
-  // https://tools.ietf.org/html/draft-lodderstedt-oauth-par-01#section-5
+  // https://www.rfc-editor.org/rfc/rfc9126#section-5
   string pushed_authorization_request_endpoint = 43;
 
   repeated string pushed_authorization_request_endpoint_auth_methods_supported = 44;
@@ -326,7 +326,7 @@ message ServerMetadata {
 
   // OPTIONAL. JSON array containing a list of the JWS algorithms supported for
   // DPoP proof JWTs.
-  // https://www.ietf.org/id/draft-ietf-oauth-dpop-01.html#section-10.7
+  // https://www.rfc-editor.org/rfc/rfc9449#section-8
   repeated string dpop_signing_alg_values_supported = 47;
 
   // OPTIONAL. Boolean value indicating server support for mutual-TLS client
@@ -354,26 +354,26 @@ message ServerMetadata {
   // OPTIONAL. Boolean parameter indicating whether the authorization server
   // provides the "iss" parameter in the authorization response as defined
   // in Section 2. If omitted, the default value is false.
-  // https://www.ietf.org/archive/id/draft-meyerzuselhausen-oauth-iss-auth-resp-02.html#name-authorization-server-metada
+  // https://www.rfc-editor.org/rfc/rfc9207#name-authorization-server-metadata
   bool authorization_response_iss_parameter_supported = 52;
 
   // OPTIONAL.  JSON array containing a list of the JWS [RFC7515] signing algorithms
   // ("alg" values) as defined in JWA [RFC7518] supported by the
   // introspection endpoint to sign the response.
-  // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
+  // https://www.rfc-editor.org/rfc/rfc9396#section-7
   repeated string introspection_signing_alg_values_supported = 53;
 
   // OPTIONAL.  JSON array containing a list of the JWE [RFC7516] encryption algorithms
   // ("alg" values) as defined in JWA [RFC7518] supported by the
   // introspection endpoint to encrypt the content encryption key
   // for introspection responses (content key encryption).
-  // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
+  // https://www.rfc-editor.org/rfc/rfc9396#section-7
   repeated string introspection_encryption_alg_values_supported = 54;
 
   // OPTIONAL.  JSON array containing a list of the JWE [RFC7516] encryption algorithms
   // ("enc" values) as defined in JWA [RFC7518] supported by the
   // introspection endpoint to encrypt the response (content encryption).
-  // https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-10#section-7
+  // https://www.rfc-editor.org/rfc/rfc9396#section-7
   repeated string introspection_encryption_enc_values_supported = 55;
 
   // OPTIONAL. A JWT containing metadata values about the authorization server as
@@ -381,6 +381,17 @@ message ServerMetadata {
   // A "signed_metadata" metadata value SHOULD NOT appear as a claim in the JWT.
   // https://tools.ietf.org/html/rfc8414#section-2.1
   string signed_metadata = 56;
+
+  // OPTIONAL. Boolean value specifying whether the authorization server supports
+  // retrieving client metadata from a client_id URL as described in the OAuth
+  // Client ID Metadata Document specification.
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document
+  bool client_id_metadata_document_supported = 57;
+  // OPTIONAL. JSON array containing the list of authorization details
+  // types supported by this authorization server. If omitted, the server
+  // does not support the authorization_details parameter.
+  // https://www.rfc-editor.org/rfc/rfc9396#section-10
+  repeated string authorization_details_types_supported = 58;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

@@ -22,24 +22,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/patrickmn/go-cache"
 	"golang.org/x/crypto/blake2b"
+	"google.golang.org/protobuf/proto"
 
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/server/storage"
 )
 
 type sessionStorage struct {
-	backend *cache.Cache
+	backend   *ttlCache
+	secretKey []byte
 }
 
 // AuthorizationCodeSessions returns an authorization session manager.
-func AuthorizationCodeSessions() storage.AuthorizationCodeSession {
+func AuthorizationCodeSessions(secretKey []byte) storage.AuthorizationCodeSession {
 	// Initialize in-memory caches
-	backendCache := cache.New(1*time.Minute, 10*time.Minute)
+	backendCache := newTTLCache(1 * time.Minute)
 
 	return &sessionStorage{
-		backend: backendCache,
+		backend:   backendCache,
+		secretKey: secretKey,
 	}
 }
 
@@ -47,7 +49,7 @@ func AuthorizationCodeSessions() storage.AuthorizationCodeSession {
 
 func (s *sessionStorage) Register(ctx context.Context, issuer, code string, req *sessionv1.AuthorizationCodeSession) (uint64, error) {
 	// Insert in cache
-	s.backend.Set(s.deriveKey(issuer, code), req, cache.DefaultExpiration)
+	s.backend.Set(s.deriveKey(issuer, code), req)
 
 	// No error
 	return uint64(60), nil
@@ -69,11 +71,25 @@ func (s *sessionStorage) Get(ctx context.Context, issuer, code string) (*session
 	return nil, storage.ErrNotFound
 }
 
+func (s *sessionStorage) DeleteAndGet(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error) {
+	// Atomically consume the code session from cache. The returned session is
+	// a detached clone stamped with the terminal CONSUMED status (defense in
+	// depth on top of the sdk/session state machine: a CONSUMED session can
+	// never be re-registered as a fresh ACTIVE one).
+	if x, found := s.backend.DeleteAndGet(s.deriveKey(issuer, code)); found {
+		session := proto.Clone(x.(*sessionv1.AuthorizationCodeSession)).(*sessionv1.AuthorizationCodeSession)
+		session.Status = sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED
+		return session, nil
+	}
+
+	return nil, storage.ErrNotFound
+}
+
 // -----------------------------------------------------------------------------
 
 func (s *sessionStorage) deriveKey(issuer, code string) string {
 	// Create hasher
-	h, err := blake2b.New256([]byte(`Sj%u-#$yVfdaHE/@e-=2"MI<T];#tr'{|udMFn.@4abjM({8L'|j]{G2ecDK[W2"`))
+	h, err := blake2b.New256(s.secretKey)
 	if err != nil {
 		panic(err)
 	}

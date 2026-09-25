@@ -19,13 +19,15 @@ syntax = "proto3";
 
 package oidc.flow.v1;
 
+import "buf/validate/validate.proto";
 import "oidc/client/v1/client.proto";
 import "oidc/core/v1/error.proto";
 import "oidc/flow/v1/flow.proto";
 import "oidc/flow/v1/token_grant.proto";
+import "oidc/token/v1/authorization_detail.proto";
 import "oidc/token/v1/token.proto";
 
-option go_package = "oidc/flow/v1;flowv1";
+option go_package = "zntr.io/solid/api/oidc/flow/v1;flowv1";
 
 // -----------------------------------------------------------------------------
 
@@ -38,16 +40,30 @@ service AuthorizationService {
 
 message AuthorizeRequest {
   // REQUIRED. Issuer uri.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
 
   // REQUIRED. Client that requests the authorization requests registration.
-  .oidc.client.v1.Client client = 2;
+  .oidc.client.v1.Client client = 2 [(buf.validate.field).required = true];
 
   // REQUIRED. User identity.
-  string subject = 3;
+  string subject = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
 
   // REQUIRED. Authorization request object.
-  AuthorizationRequest request = 4;
+  AuthorizationRequest request = 4 [(buf.validate.field).required = true];
+
+  // OPTIONAL. DPoP Proof confirmation bound to the authorization request
+  // (front-channel proof, or inherited from the pushed request when
+  // consumed through request_uri). When set, it is stored with the issued
+  // authorization code session and enforced at redemption (RFC 9449
+  // section 10).
+  optional .oidc.token.v1.TokenConfirmation confirmation = 5;
 }
 
 // https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2
@@ -82,7 +98,7 @@ message AuthorizeResponse {
   fixed64 expires_in = 6;
 
   // REQUIRED
-  // https://datatracker.ietf.org/doc/draft-meyerzuselhausen-oauth-iss-auth-resp/
+  // https://www.rfc-editor.org/rfc/rfc9207
   //
   // The "iss" parameter value is the issuer identifier of the
   // authorization server which created the authorization response, as
@@ -113,7 +129,7 @@ message RegistrationRequest {
 
 message RegistrationResponse {
   .oidc.core.v1.Error error = 1;
-  // https://tools.ietf.org/html/draft-lodderstedt-oauth-par-01#section-2.2
+  // https://www.rfc-editor.org/rfc/rfc9126#section-2.2
 
   // The request URI corresponding to the authorization
   // request posted.  This URI is used as reference to the respective
@@ -136,13 +152,20 @@ message RegistrationResponse {
 
 message TokenRequest {
   // REQUIRED. Issuer url.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
 
   // REQUIRED. The client that request token generation.
-  .oidc.client.v1.Client client = 2;
+  .oidc.client.v1.Client client = 2 [(buf.validate.field).required = true];
 
   // REQUIRED. The grant_type value to use.
-  string grant_type = 3;
+  string grant_type = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
 
   // OPTIONAL. Scope to use for token request
   optional string scope = 4;
@@ -186,8 +209,18 @@ message TokenRequest {
   // resource URIs.
   optional string audience = 7;
 
+  // OPTIONAL. JSON array of objects specifying the requested authorization
+  // details. When present, the AS compares them against the grant's
+  // authorization_details; every entry MUST match one consented entry, and
+  // the client MAY request a subset only. The granted authorization_details
+  // are then carried by the issued tokens.
+  // https://www.rfc-editor.org/rfc/rfc9396#section-6
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 8;
+
   // REQUIRED.
   oneof grant {
+    option (buf.validate.oneof).required = true;
+
     // tools.ietf.org/html/rfc6749#section-1.3.1
     GrantAuthorizationCode authorization_code = 10;
     // tools.ietf.org/html/rfc6749#section-4.4
@@ -217,6 +250,12 @@ message TokenResponse {
   // OPTIONAL if the scope of the issued security token is identical to
   // the scope requested by the client; otherwise, it is REQUIRED.
   optional string scope = 7;
+
+  // OPTIONAL. The authorization details granted to the access token, as
+  // determined by the AS (the requested subset when narrowing was
+  // requested, otherwise the consented set).
+  // https://www.rfc-editor.org/rfc/rfc9396#section-7
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 8;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.1
@@ -235,6 +274,13 @@ message DeviceAuthorizationRequest {
 
   // OPTIONAL.  The target audience.
   optional string audience = 4;
+
+  // OPTIONAL. JSON array of objects specifying the requested authorization
+  // details, carried with the device authorization request. The AS shows
+  // them at consent time; the consented set then lives on the device
+  // session and is fixed for the tokens minted from it.
+  // https://www.rfc-editor.org/rfc/rfc9396#section-3
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 5;
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.2

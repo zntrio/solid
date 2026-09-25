@@ -24,12 +24,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/go-jose/go-jose/v4"
-
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/sdk/dpop"
+	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/jwsreq"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token/jwt"
@@ -75,15 +74,15 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
-			var jwks jose.JSONWebKeySet
-			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
+		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
+			jwks, err := jwk.Parse(client.Jwks)
+			if err != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")
 			}
 
 			// No error
-			return &jwks, nil
-		}, []jose.SignatureAlgorithm{jose.ES384}))
+			return jwks, nil
+		}, []string{jwk.MLDSA65}), issuer)
 
 		// Decode request
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)

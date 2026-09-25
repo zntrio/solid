@@ -17,14 +17,17 @@
 
 package types
 
+//go:fix inline
 func StringRef(v string) *string {
-	return &v
+	return new(v)
 }
 
+//go:fix inline
 func UInt64Ref(v uint64) *uint64 {
-	return &v
+	return new(v)
 }
 
+//go:fix inline
 func BoolRef(v bool) *bool {
-	return &v
+	return new(v)
 }

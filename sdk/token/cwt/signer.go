@@ -25,6 +25,7 @@ import (
 	"fmt"
 
 	cbor "github.com/fxamacker/cbor/v2"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	"go.mozilla.org/cose"
 
 	"zntr.io/solid/sdk/jwk"
@@ -65,21 +66,30 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	if key == nil {
 		return "", fmt.Errorf("key provider returned a nil key")
 	}
-	if key.KeyID == "" {
+	kid, ok := key.KeyID()
+	if !ok || kid == "" {
 		return "", fmt.Errorf("key provider returned a unidentifiable key")
 	}
-	if key.IsPublic() {
+
+	isPrivate, err := jwxjwk.IsPrivateKey(key)
+	if err != nil || !isPrivate {
 		return "", fmt.Errorf("key provider returned a public key which is unusable for signing purpose")
 	}
 
+	// Materialize the raw key for COSE
+	var keyRaw any
+	if err = jwxjwk.Export(key, &keyRaw); err != nil {
+		return "", fmt.Errorf("unable to materialize signing key: %w", err)
+	}
+
 	// Prepare signer
-	signer, err := cose.NewSignerFromKey(ds.alg, key.Key)
+	signer, err := cose.NewSignerFromKey(ds.alg, keyRaw)
 	if err != nil {
 		return "", fmt.Errorf("unable to initialize COSE signer: %w", err)
 	}
 
 	sig := cose.NewSignature()
-	sig.Headers.Unprotected["kid"] = key.KeyID
+	sig.Headers.Unprotected["kid"] = kid
 	sig.Headers.Protected["typ"] = fmt.Sprintf("%s+cwt", ds.tokenType)
 	sig.Headers.Protected["alg"] = ds.alg.Name
 
@@ -95,7 +105,7 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	msg.AddSignature(sig)
 
 	// Sign assertion
-	if err := msg.Sign(rand.Reader, []byte("solid"), []cose.Signer{*signer}); err != nil {
+	if err = msg.Sign(rand.Reader, []byte("solid"), []cose.Signer{*signer}); err != nil {
 		return "", fmt.Errorf("unable to sign claims: %w", err)
 	}
 

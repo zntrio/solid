@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	pasetov4 "zntr.io/paseto/v4"
 
 	"zntr.io/solid/sdk/jwk"
@@ -61,45 +62,49 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	if err != nil {
 		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
 	}
-
 	// Check
 	if key == nil {
 		return "", fmt.Errorf("key provider returned a nil key")
 	}
-	if key.KeyID == "" {
+	kid, ok := key.KeyID()
+	if !ok || kid == "" {
 		return "", fmt.Errorf("key provider returned a unidentifiable key")
 	}
-	keyRaw, ok := key.Key.(ed25519.PrivateKey)
+	var keyRaw any
+	if err = jwxjwk.Export(key, &keyRaw); err != nil {
+		return "", fmt.Errorf("unable to materialize signing key: %w", err)
+	}
+	edKey, ok := keyRaw.(ed25519.PrivateKey)
 	if !ok {
 		return "", fmt.Errorf("key provider returned an invalid key type")
 	}
 
 	// Prepare footer
 	footer := map[string]string{
-		"kid": key.KeyID,
+		"kid": kid,
 		"typ": ds.tokenType,
 	}
 
 	// Encode claims
 	m := bytes.Buffer{}
-	if err := json.NewEncoder(&m).Encode(claims); err != nil {
+	if err = json.NewEncoder(&m).Encode(claims); err != nil {
 		return "", fmt.Errorf("unable to encode message payload: %w", err)
 	}
 
 	// Encode footer
 	f := bytes.Buffer{}
-	if err := json.NewEncoder(&f).Encode(footer); err != nil {
+	if err = json.NewEncoder(&f).Encode(footer); err != nil {
 		return "", fmt.Errorf("unable to encode token footer: %w", err)
 	}
 
 	// Sign with paseto v4
-	raw, err := pasetov4.Sign(m.Bytes(), keyRaw, f.Bytes(), nil)
+	raw, err := pasetov4.Sign(m.Bytes(), edKey, f.Bytes(), nil)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign paseto token: %w", err)
 	}
 
 	// No error
-	return string(raw), nil
+	return raw, nil
 }
 
 func (ds *defaultSigner) ContentType() string {

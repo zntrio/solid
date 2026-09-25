@@ -28,8 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dchest/uniuri"
-
+	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/types"
 )
@@ -84,7 +83,7 @@ func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 
 	// Create proof claims
 	claims := &proofClaims{
-		JTI:        uniuri.NewLen(JTICodeLength),
+		JTI:        random.String(JTICodeLength),
 		HTTPMethod: htm,
 		HTTPURL:    fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path),
 		IssuedAt:   uint64(time.Now().UTC().Unix()),
@@ -95,7 +94,8 @@ func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 	if dopts.tokenValue != nil {
 		// Compute the access token hash.
 		ath := sha256.Sum256([]byte(*dopts.tokenValue))
-		claims.AccessTokenHash = types.StringRef(base64.RawURLEncoding.EncodeToString(ath[:]))
+		athEncoded := base64.RawURLEncoding.EncodeToString(ath[:])
+		claims.AccessTokenHash = &athEncoded
 	}
 
 	// Sign claims

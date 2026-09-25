@@ -23,7 +23,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dchest/uniuri"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
@@ -35,19 +35,20 @@ var requestURIMatcher = regexp.MustCompile(`urn:solid:[A-Za-z0-9]{32}`)
 
 // DefaultRequestURI returns the default request uri generator.
 func DefaultRequestURI() RequestURI {
-	return &requestUriGenerator{}
+	return &requestURIGenerator{}
 }
 
 // -----------------------------------------------------------------------------
 
-type requestUriGenerator struct{}
+type requestURIGenerator struct{}
 
-func (c *requestUriGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLen(DefaultRequestURILen)
-	return code, nil
+func (c *requestURIGenerator) Generate(_ context.Context, _ string) (string, error) {
+	// RFC 9126 section 2.1: the request_uri value is a URI; the solid
+	// profile uses the urn:solid: URN namespace accepted by Validate.
+	return "urn:solid:" + random.String(DefaultRequestURILen), nil
 }
 
-func (c *requestUriGenerator) Validate(_ context.Context, issuer, in string) error {
+func (c *requestURIGenerator) Validate(_ context.Context, issuer, in string) error {
 	// Normalize
 	in = strings.TrimSpace(in)
 

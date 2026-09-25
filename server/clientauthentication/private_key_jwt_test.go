@@ -19,21 +19,20 @@ package clientauthentication
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
-	"github.com/golang/mock/gomock"
+	gojwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
-	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
+	"zntr.io/solid/server/storage/inmemory"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
@@ -48,6 +47,9 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 		prepare func(*storagemock.MockClientReader)
 		want    *clientv1.AuthenticateResponse
 		wantErr bool
+		// wantFirst false means the FIRST call must fail (aud/iat/nbf);
+		// true means the first call succeeds and the second (replay) fails.
+		replay bool
 	}{
 		{
 			name:    "nil request",
@@ -72,7 +74,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(""),
+					ClientAssertionType: new(""),
 				},
 			},
 			wantErr: true,
@@ -85,7 +87,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef("foo"),
+					ClientAssertionType: new("foo"),
 				},
 			},
 			wantErr: true,
@@ -98,7 +100,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
 				},
 			},
 			wantErr: true,
@@ -111,8 +113,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion:     types.StringRef(""),
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     new(""),
 				},
 			},
 			wantErr: true,
@@ -125,8 +127,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion:     types.StringRef("..YB4gdhWUGRjWEsEbKDs7-"),
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     new("..YB4gdhWUGRjWEsEbKDs7-"),
 				},
 			},
 			wantErr: true,
@@ -139,8 +141,8 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion:     types.StringRef("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NCwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo0MDAwL2FwaS9hdXRoL3Rva2VuL2RpcmVjdC8yNDUyMzEzODIwNSIsImV4cCI6MTUzNjEzMjcwOCwiaWF0IjoxNTM2MTMyNzA4fQ.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     new("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NCwiYXVkIjoiaHR0cDovL2xvY2FsaG9zdDo0MDAwL2FwaS9hdXRoL3Rva2VuL2RpcmVjdC8yNDUyMzEzODIwNSIsImV4cCI6MTUzNjEzMjcwOCwiaWF0IjoxNTM2MTMyNzA4fQ.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
 				},
 			},
 			wantErr: true,
@@ -153,13 +155,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -174,13 +176,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -195,13 +197,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -216,13 +218,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: nil,
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -237,12 +239,12 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
+						Audience: audClaim{"http://localhost:8080"},
 						Expires:  0,
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
@@ -258,12 +260,75 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "45678941561",
-						Audience: "http://localhost:8080/token",
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
+				},
+			},
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "invalid JWT: aud mismatch",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"https://evil.example"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
+				},
+			},
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "invalid JWT: iat in the future",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Add(1 * time.Hour).Unix()),
+					})),
+				},
+			},
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "invalid JWT: exp too far in the future",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"http://localhost:8080"},
 						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
@@ -275,12 +340,62 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			},
 		},
 		{
+			name: "invalid JWT: nbf in the future",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:       "123456789",
+						Subject:   "38174623762",
+						Issuer:    "38174623762",
+						Audience:  audClaim{"http://localhost:8080"},
+						Expires:   uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt:  uint64(time.Now().Unix()),
+						NotBefore: uint64(time.Now().Add(1 * time.Hour).Unix()),
+					})),
+				},
+			},
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "invalid JWT: assertion replay",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader) {
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
+					Jwks:                    clientJWKSWithSIG,
+					TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
+				}, nil).Times(2)
+			},
+			replay:  true,
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
 			name: "invalid JWT: expired assertion",
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion:     types.StringRef("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NDYyMzc2MiIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDAwMC9hcGkvYXV0aC90b2tlbi9kaXJlY3QvMjQ1MjMxMzgyMDUiLCJleHAiOjE1MzYxMzI3MDgsImlhdCI6MTUzNjEzMjcwOH0.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion:     new("eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJteUpXVElkMDAxIiwic3ViIjoiMzgxNzQ2MjM3NjIiLCJpc3MiOiIzODE3NDYyMzc2MiIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6NDAwMC9hcGkvYXV0aC90b2tlbi9kaXJlY3QvMjQ1MjMxMzgyMDUiLCJleHAiOjE1MzYxMzI3MDgsImlhdCI6MTUzNjEzMjcwOH0.7Q53dOARBi-GE45VmA0QjO96BEQanSRYuvi6pS4RVr0"),
 				},
 			},
 			wantErr: true,
@@ -293,13 +408,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -317,13 +432,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -341,13 +456,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -367,13 +482,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -393,13 +508,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -419,13 +534,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -445,13 +560,13 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
@@ -472,27 +587,104 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				req: &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(oidc.AssertionTypeJWTBearer),
-					ClientAssertion: types.StringRef(generateAssertion(t, &privateJWTClaims{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
 						JTI:      "123456789",
 						Subject:  "38174623762",
 						Issuer:   "38174623762",
-						Audience: "http://localhost:8080/token",
-						Expires:  uint64(time.Now().Add(2 * time.Hour).Unix()),
+						Audience: audClaim{"http://localhost:8080"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
 						IssuedAt: uint64(time.Now().Unix()),
 					})),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
-					Jwks: clientJWKSWithSIG,
+					Jwks:                    clientJWKSWithSIG,
+					TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
 				}, nil)
 			},
 			wantErr: false,
 			want: &clientv1.AuthenticateResponse{
 				Client: &clientv1.Client{
-					Jwks: clientJWKSWithSIG,
+					Jwks:                    clientJWKSWithSIG,
+					TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
 				},
+			},
+		},
+		{
+			name: "valid: aud equals receiving endpoint",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					Endpoint:            new("http://localhost:8080/token"),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"http://localhost:8080/token"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader) {
+				clients.EXPECT().Get(gomock.Any(), "38174623762").Return(&clientv1.Client{
+					Jwks:                    clientJWKSWithSIG,
+					TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
+				}, nil)
+			},
+			wantErr: false,
+			want: &clientv1.AuthenticateResponse{
+				Client: &clientv1.Client{
+					Jwks:                    clientJWKSWithSIG,
+					TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
+				},
+			},
+		},
+		{
+			name: "invalid JWT: aud is a different endpoint than the receiving one (cross-endpoint replay)",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					Endpoint:            new("http://localhost:8080/token"),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"http://localhost:8080/par"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
+				},
+			},
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "invalid JWT: aud array with injected audience (draft security-topics-update-03 section 2.1.2)",
+			args: args{
+				ctx: context.Background(),
+				req: &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(oidc.AssertionTypeJWTBearer),
+					Endpoint:            new("http://localhost:8080/token"),
+					ClientAssertion: new(generateAssertion(t, &privateJWTClaims{
+						JTI:      "123456789",
+						Subject:  "38174623762",
+						Issuer:   "38174623762",
+						Audience: audClaim{"http://localhost:8080", "https://attacker.example"},
+						Expires:  uint64(time.Now().Add(5 * time.Minute).Unix()),
+						IssuedAt: uint64(time.Now().Unix()),
+					})),
+				},
+			},
+			wantErr: true,
+			want: &clientv1.AuthenticateResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 	}
@@ -503,6 +695,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
+			proofs := inmemory.DPoPProofs()
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -510,9 +703,16 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := PrivateKeyJWT(clients, []jose.SignatureAlgorithm{jose.ES256})
+			underTest := PrivateKeyJWT(clients, proofs, "http://localhost:8080", []string{"ES256"})
 
 			got, err := underTest.Authenticate(tt.args.ctx, tt.args.req)
+			if tt.replay {
+				// First call must succeed, second must be rejected.
+				if err != nil {
+					t.Fatalf("first Authenticate() call unexpectedly failed: %v", err)
+				}
+				got, err = underTest.Authenticate(tt.args.ctx, tt.args.req)
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("privateKeyJWTAuthentication.Authenticate() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -533,22 +733,34 @@ var (
 )
 
 func generateAssertion(t *testing.T, claims *privateJWTClaims) string {
-	var privateKey jose.JSONWebKey
 	// Decode JWK
-	err := json.Unmarshal(clientPrivateKey, &privateKey)
+	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
 	if err != nil {
 		t.Fatalf("unable to decode client private key: %v", err)
 		return ""
 	}
 
-	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES256, Key: privateKey}, (&jose.SignerOptions{}).WithType("JWT"))
-	if err != nil {
-		t.Fatalf("unable to prepare signer: %v", err)
+	// Materialize the signing key
+	var rawKey any
+	if err := jwxjwk.Export(privateKey, &rawKey); err != nil {
+		t.Fatalf("unable to materialize client private key: %v", err)
 		return ""
 	}
 
-	raw, err := jwt.Signed(sig).Claims(claims).Serialize()
+	// Sign the assertion
+	claimsMap := gojwt.MapClaims{
+		"jti": claims.JTI,
+		"sub": claims.Subject,
+		"iss": claims.Issuer,
+		"aud": claims.Audience,
+		"exp": claims.Expires,
+		"iat": claims.IssuedAt,
+	}
+	if claims.NotBefore > 0 {
+		claimsMap["nbf"] = claims.NotBefore
+	}
+	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, claimsMap)
+	raw, err := tok.SignedString(rawKey)
 	if err != nil {
 		t.Fatalf("unable to generate final assertion")
 	}

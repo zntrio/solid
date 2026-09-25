@@ -51,10 +51,17 @@ func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *flowv1.A
 	// Prepare response claims
 	var claims *responseClaims
 	if resp.Error != nil {
+		// RFC 9207 section 2 and the JARM claim set: error responses
+		// carry the same issuer / audience / expiry binding as success
+		// responses; without them the signed error object cannot be
+		// verified by the client.
 		claims = &responseClaims{
 			State:            resp.State,
+			Issuer:           resp.Issuer,
+			Audience:         resp.ClientId,
 			Error:            resp.Error.Err,
 			ErrorDescription: resp.Error.ErrorDescription,
+			ExpiresAt:        uint64(time.Now().Add(2 * time.Minute).Unix()),
 		}
 	} else {
 		// Validate mandatory fields

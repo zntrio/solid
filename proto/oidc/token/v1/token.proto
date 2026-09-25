@@ -19,7 +19,9 @@ syntax = "proto3";
 
 package oidc.token.v1;
 
-option go_package = "oidc/token/v1;tokenv1";
+option go_package = "zntr.io/solid/api/oidc/token/v1;tokenv1";
+
+import "oidc/token/v1/authorization_detail.proto";
 
 enum TokenType {
   TOKEN_TYPE_UNSPECIFIED = 0;
@@ -65,6 +67,16 @@ message TokenMeta {
   //date/time of the authentication event.
   // https://datatracker.ietf.org/doc/html/rfc9470#name-oauth-20-token-introspectio
   optional fixed64 auth_time = 10;
+  // REQUIRED. Identifier of the authorization grant this token derives from.
+  // Used to revoke all tokens of a grant family (RFC 9700 section 4.14.2).
+  string grant_id = 11;
+
+  // OPTIONAL. The authorization details granted with this token
+  // (RFC 9396). Carried as a top-level claim in JWT access tokens
+  // (section 9.1) and as a top-level member in introspection responses
+  // (section 9.2).
+  // https://www.rfc-editor.org/rfc/rfc9396#section-9
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 12;
 }
 
 message Actor {
@@ -103,6 +115,9 @@ message Token {
 
 message TokenConfirmation {
   string jkt = 1;
+  // RFC 8705 section 3.1: base64url SHA-256 thumbprint of the DER
+  // encoding of the X.509 client certificate (no trailing '=').
+  string x5t_s256 = 2 [json_name = "x5t#S256"];
 }
 
 message OAuthTokenResponse {

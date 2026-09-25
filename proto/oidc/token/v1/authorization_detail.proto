@@ -1,0 +1,71 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.token.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "zntr.io/solid/api/oidc/token/v1;tokenv1";
+
+// One entry of the authorization_details JSON array.
+// https://www.rfc-editor.org/rfc/rfc9396#section-2
+message AuthorizationDetail {
+  // REQUIRED. Identifier of the authorization details type. The value is
+  // unique for the described API in the context of the AS.
+  // https://www.rfc-editor.org/rfc/rfc9396#section-2.1
+  string type = 1 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // OPTIONAL. Array of strings representing the location of the resource
+  // or RS, as absolute URIs, at which the requested action is performed.
+  repeated string locations = 2 [(buf.validate.field).repeated = {
+    items: {string: {min_len: 1, max_len: 2048}}
+    max_items: 32
+  }];
+
+  // OPTIONAL. Array of strings representing the kinds of actions to be
+  // taken at the resource.
+  repeated string actions = 3 [(buf.validate.field).repeated = {
+    items: {string: {min_len: 1, max_len: 512}}
+    max_items: 64
+  }];
+
+  // OPTIONAL. Array of strings representing the kinds of data being
+  // requested to be read or written.
+  repeated string datatypes = 4 [(buf.validate.field).repeated = {
+    items: {string: {min_len: 1, max_len: 512}}
+    max_items: 64
+  }];
+
+  // OPTIONAL. String identifier indicating a specific resource available
+  // at the API.
+  optional string identifier = 5 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // OPTIONAL. Array of strings representing the types or levels of
+  // privileges being requested.
+  repeated string privileges = 6 [(buf.validate.field).repeated = {
+    items: {string: {min_len: 1, max_len: 512}}
+    max_items: 64
+  }];
+
+  // OPTIONAL. Type-specific extension fields (e.g. instructedAmount). The
+  // AS validator for the type decides their validity.
+  // https://www.rfc-editor.org/rfc/rfc9396#section-2.2
+  map<string, google.protobuf.Value> extensions = 7;
+}

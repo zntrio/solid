@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -101,7 +101,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -118,7 +118,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -147,6 +147,99 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 		},
 		{
+			name: "unspecified client type rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_UNSPECIFIED,
+					GrantTypes: []string{oidc.GrantTypeClientCredentials},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeClientCredentials,
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidClient().Build(),
+			},
+		},
+		{
+			name: "authorization_details rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+					GrantTypes: []string{oidc.GrantTypeClientCredentials},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType:            oidc.GrantTypeClientCredentials,
+					AuthorizationDetails: []*tokenv1.AuthorizationDetail{{Type: "payment"}},
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
+					},
+				},
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidAuthorizationDetails().Build(),
+			},
+		},
+		{
+			name: "scope and audience copied to token metadata",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+					GrantTypes: []string{oidc.GrantTypeClientCredentials},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Scope:     new("openid"),
+					Audience:  new("urn:x"),
+					GrantType: oidc.GrantTypeClientCredentials,
+					Grant: &flowv1.TokenRequest_ClientCredentials{
+						ClientCredentials: &flowv1.GrantClientCredentials{},
+					},
+				},
+			},
+			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+			},
+			wantErr: false,
+			want: &flowv1.TokenResponse{
+				Error: nil,
+				AccessToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Scope:     "openid",
+						Audience:  "urn:x",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 3601,
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+		},
+		{
 			name: "client not support grant_type",
 			args: args{
 				ctx: context.Background(),
@@ -168,7 +261,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.UnsupportedGrantType().Build(),
+				Error: rfcerrors.UnauthorizedClient().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------

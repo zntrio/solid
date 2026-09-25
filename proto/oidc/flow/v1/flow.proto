@@ -19,9 +19,12 @@ syntax = "proto3";
 
 package oidc.flow.v1;
 
-option go_package = "oidc/flow/v1;flowv1";
+option go_package = "zntr.io/solid/api/oidc/flow/v1;flowv1";
 
-// -----------------------------------------------------------------------------
+import "buf/validate/validate.proto";
+import "oidc/token/v1/authorization_detail.proto";
+import "google/protobuf/struct.proto";
+
 
 // An Authentication Request is an OAuth 2.0 Authorization Request that requests
 // that the End-User be authenticated by the Authorization Server.
@@ -69,7 +72,7 @@ message AuthorizationRequest {
   // and to mitigate replay attacks. The value is passed through unmodified from
   // the Authentication Request to the ID Token. Sufficient entropy MUST be
   // present in the nonce values used to prevent attackers from guessing values.
-  // https://tools.ietf.org/html/draft-ietf-oauth-security-topics-15#section-4.5.3
+  // https://www.rfc-editor.org/rfc/rfc9700#section-4.5.3
   string nonce = 7;
 
   // OPTIONAL. ASCII string value that specifies how the Authorization Server
@@ -149,8 +152,15 @@ message AuthorizationRequest {
   string audience = 18;
 
   // OPTIONAL.
-  // https://tools.ietf.org/html/draft-fett-oauth-dpop-04#section-5
+  // https://www.rfc-editor.org/rfc/rfc9449#section-5
   optional string dpop_proof = 19;
+
+  // OPTIONAL. Authorization Code Binding to a DPoP Key: the JWK thumbprint
+  // (RFC 7638) of the DPoP key the client will use at the token endpoint.
+  // When present, the authorization code is issued bound to this key and
+  // redemption MUST present a DPoP proof made with the same key.
+  // https://www.rfc-editor.org/rfc/rfc9449#section-10
+  optional string dpop_jkt = 24;
 
   // OPTIONAL
   // https://tools.ietf.org/html/rfc8707
@@ -186,4 +196,13 @@ message AuthorizationRequest {
   // the user by the Client before requesting authentication at the OP, for
   // example, but may also be obtained by other means.
   optional string login_hint = 23;
+
+  // OPTIONAL. JSON array of objects. Each object holds the requested
+  // permissions or other details for a specific resource or set of
+  // resources. The array is the unit of retrieval: authorization_details
+  // are only carried as request-object claims (JAR) in this profile, so
+  // the parameter is accepted when the request object carries it.
+  // https://www.rfc-editor.org/rfc/rfc9396#section-3
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 25;
 }
+

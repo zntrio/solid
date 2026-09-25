@@ -21,9 +21,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dchest/uniuri"
-
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
@@ -41,6 +40,6 @@ func OpaqueToken() Generator {
 type tokenGenerator struct{}
 
 func (c *tokenGenerator) Generate(_ context.Context, _ *tokenv1.Token) (string, error) {
-	code := fmt.Sprintf("%s.%s", uniuri.NewLen(3), uniuri.NewLen(DefaultOpaqueTokenLen))
+	code := fmt.Sprintf("%s.%s", random.String(3), random.String(DefaultOpaqueTokenLen))
 	return code, nil
 }

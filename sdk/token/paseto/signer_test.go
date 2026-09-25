@@ -19,11 +19,10 @@ package paseto
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"testing"
 
-	"github.com/go-jose/go-jose/v4"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
 	"zntr.io/solid/sdk/jwk"
 )
@@ -37,6 +36,17 @@ var jwkPrivateKey = []byte(`{
     "x": "doTK-UjiJwt83e55msjycnSgcprjN50YtI-MDVCctvY",
     "alg": "EdDSA"
 }`)
+
+// parsePrivateKeyFixture decodes the Ed25519 private key JWK fixture.
+func parsePrivateKeyFixture(t *testing.T) jwk.Key {
+	t.Helper()
+
+	k, err := jwxjwk.ParseKey(jwkPrivateKey)
+	if err != nil {
+		t.Fatalf("unable to parse key fixture: %v", err)
+	}
+	return k
+}
 
 func Test_defaultSigner_Sign(t *testing.T) {
 	type fields struct {
@@ -79,7 +89,7 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider error",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
 					return nil, errors.New("test")
 				},
 			},
@@ -93,7 +103,7 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider returns nil key",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
 					return nil, nil
 				},
 			},
@@ -107,8 +117,15 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider returns unnamed key",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					return &jose.JSONWebKey{}, nil
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					k, err := jwxjwk.ParseKey(jwkPrivateKey)
+					if err != nil {
+						return nil, err
+					}
+					if err := k.Remove(jwxjwk.KeyIDKey); err != nil {
+						return nil, err
+					}
+					return k, nil
 				},
 			},
 			args: args{
@@ -121,11 +138,22 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider returns invalid key type",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					return &jose.JSONWebKey{
-						KeyID: "123",
-						Key:   []byte{},
-					}, nil
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					// An EC key, not Ed25519: paseto v4 requires EdDSA.
+					ecKey, err := jwxjwk.ParseKey([]byte(`{
+						"kty": "EC",
+						"d": "Uwq56PhVB6STB8MvLQWcOsKQlZbBvWFQba8D6Uhb2qDunpzqvoNyFsnAHKS_AkQB",
+						"use": "sig",
+						"crv": "P-384",
+						"kid": "123",
+						"x": "m2NDaWfRRGlCkUa4FK949uLtMqitX1lYgi8UCIMtsuR60ux3d00XBlsC6j_YDOTe",
+						"y": "6vxuUq3V1aoWi4FQ_h9ZNwUsmcGP8Uuqq_YN5dhP0U8lchdmZJbLF9mPiimo_6p4",
+						"alg": "ES384"
+					}`))
+					if err != nil {
+						return nil, err
+					}
+					return ecKey, nil
 				},
 			},
 			args: args{
@@ -138,13 +166,8 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "not serializable claims",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					var privateKey jose.JSONWebKey
-
-					// Decode JWK
-					err := json.Unmarshal(jwkPrivateKey, &privateKey)
-
-					return &privateKey, err
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					return parsePrivateKeyFixture(t), nil
 				},
 			},
 			args: args{
@@ -157,13 +180,8 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "valid",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					var privateKey jose.JSONWebKey
-
-					// Decode JWK
-					err := json.Unmarshal(jwkPrivateKey, &privateKey)
-
-					return &privateKey, err
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					return parsePrivateKeyFixture(t), nil
 				},
 			},
 			args: args{

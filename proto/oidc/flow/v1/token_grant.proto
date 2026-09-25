@@ -19,33 +19,62 @@ syntax = "proto3";
 
 package oidc.flow.v1;
 
-option go_package = "oidc/flow/v1;flowv1";
+import "buf/validate/validate.proto";
+
+option go_package = "zntr.io/solid/api/oidc/flow/v1;flowv1";
 
 // -----------------------------------------------------------------------------
 
 message GrantAuthorizationCode {
-  string code = 1;
-  string redirect_uri = 2;
-  string code_verifier = 3;
+  // REQUIRED. The authorization code issued for this request.
+  string code = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 1024
+  }];
+
+  // REQUIRED. Redirection URI as registered by the client.
+  string redirect_uri = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
+
+  // REQUIRED. PKCE code verifier.
+  string code_verifier = 3 [(buf.validate.field).string = {
+    min_len: 43
+    max_len: 128
+    pattern: "^[A-Za-z0-9\\-._~]{43,128}$"
+  }];
+
   // OPTIONAL. Authorization Code Binding to DPoP Key.
-  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-dpop-09#section-10
+  // https://www.rfc-editor.org/rfc/rfc9449#section-10
   optional string dpop_jkt = 4;
 }
 
 message GrantRefreshToken {
-  string refresh_token = 1;
+  // REQUIRED. The refresh token to exchange.
+  string refresh_token = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.4
 message GrantDeviceCode {
   // REQUIRED.  The device verification code, "device_code" from the
   // device authorization response, defined in Section 3.2.
-  string device_code = 1;
+  string device_code = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
 
   // REQUIRED if the client is not authenticating with the
   // authorization server as described in Section 3.2.1. of [RFC6749].
   // The client identifier as described in Section 2.2 of [RFC6749].
-  string client_id = 2;
+  string client_id = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
 }
 
 message GrantClientCredentials {}
@@ -64,12 +93,18 @@ message GrantTokenExchange {
   // party on behalf of whom the request is being made.  Typically, the
   // subject of this token will be the subject of the security token
   // issued in response to the request.
-  string subject_token = 2;
+  string subject_token = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 4096
+  }];
 
   // REQUIRED.  An identifier, as described in Section 3, that
   // indicates the type of the security token in the "subject_token"
   // parameter.
-  string subject_token_type = 3;
+  string subject_token_type = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
 
   // OPTIONAL.  A security token that represents the identity of the
   // acting party.  Typically, this will be the party that is

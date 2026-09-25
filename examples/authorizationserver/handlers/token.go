@@ -22,8 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
-
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -31,6 +29,7 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/services"
 )
@@ -38,14 +37,15 @@ import (
 // Token handles token HTTP requests.
 func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) http.Handler {
 	type response struct {
-		AccessToken  string `json:"access_token"`
-		ExpiresIn    uint64 `json:"expires_in"`
-		TokenType    string `json:"token_type"`
-		RefreshToken string `json:"refresh_token,omitempty"`
-		Scope        string `json:"scope"`
+		AccessToken          string                         `json:"access_token"`
+		ExpiresIn            uint64                         `json:"expires_in"`
+		TokenType            string                         `json:"token_type"`
+		RefreshToken         string                         `json:"refresh_token,omitempty"`
+		Scope                string                         `json:"scope"`
+		AuthorizationDetails []*tokenv1.AuthorizationDetail `json:"authorization_details,omitempty"`
 	}
 
-	messageBuilder := func(r *http.Request, client *clientv1.Client) *flowv1.TokenRequest {
+	messageBuilder := func(r *http.Request, client *clientv1.Client) (*flowv1.TokenRequest, error) {
 		grantType := r.FormValue("grant_type")
 
 		msg := &flowv1.TokenRequest{
@@ -81,8 +81,19 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			}
 		}
 
+		// RFC 9396 section 6: the authorization_details request parameter
+		// is a JSON array of objects. The grant services compare each entry
+		// against the consented set; malformed JSON is rejected here.
+		if raw := r.FormValue("authorization_details"); raw != "" {
+			details, errParse := parseAuthorizationDetails(raw)
+			if errParse != nil {
+				return nil, errParse
+			}
+			msg.AuthorizationDetails = details
+		}
+
 		// Return request
-		return msg
+		return msg, nil
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -105,7 +116,12 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 
 		// Prepare msg
-		msg := messageBuilder(r, client)
+		msg, errBuild := messageBuilder(r, client)
+		if errBuild != nil {
+			log.Println("unable to parse token request:", errBuild)
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidAuthorizationDetails().Build())
+			return
+		}
 
 		// Ensure DPoP enabled to use use DPoP.
 		if dpopProof == "" && client.DpopBoundAccessTokens {
@@ -125,6 +141,22 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			msg.TokenConfirmation = &tokenv1.TokenConfirmation{
 				Jkt: jkt,
 			}
+
+			// RFC 9449 section 10: carry the verified thumbprint on the
+			// authorization code grant so the service can enforce the code's
+			// key binding.
+			if ac := msg.GetAuthorizationCode(); ac != nil {
+				ac.DpopJkt = &jkt
+			}
+		}
+
+		// RFC 8705 section 3: when the token request is made over mutual TLS
+		// with a client certificate, bind the issued token to that certificate.
+		if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+			if msg.TokenConfirmation == nil {
+				msg.TokenConfirmation = &tokenv1.TokenConfirmation{}
+			}
+			msg.TokenConfirmation.X5TS256 = token.X509ThumbprintS256(r.TLS.PeerCertificates[0])
 		}
 
 		// Send request to reactor
@@ -141,8 +173,6 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			tokenType = "DPoP"
 		}
 
-		spew.Dump(res)
-
 		// Prepare response
 		jsonResponse := &response{
 			AccessToken: res.AccessToken.Value,
@@ -152,6 +182,12 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 		if res.RefreshToken != nil {
 			jsonResponse.RefreshToken = res.RefreshToken.Value
+		}
+
+		// RFC 9396 section 7: the granted authorization_details MUST be
+		// returned in the token response.
+		if len(res.AuthorizationDetails) > 0 {
+			jsonResponse.AuthorizationDetails = res.AuthorizationDetails
 		}
 
 		// Send json reponse

@@ -18,26 +18,34 @@
 package middleware
 
 import (
+	"encoding/pem"
 	"log"
 	"net/http"
 
-	"github.com/go-jose/go-jose/v4"
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
-	"zntr.io/solid/sdk/types"
+	"zntr.io/solid/sdk/spiffe"
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/storage"
+	"zntr.io/solid/server/storage/inmemory"
 )
 
-// ClientAuthentication is a middleware to handle client authentication.
-func ClientAuthentication(clients storage.ClientReader, supportedAlgorithms []jose.SignatureAlgorithm) Adapter {
-	// Prepare client authentication
-	clientAuth := clientauthentication.PrivateKeyJWT(clients, supportedAlgorithms)
-	clientAttestationAuth := clientauthentication.ClientAttestation(clients, supportedAlgorithms)
-
-	// Return middleware
+// ClientAuthentication is a middleware to handle client authentication. The
+// spiffeBundles source provides the trust-domain signing keys for the
+// SPIFFE client authentication methods (draft-ietf-oauth-spiffe-client-auth-02).
+func ClientAuthentication(clients storage.ClientReader, issuer string, supportedAlgorithms []string, spiffeBundles spiffe.BundleSource) Adapter {
+	// Prepare client authentication. The audience surface is the AS issuer
+	// identifier (draft-ietf-oauth-security-topics-update-03 section 2.1.2.1)
+	// plus the exact receiving endpoint, resolved per-request below (section
+	// 2.1.2.2).
+	clientAuth := clientauthentication.PrivateKeyJWT(clients, inmemory.DPoPProofs(), issuer, supportedAlgorithms)
+	clientAttestationAuth := clientauthentication.ClientAttestation(clients, inmemory.DPoPProofs(), issuer, supportedAlgorithms)
+	spiffeJWTAuth := clientauthentication.SPIFFEJWT(clients, spiffeBundles, inmemory.DPoPProofs(), issuer, supportedAlgorithms)
+	spiffeWITAuth := clientauthentication.SPIFFEWIT(clients, spiffeBundles, inmemory.DPoPProofs(), issuer, supportedAlgorithms)
+	spiffeX509Auth := clientauthentication.SPIFFEX509(clients, spiffeBundles)
+	tlsClientAuth := clientauthentication.TLSClientAuth(clients)
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var (
@@ -70,23 +78,92 @@ func ClientAuthentication(clients storage.ClientReader, supportedAlgorithms []jo
 					authMethod    = r.PostFormValue("client_assertion_type")
 					assertion     = r.PostFormValue("client_assertion")
 					authenticator clientauthentication.AuthenticationProcessor
+					// draft-ietf-oauth-spiffe-client-auth-02 section 3.3:
+					// WIT-SVID carriage via the attestation headers.
+					attestation    = r.Header.Get("OAuth-Client-Attestation")
+					attestationPop = r.Header.Get("OAuth-Client-Attestation-PoP")
 				)
 
-				switch authMethod {
-				case oidc.AssertionTypeJWTBearer:
+				// SPIFFE methods with dedicated inputs (draft-ietf-oauth-
+				// spiffe-client-auth-02 sections 3.2, 3.3): dispatch on the
+				// client_assertion_type form parameter when present, then on
+				// the attestation headers, then on a presented TLS client
+				// certificate (mutual TLS X.509-SVID).
+				clientIDParam := r.PostFormValue("client_id")
+
+				// RFC 8705 section 2: hoist the PEM-encoded client certificate
+				// for any mutual-TLS request; both the SPIFFE X.509-SVID and the
+				// PKI tls_client_auth method receive it as tls_client_cert.
+				var tlsClientCertPEM string
+				if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
+					leaf := r.TLS.PeerCertificates[0]
+					pemCert := pem.EncodeToMemory(&pem.Block{
+						Type:  "CERTIFICATE",
+						Bytes: leaf.Raw,
+					})
+					tlsClientCertPEM = string(pemCert)
+				}
+
+				switch {
+				case authMethod == oidc.AssertionTypeJWTSPIFFE:
+					authenticator = spiffeJWTAuth
+				case authMethod == "" && attestation != "" && attestationPop != "":
+					authenticator = spiffeWITAuth
+				case authMethod == "" && tlsClientCertPEM != "":
+					// RFC 8705 section 2.1 takes precedence when the resolved
+					// client is registered for tls_client_auth; otherwise the
+					// certificate is an X.509-SVID candidate (SPIFFE draft
+					// section 3.2).
+					if clientIDParam != "" {
+						if registered, err := clients.Get(ctx, clientIDParam); err == nil &&
+							registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth {
+							authenticator = tlsClientAuth
+						}
+					}
+					if authenticator == nil {
+						authenticator = spiffeX509Auth
+					}
+				case authMethod == oidc.AssertionTypeJWTBearer:
 					authenticator = clientAuth
-				case oidc.AssertionTypeJWTClientAttestation:
+				case authMethod == oidc.AssertionTypeJWTClientAttestation:
 					authenticator = clientAttestationAuth
 				default:
 					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
 					return
 				}
 
-				// Process authentication
-				resAuth, err := authenticator.Authenticate(ctx, &clientv1.AuthenticateRequest{
-					ClientAssertionType: types.StringRef(authMethod),
-					ClientAssertion:     types.StringRef(assertion),
-				})
+				// Build the authentication request inputs.
+				req := &clientv1.AuthenticateRequest{
+					ClientAssertionType: new(authMethod),
+					ClientAssertion:     new(assertion),
+					ClientId:            new(clientIDParam),
+				}
+
+				if tlsClientCertPEM != "" {
+					req.TlsClientCert = new(tlsClientCertPEM)
+					// draft section 3.2: when the x509 leaf SAN carries the
+					// SPIFFE ID and no client_id parameter was given, the
+					// middleware resolves it for the client binding.
+					if authenticator == spiffeX509Auth && clientIDParam == "" {
+						leaf := r.TLS.PeerCertificates[0]
+						if spiffeID, ok := spiffe.TrustDomainFromX509SVID(leaf); ok {
+							req.ClientId = new(spiffeID)
+						}
+					}
+				}
+
+				// draft section 3.3: WIT-SVID + PoP from the attestation headers.
+				if authenticator == spiffeWITAuth {
+					req.ClientAttestation = new(attestation)
+					req.ClientAttestationPop = new(attestationPop)
+				}
+
+				// Process authentication, carrying the receiving endpoint URI
+				// for endpoint-exact audience validation
+				// (draft-ietf-oauth-security-topics-update-03 section 2.1.2.2).
+				receivingEndpoint := issuer + r.URL.Path
+				req.Endpoint = &receivingEndpoint
+				resAuth, err := authenticator.Authenticate(ctx, req)
 				if err != nil {
 					log.Println("unable to authenticate client:", err)
 					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())

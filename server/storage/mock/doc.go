@@ -18,4 +18,4 @@
 package mock
 
 //nolint:golint // import for mock
-import _ "github.com/golang/mock/mockgen/model"
+import _ "go.uber.org/mock/mockgen/model"

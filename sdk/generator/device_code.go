@@ -22,7 +22,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dchest/uniuri"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
@@ -40,7 +40,7 @@ func DefaultDeviceCode() DeviceCode {
 type deviceCodeGenerator struct{}
 
 func (c *deviceCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLen(DefaultDeviceCodeLen)
+	code := random.String(DefaultDeviceCodeLen)
 	return code, nil
 }
 

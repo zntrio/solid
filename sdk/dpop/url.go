@@ -22,15 +22,17 @@ import (
 	"net/http"
 )
 
-// CleanURL returns a cleanurl for DPoP proof.
+// CleanURL returns a clean URL for a DPoP proof (htu claim). The scheme is
+// derived from the actual transport: TLS or plain HTTP. The
+// X-Forwarded-Scheme header is deliberately ignored because it is
+// client-controlled and can be used to forge the htu value. Callers behind
+// a reverse proxy MUST terminate TLS at the proxy or forward the absolute
+// request URI so that the transport is reflected correctly.
 func CleanURL(r *http.Request) string {
 	// Prepare the url
 	scheme := "http"
 	if r.TLS != nil {
 		scheme = "https"
-	}
-	if forwardScheme := r.Header.Get("X-Forwarded-Scheme"); forwardScheme != "" {
-		scheme = forwardScheme
 	}
 
 	// Assemble response

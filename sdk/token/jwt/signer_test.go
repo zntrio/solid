@@ -19,11 +19,13 @@ package jwt
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
-	"github.com/go-jose/go-jose/v4"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
 	"zntr.io/solid/sdk/jwk"
 )
@@ -39,10 +41,21 @@ var jwkPrivateKey = []byte(`{
     "alg": "ES384"
 }`)
 
+// parsePrivateKeyFixture decodes the EC private key JWK fixture.
+func parsePrivateKeyFixture(t *testing.T) jwk.Key {
+	t.Helper()
+
+	k, err := jwxjwk.ParseKey(jwkPrivateKey)
+	if err != nil {
+		t.Fatalf("unable to parse key fixture: %v", err)
+	}
+	return k
+}
+
 func Test_defaultSigner_Sign(t *testing.T) {
 	type fields struct {
 		tokenType   string
-		alg         jose.SignatureAlgorithm
+		alg         string
 		keyProvider jwk.KeyProviderFunc
 	}
 	type args struct {
@@ -81,7 +94,7 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider error",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
 					return nil, errors.New("test")
 				},
 			},
@@ -95,7 +108,7 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider returns nil key",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
 					return nil, nil
 				},
 			},
@@ -109,8 +122,15 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "keyprovider returns unnamed key",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					return &jose.JSONWebKey{}, nil
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					k, err := jwxjwk.ParseKey(jwkPrivateKey)
+					if err != nil {
+						return nil, err
+					}
+					if err := k.Remove(jwxjwk.KeyIDKey); err != nil {
+						return nil, err
+					}
+					return k, nil
 				},
 			},
 			args: args{
@@ -121,16 +141,12 @@ func Test_defaultSigner_Sign(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "signer error",
+			name: "unsupported algorithm",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					var privateKey jose.JSONWebKey
-
-					// Decode JWK
-					err := json.Unmarshal(jwkPrivateKey, &privateKey)
-
-					return &privateKey, err
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					return parsePrivateKeyFixture(t), nil
 				},
+				alg: "no-such-algorithm",
 			},
 			args: args{
 				claims: map[string]string{
@@ -140,17 +156,12 @@ func Test_defaultSigner_Sign(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "signer algorithm mismatch",
+			name: "algorithm key mismatch",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					var privateKey jose.JSONWebKey
-
-					// Decode JWK
-					err := json.Unmarshal(jwkPrivateKey, &privateKey)
-
-					return &privateKey, err
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					return parsePrivateKeyFixture(t), nil
 				},
-				alg: jose.RS256,
+				alg: "ES256",
 			},
 			args: args{
 				claims: map[string]string{
@@ -162,15 +173,10 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "not serializable claims",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					var privateKey jose.JSONWebKey
-
-					// Decode JWK
-					err := json.Unmarshal(jwkPrivateKey, &privateKey)
-
-					return &privateKey, err
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					return parsePrivateKeyFixture(t), nil
 				},
-				alg: jose.ES384,
+				alg: "ES384",
 			},
 			args: args{
 				claims: map[string]any{
@@ -182,15 +188,10 @@ func Test_defaultSigner_Sign(t *testing.T) {
 		{
 			name: "valid",
 			fields: fields{
-				keyProvider: func(ctx context.Context) (*jose.JSONWebKey, error) {
-					var privateKey jose.JSONWebKey
-
-					// Decode JWK
-					err := json.Unmarshal(jwkPrivateKey, &privateKey)
-
-					return &privateKey, err
+				keyProvider: func(ctx context.Context) (jwk.Key, error) {
+					return parsePrivateKeyFixture(t), nil
 				},
-				alg: jose.ES384,
+				alg: "ES384",
 			},
 			args: args{
 				claims: map[string]any{
@@ -207,10 +208,43 @@ func Test_defaultSigner_Sign(t *testing.T) {
 				alg:         tt.fields.alg,
 				keyProvider: tt.fields.keyProvider,
 			}
-			_, err := ds.Serialize(tt.args.ctx, tt.args.claims)
+			raw, err := ds.Serialize(tt.args.ctx, tt.args.claims)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("defaultSigner.Sign() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if !tt.wantErr && tt.name == "valid" {
+				// Wire-format regression check: typ/kid headers.
+				parts := strings.Split(raw, ".")
+				if len(parts) != 3 {
+					t.Fatalf("expected compact JWT, got %d parts", len(parts))
+				}
+				hdrJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
+				if err != nil {
+					t.Fatal(err)
+				}
+				var hdr map[string]any
+				if err := json.Unmarshal(hdrJSON, &hdr); err != nil {
+					t.Fatal(err)
+				}
+				if hdr["typ"] != tt.fields.tokenType && tt.fields.tokenType != "" {
+					t.Errorf("typ header = %v", hdr["typ"])
+				}
+				if hdr["kid"] != "foo" {
+					t.Errorf("kid header = %v, want foo", hdr["kid"])
+				}
+				if hdr["alg"] != "ES384" {
+					t.Errorf("alg header = %v", hdr["alg"])
+				}
+
+				// Claims round-trip byte-exact through decodeClaims.
+				var out map[string]any
+				if err := decodeClaims(parts, &out); err != nil {
+					t.Fatal(err)
+				}
+				if out["test"] != "example" {
+					t.Errorf("claims round-trip lost value: %v", out)
+				}
 			}
 		})
 	}

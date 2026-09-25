@@ -1,27 +1,58 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package verifiable
 
 import (
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"errors"
 	"fmt"
+	"io"
+	mathrand "math/rand/v2"
 	"strings"
 	"testing"
 
-	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/require"
-
-	"zntr.io/solid/sdk/randomness"
 )
+
+// uuidv4From returns a deterministic UUIDv4 read from the given io.Reader.
+func uuidv4From(r io.Reader) ([16]byte, error) {
+	var u [16]byte
+	if _, err := io.ReadFull(r, u[:]); err != nil {
+		return u, fmt.Errorf("unable to read random bytes: %w", err)
+	}
+	u[6] = (u[6] & 0x0f) | 0x40 // version 4
+	u[8] = (u[8] & 0x3f) | 0x80 // variant 10
+	return u, nil
+}
+
+// validUUIDv4 checks RFC 9562 version and variant bits.
+func validUUIDv4(u []byte) bool {
+	return len(u) == 16 && u[6]>>4 == 4 && u[8]>>6 == 2
+}
 
 //nolint:paralleltest // Stateful tests
 func Test_UUID_Generate(t *testing.T) {
 	// Create a deterministic generator
 	g := &uuidGenerator{
-		randReader: randomness.NewReader(1),
+		randReader: mathrand.NewChaCha8([32]byte{1}),
 		secretKey:  []byte("my-very-secret-key-for-mac"),
 		source: func() ([16]byte, error) {
-			g := uuid.NewGenWithOptions(uuid.WithRandomReader(randomness.NewReader(2)))
-			u, err := g.NewV4()
+			u, err := uuidv4From(mathrand.NewChaCha8([32]byte{2}))
 			if err != nil {
 				return [16]byte{}, fmt.Errorf("unable to generate a random UUIDv4: %w", err)
 			}
@@ -30,28 +61,28 @@ func Test_UUID_Generate(t *testing.T) {
 	}
 
 	t.Run("first generation", func(t *testing.T) {
-		expectedOut := "1rEhxXi9mBwmkGpXxD4Njd_wHOKGDkYTeOIHSFg1vyoEtsoN7gxbzr5iA2qYWLZLSuJroVFELjREpWft1t"
+		expectedOut := "0CNFiOj2HZ6UJWLjN7gbh1_G7ZccsC1UmciKcFI0c9whIjqRLKso9eudH4f4ebO6pXYYxra0Ty1qSiu7lp"
 		out, err := g.Generate()
 		require.NoError(t, err)
 		require.Equal(t, expectedOut, out)
 	})
 
 	t.Run("second generation", func(t *testing.T) {
-		expectedOut := "1rEhxXi9mBwmkGpXxD4Njd_YQbaiGsOHwcZlL6rxbiIEAnEMFSY1Wv0WEuz47xjuf7I6N70gUZqjc4hpoU"
+		expectedOut := "0CNFiOj2HZ6UJWLjN7gbh1_12QMIsSQOU3HlFoFCjUlilUnODrsHJnrhhEIaSp502MZ1BkExH2DWjFcuSVP"
 		out, err := g.Generate()
 		require.NoError(t, err)
 		require.Equal(t, expectedOut, out)
 	})
 
 	t.Run("first generation with prefix", func(t *testing.T) {
-		expectedOut := "at_1rEhxXi9mBwmkGpXxD4Njd_MLdlJaU0J9toBacx8jjPrecLJcS2L4x1L0ejj6yoXMBuSW4pIWyA3UQ4bVt"
+		expectedOut := "at_0CNFiOj2HZ6UJWLjN7gbh1_k0bvONQPfHurpW5fkyXs04PoOZtI7qxpcnV4gw4Ziq4Uw7mzhS4tJEgxTpp"
 		out, err := g.Generate(WithTokenPrefix("at"))
 		require.NoError(t, err)
 		require.Equal(t, expectedOut, out)
 	})
 
 	t.Run("second generation with prefix", func(t *testing.T) {
-		expectedOut := "et_1rEhxXi9mBwmkGpXxD4Njd_F1TuPP5aLrr1OShiZat5zeie1agvYviNETF61NFC3kolYRaRvKYmd9DgpRj"
+		expectedOut := "et_0CNFiOj2HZ6UJWLjN7gbh1_1mvAnYcptJ8odhzxFNJGMkrTH1fnFhoBsWFzsp4KU3fhkKfNEfitY1X8Ao9i"
 		out, err := g.Generate(WithTokenPrefix("et"))
 		require.NoError(t, err)
 		require.Equal(t, expectedOut, out)
@@ -77,7 +108,7 @@ func Test_UUIDGenerate_RandError(t *testing.T) {
 		randReader: strings.NewReader(""),
 		secretKey:  []byte("my-very-secret-key-for-mac"),
 		source: func() ([16]byte, error) {
-			u, err := uuid.NewGenWithOptions(uuid.WithRandomReader(randomness.NewReader(2))).NewV4()
+			u, err := uuidv4From(mathrand.NewChaCha8([32]byte{2}))
 			if err != nil {
 				return [16]byte{}, fmt.Errorf("unable to generate a random UUIDv4: %w", err)
 			}
@@ -95,7 +126,7 @@ func Test_UUIDGenerate_SourceError(t *testing.T) {
 	t.Parallel()
 
 	g := &uuidGenerator{
-		randReader: rand.Reader,
+		randReader: cryptorand.Reader,
 		secretKey:  []byte("my-very-secret-key-for-mac"),
 		source: func() ([16]byte, error) {
 			return [16]byte{}, errors.New("error")
@@ -111,10 +142,10 @@ func Test_UUIDGenerate_SourceError(t *testing.T) {
 func Test_UUID_Verify(t *testing.T) {
 	// Create a deterministic generator
 	g := &uuidGenerator{
-		randReader: randomness.NewReader(1),
+		randReader: mathrand.NewChaCha8([32]byte{1}),
 		secretKey:  []byte("my-very-secret-key-for-mac"),
 		source: func() ([16]byte, error) {
-			u, err := uuid.NewGenWithOptions(uuid.WithRandomReader(randomness.NewReader(2))).NewV4()
+			u, err := uuidv4From(mathrand.NewChaCha8([32]byte{2}))
 			if err != nil {
 				return [16]byte{}, fmt.Errorf("unable to generate a random UUIDv4: %w", err)
 			}
@@ -125,30 +156,30 @@ func Test_UUID_Verify(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
 		t.Parallel()
 
-		tkn := "1rEhxXi9mBwmkGpXxD4Njd_wHOKGDkYTeOIHSFg1vyoEtsoN7gxbzr5iA2qYWLZLSuJroVFELjREpWft1t"
+		tkn := "0CNFiOj2HZ6UJWLjN7gbh1_G7ZccsC1UmciKcFI0c9whIjqRLKso9eudH4f4ebO6pXYYxra0Ty1qSiu7lp"
 		if err := g.Verify(tkn); err != nil {
 			t.Fatal(err)
 		}
 
 		id, err := g.Extract(tkn)
 		require.NoError(t, err)
-		require.Equal(t, []byte{0x2f, 0x82, 0x82, 0xcb, 0xe2, 0xf9, 0x49, 0x6f, 0xb1, 0x44, 0xc0, 0xaa, 0x4c, 0xed, 0x56, 0xdb}, id)
-		_, err = uuid.FromBytes(id)
+		require.Equal(t, []byte{0x14, 0x90, 0x6, 0x6b, 0x77, 0x89, 0x45, 0xb0, 0xbb, 0x49, 0x25, 0xe3, 0xdb, 0x15, 0x1c, 0x5b}, id)
+		require.True(t, validUUIDv4(id), "extracted value must be a valid UUIDv4")
 		require.NoError(t, err)
 	})
 
 	t.Run("valid with prefix", func(t *testing.T) {
 		t.Parallel()
 
-		tkn := "at_1rEhxXi9mBwmkGpXxD4Njd_MLdlJaU0J9toBacx8jjPrecLJcS2L4x1L0ejj6yoXMBuSW4pIWyA3UQ4bVt"
+		tkn := "at_0CNFiOj2HZ6UJWLjN7gbh1_k0bvONQPfHurpW5fkyXs04PoOZtI7qxpcnV4gw4Ziq4Uw7mzhS4tJEgxTpp"
 		if err := g.Verify(tkn); err != nil {
 			t.Fatal(err)
 		}
 
 		id, err := g.Extract(tkn)
 		require.NoError(t, err)
-		require.Equal(t, []byte{0x2f, 0x82, 0x82, 0xcb, 0xe2, 0xf9, 0x49, 0x6f, 0xb1, 0x44, 0xc0, 0xaa, 0x4c, 0xed, 0x56, 0xdb}, id)
-		_, err = uuid.FromBytes(id)
+		require.Equal(t, []byte{0x14, 0x90, 0x6, 0x6b, 0x77, 0x89, 0x45, 0xb0, 0xbb, 0x49, 0x25, 0xe3, 0xdb, 0x15, 0x1c, 0x5b}, id)
+		require.True(t, validUUIDv4(id), "extracted value must be a valid UUIDv4")
 		require.NoError(t, err)
 	})
 
@@ -213,7 +244,7 @@ func Test_UUID_GenerateAndVerify_WithUUIDv4(t *testing.T) {
 	g := UUIDGenerator(UUIDv4Source(), []byte("very-secret-mac-key"))
 	v := UUIDVerifier([]byte("very-secret-mac-key"))
 
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		out, err := g.Generate()
 		if err != nil {
 			t.Fatal(err)
@@ -231,7 +262,7 @@ func Test_UUID_GenerateAndVerify_WithUUIDv7(t *testing.T) {
 	g := UUIDGenerator(UUIDv7Source(), []byte("very-secret-mac-key"))
 	v := UUIDVerifier([]byte("very-secret-mac-key"))
 
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		out, err := g.Generate()
 		if err != nil {
 			t.Fatal(err)
@@ -244,7 +275,7 @@ func Test_UUID_GenerateAndVerify_WithUUIDv7(t *testing.T) {
 }
 
 func BenchmarkVerifiableUUIDGenerator(b *testing.B) {
-	u := uuid.Must(uuid.NewV4())
+	u, _ := uuidv4()
 	g := UUIDGenerator(StaticUUIDSource(u), []byte("very-secret-mac-key"))
 
 	b.ReportAllocs()
@@ -257,7 +288,7 @@ func BenchmarkVerifiableUUIDGenerator(b *testing.B) {
 
 func BenchmarkVerifiableUUIDVerifier(b *testing.B) {
 	g := UUIDVerifier([]byte("my-very-secret-key-for-mac"))
-	tkn := "et_1rEhxXi9mBwmkGpXxD4Njd_F1TuPP5aLrr1OShjyGUkq9YeMXZrZjpnNAkfLorbsinjMDHdtItdsWstkmh"
+	tkn := "et_0CNFiOj2HZ6UJWLjN7gbh1_1mvAnYcptJ8odhzxFNJGMkrTH1fnFhoBsWFzsp4KU3fhkKfNEfitY1X8Ao9i"
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {

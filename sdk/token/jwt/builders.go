@@ -18,14 +18,12 @@
 package jwt
 
 import (
-	"github.com/go-jose/go-jose/v4"
-
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 )
 
 // AccessTokenSigner represents JWT Access Token signer.
-func AccessTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func AccessTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeAccessToken,
 		alg:         alg,
@@ -35,7 +33,7 @@ func AccessTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderF
 }
 
 // RefreshTokenSigner represents JWT Refresh Token signer.
-func RefreshTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RefreshTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeRefreshToken,
 		alg:         alg,
@@ -45,7 +43,7 @@ func RefreshTokenSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvider
 }
 
 // RequestSigner represents JWT Request Token signer.
-func RequestSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RequestSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeAuthzRequest,
 		alg:         alg,
@@ -55,7 +53,7 @@ func RequestSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc)
 }
 
 // JARMSigner represents JWT JARM Token signer.
-func JARMSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func JARMSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeAuthzResponseMode,
 		alg:         alg,
@@ -65,7 +63,7 @@ func JARMSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) to
 }
 
 // DPoPSigner represents JWT DPoP Token signer.
-func DPoPSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeDPoP,
 		alg:         alg,
@@ -75,7 +73,7 @@ func DPoPSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) to
 }
 
 // ClientAssertionSigner represents JWT Client Assertion signer.
-func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func ClientAssertionSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeClientAssertion,
 		alg:         alg,
@@ -85,7 +83,7 @@ func ClientAssertionSigner(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvi
 }
 
 // TokenIntrospection represents JWT Token Introspection Assertion signer.
-func TokenIntrospection(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func TokenIntrospection(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeTokenInstrospection,
 		alg:         alg,
@@ -95,9 +93,22 @@ func TokenIntrospection(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProvider
 }
 
 // ServerMetadata represents JWT Server Metadata Assertion signer.
-func ServerMetadata(alg jose.SignatureAlgorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func ServerMetadata(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   token.TypeServerMetadata,
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}
+
+// MLDSASigner represents a JWT signer using a post-quantum ML-DSA key
+// (FIPS 204, draft-ietf-cose-dilithium). alg must be one of MLDSA44,
+// MLDSA65 or MLDSA87; the key provider must return an *MLDSAKey built
+// with NewMLDSAKey.
+func MLDSASigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+	return &defaultSigner{
+		tokenType:   token.TypeAccessToken,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,

@@ -28,6 +28,7 @@ import (
 	"zntr.io/solid/server/storage"
 )
 
+//nolint:gocyclo // linear RFC 7662-ordered validation chain; each guard is a protocol requirement
 func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest) (*tokenv1.IntrospectResponse, error) {
 	res := &tokenv1.IntrospectResponse{}
 
@@ -55,7 +56,7 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 		return res, fmt.Errorf("token parameter is mandatory")
 	}
 
-	// Retrieve client information
+	// Retrieve caller client information
 	_, err = s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
@@ -65,7 +66,6 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 		}
 		return res, fmt.Errorf("unable to retrieve client details: %w", err)
 	}
-
 	// Retrieve token by value
 	t, err := s.tokens.GetByValue(ctx, req.Issuer, req.Token)
 	if err != nil && !errors.Is(err, storage.ErrNotFound) {
@@ -77,6 +77,45 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 			Issuer: req.Issuer,
 			Value:  req.Token,
 			Status: tokenv1.TokenStatus_TOKEN_STATUS_UNKNOWN,
+		}
+		return res, nil
+	}
+
+	// RFC 7662 section 2.2: a token that has expired MUST be reported as
+	// inactive. Map an expired (but still stored) token to the EXPIRED
+	// status so the transport layer renders active=false.
+	if t.Metadata != nil && t.Metadata.ExpiresAt < uint64(timeFunc().Unix()) && t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
+		res.Token = &tokenv1.Token{
+			Issuer: req.Issuer,
+			Value:  req.Token,
+			Status: tokenv1.TokenStatus_TOKEN_STATUS_EXPIRED,
+		}
+		return res, nil
+	}
+	// RFC 7662 section 2.1: only the token owner and the resource servers
+	// it explicitly declared (authorized_introspection_clients) may learn
+	// about the token; anyone else gets the same no-cause-distinction
+	// envelope as an unknown token.
+	if t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE && t.Metadata != nil && t.Metadata.ClientId != req.Client.ClientId {
+		owner, err := s.clients.Get(ctx, t.Metadata.ClientId)
+		if err != nil || !containsString(owner.GetAuthorizedIntrospectionClients(), req.Client.ClientId) {
+			res.Token = &tokenv1.Token{
+				Issuer: req.Issuer,
+				Value:  req.Token,
+				Status: tokenv1.TokenStatus_TOKEN_STATUS_UNKNOWN,
+			}
+			return res, nil
+		}
+	}
+
+	// RFC 7662 section 2.2: an inactive token (revoked, expired, or
+	// otherwise not ACTIVE) carries no token claims: the introspection
+	// response is the bare inactive envelope, identical for every cause.
+	if t.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
+		res.Token = &tokenv1.Token{
+			Issuer: req.Issuer,
+			Value:  req.Token,
+			Status: t.Status,
 		}
 		return res, nil
 	}

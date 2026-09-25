@@ -21,7 +21,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 
@@ -29,7 +28,7 @@ import (
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(clientv1.AuthenticateRequest{}), cmpopts.IgnoreUnexported(clientv1.AuthenticateResponse{}), cmpopts.IgnoreUnexported(clientv1.Client{}), cmpopts.IgnoreUnexported(corev1.Error{})}
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(clientv1.AuthenticateRequest{}), cmpopts.IgnoreUnexported(clientv1.AuthenticateResponse{}), cmpopts.IgnoreUnexported(clientv1.Client{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_Context_From(t *testing.T) {
 	ctx := context.Background()

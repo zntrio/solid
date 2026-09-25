@@ -19,7 +19,6 @@ package rfcerrors
 
 import (
 	corev1 "zntr.io/solid/api/oidc/core/v1"
-	"zntr.io/solid/sdk/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -71,13 +70,13 @@ func (eb *defaultErrorBuilder) Build() *corev1.Error {
 		ErrorDescription: eb.errorDescription,
 	}
 	if eb.state != "" {
-		err.State = types.StringRef(eb.state)
+		err.State = new(eb.state)
 	}
 	if eb.errorURI != "" {
-		err.ErrorUri = types.StringRef(eb.errorURI)
+		err.ErrorUri = new(eb.errorURI)
 	}
 	if eb.resource != "" {
-		err.Resource = types.StringRef(eb.resource)
+		err.Resource = new(eb.resource)
 	}
 
 	// Return error instance

@@ -21,9 +21,10 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -216,6 +217,74 @@ func Test_service_Introspect(t *testing.T) {
 				Error: rfcerrors.ServerError().Build(),
 			},
 		},
+		{
+			name: "expired token is reported as TOKEN_STATUS_EXPIRED",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				old := timeFunc
+				timeFunc = func() time.Time { return time.Unix(10000, 0) }
+				t.Cleanup(func() { timeFunc = old })
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ExpiresAt: 5000,
+					},
+				}, nil)
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer: "https://honest.as.example.com",
+					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_EXPIRED,
+					// RFC 7662 section 2.2: an inactive token carries
+					// no claims.
+				},
+			},
+		},
+		{
+			name: "revoked token gets bare envelope",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_REVOKED,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				}, nil)
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer: "https://honest.as.example.com",
+					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_REVOKED,
+				},
+			},
+		},
 		// ---------------------------------------------------------------------
 		{
 			name: "valid",
@@ -244,6 +313,161 @@ func Test_service_Introspect(t *testing.T) {
 					Issuer: "https://honest.as.example.com",
 					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 					Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+				},
+			},
+		},
+		{
+			name: "token issued to another client without authorization is UNKNOWN",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId:  "other-client",
+						ExpiresAt: 50000,
+					},
+				}, nil)
+				// The token owner has not declared the caller as an
+				// authorized introspection delegate.
+				clients.EXPECT().Get(gomock.Any(), "other-client").Return(&clientv1.Client{}, nil)
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer: "https://honest.as.example.com",
+					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_UNKNOWN,
+				},
+			},
+		},
+		{
+			name: "token issued to another client with declared authorization is returned",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId:  "other-client",
+						ExpiresAt: 50000,
+					},
+				}, nil)
+				// The token owner declared the caller as an authorized
+				// introspection delegate (RFC 7662 section 2.1).
+				clients.EXPECT().Get(gomock.Any(), "other-client").Return(&clientv1.Client{
+					AuthorizedIntrospectionClients: []string{"s6BhdRkqt3"},
+				}, nil)
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId:  "other-client",
+						ExpiresAt: 50000,
+					},
+				},
+			},
+		},
+		{
+			name: "token owner lookup failure yields UNKNOWN envelope",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId:  "other-client",
+						ExpiresAt: 50000,
+					},
+				}, nil)
+				// The token owner registration cannot be resolved: fail
+				// closed with the no-cause-distinction envelope.
+				clients.EXPECT().Get(gomock.Any(), "other-client").Return(nil, fmt.Errorf("foo"))
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer: "https://honest.as.example.com",
+					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_UNKNOWN,
+				},
+			},
+		},
+		{
+			name: "expired token from another client stays EXPIRED",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				old := timeFunc
+				timeFunc = func() time.Time { return time.Unix(10000, 0) }
+				t.Cleanup(func() { timeFunc = old })
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId:  "other-client",
+						ExpiresAt: 5000,
+					},
+				}, nil)
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer: "https://honest.as.example.com",
+					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_EXPIRED,
 				},
 			},
 		},

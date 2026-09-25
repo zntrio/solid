@@ -19,17 +19,19 @@ package jwt
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
+	gojwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
+	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 )
 
 // EmbeddedKeyVerifier declare an embedded Key JWT verifier.
-func EmbeddedKeyVerifier(supportedAlgorithms []jose.SignatureAlgorithm) token.Verifier {
+func EmbeddedKeyVerifier(supportedAlgorithms []string) token.Verifier {
 	return &embeddedKeyVerifier{
 		supportedAlgorithms: supportedAlgorithms,
 	}
@@ -38,12 +40,39 @@ func EmbeddedKeyVerifier(supportedAlgorithms []jose.SignatureAlgorithm) token.Ve
 // -----------------------------------------------------------------------------
 
 type embeddedKeyVerifier struct {
-	supportedAlgorithms []jose.SignatureAlgorithm
+	supportedAlgorithms []string
+}
+
+// embeddedKey extracts the JWK embedded in the token header.
+func embeddedKey(t *gojwt.Token) (jwxjwk.Key, error) {
+	raw, ok := t.Header["jwk"]
+	if !ok {
+		return nil, errors.New("token has no embedded public key")
+	}
+
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("unable to serialize embedded public key: %w", err)
+	}
+
+	// AKP (ML-DSA) keys are not supported by jwx: decode through the
+	// tolerant parser.
+	kset, err := jwk.Parse(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse embedded public key: %w", err)
+	}
+	k, ok := kset.Key(0)
+	if !ok {
+		return nil, errors.New("token has no embedded public key")
+	}
+
+	// No error
+	return k, nil
 }
 
 func (v *embeddedKeyVerifier) Parse(token string) (token.Token, error) {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(token, v.supportedAlgorithms)
+	t, parts, err := parseUnverified(token, v.supportedAlgorithms)
 	if err != nil {
 		return nil, errors.New("unable to parse signed token")
 	}
@@ -51,32 +80,29 @@ func (v *embeddedKeyVerifier) Parse(token string) (token.Token, error) {
 	// Wrap token instance
 	return &tokenAdapter{
 		token: t,
+		parts: parts,
 	}, nil
 }
 
 func (v *embeddedKeyVerifier) Verify(token string) error {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(token, v.supportedAlgorithms)
+	t, _, err := parseUnverified(token, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}
 
-	// Check token header
-	if len(t.Headers) == 0 {
-		return fmt.Errorf("unable to process token without header")
-	}
-
 	// Validate algorithm
-	alg := t.Headers[0].Algorithm
+	alg, _ := t.Header["alg"].(string)
 
 	// Validate embedded key existence
-	k := t.Headers[0].JSONWebKey
-	if k == nil {
-		return errors.New("token has no embedded public key")
+	k, err := embeddedKey(t)
+	if err != nil {
+		return err
 	}
 
 	// Ensure key algorithm alignment
-	if k.Algorithm != alg {
+	keyAlg, ok := k.Algorithm()
+	if !ok || keyAlg.String() != alg {
 		return errors.New("token has an invalid key for given algorithm")
 	}
 
@@ -87,16 +113,29 @@ func (v *embeddedKeyVerifier) Verify(token string) error {
 // Claims extracts claims from given raw token with verifier keyset provider.
 func (v *embeddedKeyVerifier) Claims(ctx context.Context, raw string, claims any) error {
 	// Parse JWT token
-	t, err := jwt.ParseSigned(raw, v.supportedAlgorithms)
+	t, parts, err := parseUnverified(raw, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}
 
 	// Get embedded key.
-	embeddedJwk := t.Headers[0].JSONWebKey
+	k, err := embeddedKey(t)
+	if err != nil {
+		return token.ErrInvalidTokenSignature
+	}
 
-	// Try to verify with current key
-	if err := t.Claims(embeddedJwk, claims); err != nil {
+	// Materialize public key
+	publicKey, err := MaterializeSigningKey(k)
+	if err != nil {
+		return token.ErrInvalidTokenSignature
+	}
+
+	if err := verifyWithKey(t, parts, publicKey); err != nil {
+		return token.ErrInvalidTokenSignature
+	}
+
+	// Decode claims into target object
+	if err := decodeClaims(parts, claims); err != nil {
 		return token.ErrInvalidTokenSignature
 	}
 

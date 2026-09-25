@@ -21,19 +21,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/patrickmn/go-cache"
-
 	"zntr.io/solid/server/storage"
 )
 
 type proofCache struct {
-	backend *cache.Cache
+	backend *ttlCache
 }
 
 // DPoPProofs returns an dpop proof cache.
 func DPoPProofs() storage.DPoP {
 	// Initialize in-memory caches
-	backendCache := cache.New(1*time.Minute, 10*time.Minute)
+	backendCache := newTTLCache(1 * time.Minute)
 
 	return &proofCache{
 		backend: backendCache,
@@ -44,7 +42,7 @@ func DPoPProofs() storage.DPoP {
 
 func (s *proofCache) Register(ctx context.Context, id string) error {
 	// Insert in cache
-	s.backend.Set(id, id, cache.DefaultExpiration)
+	s.backend.Set(id, id)
 	// No error
 	return nil
 }

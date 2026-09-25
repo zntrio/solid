@@ -22,7 +22,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/dchest/uniuri"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
@@ -40,7 +40,7 @@ func DefaultAuthorizationCode() AuthorizationCode {
 type authorizationCodeGenerator struct{}
 
 func (c *authorizationCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLen(DefaultAuthorizationCodeLen)
+	code := random.String(DefaultAuthorizationCodeLen)
 	return code, nil
 }
 

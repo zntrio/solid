@@ -31,14 +31,23 @@ const (
 	JTICodeLength = 16
 )
 
-//go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/sdk/dpop Prover
+// ProofStore describes jti one-time-use storage to prevent proof replay
+// (RFC 9449 section 4.3). Implementations MUST make Register atomic:
+// Registering an already-registered id must fail.
+type ProofStore interface {
+	Register(ctx context.Context, id string) error
+	Delete(ctx context.Context, id string) error
+	Exists(ctx context.Context, id string) (bool, error)
+}
+
+//go:generate mockgen -destination mock/prover.gen.go -package mock zntr.io/solid/sdk/dpop Prover
 
 // Prover describes prover contract
 type Prover interface {
 	Prove(htm string, htu string, opts ...Option) (string, error)
 }
 
-//go:generate mockgen -destination mock/authentication_processor.gen.go -package mock zntr.io/solid/sdk/dpop Verifier
+//go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/sdk/dpop Verifier
 
 // Verifier describes proof verifier contract.
 type Verifier interface {

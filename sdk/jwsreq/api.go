@@ -25,7 +25,6 @@ import (
 
 const (
 	// HeaderType describes JWT token header type.
-	//nolint:gosec // detected as hardcoded credentials
 	HeaderType = "oauth-authz-req+jwt"
 )
 

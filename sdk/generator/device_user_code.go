@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/dchest/uniuri"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
@@ -49,7 +49,7 @@ func DefaultDeviceUserCode() DeviceUserCode {
 type deviceCodeAlphaGenerator struct{}
 
 func (c *deviceCodeAlphaGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLenChars(DefaultAlphaDeviceCodeLen, DefaultAlphaDeviceCodeCharset)
+	code := random.StringChars(DefaultAlphaDeviceCodeLen, DefaultAlphaDeviceCodeCharset)
 	return fmt.Sprintf("%s-%s", code[:4], code[4:]), nil
 }
 
@@ -63,6 +63,6 @@ func DefaultNumDeviceUserCode() DeviceUserCode {
 type deviceCodeNumGenerator struct{}
 
 func (c *deviceCodeNumGenerator) Generate(_ context.Context, _ string) (string, error) {
-	code := uniuri.NewLenChars(DefaultNumDeviceCodeLen, DefaultNumDeviceCodeCharset)
+	code := random.StringChars(DefaultNumDeviceCodeLen, DefaultNumDeviceCodeCharset)
 	return fmt.Sprintf("%s-%s-%s", code[:3], code[3:6], code[6:]), nil
 }

@@ -61,6 +61,9 @@ const (
 	AssertionTypePasetoBearer = "urn:solid:params:oauth:client-assertion-type:paseto-bearer"
 	// AssertionTypeJWTClientAttestation represents JWT Client Attestation name.
 	AssertionTypeJWTClientAttestation = "urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation"
+	// AssertionTypeJWTSPIFFE represents the JWT-SVID client assertion name
+	// (draft-ietf-oauth-spiffe-client-auth-02, sections 3.1 and 9.1).
+	AssertionTypeJWTSPIFFE = "urn:ietf:params:oauth:client-assertion-type:jwt-spiffe"
 )
 
 // Response Types --------------------------------------------------------------
@@ -112,11 +115,24 @@ const (
 	// AuthMethodClientSecretBasic : The client uses HTTP Basic as defined in
 	// OAuth 2.0
 	AuthMethodClientSecretBasic = "client_secret_basic"
+	// AuthMethodClientSecretJWT : The client uses a shared-secret JWT
+	// assertion; forbidden in solid and in Client ID Metadata Documents
+	// (draft-ietf-oauth-client-id-metadata-document, section 4.1).
+	AuthMethodClientSecretJWT = "client_secret_jwt"
 	// AuthMethodPrivateKeyJWT : The client uses JWT assertion.
 	AuthMethodPrivateKeyJWT = "private_key_jwt"
 	// AuthMethodClientAttestationJWT represents the client attestation
-	// authentication mechanism.
 	AuthMethodClientAttestationJWT = "attest_jwt_client_auth"
+	AuthMethodSPIFFEJWT            = "spiffe_jwt"
+	// AuthMethodSPIFFEWIT represents the WIT-SVID client authentication
+	// mechanism (draft-ietf-oauth-spiffe-client-auth-02, section 4).
+	AuthMethodSPIFFEWIT = "spiffe_wit"
+	// AuthMethodSPIFFEX509 represents the X.509-SVID mutual-TLS client
+	// authentication mechanism (draft-ietf-oauth-spiffe-client-auth-02, section 4).
+	AuthMethodSPIFFEX509 = "spiffe_x509"
+	// AuthMethodTLSClientAuth represents the PKI mutual-TLS client
+	// authentication mechanism (RFC 8705, section 2.1).
+	AuthMethodTLSClientAuth = "tls_client_auth"
 )
 
 // Application Type ------------------------------------------------------------

@@ -91,18 +91,9 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 	if err := d.verifier.Claims(ctx, response, &claims); err != nil {
 		return nil, fmt.Errorf("unable to extract claims from JARM response : %w", err)
 	}
-
-	// Decode claims
-	if claims.HasError() {
-		return &flowv1.AuthorizeResponse{
-			Error: &corev1.Error{
-				Err:              claims.Error,
-				ErrorDescription: claims.ErrorDescription,
-			},
-		}, nil
-	}
-
-	// Check claims
+	// Validate the response envelope BEFORE dispatching on the error claim:
+	// an error response must still be a properly issued, unexpired response
+	// addressed to this audience (oauth-v2-jarm section 5).
 	if claims.Issuer != d.issuer {
 		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
@@ -119,6 +110,16 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response, response token is expired")
+	}
+
+	// Decode claims
+	if claims.HasError() {
+		return &flowv1.AuthorizeResponse{
+			Error: &corev1.Error{
+				Err:              claims.Error,
+				ErrorDescription: claims.ErrorDescription,
+			},
+		}, nil
 	}
 
 	// No error

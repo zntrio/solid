@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
@@ -36,12 +36,11 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
-	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreFields(tokenv1.Token{}, "TokenId"), cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest{}), cmpopts.IgnoreUnexported(tokenv1.IntrospectRequest{}), cmpopts.IgnoreUnexported(tokenv1.RevokeRequest{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_AuthorizationCode{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_ClientCredentials{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_DeviceCode{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_RefreshToken{}), cmpopts.IgnoreUnexported(flowv1.TokenResponse{}), cmpopts.IgnoreUnexported(tokenv1.IntrospectResponse{}), cmpopts.IgnoreUnexported(tokenv1.RevokeResponse{}), cmpopts.IgnoreUnexported(corev1.Error{}), cmpopts.IgnoreUnexported(tokenv1.Token{}), cmpopts.IgnoreUnexported(tokenv1.TokenMeta{}), cmpopts.IgnoreUnexported(sessionv1.AuthorizationCodeSession{}), cmpopts.IgnoreUnexported(sessionv1.DeviceCodeSession{})}
+var cmpOpts = []cmp.Option{protocmp.Transform(), protocmp.IgnoreFields(&tokenv1.Token{}, "token_id"), protocmp.IgnoreFields(&tokenv1.TokenMeta{}, "grant_id"), protocmp.IgnoreFields(&corev1.Error{}, "error_description"), cmpopts.IgnoreUnexported(flowv1.TokenRequest{}), cmpopts.IgnoreUnexported(tokenv1.IntrospectRequest{}), cmpopts.IgnoreUnexported(tokenv1.RevokeRequest{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_AuthorizationCode{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_ClientCredentials{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_DeviceCode{}), cmpopts.IgnoreUnexported(flowv1.TokenRequest_RefreshToken{}), cmpopts.IgnoreUnexported(flowv1.TokenResponse{}), cmpopts.IgnoreUnexported(tokenv1.IntrospectResponse{}), cmpopts.IgnoreUnexported(tokenv1.RevokeResponse{}), cmpopts.IgnoreUnexported(corev1.Error{}), cmpopts.IgnoreUnexported(tokenv1.Token{}), cmpopts.IgnoreUnexported(tokenv1.TokenConfirmation{})}
 
 func Test_service_Token(t *testing.T) {
 	type args struct {
@@ -77,7 +76,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -91,7 +90,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -106,7 +105,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidClient().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -123,7 +122,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -140,7 +139,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -157,7 +156,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -174,7 +173,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -191,7 +190,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -208,7 +207,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -225,7 +224,7 @@ func Test_service_Token(t *testing.T) {
 					Grant: &flowv1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
-							CodeVerifier: "azertyuiop",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
@@ -252,7 +251,7 @@ func Test_service_Token(t *testing.T) {
 					Grant: &flowv1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
-							CodeVerifier: "azertyuiop",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
@@ -292,7 +291,7 @@ func Test_service_Token(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+				Error: rfcerrors.UnsupportedGrantType().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -360,13 +359,15 @@ func Test_service_Token(t *testing.T) {
 			prepare: func(clients *storagemock.MockClientReader, ar *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator, sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					ClientId:         "s6BhdRkqt3",
 					GrantTypes:       []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes:    []string{"code"},
 					RedirectUris:     []string{"https://client.example.org/cb"},
 					SubjectType:      oidc.SubjectTypePublic,
 					SectorIdentifier: "https://client.example.org",
 				}, nil)
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -378,7 +379,6 @@ func Test_service_Token(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
@@ -393,6 +393,7 @@ func Test_service_Token(t *testing.T) {
 					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Subject:   "",
+						ClientId:  "s6BhdRkqt3",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -407,6 +408,7 @@ func Test_service_Token(t *testing.T) {
 					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
 						Subject:   "",
+						ClientId:  "s6BhdRkqt3",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -434,7 +436,7 @@ func Test_service_Token(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
-					Scope: types.StringRef("openid admin"),
+					Scope: new("openid admin"),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationRequestReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator, _ *storagemock.MockAuthorizationCodeSession, sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken) {
@@ -443,7 +445,7 @@ func Test_service_Token(t *testing.T) {
 					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeDeviceCode},
 				}, nil)
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+				session := &sessionv1.DeviceCodeSession{
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -452,8 +454,10 @@ func Test_service_Token(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   types.StringRef("user1"),
-				}, nil)
+					Subject:   new("user1"),
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
@@ -513,7 +517,10 @@ func Test_service_Token(t *testing.T) {
 					},
 				}, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
-				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(nil)
 			},
 			wantErr: false,
 			want: &flowv1.TokenResponse{
@@ -531,9 +538,27 @@ func Test_service_Token(t *testing.T) {
 						ExpiresAt: 3601,
 					},
 				},
+				RefreshToken: &tokenv1.Token{
+					Value:     "JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr",
+					TokenId:   "0123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 604801,
+					},
+				},
 			},
 		},
 	}
+	// Guard the package-level validator against cross-test leakage: rows
+	// that stub validateRequest must not affect later tests.
+	originalValidator := validateRequest
+	defer func() { validateRequest = originalValidator }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)

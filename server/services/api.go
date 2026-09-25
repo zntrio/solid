@@ -48,4 +48,6 @@ type Device interface {
 	Authorize(ctx context.Context, req *flowv1.DeviceAuthorizationRequest) (*flowv1.DeviceAuthorizationResponse, error)
 	// Validate user code
 	Validate(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error)
+	// Deny user code (RFC 8628 section 3.5: access_denied).
+	Deny(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error)
 }

@@ -59,3 +59,4 @@ Temporary Items
 dist
 
 bazel-*
+_apalache-out

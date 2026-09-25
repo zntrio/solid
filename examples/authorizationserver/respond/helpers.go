@@ -18,17 +18,14 @@
 package respond
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-
-	jsoniter "github.com/json-iterator/go"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 )
 
 func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-
 	// Marshal response as json
 	body, _ := json.Marshal(err)
 
@@ -43,10 +40,8 @@ func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Err
 	w.Write(body)
 }
 
-// JSON serialize the data with matching requested encoding
-func WithJSON(w http.ResponseWriter, code int, data interface{}) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
-
+// WithJSON serialize the data with matching requested encoding
+func WithJSON(w http.ResponseWriter, code int, data any) {
 	// Marshal response as json
 	body, _ := json.Marshal(data)
 

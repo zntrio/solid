@@ -64,7 +64,7 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 		}
 
 		active := (res.Token.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE) && token.IsUsable(res.Token)
-		resp := map[string]interface{}{
+		resp := map[string]any{
 			"active": active,
 		}
 		if active {
@@ -78,10 +78,21 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			resp["iss"] = res.Token.Metadata.Issuer
 			resp["jti"] = res.Token.TokenId
 
-			// Add confirmation
+			// Add confirmation with the RFC-mandated member names
+			// ("x5t#S256" per RFC 8705 section 3.1; the generated
+			// protojson marshaler would emit the proto field name).
 			if res.Token.Confirmation != nil {
-				resp["token_type"] = "DPoP"
-				resp["cnf"] = res.Token.Confirmation
+				resp["cnf"] = token.ConfirmationAsJSON(res.Token.Confirmation)
+
+				// token_type reflects the actual binding: DPoP when a
+				// key thumbprint (RFC 9449) is carried, Bearer otherwise
+				// (an mTLS-bound token stays a Bearer token per RFC 6750,
+				// constrained by the certificate at the TLS layer).
+				if res.Token.Confirmation.Jkt != "" {
+					resp["token_type"] = "DPoP"
+				} else {
+					resp["token_type"] = "Bearer"
+				}
 			} else {
 				resp["token_type"] = "Bearer"
 			}
@@ -93,6 +104,12 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			}
 			if res.Token.Metadata.AuthTime != nil {
 				resp["auth_time"] = res.Token.Metadata.AuthTime
+			}
+
+			// Add authorization details (RFC 9396 section 9.2: top-level
+			// introspection member).
+			if len(res.Token.Metadata.AuthorizationDetails) > 0 {
+				resp["authorization_details"] = res.Token.Metadata.AuthorizationDetails
 			}
 		}
 

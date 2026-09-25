@@ -22,13 +22,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
-	"zntr.io/solid/sdk/types"
 )
 
 func Test_jwtEncoder_Encode(t *testing.T) {
@@ -71,7 +70,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              types.StringRef(oidc.PromptConsent),
+					Prompt:              new(oidc.PromptConsent),
 				},
 			},
 			prepare: func(signer *tokenmock.MockSerializer) {
@@ -92,7 +91,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              types.StringRef(oidc.PromptConsent),
+					Prompt:              new(oidc.PromptConsent),
 				},
 			},
 			prepare: func(signer *tokenmock.MockSerializer) {

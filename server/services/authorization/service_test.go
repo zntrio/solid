@@ -22,20 +22,29 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
-	fuzz "github.com/google/gofuzz"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/authzdetails"
 	generatormock "zntr.io/solid/sdk/generator/mock"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
+
+// permissiveAuthzDetails accepts any authorization details type; unit tests
+// for the authorization service target other request mechanics.
+var permissiveAuthzDetails authzdetails.Validator = authzdetails.ValidatorFunc(
+	func(context.Context, []*tokenv1.AuthorizationDetail) error { return nil },
+)
+
+var authzDetailsValidator = permissiveAuthzDetails
 
 func Test_service_Authorize(t *testing.T) {
 	type args struct {
@@ -104,7 +113,8 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.InvalidRequest().Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -124,7 +134,8 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.InvalidRequest().Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -134,6 +145,7 @@ func Test_service_Authorize(t *testing.T) {
 				req: &flowv1.AuthorizeRequest{
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
 					Request: &flowv1.AuthorizationRequest{
 						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
@@ -141,11 +153,12 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
 				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
-				ar.EXPECT().Get(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, storage.ErrNotFound)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.InvalidRequest().Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -155,6 +168,7 @@ func Test_service_Authorize(t *testing.T) {
 				req: &flowv1.AuthorizeRequest{
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
 					Request: &flowv1.AuthorizationRequest{
 						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
@@ -162,20 +176,22 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
 				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
-				ar.EXPECT().Get(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, fmt.Errorf("foo"))
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.ServerError().Build(),
 			},
 		},
 		{
-			name: "with request_uri exist with not found error during deletion",
+			name: "with request_uri consume storage error",
 			args: args{
 				ctx: context.Background(),
 				req: &flowv1.AuthorizeRequest{
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
 					Request: &flowv1.AuthorizationRequest{
 						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
 					},
@@ -183,34 +199,12 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
 				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
-				ar.EXPECT().Get(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&flowv1.AuthorizationRequest{}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(storage.ErrNotFound)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.InvalidRequest().Build(),
-			},
-		},
-		{
-			name: "with request_uri exist but deletion error",
-			args: args{
-				ctx: context.Background(),
-				req: &flowv1.AuthorizeRequest{
-					Issuer:  "https://honest.as.example",
-					Subject: "foo",
-					Request: &flowv1.AuthorizationRequest{
-						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
-					},
-				},
-			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
-				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
-				ar.EXPECT().Get(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&flowv1.AuthorizationRequest{}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(fmt.Errorf("foo"))
-			},
-			wantErr: true,
-			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -243,7 +237,8 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.ServerError().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.ServerError().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 			},
 		},
 		{
@@ -277,7 +272,8 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.ServerError().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.ServerError().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 			},
 		},
 		{
@@ -308,32 +304,23 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
-				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), &sessionv1.AuthorizationCodeSession{
-					Issuer:  "https://honest.as.example",
-					Subject: "foo",
-					Request: &flowv1.AuthorizationRequest{
-						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-						ResponseType:        "code",
-						Scope:               "openid profile email",
-						ClientId:            "s6BhdRkqt3",
-						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-						Nonce:               "XDwbBH4MokU8BmrZ",
-						RedirectUri:         "https://client.example.org/cb",
-						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-						CodeChallengeMethod: "S256",
-						Prompt:              nil,
-					},
-				}).Return(uint64(60), nil)
+				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _, _ string, s *sessionv1.AuthorizationCodeSession) (uint64, error) {
+						if s.GrantId == "" {
+							return 0, fmt.Errorf("grant_id must be set at code issuance")
+						}
+						return uint64(60), nil
+					})
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
+				Issuer:      "https://honest.as.example",
 				Error:       nil,
 				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 				RedirectUri: "https://client.example.org/cb",
 				ClientId:    "s6BhdRkqt3",
 				ExpiresIn:   uint64(60),
-				Issuer:      "https://honest.as.example",
 			},
 		},
 		{
@@ -364,7 +351,176 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
-				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), &sessionv1.AuthorizationCodeSession{
+				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _, _ string, s *sessionv1.AuthorizationCodeSession) (uint64, error) {
+						if s.GrantId == "" {
+							return 0, fmt.Errorf("grant_id must be set at code issuance")
+						}
+						return uint64(60), nil
+					})
+			},
+			wantErr: false,
+			want: &flowv1.AuthorizeResponse{
+				Issuer:      "https://honest.as.example",
+				Error:       nil,
+				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri: "https://client.example.org/cb",
+				ClientId:    "s6BhdRkqt3",
+				ExpiresIn:   uint64(60),
+			},
+		},
+		{
+			name: "with invalid request",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallengeMethod: "S256",
+					Prompt:              types.StringRef(oidc.PromptConsent),
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+			},
+		},
+		// ---------------------------------------------------------------------
+		{
+			name: "with valid request_uri exist",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, codes *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(&flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Prompt:              types.StringRef(oidc.PromptConsent),
+				}, nil)
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				}, nil)
+				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
+				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _, _ string, s *sessionv1.AuthorizationCodeSession) (uint64, error) {
+						if s.GrantId == "" {
+							return 0, fmt.Errorf("grant_id must be set at code issuance")
+						}
+						return uint64(60), nil
+					})
+			},
+			wantErr: false,
+			want: &flowv1.AuthorizeResponse{
+				Issuer:      "https://honest.as.example",
+				Error:       nil,
+				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri: "https://client.example.org/cb",
+				ClientId:    "s6BhdRkqt3",
+				ExpiresIn:   uint64(60),
+			},
+		},
+		{
+			name: "request_uri issued to another client",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(&flowv1.AuthorizationRequest{
+					ClientId: "other-client",
+					State:    "af0ifjsldkj",
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "client/request client_id mismatch",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email",
+						ClientId:            "other-client",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+						CodeChallengeMethod: "S256",
+					},
+				},
+			},
+			prepare: func(_ *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, _ *generatormock.MockRequestURI) {
+				clients.EXPECT().Get(gomock.Any(), "other-client").Return(&clientv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+			},
+		},
+		{
+			name: "dpop_jkt persisted into session confirmation",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
 					Issuer:  "https://honest.as.example",
 					Subject: "foo",
 					Request: &flowv1.AuthorizationRequest{
@@ -377,113 +533,34 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						Prompt:              types.StringRef(oidc.PromptLogin),
-					},
-				}).Return(uint64(60), nil)
-			},
-			wantErr: false,
-			want: &flowv1.AuthorizeResponse{
-				Error:       nil,
-				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
-				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-				RedirectUri: "https://client.example.org/cb",
-				ClientId:    "s6BhdRkqt3",
-				ExpiresIn:   uint64(60),
-				Issuer:      "https://honest.as.example",
-			},
-		},
-		{
-			name: "with invalid request",
-			args: args{
-				ctx: context.Background(),
-				req: &flowv1.AuthorizeRequest{
-					Issuer:  "https://honest.as.example",
-					Subject: "foo",
-					Request: &flowv1.AuthorizationRequest{
-						RequestUri: types.StringRef("urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+						DpopJkt:             types.StringRef("jkt1"),
 					},
 				},
 			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
-				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
-				ar.EXPECT().Get(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(&flowv1.AuthorizationRequest{
-					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-					ResponseType:        "code",
-					Scope:               "openid profile email offline_access",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallengeMethod: "S256",
-					Prompt:              types.StringRef(oidc.PromptConsent),
-				}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "https://honest.as.example", "urn:solid:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").Return(nil)
-			},
-			wantErr: true,
-			want: &flowv1.AuthorizeResponse{
-				Error: rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
-			},
-		},
-		// ---------------------------------------------------------------------
-		{
-			name: "with valid request_uri exist",
-			args: args{
-				ctx: context.Background(),
-				req: &flowv1.AuthorizeRequest{
-					Issuer:  "https://honest.as.example",
-					Subject: "foo",
-					Request: &flowv1.AuthorizationRequest{
-						RequestUri: types.StringRef("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac"),
-					},
-				},
-			},
-			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, codes *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
-				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(nil)
-				ar.EXPECT().Get(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(&flowv1.AuthorizationRequest{
-					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-					ResponseType:        "code",
-					Scope:               "openid profile email offline_access",
-					ClientId:            "s6BhdRkqt3",
-					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-					Nonce:               "XDwbBH4MokU8BmrZ",
-					RedirectUri:         "https://client.example.org/cb",
-					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-					CodeChallengeMethod: "S256",
-					Prompt:              types.StringRef(oidc.PromptConsent),
-				}, nil)
-				ar.EXPECT().Delete(gomock.Any(), "https://honest.as.example", "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac").Return(nil)
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, codes *generatormock.MockAuthorizationCode, _ *generatormock.MockRequestURI) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
-				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), &sessionv1.AuthorizationCodeSession{
-					Issuer:  "https://honest.as.example",
-					Subject: "foo",
-					Request: &flowv1.AuthorizationRequest{
-						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
-						ResponseType:        "code",
-						Scope:               "openid profile email offline_access",
-						ClientId:            "s6BhdRkqt3",
-						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-						Nonce:               "XDwbBH4MokU8BmrZ",
-						RedirectUri:         "https://client.example.org/cb",
-						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
-						CodeChallengeMethod: "S256",
-						Prompt:              types.StringRef(oidc.PromptConsent),
-					},
-				}).Return(uint64(60), nil)
+				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _, _ string, s *sessionv1.AuthorizationCodeSession) (uint64, error) {
+						if s.Confirmation == nil || s.Confirmation.Jkt != "jkt1" {
+							return 0, fmt.Errorf("session confirmation must carry the dpop_jkt 'jkt1'")
+						}
+						return uint64(60), nil
+					})
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
+				Issuer:      "https://honest.as.example",
 				Error:       nil,
 				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
 				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 				RedirectUri: "https://client.example.org/cb",
 				ClientId:    "s6BhdRkqt3",
 				ExpiresIn:   uint64(60),
-				Issuer:      "https://honest.as.example",
 			},
 		},
 	}
@@ -505,7 +582,7 @@ func Test_service_Authorize(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestURIGenerator)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestURIGenerator, authzDetailsValidator)
 
 			// Do the request
 			got, err := underTest.Authorize(tt.args.ctx, tt.args.req)
@@ -530,28 +607,16 @@ func Test_service_Authorize_Fuzz(t *testing.T) {
 	requestURIGenerator := generatormock.NewMockRequestURI(ctrl)
 
 	requestURIGenerator.EXPECT().Validate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	authorizationRequests.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx context.Context, isser, requestURI string) (*flowv1.AuthorizationRequest, error) {
-		f := fuzz.New()
-		var ar flowv1.AuthorizationRequest
-		f.Fuzz(&ar)
-
-		return &ar, nil
+	authorizationRequests.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
+		return fuzzFillAuthorizationRequest([]byte(requestURI)), nil
 	}).AnyTimes()
-	authorizationRequests.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Prepare service
-	underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestURIGenerator)
-
+	underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestURIGenerator, authzDetailsValidator)
 	// Making sure the function never panics
-	for i := 0; i < 1000; i++ {
-		f := fuzz.New()
-
-		// Prepare arguments
-		var req flowv1.AuthorizeRequest
-		f.Fuzz(&req)
-
+	for i := range 1000 {
 		// Execute
-		underTest.Authorize(context.Background(), &req)
+		underTest.Authorize(context.Background(), fuzzFillAuthorizeRequest([]byte{byte(i), byte(i >> 8), byte(i >> 16)}))
 	}
 }
 
@@ -870,6 +935,56 @@ func Test_service_Register(t *testing.T) {
 				Issuer:     "https://honest.as.example",
 			},
 		},
+		{
+			name: "confirmation jkt copied to stored request",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.RegistrationRequest{
+					Issuer: "https://honest.as.example",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "jkt9",
+					},
+					Request: &flowv1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email offline_access",
+						ClientId:            "s6BhdRkqt3",
+						State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+						Nonce:               "XDwbBH4MokU8BmrZ",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+						CodeChallengeMethod: "S256",
+						Prompt:              types.StringRef(oidc.PromptConsent),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				}, nil)
+				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac", nil)
+				ar.EXPECT().Register(gomock.Any(), "https://honest.as.example", gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _, _ string, r *flowv1.AuthorizationRequest) (uint64, error) {
+						if r.DpopJkt == nil || *r.DpopJkt != "jkt9" {
+							return 0, fmt.Errorf("stored request must carry the confirmed dpop_jkt 'jkt9'")
+						}
+						return uint64(90), nil
+					})
+			},
+			wantErr: false,
+			want: &flowv1.RegistrationResponse{
+				Error:      nil,
+				ExpiresIn:  90,
+				RequestUri: "urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac",
+				Issuer:     "https://honest.as.example",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -889,7 +1004,7 @@ func Test_service_Register(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestUriGenerator)
+			underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestUriGenerator, authzDetailsValidator)
 
 			// Do the request
 			got, err := underTest.Register(tt.args.ctx, tt.args.req)
@@ -914,17 +1029,9 @@ func Test_service_Register_Fuzz(t *testing.T) {
 	requestURIGenerator := generatormock.NewMockRequestURI(ctrl)
 
 	// Prepare service
-	underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestURIGenerator)
-
-	// Making sure the function never panics
-	for i := 0; i < 1000; i++ {
-		f := fuzz.New()
-
-		// Prepare arguments
-		var req flowv1.RegistrationRequest
-		f.Fuzz(&req)
-
+	underTest := New(clients, authorizationRequests, authorizationCodeSessions, codeGenerator, requestURIGenerator, authzDetailsValidator)
+	for i := range 1000 {
 		// Execute
-		underTest.Register(context.Background(), &req)
+		underTest.Register(context.Background(), fuzzFillRegistrationRequest([]byte{byte(i), byte(i >> 8), byte(i >> 16)}))
 	}
 }

@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/patrickmn/go-cache"
 	"golang.org/x/crypto/blake2b"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -30,16 +29,18 @@ import (
 )
 
 type authorizationRequestStorage struct {
-	backend *cache.Cache
+	backend   *ttlCache
+	secretKey []byte
 }
 
 // AuthorizationRequests returns an authorization request manager.
-func AuthorizationRequests() storage.AuthorizationRequest {
+func AuthorizationRequests(secretKey []byte) storage.AuthorizationRequest {
 	// Initialize in-memory caches
-	backendCache := cache.New(1*time.Minute, 10*time.Minute)
+	backendCache := newTTLCache(1 * time.Minute)
 
 	return &authorizationRequestStorage{
-		backend: backendCache,
+		backend:   backendCache,
+		secretKey: secretKey,
 	}
 }
 
@@ -47,7 +48,7 @@ func AuthorizationRequests() storage.AuthorizationRequest {
 
 func (s *authorizationRequestStorage) Register(ctx context.Context, issuer, requestURI string, req *flowv1.AuthorizationRequest) (uint64, error) {
 	// Insert in cache
-	s.backend.Set(s.deriveKey(issuer, requestURI), req, cache.DefaultExpiration)
+	s.backend.Set(s.deriveKey(issuer, requestURI), req)
 
 	// No error
 	return 60, nil
@@ -69,11 +70,23 @@ func (s *authorizationRequestStorage) Get(ctx context.Context, issuer, requestUR
 	return nil, storage.ErrNotFound
 }
 
+func (s *authorizationRequestStorage) DeleteAndGet(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
+	// Atomic burn-after-read: a concurrent second consume of the same
+	// request_uri observes a missing entry (ttlCache.DeleteAndGet is a
+	// single critical section).
+	if x, found := s.backend.DeleteAndGet(s.deriveKey(issuer, requestURI)); found {
+		req := x.(*flowv1.AuthorizationRequest)
+		return req, nil
+	}
+
+	return nil, storage.ErrNotFound
+}
+
 // -----------------------------------------------------------------------------
 
 func (s *authorizationRequestStorage) deriveKey(issuer, requestURI string) string {
 	// Create hasher
-	h, err := blake2b.New256([]byte("!|XH/CNMA8WSlN*;*UKL!0tW[CU17EB4A.a)[WZbvKSl;F?G#PxjijvtFWS0C=T"))
+	h, err := blake2b.New256(s.secretKey)
 	if err != nil {
 		panic(err)
 	}

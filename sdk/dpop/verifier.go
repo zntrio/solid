@@ -32,14 +32,13 @@ import (
 
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/types"
-	"zntr.io/solid/server/storage"
 )
 
 // -----------------------------------------------------------------------------
 
 // DefaultVerifier returns a verifier instance with in-memory cache for proof
 // storage.
-func DefaultVerifier(proofs storage.DPoP, verifier token.Verifier) Verifier {
+func DefaultVerifier(proofs ProofStore, verifier token.Verifier) Verifier {
 	// No error
 	return &defaultVerifier{
 		proofs:   proofs,
@@ -49,15 +48,15 @@ func DefaultVerifier(proofs storage.DPoP, verifier token.Verifier) Verifier {
 
 // -----------------------------------------------------------------------------
 
-// -----------------------------------------------------------------------------
-
 type defaultVerifier struct {
-	proofs   storage.DPoP
+	proofs   ProofStore
 	verifier token.Verifier
 }
 
 // Verify given DPoP proof.
-// https://www.ietf.org/id/draft-ietf-oauth-dpop-01.html#section-4.2
+// https://www.rfc-editor.org/rfc/rfc9449#section-4.3
+//
+//nolint:gocyclo // linear RFC 9449 section 4.3 validation chain; each guard is a protocol requirement
 func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, opts ...Option) (string, error) {
 	// Check parameters
 	if htm == "" {
@@ -113,11 +112,6 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, op
 		return "", errJti
 	}
 
-	// Check if exists
-	if errCache := v.checkProofCache(ctx, jtiHash); errCache != nil {
-		return "", errCache
-	}
-
 	// Compute confirmation
 	thumb, err := token.PublicKeyThumbPrint()
 	if err != nil {
@@ -144,6 +138,12 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, op
 				return "", errors.New("invalid proof / token association, proof mismatch")
 			}
 		}
+	}
+
+	// Check the proof cache last: the jti is burned only after the proof
+	// has been fully validated, so a rejected proof does not consume it.
+	if errCache := v.checkProofCache(ctx, jtiHash); errCache != nil {
+		return "", errCache
 	}
 
 	// Return confirmation
@@ -212,13 +212,23 @@ func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClai
 		return "", fmt.Errorf("claims must not be nil")
 	}
 
-	// Check http parameters
-	if claims.HTTPMethod != htm {
+	// Check the http method: RFC 9449 section 4.3 requires the htm claim
+	// to match the HTTP method of the current request. Header field values
+	// are case-sensitive in general, but HTTP method tokens are defined as
+	// case-insensitive by RFC 9110; compare accordingly.
+	if !strings.EqualFold(claims.HTTPMethod, htm) {
 		return "", fmt.Errorf("invalid proof: http method don't match, got:'%s', expected: '%s'", htm, claims.HTTPMethod)
 	}
 
-	// Prepare the url
-	if claims.HTTPURL != htu {
+	// Check the http url: RFC 9449 section 4.3 requires the htu claim to
+	// match the HTTP target URI ignoring query and fragment parts, and
+	// recommends syntax-based and scheme-based normalization (RFC 3986
+	// sections 6.2.2 / 6.2.3) before comparing.
+	htuEqual, err := normalizedURLEqual(claims.HTTPURL, htu)
+	if err != nil {
+		return "", fmt.Errorf("invalid proof: http url don't match, got:'%s', expected: '%s'", htu, claims.HTTPURL)
+	}
+	if !htuEqual {
 		return "", fmt.Errorf("invalid proof: http url don't match, got:'%s', expected: '%s'", htu, claims.HTTPURL)
 	}
 
@@ -257,4 +267,21 @@ func (v *defaultVerifier) checkProofCache(ctx context.Context, jtiHash string) e
 
 	// No error
 	return nil
+}
+
+// normalizedURLEqual compares two URIs after lowercasing the scheme and host
+// components, per the normalization recommended by RFC 9449 section 4.3
+// (referring to RFC 3986 sections 6.2.2 and 6.2.3).
+func normalizedURLEqual(a, b string) (bool, error) {
+	ua, err := url.Parse(a)
+	if err != nil {
+		return false, err
+	}
+	ub, err := url.Parse(b)
+	if err != nil {
+		return false, err
+	}
+	return strings.EqualFold(ua.Scheme, ub.Scheme) &&
+		strings.EqualFold(ua.Host, ub.Host) &&
+		ua.Path == ub.Path, nil
 }

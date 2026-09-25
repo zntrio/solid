@@ -2,22 +2,39 @@ run:
   # default concurrency is a available CPU number
   concurrency: 4
   # timeout for analysis, e.g. 30s, 5m, default is 1m
-  deadline: 20m
+  timeout: 20m
   # exit code when at least one issue was found, default is 1
   issues-exit-code: 1
   # include test files or not, default is true
   tests: false
 
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*\\.gen\\.go$"
-    - ".*\\_gen\\.go$"
-    - "mock_.*\\.go"
-    - ".*\\.resolvers\\.go$"
+  # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
+  # If invoked with -mod=readonly, the go command is disallowed from the implicit
+  # automatic updating of go.mod described above. Instead, it fails when any changes
+  # to go.mod are needed. This setting is most useful to check that go.mod does not
+  # need updates, such as in a continuous integration and testing system.
+  # If invoked with -mod=vendor, the go command assumes that the vendor
+  # directory holds the correct copies of dependencies and ignores the
+  # dependency descriptions in go.mod.
+  modules-download-mode: readonly
 
-  # default is true. Enables skipping of directories:
-  #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
-  skip-dirs-use-default: true
+  # Allow multiple parallel golangci-lint instances running.
+  # If false (default) - golangci-lint acquires file lock on start.
+  allow-parallel-runners: false
+
+# output configuration options
+output:
+  # print lines of code with issue, default is true
+  print-issued-lines: true
+
+  # print linter name in the end of issue text, default is true
+  print-linter-name: true
+
+  # add a prefix to the output file references; default is no prefix
+  path-prefix: ""
+
+  # sorts results by: filepath, line and column
+  sort-results: false
 
   # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
   # If invoked with -mod=readonly, the go command is disallowed from the implicit
@@ -33,33 +50,34 @@ run:
   # If false (default) - golangci-lint acquires file lock on start.
   allow-parallel-runners: false
 
-# output configuration options
-output:
-  # colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
-  # default is "colored-line-number"
-  format: colored-line-number
-
-  # print lines of code with issue, default is true
-  print-issued-lines: true
-
-  # print linter name in the end of issue text, default is true
-  print-linter-name: true
-
-  # make issues output unique by line, default is true
-  uniq-by-line: true
-
-  # add a prefix to the output file references; default is no prefix
-  path-prefix: ""
-
-  # sorts results by: filepath, line and column
-  sort-results: false
-
 linters-settings:
+  depguard:
+    rules:
+      Main:
+        allow:
+          - $gostd
+          - zntr.io/solid
+          - github.com/golang-jwt/jwt/v5
+          - github.com/lestrrat-go/jwx/v3
+          - golang.org/x/crypto
+          - github.com/google/go-cmp
+          - go.uber.org/mock
+          - google.golang.org/protobuf
+          - github.com/stretchr/testify
+          - buf.build/go/protovalidate
+          - github.com/go-ozzo/ozzo-validation/v4
+          - go.mozilla.org/cose
+          - github.com/pquerna/otp
+          - github.com/dchest/uniuri
+          - github.com/fxamacker/cbor/v2
+          - zntr.io/paseto/v4
+  gosec:
+    excludes:
+      - G101
   dogsled:
     # checks assignments with too many blank identifiers; default is 2
     max-blank-identifiers: 2
   dupl:
-    # tokens count to trigger issue, 150 by default
     threshold: 150
   errcheck:
     # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
@@ -70,10 +88,6 @@ linters-settings:
     # default is false: such cases aren't reported by default.
     check-blank: false
 
-    # [deprecated] comma-separated list of pairs of the form pkg:regex
-    # the regex is used to ignore names within pkg. (default "fmt:.*").
-    # see https://github.com/kisielk/errcheck#the-deprecated-method for details
-    ignore: fmt:.*,io/ioutil:^Read.*
   exhaustive:
     # check switch statements in generated files also
     check-generated: false
@@ -82,12 +96,10 @@ linters-settings:
     # switch
     default-signifies-exhaustive: false
   govet:
-    # report about shadowed variables
-    check-shadowing: true
+    enable:
+      - shadow
   goimports:
     local: "github.com/elastic"
-  golint:
-    min-confidence: 0.8
   gofmt:
     simplify: true
   gocyclo:
@@ -98,10 +110,10 @@ linters-settings:
     line-length: 140
     tab-width: 1
   gci:
-    # put imports beginning with prefix after 3rd-party packages;
-    # only support one prefix
-    # if not set, use goimports.local-prefixes
-    local-prefixes: zntr.io/solid
+    sections:
+      - standard
+      - default
+      - prefix(zntr.io/solid)
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
     min-complexity: 20
@@ -153,27 +165,15 @@ linters-settings:
             recommandations:
               - github.com/pelletier/go-toml
   goheader:
-    template: |-
-      Licensed to SolID under one or more contributor
-      license agreements. See the NOTICE file distributed with
-      this work for additional information regarding copyright
-      ownership. SolID licenses this file to you under
-      the Apache License, Version 2.0 (the "License"); you may
-      not use this file except in compliance with the License.
-      You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-      Unless required by applicable law or agreed to in writing,
-      software distributed under the License is distributed on an
-      "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-      KIND, either express or implied.  See the License for the
-      specific language governing permissions and limitations
-      under the License.
+    template-path: .golangci-header.txt
 
   gocritic:
     # Enable multiple checks by tags, run `GL_DEBUG=gocritic golangci-lint run` to see all tags and checks.
     # Empty list by default. See https://github.com/go-critic/go-critic#usage -> section "Tags".
+    # unslice is disabled: it misfires on fixed-size arrays (e.g. [16]byte),
+    # where the slice conversion is required by the language.
+    disabled-checks:
+      - unslice
     enabled-tags:
       - diagnostic
       - performance
@@ -184,13 +184,11 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     # - dupl
     - errcheck
     - errorlint
-    - exportloopref
     - exhaustive
     # - forbidigo
     - funlen
@@ -201,7 +199,6 @@ linters:
     - gofmt
     - goheader
     - goimports
-    - golint
     # - gomnd
     - goprintffuncname
     - gosec
@@ -215,11 +212,9 @@ linters:
     - nolintlint
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace

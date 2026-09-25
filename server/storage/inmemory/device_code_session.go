@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/patrickmn/go-cache"
 	"golang.org/x/crypto/blake2b"
 
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
@@ -30,19 +29,24 @@ import (
 )
 
 type deviceCodeSessionStorage struct {
-	userCodeIndex   *cache.Cache
-	deviceCodeIndex *cache.Cache
+	userCodeIndex   *ttlCache
+	deviceCodeIndex *ttlCache
+	secretKey       []byte
 }
 
 // DeviceCodeSessions returns a device authorization session manager.
-func DeviceCodeSessions() storage.DeviceCodeSession {
-	// Initialize in-memory caches
-	userCodeCache := cache.New(2*time.Minute, 10*time.Minute)
-	deviceCodeCache := cache.New(2*time.Minute, 10*time.Minute)
+func DeviceCodeSessions(secretKey []byte) storage.DeviceCodeSession {
+	// The cache TTL only bounds storage residency: it must outlive the
+	// protocol-level expiry (session.ExpiresAt) so the token grant can
+	// distinguish an expired session (expired_token, RFC 8628 section
+	// 3.5) from a purged one.
+	userCodeCache := newTTLCache(10 * time.Minute)
+	deviceCodeCache := newTTLCache(10 * time.Minute)
 
 	return &deviceCodeSessionStorage{
 		userCodeIndex:   userCodeCache,
 		deviceCodeIndex: deviceCodeCache,
+		secretKey:       secretKey,
 	}
 }
 
@@ -50,8 +54,8 @@ func DeviceCodeSessions() storage.DeviceCodeSession {
 
 func (s *deviceCodeSessionStorage) Register(ctx context.Context, issuer, userCode string, req *sessionv1.DeviceCodeSession) (uint64, error) {
 	// Insert in cache
-	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req, cache.DefaultExpiration)
-	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req, cache.DefaultExpiration)
+	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req)
+	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req)
 
 	// No error
 	return uint64(120), nil
@@ -85,18 +89,37 @@ func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, issuer, us
 
 func (s *deviceCodeSessionStorage) Validate(ctx context.Context, issuer, userCode string, req *sessionv1.DeviceCodeSession) error {
 	// Insert in cache
-	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req, cache.DefaultExpiration)
-	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req, cache.DefaultExpiration)
+	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req)
+	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req)
 
 	// No error
 	return nil
+}
+
+// UpdateByDeviceCode persists a mutated device code session (poll timing state).
+func (s *deviceCodeSessionStorage) UpdateByDeviceCode(ctx context.Context, issuer, deviceCode string, r *sessionv1.DeviceCodeSession) error {
+	// Both indexes hold the same *sessionv1.DeviceCodeSession pointer; the
+	// user-code index sees the mutation through the shared pointer. The
+	// user-code index key is not recoverable from the session, so only the
+	// device-code index needs re-keying here.
+	s.deviceCodeIndex.Set(s.deriveDeviceCode(issuer, deviceCode), r)
+	return nil
+}
+
+// DeleteAndGetByDeviceCode atomically consumes a validated device code session,
+// enforcing one-time use (RFC 10027 section 6.1.3).
+func (s *deviceCodeSessionStorage) DeleteAndGetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*sessionv1.DeviceCodeSession, error) {
+	if x, ok := s.deviceCodeIndex.DeleteAndGet(s.deriveDeviceCode(issuer, deviceCode)); ok {
+		return x.(*sessionv1.DeviceCodeSession), nil
+	}
+	return nil, storage.ErrNotFound
 }
 
 // -----------------------------------------------------------------------------
 
 func (s *deviceCodeSessionStorage) deriveUserCode(issuer, code string) string {
 	// Create hasher
-	h, err := blake2b.New256([]byte(`bA(0Kq#UT>42Va[MEFs[M%owo8|jiTbf!SVr1h0RaT~$a6?L\rqeB$q>fSDLz0:`))
+	h, err := blake2b.New256(s.secretKey)
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +133,7 @@ func (s *deviceCodeSessionStorage) deriveUserCode(issuer, code string) string {
 
 func (s *deviceCodeSessionStorage) deriveDeviceCode(issuer, code string) string {
 	// Create hasher
-	h, err := blake2b.New256([]byte(`bA(0Kq#UT>42Va[MEFs[M%owo8|jiTbf!SVr1h0RaT~$a6?L\rqeB$q>fSDLz0:`))
+	h, err := blake2b.New256(s.secretKey)
 	if err != nil {
 		panic(err)
 	}

@@ -20,7 +20,7 @@ package generator
 import (
 	"context"
 
-	"github.com/dchest/uniuri"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
@@ -38,6 +38,6 @@ func DefaultClientID() ClientID {
 type clientIDGenerator struct{}
 
 func (c *clientIDGenerator) Generate(_ context.Context) (string, error) {
-	code := uniuri.NewLen(DefaultClientIDLen)
+	code := random.String(DefaultClientIDLen)
 	return code, nil
 }

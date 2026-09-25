@@ -19,7 +19,7 @@ syntax = "proto3";
 
 package oidc.resource.v1;
 
-option go_package = "oidc/resource/v1;resourcev1";
+option go_package = "zntr.io/solid/api/oidc/resource/v1;resourcev1";
 
 // -----------------------------------------------------------------------------
 

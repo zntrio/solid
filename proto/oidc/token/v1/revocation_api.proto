@@ -22,7 +22,7 @@ package oidc.token.v1;
 import "oidc/client/v1/client.proto";
 import "oidc/core/v1/error.proto";
 
-option go_package = "oidc/token/v1;tokenv1";
+option go_package = "zntr.io/solid/api/oidc/token/v1;tokenv1";
 
 // -----------------------------------------------------------------------------
 

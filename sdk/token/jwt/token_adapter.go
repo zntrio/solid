@@ -22,46 +22,50 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	josejwt "github.com/go-jose/go-jose/v4/jwt"
+	gojwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 type tokenAdapter struct {
-	token *josejwt.JSONWebToken
+	token *gojwt.Token
+	parts []string
 }
 
 func (tw *tokenAdapter) Type() (string, error) {
-	if len(tw.token.Headers) == 0 {
-		return "", fmt.Errorf("unable to retrieve header")
-	}
-
-	if typ, ok := tw.token.Headers[0].ExtraHeaders["typ"]; ok {
-		return fmt.Sprintf("%v", typ), nil
+	if v, ok := tw.token.Header["typ"]; ok {
+		return fmt.Sprintf("%v", v), nil
 	}
 
 	return "", fmt.Errorf("unable to retrieve token type")
 }
 
 func (tw *tokenAdapter) KeyID() (string, error) {
-	if len(tw.token.Headers) == 0 {
-		return "", fmt.Errorf("unable to retrieve kid claim from header")
+	if v, ok := tw.token.Header["kid"]; ok {
+		if s, ok := v.(string); ok {
+			return s, nil
+		}
 	}
-	return tw.token.Headers[0].KeyID, nil
+
+	return "", fmt.Errorf("unable to retrieve kid claim from header")
 }
 
 func (tw *tokenAdapter) PublicKey() (any, error) {
-	if len(tw.token.Headers) == 0 {
-		return "", fmt.Errorf("unable to retrieve embededded jwk from header")
+	k, err := embeddedKey(tw.token)
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve embededded jwk from header: %w", err)
 	}
-	return tw.token.Headers[0].JSONWebKey, nil
+
+	return k, nil
 }
 
 func (tw *tokenAdapter) PublicKeyThumbPrint() (string, error) {
-	if len(tw.token.Headers) == 0 {
-		return "", fmt.Errorf("unable to retrieve embededded jwk from header")
+	k, err := embeddedKey(tw.token)
+	if err != nil {
+		return "", fmt.Errorf("unable to retrieve embededded jwk from header: %w", err)
 	}
 
-	// Generate thumbprint
-	h, err := tw.token.Headers[0].JSONWebKey.Thumbprint(crypto.SHA256)
+	// Generate thumbprint (RFC 7638)
+	h, err := k.Thumbprint(crypto.SHA256)
 	if err != nil {
 		return "", fmt.Errorf("unable to generate embedded jwk thumbprint: %w", err)
 	}
@@ -71,12 +75,31 @@ func (tw *tokenAdapter) PublicKeyThumbPrint() (string, error) {
 }
 
 func (tw *tokenAdapter) Algorithm() (string, error) {
-	if len(tw.token.Headers) == 0 {
-		return "", fmt.Errorf("unable to retrieve `alg` claim from header")
+	if v, ok := tw.token.Header["alg"]; ok {
+		if s, ok := v.(string); ok {
+			return s, nil
+		}
 	}
-	return tw.token.Headers[0].Algorithm, nil
+
+	return "", fmt.Errorf("unable to retrieve `alg` claim from header")
 }
 
-func (tw *tokenAdapter) Claims(publicKey any, claims any) error {
-	return tw.token.Claims(publicKey, claims)
+func (tw *tokenAdapter) Claims(publicKey, claims any) error {
+	// Materialize the public key (a jwk.Key from PublicKey()).
+	k, ok := publicKey.(jwxjwk.Key)
+	if !ok {
+		return fmt.Errorf("invalid public key type")
+	}
+	rawKey, err := MaterializeSigningKey(k)
+	if err != nil {
+		return fmt.Errorf("unable to materialize public key: %w", err)
+	}
+
+	// Verify token signature
+	if err := verifyWithKey(tw.token, tw.parts, rawKey); err != nil {
+		return err
+	}
+
+	// Decode claims into target object
+	return decodeClaims(tw.parts, claims)
 }

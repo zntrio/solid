@@ -32,7 +32,7 @@ import (
 // Device handle device code validation.
 func Device(issuer string, devicez services.Device) http.Handler {
 	// Display user code form
-	displayForm := func(w http.ResponseWriter, r *http.Request, sub string) {
+	displayForm := func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
 		if r.Method != http.MethodGet {
 			respond.WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
@@ -62,7 +62,10 @@ func Device(issuer string, devicez services.Device) http.Handler {
 
 	// Validate user code
 	validateUserCode := func(w http.ResponseWriter, r *http.Request, sub string) {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			return
+		}
 
 		// Only POST verb
 		if r.Method != http.MethodPost {
@@ -95,7 +98,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 
 		switch r.Method {
 		case http.MethodGet:
-			displayForm(w, r, sub)
+			displayForm(w, r)
 		case http.MethodPost:
 			validateUserCode(w, r, sub)
 		default:

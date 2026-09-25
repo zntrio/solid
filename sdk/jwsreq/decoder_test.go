@@ -22,21 +22,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
 
 var cmpOpts = []cmp.Option{
-	cmpopts.IgnoreUnexported(wrappers.StringValue{}),
 	cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}),
 	cmpopts.IgnoreUnexported(corev1.Error{}),
+	protocmp.Transform(),
 }
 
 func Test_jwtDecoder_Decode(t *testing.T) {
@@ -112,6 +113,43 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "request object missing exp claim",
+			args: args{
+				value: "fake-token",
+			},
+			prepare: func(verifier *tokenmock.MockVerifier) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
+					switch v := claims.(type) {
+					case *map[string]any:
+						*v = map[string]any{
+							"scope": "openid",
+							"aud":   "https://honest.as.example",
+						}
+					}
+				}).Return(nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "request object aud does not match issuer",
+			args: args{
+				value: "fake-token",
+			},
+			prepare: func(verifier *tokenmock.MockVerifier) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
+					switch v := claims.(type) {
+					case *map[string]any:
+						*v = map[string]any{
+							"scope": "openid",
+							"exp":   float64(9999999999),
+							"aud":   "https://evil.example",
+						}
+					}
+				}).Return(nil)
+			},
+			wantErr: true,
+		},
+		{
 			name: "valid",
 			args: args{
 				value: "fake-token",
@@ -122,6 +160,8 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 					case *map[string]any:
 						*v = map[string]any{
 							"scope": "openid",
+							"exp":   float64(9999999999),
+							"aud":   "https://honest.as.example",
 						}
 					}
 				}).Return(nil)
@@ -129,6 +169,40 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			wantErr: false,
 			want: &flowv1.AuthorizationRequest{
 				Scope: "openid",
+			},
+		},
+		{
+			name: "authorization_details",
+			args: args{
+				value: "fake-token",
+			},
+			prepare: func(verifier *tokenmock.MockVerifier) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
+					switch v := claims.(type) {
+					case *map[string]any:
+						*v = map[string]any{
+							"scope": "openid",
+							"exp":   float64(9999999999),
+							"aud":   "https://honest.as.example",
+							"authorization_details": []any{
+								map[string]any{
+									"type":    "payment_initiation",
+									"actions": []any{"initiate"},
+								},
+							},
+						}
+					}
+				}).Return(nil)
+			},
+			wantErr: false,
+			want: &flowv1.AuthorizationRequest{
+				Scope: "openid",
+				AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+					{
+						Type:    "payment_initiation",
+						Actions: []string{"initiate"},
+					},
+				},
 			},
 		},
 	}
@@ -144,7 +218,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				tt.prepare(mockVerifier)
 			}
 
-			d := AuthorizationRequestDecoder(mockVerifier)
+			d := AuthorizationRequestDecoder(mockVerifier, "https://honest.as.example")
 			got, err := d.Decode(tt.args.ctx, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("jwtDecoder.Decode() error = %v, wantErr %v", err, tt.wantErr)

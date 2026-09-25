@@ -5,6 +5,10 @@
 = Third-party dependencies
 
 This page lists the third-party dependencies used to build {n}.
+The authoritative, version-pinned source is the `go.mod` module file; this
+page mirrors its direct requirements (runtime and tooling). The full
+indirect graph is reproducible via `go list -m all` and intentionally not
+duplicated here.
 
 [float]
 [id="{p}-dependencies-direct"]
@@ -14,54 +18,46 @@ This page lists the third-party dependencies used to build {n}.
 |===
 | Name | Version | Licence
 
-| link:https://github.com/Masterminds/semver[$$github.com/Masterminds/semver/v3$$] | v3.1.1 | MIT
-| link:https://github.com/dchest/uniuri[$$github.com/dchest/uniuri$$] | v0.0.0-20200228104902-7aecb25e1fe5 | CC0-1.0
-| link:https://github.com/fatih/color[$$github.com/fatih/color$$] | v1.13.0 | MIT
-| link:https://github.com/fxamacker/cbor[$$github.com/fxamacker/cbor/v2$$] | v2.3.0 | MIT
-| link:https://github.com/go-ozzo/ozzo-validation[$$github.com/go-ozzo/ozzo-validation/v4$$] | v4.3.0 | MIT
-| link:https://github.com/golang/mock[$$github.com/golang/mock$$] | v1.6.0 | Apache-2.0
-| link:https://github.com/golang/protobuf[$$github.com/golang/protobuf$$] | v1.5.2 | BSD-3-Clause
-| link:https://github.com/google/go-cmp[$$github.com/google/go-cmp$$] | v0.5.6 | BSD-3-Clause
-| link:https://github.com/google/gofuzz[$$github.com/google/gofuzz$$] | v1.2.0 | Apache-2.0
-| link:https://github.com/iancoleman/strcase[$$github.com/iancoleman/strcase$$] | v0.2.0 | MIT
-| link:https://github.com/Zenithar/session[$$github.com/Zenithar/session$$] | v0.1.1-0.20200929071535-c4de738d3339 | Public Domain
-| link:https://github.com/magefile/mage[$$github.com/magefile/mage$$] | v1.11.0 | Apache-2.0
-| link:https://github.com/o1egl/paseto[$$github.com/o1egl/paseto$$] | v1.0.0 | MIT
-| link:https://github.com/patrickmn/go-cache[$$github.com/patrickmn/go-cache$$] | v2.1.0+incompatible | MIT
-| link:https://github.com/spf13/cobra[$$github.com/spf13/cobra$$] | v1.2.1 | Apache-2.0
-| link:https://go.mozilla.org/cose[$$go.mozilla.org/cose$$] | v0.0.0-20200930124131-25dc96df8228 | MPL-2.0
-| link:https://golang.org/x/crypto[$$golang.org/x/crypto$$] | v0.0.0-20210921155107-089bfa567519 | BSD-3-Clause
-| link:https://golang.org/x/oauth2[$$golang.org/x/oauth2$$] | v0.0.0-20211005180243-6b3c2da341f1 | BSD-3-Clause
-| link:https://golang.org/x/sys[$$golang.org/x/sys$$] | v0.0.0-20211025201205-69cdffdb9359 | BSD-3-Clause
-| link:https://google.golang.org/protobuf[$$google.golang.org/protobuf$$] | v1.27.1 | BSD-3-Clause
-| link:https://gopkg.in/square/go-jose.v2[$$gopkg.in/square/go-jose.v2$$] | v2.6.0 | Apache-2.0
+| link:https://github.com/golang-jwt/jwt[$$github.com/golang-jwt/jwt/v5$$] | v5.3.1 | MIT
+| link:https://github.com/lestrrat-go/jwx[$$github.com/lestrrat-go/jwx/v3$$] | v3.3.0 | MIT
+| link:https://github.com/fxamacker/cbor[$$github.com/fxamacker/cbor/v2$$] | v2.9.4 | MIT
+| link:https://github.com/go-ozzo/ozzo-validation[$$github.com/go-ozzo/ozzo-validation/v4$$] | v4.4.1 | MIT
+| link:https://github.com/google/go-cmp[$$github.com/google/go-cmp$$] | v0.7.0 | BSD-3-Clause
+| link:https://github.com/stretchr/testify[$$github.com/stretchr/testify$$] | v1.12.1 | MIT
+| link:https://golang.org/x/crypto[$$golang.org/x/crypto$$] | v0.57.0 | BSD-3-Clause
+| link:https://zntr.io/paseto[$$zntr.io/paseto$$] | v1.4.0 | MIT
+| link:https://buf.build/protovalidate[$$buf.build/go/protovalidate$$] | v1.4.0 | Apache-2.0
+| link:https://buf.build/protovalidate[$$buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go$$] | v1.36.12-20260825204119-511051f7f437.2 | Apache-2.0
+| link:https://github.com/planetscale/vtprotobuf[$$github.com/planetscale/vtprotobuf$$] | v0.6.1-0.20240319094008-0393e58bdf10 | Apache-2.0
+| link:https://go.mozilla.org/cose[$$go.mozilla.org/cose$$] | v0.0.0-20220818192640-18d34e90336d | MPL-2.0
+| link:https://google.golang.org/grpc[$$google.golang.org/grpc$$] | v1.84.0 | Apache-2.0
+| link:https://google.golang.org/protobuf[$$google.golang.org/protobuf$$] | v1.36.12 | BSD-3-Clause
 |===
 
+[float]
+[id="{p}-dependencies-tools"]
+== Tooling dependencies
+
+Tooling (build, lint, code generation) is tracked as direct requirements of
+the main module so that CI and contributors share pinned versions.
+
+[options="header"]
+|===
+| Name | Version | Role
+
+| link:https://github.com/golangci/golangci-lint[$$github.com/golangci/golangci-lint$$] | v1.64.8 | linter
+| link:https://go.uber.org/mock[$$go.uber.org/mock$$] | v0.6.0 | mock generation (`mockgen`)
+| link:https://google.golang.org/grpc[$$google.golang.org/grpc/cmd/protoc-gen-go-grpc$$] | v1.6.2 | protobuf gRPC code generation
+| link:https://github.com/daixiang0/gci[$$github.com/daixiang0/gci$$] | v0.14.0 | import ordering
+| link:https://mvdan.cc/gofumpt[$$mvdan.cc/gofumpt$$] | v0.12.0 | formatter
+| link:https://github.com/frapposelli/wwhrd[$$github.com/frapposelli/wwhrd$$] | v0.4.0 | licence header check
+| link:https://gotest.tools/gotestsum[$$gotest.tools/gotestsum$$] | v1.13.0 | test runner
+|===
 
 [float]
 [id="{p}-dependencies-indirect"]
 == Indirect dependencies
 
-[options="header"]
-|===
-| Name | Version | Licence
-
-| link:https://github.com/aead/chacha20[$$github.com/aead/chacha20$$] | v0.0.0-20180709150244-8b13a72661da | MIT
-| link:https://github.com/aead/chacha20poly1305[$$github.com/aead/chacha20poly1305$$] | v0.0.0-20170617001512-233f39982aeb | MIT
-| link:https://github.com/aead/poly1305[$$github.com/aead/poly1305$$] | v0.0.0-20180717145839-3fee0db0b635 | MIT
-| link:https://github.com/asaskevich/govalidator[$$github.com/asaskevich/govalidator$$] | v0.0.0-20200108200545-475eaeb16496 | MIT
-| link:https://github.com/davecgh/go-spew[$$github.com/davecgh/go-spew$$] | v1.1.1 | ISC
-| link:https://github.com/inconshreveable/mousetrap[$$github.com/inconshreveable/mousetrap$$] | v1.0.0 | Apache-2.0
-| link:https://github.com/mattn/go-colorable[$$github.com/mattn/go-colorable$$] | v0.1.9 | MIT
-| link:https://github.com/mattn/go-isatty[$$github.com/mattn/go-isatty$$] | v0.0.14 | MIT
-| link:https://github.com/pkg/errors[$$github.com/pkg/errors$$] | v0.8.1 | BSD-2-Clause
-| link:https://github.com/pmezard/go-difflib[$$github.com/pmezard/go-difflib$$] | v1.0.0 | BSD-3-Clause
-| link:https://github.com/spf13/pflag[$$github.com/spf13/pflag$$] | v1.0.5 | BSD-3-Clause
-| link:https://github.com/stretchr/testify[$$github.com/stretchr/testify$$] | v1.7.0 | MIT
-| link:https://github.com/x448/float16[$$github.com/x448/float16$$] | v0.8.4 | MIT
-| link:https://golang.org/x/net[$$golang.org/x/net$$] | v0.0.0-20210405180319-a5a99cb37ef4 | BSD-3-Clause
-| link:https://golang.org/x/xerrors[$$golang.org/x/xerrors$$] | v0.0.0-20200804184101-5ec99f83aff1 | BSD-3-Clause
-| link:https://google.golang.org/appengine[$$google.golang.org/appengine$$] | v1.6.7 | Apache-2.0
-| link:https://gopkg.in/yaml.v3[$$gopkg.in/yaml.v3$$] | v3.0.0-20210107192922-496545a6307b | MIT
-|===
-
+The indirect dependency graph is large (dominated by golangci-lint plugin
+modules) and fully pinned in `go.mod`; it is intentionally not mirrored on
+this page. Run `go list -m all` for the authoritative, reproducible list.

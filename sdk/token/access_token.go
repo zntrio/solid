@@ -66,32 +66,34 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (
 
 	// Prepare claims
 	claims := struct {
-		Iss      string                     `json:"iss,omitempty" cbor:"1,keyasint,omitempty"`
-		Sub      string                     `json:"sub,omitempty" cbor:"2,keyasint,omitempty"`
-		Aud      string                     `json:"aud,omitempty" cbor:"3,keyasint,omitempty"`
-		Exp      uint64                     `json:"exp,omitempty" cbor:"4,keyasint,omitempty"`
-		Nbf      uint64                     `json:"nbf,omitempty" cbor:"5,keyasint,omitempty"`
-		Iat      uint64                     `json:"iat,omitempty" cbor:"6,keyasint,omitempty"`
-		JTI      string                     `json:"jti,omitempty" cbor:"7,keyasint,omitempty"`
-		ClientID string                     `json:"client_id,omitempty" cbor:"100,keyasint,omitempty"`
-		Scope    string                     `json:"scope,omitempty" cbor:"101,keyasint,omitempty"`
-		Cnf      *tokenv1.TokenConfirmation `json:"cnf,omitempty" cbor:"102,keyasint,omitempty"`
+		Iss                  string                         `json:"iss,omitempty" cbor:"1,keyasint,omitempty"`
+		Sub                  string                         `json:"sub,omitempty" cbor:"2,keyasint,omitempty"`
+		Aud                  string                         `json:"aud,omitempty" cbor:"3,keyasint,omitempty"`
+		Exp                  uint64                         `json:"exp,omitempty" cbor:"4,keyasint,omitempty"`
+		Nbf                  uint64                         `json:"nbf,omitempty" cbor:"5,keyasint,omitempty"`
+		Iat                  uint64                         `json:"iat,omitempty" cbor:"6,keyasint,omitempty"`
+		JTI                  string                         `json:"jti,omitempty" cbor:"7,keyasint,omitempty"`
+		ClientID             string                         `json:"client_id,omitempty" cbor:"100,keyasint,omitempty"`
+		Scope                string                         `json:"scope,omitempty" cbor:"101,keyasint,omitempty"`
+		Cnf                  *JSONConfirmation              `json:"cnf,omitempty" cbor:"102,keyasint,omitempty"`
+		AuthorizationDetails []*tokenv1.AuthorizationDetail `json:"authorization_details,omitempty" cbor:"103,keyasint,omitempty"`
 	}{
-		Iss:      t.Metadata.Issuer,
-		Sub:      t.Metadata.Subject,
-		Aud:      t.Metadata.Audience,
-		Exp:      t.Metadata.ExpiresAt,
-		Nbf:      t.Metadata.NotBefore,
-		Iat:      t.Metadata.IssuedAt,
-		JTI:      t.TokenId,
-		ClientID: t.Metadata.ClientId,
-		Scope:    t.Metadata.Scope,
+		Iss:                  t.Metadata.Issuer,
+		Sub:                  t.Metadata.Subject,
+		Aud:                  t.Metadata.Audience,
+		Exp:                  t.Metadata.ExpiresAt,
+		Nbf:                  t.Metadata.NotBefore,
+		Iat:                  t.Metadata.IssuedAt,
+		JTI:                  t.TokenId,
+		ClientID:             t.Metadata.ClientId,
+		Scope:                t.Metadata.Scope,
+		AuthorizationDetails: t.Metadata.AuthorizationDetails,
 	}
 
 	// If token has a confirmation
 	if t.Confirmation != nil {
-		// Add jwt key token proof
-		claims.Cnf = t.Confirmation
+		// Add jwt key token proof with RFC-mandated member names
+		claims.Cnf = ConfirmationAsJSON(t.Confirmation)
 	}
 
 	// Sign the assertion
@@ -112,8 +114,8 @@ func (c *accessTokenGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 		return fmt.Errorf("token meta must not be nil")
 	}
 
-	now := uint64(time.Now().Unix())
-	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix())
+	now := uint64(time.Now().Unix())                                                      //nolint:gosec // Unix time is non-negative
+	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix()) //nolint:gosec // Unix time is non-negative
 
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,

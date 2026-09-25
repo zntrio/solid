@@ -121,7 +121,8 @@ I made sample server and various integrations inside `examples/` folder.
 
 * OAuth Core
   * [OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) - <https://oauth.net/2.1/>
-  * [OAuth 2.0 Security Best Current Practice](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics)
+  * [x] [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html) — implemented and adversarially tested (`integration/`)
+  * [x] [draft-ietf-oauth-security-topics-update-03 - Updates to OAuth 2.0 Security Best Current Practice](https://www.ietf.org/archive/id/draft-ietf-oauth-security-topics-update-03.txt) — vendored and adversarially tested (`integration/securities_adversarial_test.go`); AS-side audience hardening (§2.1) and client-side issuer-identifier audience (§2.1.2.1) applied
 * OAuth Extensions
   * Discovery
     * [x] [RFC8414 - OAuth 2.0 Authorization Server Metadata](https://tools.ietf.org/html/rfc8414)
@@ -133,7 +134,8 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [RFC7521 - Assertion Framework for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7521.html)
       * [x] `private_key_jwt` - <https://oauth.net/private-key-jwt/>
       * [x] `attest_jwt_client_auth` - [OAuth 2.0 Attestation-Based Client Authentication](https://datatracker.ietf.org/doc/draft-looker-oauth-attestation-based-client-auth/)
-      * [ ] `tls_client_auth` - [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
+      * [x] `spiffe_jwt` / `spiffe_wit` / `spiffe_x509` - [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — all three SVID credential types (JWT-SVID via `client_assertion_type: ...jwt-spiffe`, WIT-SVID via the attestation headers, X.509-SVID via mutual TLS); trust-domain signing keys resolved exclusively from `BundleSource`s keyed by trust domain (draft §6: static pre-configured bundles or SPIFFE bundle endpoints with refresh-hint polling, `sdk/spiffe`), never from SVID issuer claims (§8.1); fail-closed `spiffe_id` client binding with `/*` path-segment wildcards (§5.1); implemented and adversarially tested (`integration/spiffe_test.go`, demo client in `examples/spiffeclient`)
+      * [x] `tls_client_auth` - [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705) — PKI mutual-TLS client authentication (§2.1): the TLS peer certificate is matched fail-closed against exactly one registered subject binding (`subject_dn`, `san_dns`, `san_uri`, `san_ip` binary-compared, `san_email`; `server/clientauthentication/tls_client_auth.go`); certificate-bound tokens via the `x5t#S256` `cnf` member (§3.1, `sdk/token`), enforced at the refresh grant (§7.1) and the example resource server; RFC Appendix A fixture-anchored and adversarially tested (`integration/rfc8705_mtls_test.go`)
   * Grant Types
     * [x] `client_credentials` grant type
     * [x] `authorization_code` grant type
@@ -142,10 +144,10 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [RFC9101 - The OAuth 2.0 Authorization Framework: JWT-Secured Authorization Request (JAR)](https://tools.ietf.org/html/rfc9101) (JAR)
       * [x] [JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)](https://openid.net/specs/openid-financial-api-jarm.html)
       * [x] [RFC9207 - OAuth 2.0 Authorization Server Issuer Identification](https://tools.ietf.org/html/rfc9207.html)
-      * [ ] [RFC9396 - OAuth 2.0 Rich Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9396)
+      * [x] [RFC9396 - OAuth 2.0 Rich Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9396) (`authorization_details` carried in JAR request objects; deep-equal subset narrowing at the token endpoint; fail-closed for `client_credentials`/`token_exchange`)
     * [x] `refresh_token` grant type
-    * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type - [rfc8628](https://tools.ietf.org/html/rfc8628)
-    * [x] RFC8693 - `urn:ietf:params:oauth:grant-type:token-exchange` grant type - [rfc8693](https://tools.ietf.org/html/rfc8693)
+    * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type — `expired_token` / `access_denied` / `slow_down` semantics all enforced server-side - [rfc8628](https://tools.ietf.org/html/rfc8628)
+    * [x] RFC10027 - BCP 247 cross-device flow security — device grant hardened: one-time device codes, server-enforced polling interval (`slow_down`), user-code attempt throttling, DPoP-flag enforcement, no refresh tokens from the device grant; proximity / trusted-device mitigations are deployment concerns - [rfc10027](https://www.rfc-editor.org/rfc/rfc10027.txt)
     * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
   * Resource
     * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
@@ -154,6 +156,7 @@ I made sample server and various integrations inside `examples/` folder.
   * Client
     * [ ] [RFC7591 - OAuth 2.0 Dynamic Client Registration](https://tools.ietf.org/html/rfc7591)
     * [ ] [RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol](https://tools.ietf.org/html/rfc7592)
+    * [x] [(DRAFT) OAuth Client ID Metadata Document](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document)
     * [ ] [OAuth 2.0 Client ID Scheme](https://datatracker.ietf.org/doc/html/draft-looker-oauth-client-id-scheme)
   * Tokens
     * Privacy
@@ -194,8 +197,10 @@ I made sample server and various integrations inside `examples/` folder.
 
 * [OAuth 2.0](https://oauth.net/2/)
 * [OAuth 2.0 Client Authentication](https://medium.com/@darutk/oauth-2-0-client-authentication-4b5f929305d4)
-* [OAuth 2.0 Security Best Current Practice](https://tools.ietf.org/html/draft-ietf-oauth-security-topics-15)
-* [Why you should stop using the OAuth implicit grant!](https://medium.com/@torsten_lodderstedt/why-you-should-stop-using-the-oauth-implicit-grant-2436ced1c926)
+* [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)
+* The standard texts of the implemented RFCs (6749, 7009, 7523, 7636, 7662, 8628, 8693, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
+* [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — SPIFFE workload identity (SVIDs) as OAuth client credentials
+* [SPIFFE](https://spiffe.io/) — Secure Production Identity Framework For Everyone (SPIFFE IDs, trust domains, SVIDs, bundle endpoints)
 * [OAuth 2.0 for Browser-Based Apps](https://tools.ietf.org/id/draft-parecki-oauth-browser-based-apps-02.html)
 * [Financial-grade API - Part 1: Read-Only API Security Profile](https://openid.net/specs/openid-financial-api-part-1.html)
 * [Financial-grade API - Part 2: Read and Write API Security Profile](https://openid.net/specs/openid-financial-api-part-2.html)

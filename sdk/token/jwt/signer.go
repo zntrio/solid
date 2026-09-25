@@ -19,19 +19,50 @@ package jwt
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
+	gojwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/types"
 )
 
+// ClaimsAdapter adapts arbitrary claim objects (structs, maps, protobuf
+// types) to the gojwt.Claims interface. The registered-claims getters
+// return zero values: claim semantics are validated by solid's services,
+// never by the JWT library. MarshalJSON preserves the wrapped object's
+// exact JSON form.
+type ClaimsAdapter struct{ Claims any }
+
+// MarshalJSON marshals the wrapped claim object with its exact JSON form.
+func (c ClaimsAdapter) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.Claims)
+}
+
+// GetExpirationTime implements the gojwt.Claims interface.
+func (c ClaimsAdapter) GetExpirationTime() (*gojwt.NumericDate, error) { return nil, nil }
+
+// GetNotBefore implements the gojwt.Claims interface.
+func (c ClaimsAdapter) GetNotBefore() (*gojwt.NumericDate, error) { return nil, nil }
+
+// GetIssuedAt implements the gojwt.Claims interface.
+func (c ClaimsAdapter) GetIssuedAt() (*gojwt.NumericDate, error) { return nil, nil }
+
+// GetAudience implements the gojwt.Claims interface.
+func (c ClaimsAdapter) GetAudience() (gojwt.ClaimStrings, error) { return nil, nil }
+
+// GetIssuer implements the gojwt.Claims interface.
+func (c ClaimsAdapter) GetIssuer() (string, error) { return "", nil }
+
+// GetSubject implements the gojwt.Claims interface.
+func (c ClaimsAdapter) GetSubject() (string, error) { return "", nil }
+
 type defaultSigner struct {
 	tokenType   string
-	alg         jose.SignatureAlgorithm
+	alg         string
 	keyProvider jwk.KeyProviderFunc
 	embedJWK    bool
 }
@@ -55,22 +86,39 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	if key == nil {
 		return "", fmt.Errorf("key provider returned a nil key")
 	}
-	if key.KeyID == "" {
+	kid, ok := key.KeyID()
+	if !ok || kid == "" {
 		return "", fmt.Errorf("key provider returned a unidentifiable key")
 	}
-	// Prepare JWT header
-	options := (&jose.SignerOptions{}).WithType(jose.ContentType(ds.tokenType))
-	options = options.WithHeader(jose.HeaderKey("kid"), key.KeyID)
-	options.EmbedJWK = ds.embedJWK
 
-	// Prepare a signer
-	sig, err := jose.NewSigner(jose.SigningKey{Algorithm: ds.alg, Key: key}, options)
+	// Materialize the signing key to a native Go key.
+	rawKey, err := MaterializeSigningKey(key)
 	if err != nil {
-		return "", fmt.Errorf("unable to prepare signer: %w", err)
+		return "", err
+	}
+
+	// Resolve the signing method.
+	method := gojwt.GetSigningMethod(ds.alg)
+	if method == nil {
+		return "", fmt.Errorf("unsupported signing algorithm %q", ds.alg)
+	}
+
+	// Build token
+	tok := gojwt.NewWithClaims(method, ClaimsAdapter{Claims: claims})
+	tok.Header["typ"] = ds.tokenType
+	tok.Header["kid"] = kid
+
+	// Embed the public JWK in the header (DPoP).
+	if ds.embedJWK {
+		pub, pubErr := jwxjwk.PublicKeyOf(key)
+		if pubErr != nil {
+			return "", fmt.Errorf("unable to derive public key: %w", pubErr)
+		}
+		tok.Header["jwk"] = pub
 	}
 
 	// Generate the final proof
-	raw, err := jwt.Signed(sig).Claims(claims).Serialize()
+	raw, err := tok.SignedString(rawKey)
 	if err != nil {
 		return "", fmt.Errorf("unable to generate JWT: %w", err)
 	}

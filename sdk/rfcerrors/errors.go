@@ -36,10 +36,11 @@ func InvalidRequest() ErrorBuilder {
 }
 
 // InvalidScope returns a compliant `invalid_scope` error.
+// https://www.rfc-editor.org/rfc/rfc6749#section-5.2
 func InvalidScope() ErrorBuilder {
 	return &defaultErrorBuilder{
 		err:              "invalid_scope",
-		errorDescription: "The request is missing a required parameter, includes an invalid parameter value, includes a parameter more than once, or is otherwise malformed.",
+		errorDescription: "The requested scope is invalid, unknown, or malformed.",
 	}
 }
 
@@ -107,10 +108,11 @@ func AccessDenied() ErrorBuilder {
 	}
 }
 
-// TokenExpired returns a compliant `token_expired` error.
+// TokenExpired returns a compliant `expired_token` error.
+// https://www.rfc-editor.org/rfc/rfc8628#section-3.5
 func TokenExpired() ErrorBuilder {
 	return &defaultErrorBuilder{
-		err:              "token_expired",
+		err:              "expired_token",
 		errorDescription: "The 'device_code' has expired, and the device authorization session has concluded.",
 	}
 }
@@ -168,11 +170,29 @@ func InvalidTarget() ErrorBuilder {
 	}
 }
 
+// InvalidAuthorizationDetails returns a compliant `invalid_authorization_details` error.
+// https://www.rfc-editor.org/rfc/rfc9396#section-5
+func InvalidAuthorizationDetails() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "invalid_authorization_details",
+		errorDescription: "The requested authorization details are invalid, unknown, or malformed.",
+	}
+}
+
 // InsufficientUserAuthentication returns a compliant `invalid_target` error.
 // https://datatracker.ietf.org/doc/html/rfc9470#name-authentication-requirements
 func InsufficientUserAuthentication() ErrorBuilder {
 	return &defaultErrorBuilder{
 		err:              "insufficient_user_authentication",
 		errorDescription: "The authentication event associated with the access token presented with the request does not meet the authentication requirements of the protected resource.",
+	}
+}
+
+// UnsupportedResponseType returns a compliant `unsupported_response_type` error.
+// https://www.rfc-editor.org/rfc/rfc6749#section-4.1.2.1
+func UnsupportedResponseType() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "unsupported_response_type",
+		errorDescription: "The authorization server does not support obtaining an authorization code using this method.",
 	}
 }

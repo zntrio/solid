@@ -19,7 +19,7 @@ syntax = "proto3";
 
 package oidc.client.v1;
 
-option go_package = "oidc/client/v1;clientv1";
+option go_package = "zntr.io/solid/api/oidc/client/v1;clientv1";
 
 // ClientType describes OIDC Client type enumeration.
 // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-04#section-2.1
@@ -110,6 +110,22 @@ message Client {
   bool require_signed_request_object = 27;
   // https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
   bool dpop_bound_access_tokens = 28;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: SPIFFE ID of the
+  // workload the client identity is bound to; MAY end with /* (wildcard
+  // over complete path segments).
+  string spiffe_id = 29;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: SPIFFE bundle
+  // endpoint serving the trust domain bundle.
+  string spiffe_bundle_endpoint = 30;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: pre-configured
+  // SPIFFE bundle (JWKS) for the client's trust domain, the static
+  bytes spiffe_bundle = 31;
+  // RFC 7662 section 2.1: client identifiers authorized by this client
+  // to introspect its tokens at the introspection endpoint (resource
+  // servers acting as delegates). The token owner itself is always
+  // allowed; anyone else receives the no-cause-distinction inactive
+  // envelope.
+  repeated string authorized_introspection_clients = 32;
 }
 
 message ClientMeta {
@@ -150,6 +166,60 @@ message ClientMeta {
   optional bool require_signed_request_object = 35;
   // https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
   optional bool dpop_bound_access_tokens = 36;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: SPIFFE ID of the
+  // workload the client identity is bound to; MAY end with /* (wildcard
+  // over complete path segments).
+  optional string spiffe_id = 37;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: SPIFFE bundle
+  // endpoint serving the trust domain bundle.
+  optional string spiffe_bundle_endpoint = 38;
+}
+
+// ClientIDMetadataDocument mirrors the Client ID Metadata Document wire format
+// defined by the OAuth Client ID Metadata Document draft. Properties use the
+// RFC 7591 client-metadata JSON names. client_secret and
+// client_secret_expires_at are carried so the resolver can REJECT documents
+// containing them (draft-ietf-oauth-client-id-metadata-document, section 4.1).
+message ClientIDMetadataDocument {
+  optional string client_id = 1;
+  repeated string redirect_uris = 2;
+  optional string token_endpoint_auth_method = 3;
+  repeated string grant_types = 4;
+  repeated string response_types = 5;
+  optional string client_name = 6;
+  map<string, string> client_name_i18n = 7;
+  optional string client_uri = 8;
+  optional string logo_uri = 9;
+  map<string, string> logo_uri_i18n = 10;
+  optional string scope = 11;
+  repeated string contacts = 12;
+  optional string tos_uri = 13;
+  map<string, string> tos_uri_i18n = 14;
+  optional string policy_uri = 15;
+  map<string, string> policy_uri_i18n = 16;
+  optional string jwks_uri = 17;
+  optional bytes jwks = 18;
+  optional string software_id = 19;
+  optional string software_version = 20;
+  optional string software_statement = 21;
+  optional string subject_type = 22;
+  optional string sector_identifier = 23;
+  repeated string response_modes = 24;
+  optional bool require_pushed_authorization_requests = 25;
+  optional bool require_signed_request_object = 26;
+  // https://datatracker.ietf.org/doc/html/rfc9449#section-5.2
+  optional bool dpop_bound_access_tokens = 27;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: SPIFFE ID of the
+  // workload the client identity is bound to; MAY end with /* (wildcard
+  // over complete path segments).
+  optional string spiffe_id = 30;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 5.1: SPIFFE bundle
+  // endpoint serving the trust domain bundle.
+  optional string spiffe_bundle_endpoint = 31;
+  // Present in the wire format so the resolver can REJECT documents containing
+  // them (section 4.1: they MUST NOT be used).
+  optional string client_secret = 28;
+  optional int64 client_secret_expires_at = 29;
 }
 
 message SoftwareStatement {

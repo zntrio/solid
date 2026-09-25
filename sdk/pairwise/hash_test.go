@@ -84,7 +84,7 @@ func Test_hashEncoder_Encode(t *testing.T) {
 			args: args{
 				subject: "test",
 			},
-			want:    "Lv66CmN2nfnAUDkK8oOZ0BZ9bUgMnf7h4c2cTFDxJX0",
+			want:    "B1Rgoyp3WChu145vxTBiczt8blE1Z2JFAmAO_vLTd_g",
 			wantErr: false,
 		},
 		{
@@ -100,7 +100,7 @@ func Test_hashEncoder_Encode(t *testing.T) {
 			args: args{
 				subject: "test",
 			},
-			want:    "9Y5Hy43EvYCR6v4Fu3bt4OJZg2AlCgwpwEc4dc_-o2w",
+			want:    "m9C5Rbk-7DJw7B34_QhnBk1bIrjFzHt2S-XWEA4k8UM",
 			wantErr: false,
 		},
 		{
@@ -120,7 +120,7 @@ func Test_hashEncoder_Encode(t *testing.T) {
 			args: args{
 				subject: "test",
 			},
-			want:    "CnoEuXsTY9vP37sOgKgf6Fzy3BXNAGjKRAOak_kI5Jg",
+			want:    "yRERMm_YJ0cNphNgEa9P-QbXW1zL8CEDwfApDkOepyU",
 			wantErr: false,
 		},
 		{
@@ -155,7 +155,7 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				subject:  "test",
 				sectorID: "http://backend.exmaple.com",
 			},
-			want:    "OhB_oAEehjt6h3N_cfkrK-CoFhsOntVjhQrcxi0HnD4",
+			want:    "pR8ec4YcFV5MXaHAyWrGTWiWVnDg_JiJchFtcQrr3cU",
 			wantErr: false,
 		},
 	}
@@ -171,5 +171,28 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				t.Errorf("hashEncoder.Encode() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// Test_hashEncoder_Encode_sectorFraming pins the unambiguous framing of the
+// sector identifier: naive concatenation would make ("ab","c") and ("a","bc")
+// collide into the same pairwise subject.
+func Test_hashEncoder_Encode_sectorFraming(t *testing.T) {
+	salt := []byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}
+	tr := Hash(salt)
+
+	first, err := tr.Encode("ab", "c")
+	if err != nil {
+		t.Fatalf("Encode(ab, c) error = %v", err)
+	}
+	second, err := tr.Encode("a", "bc")
+	if err != nil {
+		t.Fatalf("Encode(a, bc) error = %v", err)
+	}
+	if first == second {
+		t.Errorf("sector/subject boundary collision: Encode(ab,c) == Encode(a,bc) == %s", first)
 	}
 }

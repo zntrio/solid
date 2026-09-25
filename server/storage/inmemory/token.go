@@ -32,13 +32,17 @@ import (
 type tokenStorage struct {
 	idIndex    sync.Map
 	valueIndex sync.Map
+	secretKey  []byte
 }
 
 // Tokens returns a token manager.
-func Tokens() storage.Token {
+// Tokens returns an in-memory token storage keyed by the given secret key.
+// This implementation is intended for examples and tests only.
+func Tokens(secretKey []byte) storage.Token {
 	return &tokenStorage{
 		idIndex:    sync.Map{},
 		valueIndex: sync.Map{},
+		secretKey:  secretKey,
 	}
 }
 
@@ -85,6 +89,22 @@ func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*t
 	return client.(*tokenv1.Token), nil
 }
 
+func (s *tokenStorage) GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token {
+	// Collect every token bound to the grant family.
+	result := []*tokenv1.Token{}
+	s.idIndex.Range(func(_, v any) bool {
+		t, ok := v.(*tokenv1.Token)
+		if !ok || t.Metadata == nil || t.Metadata.GrantId != grantID {
+			return true
+		}
+		result = append(result, t)
+		return true
+	})
+
+	// No error
+	return result
+}
+
 func (s *tokenStorage) Delete(ctx context.Context, issuer, id string) error {
 	// Retrieve token
 	t, err := s.Get(ctx, issuer, id)
@@ -121,7 +141,7 @@ func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 
 func (s *tokenStorage) deriveValue(issuer, value string) string {
 	// Create hasher
-	h, err := blake2b.New256([]byte(`%JwQL_C=w^R@9?{J,=;LHe=&n0L1P{QrS=MsA}7H]V3fHd8&$noL&"hZH;&Uw)3`))
+	h, err := blake2b.New256(s.secretKey)
 	if err != nil {
 		panic(err)
 	}

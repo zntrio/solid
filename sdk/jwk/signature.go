@@ -20,91 +20,79 @@ package jwk
 import (
 	"errors"
 
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
+	golangjwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 )
 
 // ErrInvalidTokenSignature is raised when token is signed with a private key
 // where the public key is not known by the keyset.
 var ErrInvalidTokenSignature = errors.New("invalid token signature")
 
-// ValidateToken validates given token using given JWKS.
-func ValidateToken(jwks *jose.JSONWebKeySet, token *jwt.JSONWebToken, claims any) error {
+// rawPublicKey materializes a key set entry to a native Go public key,
+// usable as a golang-jwt verification key. Entries that cannot be
+// materialized (unsupported key types, symmetric keys) are reported as
+// errors and skipped by the caller.
+func rawPublicKey(k Key) (golangjwt.VerificationKey, error) {
+	// AKP keys are not supported by jwx; unwrap the raw ML-DSA public key.
+	if mk, ok := k.(*MLDSAKey); ok {
+		if mk.MLDSPublicKey() == nil {
+			return nil, errors.New("ML-DSA key has no public key material")
+		}
+		return mk.MLDSPublicKey(), nil
+	}
+
+	// PublicRawKeyOf exports only public material, refusing symmetric keys.
+	raw, err := jwxjwk.PublicRawKeyOf(k)
+	if err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
+// ValidateSignature validates the signature of the given raw token string
+// using the keys of the given JWKS. Claims are not validated: solid applies
+// its own claims validation after signature verification (RFC 7523 order).
+func ValidateSignature(jwks Set, tokenString string, supportedAlgorithms []string) error {
 	// Check parameters
 	if jwks == nil {
 		return errors.New("can't process nil jwks")
 	}
-	if len(jwks.Keys) == 0 {
+	if jwks.Len() == 0 {
 		return errors.New("can't process empty jwks")
 	}
-	if token == nil {
-		return errors.New("can't process nil token")
+	if tokenString == "" {
+		return errors.New("can't process empty token")
 	}
 
-	valid := false
-	// For each key in keyset
-	for i := range jwks.Keys {
-		// Extract key
-		k := jwks.Keys[i]
-
-		// Check key type
-		if k.Use == "enc" {
-			// Ignore encryption key
+	// Build the list of candidate public keys from the keyset.
+	var candidates []golangjwt.VerificationKey
+	for i := 0; i < jwks.Len(); i++ {
+		k, ok := jwks.Key(i)
+		if !ok {
 			continue
 		}
 
-		// Try to verify with current key
-		if err := token.Claims(k, claims); err != nil {
+		// Skip encryption keys.
+		if use, ok := k.KeyUsage(); ok && use == "enc" {
 			continue
 		}
 
-		// Found a valid key
-		valid = true
-		break
+		// Materialize the key to a native Go public key.
+		raw, err := rawPublicKey(k)
+		if err != nil {
+			continue
+		}
+		candidates = append(candidates, raw)
 	}
-	if !valid {
+	if len(candidates) == 0 {
 		return ErrInvalidTokenSignature
 	}
 
-	// No error
-	return nil
-}
-
-// ValidateSignature validates given token using given JWKS.
-func ValidateSignature(jwks *jose.JSONWebKeySet, signature *jose.JSONWebSignature) error {
-	// Check parameters
-	if jwks == nil {
-		return errors.New("can't process nil jwks")
-	}
-	if len(jwks.Keys) == 0 {
-		return errors.New("can't process empty jwks")
-	}
-	if signature == nil {
-		return errors.New("can't process nil signature")
-	}
-
-	valid := false
-	// For each key in keyset
-	for i := range jwks.Keys {
-		// Extract key
-		k := jwks.Keys[i]
-
-		// Check key type
-		if k.Use == "enc" {
-			// Ignore encryption key
-			continue
-		}
-
-		// Try to verify with current key
-		if _, err := signature.Verify(k); err != nil {
-			continue
-		}
-
-		// Found a valid key
-		valid = true
-		break
-	}
-	if !valid {
+	// Verify token signature with the keyset, without claims validation.
+	token, err := golangjwt.Parse(tokenString, func(_ *golangjwt.Token) (any, error) {
+		return golangjwt.VerificationKeySet{Keys: candidates}, nil
+	}, golangjwt.WithValidMethods(supportedAlgorithms), golangjwt.WithoutClaimsValidation())
+	if err != nil || !token.Valid {
 		return ErrInvalidTokenSignature
 	}
 

@@ -23,17 +23,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dchest/uniuri"
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
+	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
+	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
@@ -47,7 +48,7 @@ func Test_service_authorizationCode(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockAuthorizationCodeSession, *storagemock.MockToken, *tokenmock.MockGenerator, *tokenmock.MockGenerator)
+		prepare func(*storagemock.MockAuthorizationCodeSession, *storagemock.MockToken, *storagemock.MockResourceReader, *tokenmock.MockGenerator, *tokenmock.MockGenerator)
 		want    *flowv1.TokenResponse
 		wantErr bool
 	}{
@@ -78,8 +79,10 @@ func Test_service_authorizationCode(t *testing.T) {
 		{
 			name: "nil grant",
 			args: args{
-				ctx:    context.Background(),
-				client: &clientv1.Client{},
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeAuthorizationCode},
+				},
 				req: &flowv1.TokenRequest{
 					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeAuthorizationCode,
@@ -106,7 +109,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -125,7 +128,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -153,7 +156,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.UnsupportedGrantType().Build(),
+				Error: rfcerrors.UnauthorizedClient().Build(),
 			},
 		},
 		{
@@ -161,6 +164,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -189,6 +193,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -201,7 +206,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					GrantType: oidc.GrantTypeAuthorizationCode,
 					Grant: &flowv1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &flowv1.GrantAuthorizationCode{
-							Code:         uniuri.NewLen(1025),
+							Code:         random.String(1025),
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
 						},
@@ -218,6 +223,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -246,6 +252,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -275,6 +282,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -288,7 +296,37 @@ func Test_service_authorizationCode(t *testing.T) {
 					Grant: &flowv1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &flowv1.GrantAuthorizationCode{
 							Code:         "1234567891234567890",
-							CodeVerifier: uniuri.NewLen(129),
+							CodeVerifier: random.String(129),
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().Build(),
+			},
+		},
+		{
+			name: "code_verifier contains reserved characters",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "bcd$efghijklmnopqrstuvwxyzabcdefghijklmn",
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
@@ -304,6 +342,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -332,6 +371,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -351,8 +391,8 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil, storage.ErrNotFound)
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
@@ -364,6 +404,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -383,8 +424,8 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil, fmt.Errorf("foo"))
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
@@ -396,6 +437,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -415,8 +457,8 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
 					Request: nil,
 				}, nil)
 			},
@@ -430,6 +472,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -449,8 +492,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -462,11 +506,13 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				// The atomic consume replaced the Get+Delete pair; a
+				// successfully consumed session failing later checks is an
+				// invalid_grant, not a storage error.
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
 		{
@@ -474,6 +520,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -493,8 +540,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -506,7 +554,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
@@ -518,6 +565,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -537,8 +585,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -550,7 +599,279 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "session without consumed status is rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb1"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb1",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					// An UNSPECIFIED session surfacing from the atomic
+					// consume indicates a non-conforming storage; reject.
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_UNSPECIFIED,
+					Request: &flowv1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email",
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb1",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "client mismatch between session and token request",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "other-client",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "other-client",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email",
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "code bound to DPoP key, no proof presented",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "jkt1",
+					},
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "code DPoP key mismatch",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+							DpopJkt:      new("jkt2"),
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "jkt1",
+					},
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "grant dpop_jkt present, token confirmation missing",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+							DpopJkt:      new("jkt1"),
+						},
+					},
+					TokenConfirmation: nil,
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "grant dpop_jkt mismatch with token confirmation",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+							DpopJkt:      new("jkt1"),
+						},
+					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{
+						Jkt: "jkt2",
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
@@ -562,6 +883,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -581,8 +903,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -594,7 +917,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
@@ -606,6 +928,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -625,8 +948,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -638,19 +962,64 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "xxx",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
 			},
 		},
-		// ---------------------------------------------------------------------
 		{
-			name: "openid: generate access token error",
+			name: "authorization_details not consented",
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType:            oidc.GrantTypeAuthorizationCode,
+					AuthorizationDetails: []*tokenv1.AuthorizationDetail{{Type: "payment"}},
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+						AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+							{Type: "account"},
+						},
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidAuthorizationDetails().Build(),
+			},
+		},
+		{
+			name: "resource indicator lookup storage error",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -670,8 +1039,95 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, resources *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+						Resource:            []string{"https://res.example.com"},
+					},
+				}, nil)
+				resources.EXPECT().GetByURI(gomock.Any(), "https://res.example.com").Return(nil, fmt.Errorf("boom"))
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.ServerError().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "scope without openid returns empty response",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						Scope:               "email profile",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: false,
+			want:    &flowv1.TokenResponse{},
+		},
+		// ---------------------------------------------------------------------
+		{
+			name: "openid: generate access token error",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -683,7 +1139,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -696,6 +1151,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -715,8 +1171,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -728,7 +1185,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", nil)
 			},
 			wantErr: true,
@@ -741,6 +1197,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -760,8 +1217,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -773,7 +1231,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
@@ -787,6 +1244,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -806,8 +1264,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -819,7 +1278,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
@@ -834,6 +1292,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -853,8 +1312,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -866,7 +1326,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", nil)
@@ -881,6 +1340,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -900,8 +1360,9 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -913,7 +1374,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
@@ -930,6 +1390,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
@@ -949,9 +1410,10 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().Get(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						ResponseType:        "code",
@@ -963,7 +1425,6 @@ func Test_service_authorizationCode(t *testing.T) {
 						CodeChallengeMethod: "S256",
 					},
 				}, nil)
-				sessions.EXPECT().Delete(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
@@ -977,6 +1438,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
+						ClientId:  "s6BhdRkqt3",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -990,6 +1452,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
+						ClientId:  "s6BhdRkqt3",
 						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 						Scope:     "openid profile email offline_access",
 						IssuedAt:  1,
@@ -998,6 +1461,215 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 				},
+			},
+		},
+		{
+			name: "openid: DPoP-bound code with matching key",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+							DpopJkt:      types.StringRef("0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8"),
+						},
+					},
+					// Token-endpoint DPoP proof confirmation, as set by the
+					// HTTP handler from the verified proof (RFC 9449 section 10).
+					TokenConfirmation: &tokenv1.TokenConfirmation{
+						Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8",
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8",
+					},
+					Request: &flowv1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "openid profile email",
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+			},
+			wantErr: false,
+			want: &flowv1.TokenResponse{
+				Error: nil,
+				AccessToken: &tokenv1.Token{
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						ClientId:  "s6BhdRkqt3",
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 3601,
+					},
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8",
+					},
+					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+		},
+		{
+			name: "openid: DPoP-bound code with mismatched key is rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+							DpopJkt:      types.StringRef("attacker-key-thumbprint-not-the-bound-one"),
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8",
+					},
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "openid: DPoP-bound code without proof confirmation is rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8",
+					},
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+			},
+		},
+		{
+			name: "unknown resource indicator is rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					ClientId:      "s6BhdRkqt3",
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeAuthorizationCode,
+					Grant: &flowv1.TokenRequest_AuthorizationCode{
+						AuthorizationCode: &flowv1.GrantAuthorizationCode{
+							Code:         "1234567891234567890",
+							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+							RedirectUri:  "https://client.example.org/cb",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, resources *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+						Resource:            []string{"urn:example:unknown-api"},
+					},
+				}, nil)
+				resources.EXPECT().GetByURI(gomock.Any(), "urn:example:unknown-api").Return(nil, storage.ErrNotFound)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidTarget().State("af0ifjsldkj").Build(),
 			},
 		},
 	}
@@ -1011,10 +1683,11 @@ func Test_service_authorizationCode(t *testing.T) {
 			accessTokens := tokenmock.NewMockGenerator(ctrl)
 			refreshTokens := tokenmock.NewMockGenerator(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
+			resources := storagemock.NewMockResourceReader(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
-				tt.prepare(sessions, tokens, accessTokens, refreshTokens)
+				tt.prepare(sessions, tokens, resources, accessTokens, refreshTokens)
 			}
 
 			s := &service{
@@ -1022,6 +1695,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				accessTokenGen:            accessTokens,
 				refreshTokenGen:           refreshTokens,
 				tokens:                    tokens,
+				resources:                 resources,
 			}
 			got, err := s.authorizationCode(tt.args.ctx, tt.args.client, tt.args.req)
 			if (err != nil) != tt.wantErr {

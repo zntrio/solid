@@ -17,7 +17,10 @@
 
 package types
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // StringArray describes string array type
 type StringArray []string
@@ -60,13 +63,7 @@ func (s *StringArray) Remove(item string) {
 
 // HasOneOf returns true when one of provided items is found in array.
 func (s StringArray) HasOneOf(items ...string) bool {
-	for _, item := range items {
-		if s.Contains(item) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(items, s.Contains)
 }
 
 // HasAll returns true when all of provided items is found in array.

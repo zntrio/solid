@@ -34,8 +34,9 @@ const (
 	TypeAuthzRequest = "oauth-authz-req"
 	// TypeAuthzResponseMode describes Authorization Response Mode header type.
 	TypeAuthzResponseMode = "jarm"
-	// TypeDPoP describes DPoP header type.
-	TypeDPoP = "dpop"
+	// TypeDPoP describes DPoP proof header type, as required by
+	// RFC 9449 section 4.1.
+	TypeDPoP = "dpop+jwt"
 	// TypeClientAssertion describes client assertion header type.
 	TypeClientAssertion = "client-assertion"
 	// TypeTokenInstrospection describes token instrospection response header type.

@@ -22,23 +22,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	fuzz "github.com/google/gofuzz"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/authzdetails"
 	"zntr.io/solid/sdk/rfcerrors"
-	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(wrappers.StringValue{}), cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeResponse{}), cmpopts.IgnoreUnexported(flowv1.RegistrationRequest{}), cmpopts.IgnoreUnexported(flowv1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeResponse{}), cmpopts.IgnoreUnexported(flowv1.RegistrationRequest{}), cmpopts.IgnoreUnexported(flowv1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
 
 func Test_service_validate(t *testing.T) {
 	type args struct {
@@ -46,11 +45,12 @@ func Test_service_validate(t *testing.T) {
 		req *flowv1.AuthorizationRequest
 	}
 	tests := []struct {
-		name    string
-		args    args
-		prepare func(*storagemock.MockClientReader)
-		want    *corev1.Error
-		wantErr bool
+		name      string
+		args      args
+		prepare   func(*storagemock.MockClientReader)
+		validator authzdetails.Validator
+		want      *corev1.Error
+		wantErr   bool
 	}{
 		{
 			name: "nil",
@@ -328,6 +328,97 @@ func Test_service_validate(t *testing.T) {
 			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
 		},
 		{
+			name: "code_challenge contains reserved characters",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8$",
+					CodeChallengeMethod: "S256",
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
+		{
+			name: "unsupported response_type",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "token",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+				},
+			},
+			wantErr: true,
+			want:    rfcerrors.UnsupportedResponseType().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
+		{
+			name: "authorization_details with failing validator",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizationRequest{
+					Audience:             "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:         "code",
+					Scope:                "openid profile email",
+					ClientId:             "s6BhdRkqt3",
+					State:                "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:                "XDwbBH4MokU8BmrZ",
+					RedirectUri:          "https://client.example.org/cb",
+					CodeChallenge:        "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod:  "S256",
+					AuthorizationDetails: []*tokenv1.AuthorizationDetail{{Type: "payment"}},
+				},
+			},
+			validator: authzdetails.ValidatorFunc(
+				func(context.Context, []*tokenv1.AuthorizationDetail) error {
+					return fmt.Errorf("unsupported authorization_details")
+				},
+			),
+			wantErr: true,
+			want:    rfcerrors.InvalidAuthorizationDetails().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+		},
+		{
+			name: "response_mode jwt alias expands for code",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb",
+					ResponseMode:        new(oidc.ResponseModeJWT),
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
+				}, nil)
+			},
+			wantErr: false,
+			want:    nil,
+		},
+		{
 			name: "unsupported response_mode",
 			args: args{
 				ctx: context.Background(),
@@ -339,7 +430,7 @@ func Test_service_validate(t *testing.T) {
 					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
-					ResponseMode:        types.StringRef("test"),
+					ResponseMode:        new("test"),
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 				},
@@ -480,7 +571,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					ResponseMode:        types.StringRef(oidc.ResponseModeQueryJWT),
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -509,7 +600,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "com.example.app:/oauth2redirect",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              types.StringRef(oidc.PromptConsent),
+					Prompt:              new(oidc.PromptConsent),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -536,7 +627,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
-					Prompt:              types.StringRef(oidc.PromptConsent),
+					Prompt:              new(oidc.PromptConsent),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -569,11 +660,15 @@ func Test_service_validate(t *testing.T) {
 				clients:                   clients,
 				authorizationRequests:     authorizationRequests,
 				authorizationCodeSessions: sessions,
+				authzDetailsValidator:     tt.validator,
 			}
 			got, err := s.validate(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("service.Authorize() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if tt.name == "response_mode jwt alias expands for code" && tt.args.req.ResponseMode != nil && *tt.args.req.ResponseMode != oidc.ResponseModeQueryJWT {
+				t.Errorf("response_mode jwt alias must expand to %s, got %s", oidc.ResponseModeQueryJWT, *tt.args.req.ResponseMode)
 			}
 			if diff := cmp.Diff(got, tt.want, cmpOpts...); diff != "" {
 				t.Errorf("service.Authorize() res =%s", diff)
@@ -582,29 +677,22 @@ func Test_service_validate(t *testing.T) {
 	}
 }
 
-func Test_service_validate_Fuzz(t *testing.T) {
-	// Arm mocks
-	ctrl := gomock.NewController(t)
-	authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
-	clients := storagemock.NewMockClientReader(ctrl)
-	sessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
+func Fuzz_service_validate(f *testing.F) {
+	f.Fuzz(func(t *testing.T, seed []byte) {
+		// Arm mocks
+		ctrl := gomock.NewController(t)
+		authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
+		clients := storagemock.NewMockClientReader(ctrl)
+		sessions := storagemock.NewMockAuthorizationCodeSessionWriter(ctrl)
 
-	// Prepare service
-	s := &service{
-		clients:                   clients,
-		authorizationRequests:     authorizationRequests,
-		authorizationCodeSessions: sessions,
-	}
+		// Prepare service
+		s := &service{
+			clients:                   clients,
+			authorizationRequests:     authorizationRequests,
+			authorizationCodeSessions: sessions,
+		}
 
-	// Making sure the function never panics
-	for i := 0; i < 1000; i++ {
-		f := fuzz.New()
-
-		// Prepare arguments
-		var req flowv1.AuthorizationRequest
-		f.Fuzz(&req)
-
-		// Execute
-		s.validate(context.Background(), &req)
-	}
+		// Making sure the function never panics
+		s.validate(context.Background(), fuzzFillAuthorizationRequest(seed))
+	})
 }

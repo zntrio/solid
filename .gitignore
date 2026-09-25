@@ -21,6 +21,8 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.gen.go
+# Generated mocks are committed (gomock style, see AGENTS.md)
+!**/mock/*.gen.go
 bin
 vendor
 unit-tests.xml
@@ -59,3 +61,4 @@ Temporary Items
 dist
 
 bazel-*
+_apalache-out

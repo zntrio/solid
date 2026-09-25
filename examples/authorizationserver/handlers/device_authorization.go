@@ -45,7 +45,10 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 			return
 		}
 
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			return
+		}
 
 		// Parameters
 		ctx := r.Context()
@@ -63,7 +66,7 @@ func DeviceAuthorization(issuer string, devicez services.Device) http.Handler {
 			return
 		}
 
-		// Send json reponse
+		// Send json response
 		respond.WithJSON(w, http.StatusOK, &response{
 			DeviceCode:      res.DeviceCode,
 			UserCode:        res.UserCode,

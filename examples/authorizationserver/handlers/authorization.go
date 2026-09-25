@@ -20,23 +20,21 @@ package handlers
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"net/url"
 
-	"github.com/dchest/uniuri"
-	"github.com/go-jose/go-jose/v4"
-
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/examples/authorizationserver/middleware"
 	"zntr.io/solid/examples/authorizationserver/respond"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jarm"
+	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/jwsreq"
 	"zntr.io/solid/sdk/pairwise"
+	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token/jwt"
 	"zntr.io/solid/server/services"
@@ -84,15 +82,15 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (*jose.JSONWebKeySet, error) {
-			var jwks jose.JSONWebKeySet
-			if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
+		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
+			parsed, parseErr := jwk.Parse(client.Jwks)
+			if parseErr != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")
 			}
 
 			// No error
-			return &jwks, nil
-		}, []jose.SignatureAlgorithm{jose.ES384}))
+			return parsed, nil
+		}, []string{jwk.MLDSA65}), issuer)
 
 		// Decode request
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
@@ -147,6 +145,10 @@ func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *flowv1.Au
 	if authRes.Error != nil {
 		params.Set("error", authRes.Error.Err)
 		params.Set("state", authRes.State)
+		// RFC 9207 section 2: the issuer identifier MUST be included in
+		// error responses as well, so the client can detect mix-up
+		// attacks on failed flows too.
+		params.Set("iss", authRes.Issuer)
 	} else {
 		params.Set("code", authRes.Code)
 		params.Set("iss", authRes.Issuer)
@@ -235,7 +237,7 @@ func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *fl
 
 	// Prepare template
 	form := template.Must(template.New("form-post-jwt").Parse(`<!DOCTYPE html><html><head><title>Submit This Form</title></head><body><form method="post" action="{{ .RedirectURI }}"><input type="hidden" name="response" value="{{ .Response }}"/></form><script type="text/javascript" nonce="{{ .Nonce }}" integrity="sha384-ZGMxYzUyZTk2ZGY3OGNjZDNlMGFiMTI1M2RmMmNiNmY4MzgyZjY3NDcyZDc1M2U4YTRmNTEzYzc0NTE4M2FiOGZkMWQ1YzFhMjA2MDI2ZTNjOWMyOWEyYzY2YTRhY2Y2Cg==">window.onload = function() {document.forms[0].submit();};</script></body></html>`))
-	nonce := base64.URLEncoding.EncodeToString([]byte(uniuri.NewLen(8)))
+	nonce := base64.URLEncoding.EncodeToString([]byte(random.String(8)))
 
 	// Set headers
 	w.Header().Set("Cache-Control", "no-cache, no-store")

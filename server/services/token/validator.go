@@ -36,9 +36,9 @@ var validateRequest = func(ctx context.Context, req *flowv1.TokenRequest) *corev
 		}
 	}
 
-	// Validate issuer
+	// Validate issuer (client input; malformed input is not a server fault).
 	if req.Issuer == "" {
-		return rfcerrors.ServerError().Build()
+		return rfcerrors.InvalidRequest().Build()
 	}
 
 	// Validate client authentication
@@ -69,7 +69,9 @@ var validateRequest = func(ctx context.Context, req *flowv1.TokenRequest) *corev
 			return rfcerrors.InvalidGrant().Build()
 		}
 	default:
-		return rfcerrors.InvalidGrant().Build()
+		// RFC 6749 section 5.2: an unknown grant_type string is
+		// unsupported_grant_type, not invalid_grant.
+		return rfcerrors.UnsupportedGrantType().Build()
 	}
 
 	// Return result

@@ -101,8 +101,8 @@ func (c *clientAssertionGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 		return fmt.Errorf("token meta must not be nil")
 	}
 
-	now := uint64(time.Now().Unix())
-	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix())
+	now := uint64(time.Now().Unix())                                                      //nolint:gosec // Unix time is non-negative
+	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix()) //nolint:gosec // Unix time is non-negative
 
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,

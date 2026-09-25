@@ -43,14 +43,7 @@ code-format:
 	gci write --Section Standard --Section Default --Section "Prefix(zntr.io/solid)" .
 
 .PHONY: regenerate-api
-regenerate-api: install-tools
+regenerate-api:
 	rm -rf $(PROTO_API_DIR) 2>/dev/null
 	mkdir $(PROTO_API_DIR)
-	protoc -I $(PROTO_SRC_DIR) \
-		--experimental_allow_proto3_optional \
-		--plugin=protoc-gen-go=bin/protoc-gen-go \
-		--plugin=protoc-gen-go-grpc=bin/protoc-gen-go-grpc \
-		--go_opt=paths=source_relative --go_out=$(PROTO_API_DIR) \
-		--go-grpc_opt=paths=source_relative --go-grpc_out=$(PROTO_API_DIR) \
-		$(shell find $(PROTO_SRC_DIR) -iname "*.proto")
-
+	cd $(PROTO_SRC_DIR) && buf dep update && buf generate

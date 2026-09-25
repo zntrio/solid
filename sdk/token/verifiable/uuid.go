@@ -1,8 +1,26 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package verifiable
 
 import (
+	"crypto/hkdf"
 	"crypto/hmac"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"crypto/sha256"
 	"crypto/subtle"
 	"errors"
@@ -10,9 +28,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
-
-	"github.com/gofrs/uuid"
-	"golang.org/x/crypto/hkdf"
+	"time"
 )
 
 var wrappedUUIDFormat = regexp.MustCompile("^[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59,60}$")
@@ -33,7 +49,7 @@ func StaticUUIDSource(in [16]byte) UUIDGeneratorFunc {
 func UUIDv4Source() UUIDGeneratorFunc {
 	return func() ([16]byte, error) {
 		// Generate UUIDv4
-		u, err := uuid.NewV4()
+		u, err := uuidv4()
 		if err != nil {
 			return [16]byte{}, fmt.Errorf("unable to generate a random UUIDv4: %w", err)
 		}
@@ -45,12 +61,41 @@ func UUIDv4Source() UUIDGeneratorFunc {
 func UUIDv7Source() UUIDGeneratorFunc {
 	return func() ([16]byte, error) {
 		// Generate UUIDv7
-		u, err := uuid.NewV7()
+		u, err := uuidv7()
 		if err != nil {
 			return [16]byte{}, fmt.Errorf("unable to generate a random UUIDv7: %w", err)
 		}
 		return u, nil
 	}
+}
+
+// uuidv4 returns a RFC 9562 UUIDv4 as [16]byte, backed by crypto/rand.
+func uuidv4() ([16]byte, error) {
+	var u [16]byte
+	if _, err := cryptorand.Read(u[:]); err != nil {
+		return u, fmt.Errorf("unable to read random bytes: %w", err)
+	}
+	u[6] = (u[6] & 0x0f) | 0x40 // version 4
+	u[8] = (u[8] & 0x3f) | 0x80 // variant 10
+	return u, nil
+}
+
+// uuidv7 returns a RFC 9562 UUIDv7 (time-ordered) as [16]byte, backed by crypto/rand.
+func uuidv7() ([16]byte, error) {
+	var u [16]byte
+	ms := uint64(time.Now().UnixMilli())
+	u[0] = byte(ms >> 40) //nolint:gosec // shift keeps value within byte range
+	u[1] = byte(ms >> 32) //nolint:gosec // shift keeps value within byte range
+	u[2] = byte(ms >> 24) //nolint:gosec // shift keeps value within byte range
+	u[3] = byte(ms >> 16) //nolint:gosec // shift keeps value within byte range
+	u[4] = byte(ms >> 8)  //nolint:gosec // shift keeps value within byte range
+	u[5] = byte(ms)       //nolint:gosec // shift keeps value within byte range
+	if _, err := cryptorand.Read(u[6:]); err != nil {
+		return u, fmt.Errorf("unable to read random bytes: %w", err)
+	}
+	u[6] = (u[6] & 0x0f) | 0x70 // version 7
+	u[8] = (u[8] & 0x3f) | 0x80 // variant 10
+	return u, nil
 }
 
 // -----------------------------------------------------------------------------
@@ -67,7 +112,7 @@ type VerifiableUUIDExtractor interface {
 // The secret key is used to derive a unique secret used to seal the UUID value.
 func UUIDGenerator(source UUIDGeneratorFunc, secretKey []byte) Generator {
 	return &uuidGenerator{
-		randReader: rand.Reader,
+		randReader: cryptorand.Reader,
 		source:     source,
 		secretKey:  secretKey,
 	}
@@ -103,8 +148,8 @@ func (vu *uuidGenerator) Generate(opts ...GenerateOption) (string, error) {
 
 	// Generate random nonce (96bits)
 	var nonce [12]byte
-	if _, err := io.ReadFull(vu.randReader, nonce[:]); err != nil {
-		return "", fmt.Errorf("unable to generate random nonce: %w", err)
+	if _, errNonce := io.ReadFull(vu.randReader, nonce[:]); errNonce != nil {
+		return "", fmt.Errorf("unable to generate random nonce: %w", errNonce)
 	}
 
 	// Prepare token prefix
@@ -120,10 +165,11 @@ func (vu *uuidGenerator) Generate(opts ...GenerateOption) (string, error) {
 	// Derive a signature key to prevent direct secret key usages which could
 	// threaten all generated tokens in the potential case of a secret leak.
 	var authKey [32]byte
-	h := hkdf.New(sha256.New, vu.secretKey, nonce[:], []byte("solid-uuid-wrapper-mac-v1"))
-	if _, err := io.ReadFull(h, authKey[:]); err != nil {
+	derivedKey, err := hkdf.Key(sha256.New, vu.secretKey, nonce[:], "solid-uuid-wrapper-mac-v1", 32)
+	if err != nil {
 		return "", fmt.Errorf("unable to derive authentication key: %w", err)
 	}
+	copy(authKey[:], derivedKey)
 
 	// Prepare protected
 	protected := []byte("solid-uuid-protected-token-v1")
@@ -173,10 +219,11 @@ func (vu *uuidGenerator) Extract(in string) ([]byte, error) {
 	// Derive a signature key to prevent direct secret key usages which could
 	// threaten all generated tokens in the potential case of a secret leak.
 	var authKey [32]byte
-	h := hkdf.New(sha256.New, vu.secretKey, sig[:12], []byte("solid-uuid-wrapper-mac-v1"))
-	if _, err := io.ReadFull(h, authKey[:]); err != nil {
+	derivedKey, err := hkdf.Key(sha256.New, vu.secretKey, sig[:12], "solid-uuid-wrapper-mac-v1", 32)
+	if err != nil {
 		return nil, fmt.Errorf("unable to derive authentication key: %w", err)
 	}
+	copy(authKey[:], derivedKey)
 
 	// Prepare protected
 	protected := []byte("solid-uuid-protected-token-v1")

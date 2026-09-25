@@ -1,15 +1,34 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
 package clientauthentication
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
+	gojwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+	blake2b "golang.org/x/crypto/blake2b"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
@@ -18,16 +37,23 @@ import (
 	"zntr.io/solid/server/storage"
 )
 
-// ClientAttestation authentication method.
-func ClientAttestation(clients storage.ClientReader, supportedAlgorithms []jose.SignatureAlgorithm) AuthenticationProcessor {
+// ClientAttestation authentication method. The issuer value MUST be the
+// authorization server's issuer identifier. Per draft-ietf-oauth-security-
+// topics-update-03 section 2.1.2, the PoP aud claim is accepted only when it
+// equals the issuer identifier (section 2.1.2.1) or the exact endpoint that
+// received the attestation PoP (carried by the AuthenticateRequest endpoint
+// field, section 2.1.2.2).
+func ClientAttestation(clients storage.ClientReader, proofs storage.DPoP, issuer string, supportedAlgorithms []string) AuthenticationProcessor {
 	return &clientAttestationAuthentication{
 		clients:             clients,
+		proofs:              proofs,
+		issuer:              issuer,
 		supportedAlgorithms: supportedAlgorithms,
 	}
 }
 
 type clientAttestationConfirmationClaims struct {
-	JWK *jose.JSONWebKey `json:"jwk"`
+	JWK json.RawMessage `json:"jwk"`
 }
 
 type clientAttestationClaims struct {
@@ -42,7 +68,9 @@ type clientAttestationClaims struct {
 
 type clientAttestationAuthentication struct {
 	clients             storage.ClientReader
-	supportedAlgorithms []jose.SignatureAlgorithm
+	proofs              storage.DPoP
+	issuer              string
+	supportedAlgorithms []string
 }
 
 type clientAttestationPOPClaims struct {
@@ -84,46 +112,106 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 	}
 
 	// Decode assertions without validation first
-	clientPublicKey, err := p.validateClientAttestation(ctx, assertions[0])
+	clientPublicKey, attestationSubject, err := p.validateClientAttestation(ctx, assertions[0])
 	if err != nil {
 		res.Error = rfcerrors.UnauthorizedClient().Build()
 		return res, errors.New("invalid client attestation")
 	}
 
-	// Decode PoP
-	rawPoP, err := jwt.ParseSigned(assertions[1], p.supportedAlgorithms)
+	// Decode PoP without validation first
+	t, parts, err := gojwt.NewParser().ParseUnverified(assertions[1], gojwt.MapClaims{})
 	if err != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, errors.New("invalid client attestation PoP")
 	}
 
-	// Try to validate PoP with public key.
+	// Enforce the algorithm allowlist before processing claims.
+	if !containsString(p.supportedAlgorithms, t.Method.Alg()) {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("PoP algorithm %q is not supported", t.Method.Alg())
+	}
+
+	// Retrieve PoP claims
 	var claims clientAttestationPOPClaims
-	if err := rawPoP.Claims(clientPublicKey, &claims); err != nil {
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, errors.New("invalid client attestation PoP")
+	}
+	if err = json.Unmarshal(payload, &claims); err != nil {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, errors.New("invalid client attestation PoP")
+	}
+
+	// Materialize the attested public key and verify the PoP signature.
+	publicKey, err := materializeVerificationKey(clientPublicKey)
+	if err != nil {
+		res.Error = rfcerrors.UnauthorizedClient().Build()
+		return nil, fmt.Errorf("unable to materialize attested client public key: %w", err)
+	}
+	if err = t.Method.Verify(parts[0]+"."+parts[1], t.Signature, publicKey); err != nil {
 		res.Error = rfcerrors.UnauthorizedClient().Build()
 		return nil, fmt.Errorf("client attestation PoP is invalid: %w", err)
 	}
 
 	// Validate claims
 	if claims.Issuer == "" || claims.Expires == 0 || claims.JTI == "" || claims.Audience == "" {
-		return nil, fmt.Errorf("iss, exp, jti, aud are mandatory and not empty")
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("iss, exp, jti, aud are mandatory and not empty")
 	}
-	if claims.Expires < uint64(time.Now().Unix()) {
-		return nil, fmt.Errorf("expired token")
+	// draft-ietf-oauth-security-topics-update-03 section 2.1.2: the PoP aud
+	// MUST be the AS issuer identifier (section 2.1.2.1) or the exact
+	// endpoint that received the assertion (section 2.1.2.2).
+	receivingEndpoint := req.GetEndpoint()
+	if claims.Audience != p.issuer && (receivingEndpoint == "" || claims.Audience != receivingEndpoint) {
+		res.Error = rfcerrors.UnauthorizedClient().Build()
+		return res, fmt.Errorf("PoP aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience, p.issuer, receivingEndpoint)
 	}
-	if claims.NotBefore > uint64(time.Now().Unix()) {
-		return nil, fmt.Errorf("not useable token")
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("expired token")
+	}
+	if claims.Expires > claims.IssuedAt+uint64(maxAssertionLifetime.Seconds()) {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("exp is too far in the future, assertion lifetime must not exceed %s", maxAssertionLifetime)
+	}
+	if claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("not useable token")
+	}
+
+	// The attestation subject MUST match the PoP issuer: the attested key
+	// must be bound to the same client identity that presents the PoP.
+	if attestationSubject != claims.Issuer {
+		res.Error = rfcerrors.UnauthorizedClient().Build()
+		return res, fmt.Errorf("attestation subject does not match PoP issuer")
 	}
 
 	// Check client in storage
 	client, err := p.clients.Get(ctx, claims.Issuer)
 	if err != nil {
-		if err != storage.ErrNotFound {
+		if !errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("error during client retrieval: %w", err)
 		}
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("client not found")
+	}
+
+	// Prevent PoP replay: the jti must be single-use. Burn it only after
+	// full validation of the proof (RFC 7523 section 3 replay prevention).
+	jtiHash := blake2b.Sum256([]byte("attest:" + claims.Issuer + ":" + claims.JTI))
+	jtiKey := base64.RawURLEncoding.EncodeToString(jtiHash[:])
+	if exists, errExists := p.proofs.Exists(ctx, jtiKey); errExists != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("unable to verify PoP uniqueness: %w", errExists)
+	} else if exists {
+		res.Error = rfcerrors.UnauthorizedClient().Build()
+		return res, fmt.Errorf("PoP jti has already been used")
+	}
+	if err := p.proofs.Register(ctx, jtiKey); err != nil {
+		res.Error = rfcerrors.ServerError().Build()
+		return res, fmt.Errorf("unable to register PoP jti: %w", err)
 	}
 
 	// Assign to response
@@ -134,55 +222,95 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 
 // -----------------------------------------------------------------------------
 
-func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.Context, clientAttestation string) (*jose.JSONWebKey, error) {
+//nolint:gocyclo // linear draft-ordered validation chain; each guard is a protocol requirement
+func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.Context, clientAttestation string) (key jwk.Key, subject string, err error) {
 	// Parse attestation without cryptogrpahic verification first
-	rawAttestation, err := jose.ParseSigned(clientAttestation, p.supportedAlgorithms)
+	t, parts, err := gojwt.NewParser().ParseUnverified(clientAttestation, gojwt.MapClaims{})
 	if err != nil {
-		return nil, fmt.Errorf("client attestation is syntaxically invalid: %w", err)
+		return nil, "", fmt.Errorf("client attestation is syntaxically invalid: %w", err)
+	}
+
+	// Enforce the algorithm allowlist before processing claims.
+	if !containsString(p.supportedAlgorithms, t.Method.Alg()) {
+		return nil, "", fmt.Errorf("attestation algorithm %q is not supported", t.Method.Alg())
 	}
 
 	// Retrieve payload claims
 	var claims clientAttestationClaims
-	if errDecode := json.Unmarshal(rawAttestation.UnsafePayloadWithoutVerification(), &claims); errDecode != nil {
-		return nil, fmt.Errorf("unable to decode payload claims: %w", errDecode)
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, "", fmt.Errorf("unable to decode payload claims: %w", err)
+	}
+	if err = json.Unmarshal(payload, &claims); err != nil {
+		return nil, "", fmt.Errorf("unable to decode payload claims: %w", err)
 	}
 
 	// Validate claims
 	if claims.Issuer == "" || claims.Subject == "" || claims.Expires == 0 || claims.Confirmation == nil {
-		return nil, fmt.Errorf("iss, sub, exp, cnf are mandatory and not empty")
+		return nil, "", fmt.Errorf("iss, sub, exp, cnf are mandatory and not empty")
 	}
-	if claims.Expires < uint64(time.Now().Unix()) {
-		return nil, fmt.Errorf("expired token")
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
+		return nil, "", fmt.Errorf("expired token")
 	}
-	if claims.NotBefore > uint64(time.Now().Unix()) {
-		return nil, fmt.Errorf("not useable token")
+	if claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
+		return nil, "", fmt.Errorf("not useable token")
 	}
 
 	// Check client in storage
 	client, err := p.clients.Get(ctx, claims.Issuer)
 	if err != nil {
-		if err != storage.ErrNotFound {
-			return nil, fmt.Errorf("error during client retrieval: %w", err)
+		if !errors.Is(err, storage.ErrNotFound) {
+			return nil, "", fmt.Errorf("error during client retrieval: %w", err)
 		}
-		return nil, fmt.Errorf("client not found")
+		return nil, "", fmt.Errorf("client not found")
 	}
 
 	// Retrieve JWK associated to the client
 	if len(client.Jwks) == 0 {
-		return nil, fmt.Errorf("client jwks is nil")
+		return nil, "", fmt.Errorf("client jwks is nil")
 	}
 
-	// Parse JWKS
-	var jwks jose.JSONWebKeySet
-	if err := json.Unmarshal(client.Jwks, &jwks); err != nil {
-		return nil, fmt.Errorf("client jwks is invalid: %w", err)
+	// Parse JWKS (strict: a malformed client JWKS fails)
+	jwks, err := jwk.Parse(client.Jwks)
+	if err != nil {
+		return nil, "", fmt.Errorf("client jwks is invalid: %w", err)
 	}
 
 	// Try to validate assertion with one of keys
-	if err := jwk.ValidateSignature(&jwks, rawAttestation); err != nil {
-		return nil, fmt.Errorf("client assertion is invalid: %w", err)
+	if err = jwk.ValidateSignature(jwks, clientAttestation, p.supportedAlgorithms); err != nil {
+		return nil, "", fmt.Errorf("client assertion is invalid: %w", err)
 	}
 
-	// Extract client public key
-	return claims.Confirmation.JWK, nil
+	// Extract the attested client public key from the cnf claim
+	if len(claims.Confirmation.JWK) == 0 {
+		return nil, "", fmt.Errorf("attestation cnf.jwk is empty")
+	}
+	cnfSet, err := jwk.Parse(claims.Confirmation.JWK)
+	if err != nil {
+		return nil, "", fmt.Errorf("attestation cnf.jwk is invalid: %w", err)
+	}
+	clientPublicKey, ok := cnfSet.Key(0)
+	if !ok {
+		return nil, "", fmt.Errorf("attestation cnf.jwk is empty")
+	}
+
+	// Extract client public key and attestation subject
+	return clientPublicKey, claims.Subject, nil
+}
+
+// materializeVerificationKey resolves the raw Go public key suitable for
+// golang-jwt verification from a jwk.Key, unwrapping AKP (ML-DSA) keys that
+// jwx cannot export.
+func materializeVerificationKey(k jwk.Key) (any, error) {
+	if mk, ok := k.(*jwk.MLDSAKey); ok {
+		if mk.MLDSPublicKey() == nil {
+			return nil, fmt.Errorf("ML-DSA key has no public key material")
+		}
+		return mk.MLDSPublicKey(), nil
+	}
+	var raw any
+	if err := jwxjwk.Export(k, &raw); err != nil {
+		return nil, err
+	}
+	return raw, nil
 }

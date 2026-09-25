@@ -22,7 +22,7 @@ package oidc.client.v1;
 import "oidc/client/v1/client.proto";
 import "oidc/core/v1/error.proto";
 
-option go_package = "oidc/client/v1;clientv1";
+option go_package = "zntr.io/solid/api/oidc/client/v1;clientv1";
 
 // -----------------------------------------------------------------------------
 
@@ -42,6 +42,21 @@ message AuthenticateRequest {
   optional string client_secret = 2;
   optional string client_assertion_type = 3;
   optional string client_assertion = 4;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 3.2: client certificate
+  // from the mutual TLS presentation layer (X.509-SVID), PEM-encoded.
+  optional string tls_client_cert = 5;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 3.3: WIT-SVID carried in
+  // the OAuth-Client-Attestation header.
+  optional string client_attestation = 6;
+  // draft-ietf-oauth-spiffe-client-auth-02 section 3.3: attestation PoP JWT
+  // carried in the OAuth-Client-Attestation-PoP header.
+  optional string client_attestation_pop = 7;
+  // draft-ietf-oauth-security-topics-update-03 section 2.1.2.2: the
+  // receiving endpoint URI, used to enforce endpoint-exact client-assertion
+  // audience validation (an assertion is accepted only for the endpoint it
+  // was actually sent to, or for the authorization server's issuer
+  // identifier).
+  optional string endpoint = 8;
 }
 
 message AuthenticateResponse {

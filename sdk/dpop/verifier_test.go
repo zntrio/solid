@@ -24,11 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
-	"zntr.io/solid/sdk/types"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
@@ -182,6 +181,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("thumbprint", nil)
 				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -208,6 +208,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("thumbprint", nil)
 				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, nil)
 			},
 			wantErr: true,
@@ -234,6 +235,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("thumbprint", nil)
 				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
 				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(fmt.Errorf("foo"))
 			},
@@ -261,8 +263,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -293,8 +293,6 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: true,
@@ -322,12 +320,10 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 							HTTPURL:         "https://server.com/resource",
 							IssuedAt:        uint64(time.Now().Add(-1 * time.Second).Unix()),
 							JTI:             "non-existent-jti",
-							AccessTokenHash: types.StringRef(""),
+							AccessTokenHash: new(""),
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: true,
@@ -355,12 +351,10 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 							HTTPURL:         "https://server.com/resource",
 							IssuedAt:        uint64(time.Now().Add(-1 * time.Second).Unix()),
 							JTI:             "non-existent-jti",
-							AccessTokenHash: types.StringRef("x3Xnt1ft5jDNCqERO9ECZhqziCnKUqZCKreChi8mhkY"),
+							AccessTokenHash: new("x3Xnt1ft5jDNCqERO9ECZhqziCnKUqZCKreChi8mhkY"),
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: true,
@@ -382,6 +376,35 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						*v = proofClaims{
 							HTTPMethod: http.MethodGet,
 							HTTPURL:    "https://server.com/resource",
+							IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:        "non-existent-jti",
+						}
+					}
+				}).Return(nil)
+				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
+				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: false,
+			want:    "fake-confirmation",
+		},
+		{
+			name: "valid with normalized htu (case-insensitive scheme and host)",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+			},
+			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod: http.MethodGet,
+							HTTPURL:    "HTTPS://SERVER.COM/resource",
 							IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
 							JTI:        "non-existent-jti",
 						}
@@ -417,7 +440,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 							HTTPURL:         "https://server.com/resource",
 							IssuedAt:        uint64(time.Now().Add(-1 * time.Second).Unix()),
 							JTI:             "non-existent-jti",
-							AccessTokenHash: types.StringRef("x3Xnt1ft5jDNCqERO9ECZhqziCnKUqZCKreChi8mhkY"),
+							AccessTokenHash: new("x3Xnt1ft5jDNCqERO9ECZhqziCnKUqZCKreChi8mhkY"),
 						}
 					}
 				}).Return(nil)

@@ -19,6 +19,7 @@ package token
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -38,10 +39,18 @@ type service struct {
 	deviceCodeSessions        storage.DeviceCodeSession
 	tokens                    storage.Token
 	resources                 storage.ResourceReader
+	messageValidator          *messageValidator
 }
 
 // New build and returns an authorization service implementation.
-func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
+func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
+	// Initialize the syntactic validation level (protovalidate).
+	mv, err := newMessageValidator()
+	if err != nil {
+		// A misconfigured CEL environment is unrecoverable: surface it loudly.
+		panic(err)
+	}
+
 	return &service{
 		accessTokenGen:            accessTokenGen,
 		refreshTokenGen:           refreshTokenGen,
@@ -51,6 +60,7 @@ func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, client
 		deviceCodeSessions:        deviceCodeSessions,
 		tokens:                    tokens,
 		resources:                 resources,
+		messageValidator:          mv,
 	}
 }
 
@@ -59,7 +69,13 @@ func New(accessTokenGen token.Generator, refreshTokenGen token.Generator, client
 func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
 	res := &flowv1.TokenResponse{}
 
-	// Validate request
+	// First validation level: syntactic rules from protovalidate annotations.
+	if err := s.messageValidator.ValidateTokenRequest(req); err != nil {
+		res.Error = err
+		return res, fmt.Errorf("unable to validate token request syntax")
+	}
+
+	// Second validation level: semantic checks in business logic.
 	if err := validateRequest(ctx, req); err != nil {
 		res.Error = err
 		return res, fmt.Errorf("unable to validate token request")
@@ -68,7 +84,7 @@ func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.
 	// Retrieve client information
 	client, err := s.clients.Get(ctx, req.Client.ClientId)
 	if err != nil {
-		if err != storage.ErrNotFound {
+		if !errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.ServerError().Build()
 		} else {
 			res.Error = rfcerrors.InvalidClient().Build()
@@ -89,9 +105,11 @@ func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.
 	case oidc.GrantTypeTokenExchange:
 		res, err = s.tokenExchange(ctx, client, req)
 	default:
-		// Validated by the front validator but added for defensive principle.
-		res.Error = rfcerrors.InvalidGrant().Build()
-		err = fmt.Errorf("invalid grant_type in request '%s'", req.GrantType)
+		// RFC 6749 section 5.2: an unsupported grant_type string is
+		// rejected with unsupported_grant_type (validated upstream; kept
+		// for defensive principle).
+		res.Error = rfcerrors.UnsupportedGrantType().Build()
+		err = fmt.Errorf("unsupported grant_type in request '%s'", req.GrantType)
 	}
 
 	// No error

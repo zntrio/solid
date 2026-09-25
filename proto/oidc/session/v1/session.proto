@@ -22,14 +22,32 @@ package oidc.session.v1;
 import "oidc/client/v1/client.proto";
 import "oidc/flow/v1/flow.proto";
 import "oidc/flow/v1/flow_api.proto";
+import "oidc/token/v1/authorization_detail.proto";
+import "oidc/token/v1/token.proto";
 
-option go_package = "oidc/session/v1;sessionv1";
+option go_package = "zntr.io/solid/api/oidc/session/v1;sessionv1";
+
+enum AuthorizationCodeStatus {
+  AUTHORIZATION_CODE_STATUS_UNSPECIFIED = 0;
+  AUTHORIZATION_CODE_STATUS_ACTIVE = 1;
+  AUTHORIZATION_CODE_STATUS_CONSUMED = 2;
+}
 
 message AuthorizationCodeSession {
   .oidc.client.v1.Client client = 1;
   string issuer = 2;
   string subject = 3;
   .oidc.flow.v1.AuthorizationRequest request = 4;
+  // Grant identifier minted at code issuance; used to revoke tokens on code replay.
+  string grant_id = 5;
+  // Lifecycle status of the code; transitions are governed by the
+  // sdk/session state machine (ACTIVE -> CONSUMED, terminal).
+  AuthorizationCodeStatus status = 6;
+  // OPTIONAL. DPoP key confirmation (jkt) bound to the code at
+  // authorization time. When set, the token request presenting this code
+  // MUST prove possession of the same key (RFC 9449 section 10
+  // authorization code binding).
+  optional .oidc.token.v1.TokenConfirmation confirmation = 7;
 }
 
 enum DeviceCodeStatus {
@@ -38,6 +56,10 @@ enum DeviceCodeStatus {
   DEVICE_CODE_STATUS_AUTHORIZATION_PENDING = 2;
   DEVICE_CODE_STATUS_CONFIRMATION_PENDING = 3;
   DEVICE_CODE_STATUS_VALIDATED = 4;
+  // Terminal state set when the end user (or the AS on its behalf)
+  // refuses the device authorization request (RFC 8628 section 3.5:
+  // access_denied).
+  DEVICE_CODE_STATUS_DENIED = 5;
 }
 
 message DeviceCodeSession {
@@ -51,4 +73,16 @@ message DeviceCodeSession {
   optional string subject = 8;
   optional string scope = 9;
   optional string audience = 10;
+  // Epoch seconds of the last token-endpoint poll; used to enforce the
+  // advertised polling interval (RFC 8628 section 3.5 slow_down, RFC 10027
+  // section 6.1.11 rate limiting).
+  fixed64 last_polled_at = 11;
+  // Required polling interval in seconds; increased by 5 seconds on every
+  // slow_down (RFC 8628 section 3.5).
+  fixed64 poll_interval = 12;
+
+  // OPTIONAL. The authorization details consented at device authorization
+  // time (RFC 9396 section 3). Fixed for the tokens minted from this
+  // session: the device grant has no token-endpoint narrowing.
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 13;
 }

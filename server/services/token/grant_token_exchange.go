@@ -21,32 +21,27 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
+	"strings"
 	"time"
-
-	"github.com/dchest/uniuri"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
+	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 )
 
-//nolint:funlen,gocyclo // to refactor
 func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
 	res := &flowv1.TokenResponse{}
 
-	// Check parameters
-	if client == nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to process with nil client")
-	}
-	if req == nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to process with nil request")
+	// Shared grant validation: nullity, issuer syntax, grant capability.
+	publicErr, err := validateGrantPreamble(client, req, oidc.GrantTypeTokenExchange)
+	if err != nil {
+		res.Error = publicErr
+		return res, err
 	}
 
 	grant := req.GetTokenExchange()
@@ -55,16 +50,12 @@ func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, re
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
-	// Check issuer syntax
-	if req.Issuer == "" {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("issuer must not be blank")
-	}
-
-	_, err := url.ParseRequestURI(req.Issuer)
-	if err != nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("issuer must be a valid url: %w", err)
+	// RFC 9396: authorization_details require consent-bound grants; token
+	// exchange delegates an existing grant rather than establishing one.
+	// Fail closed rather than inventing a consent authority.
+	if len(req.AuthorizationDetails) > 0 {
+		res.Error = rfcerrors.InvalidAuthorizationDetails().Build()
+		return res, fmt.Errorf("authorization_details is not supported for this grant type")
 	}
 
 	// Check subject token
@@ -76,12 +67,6 @@ func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, re
 	if grant.SubjectToken == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("subject_token must not be empty")
-	}
-
-	// Validate client capabilities
-	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeTokenExchange) {
-		res.Error = rfcerrors.UnsupportedGrantType().Build()
-		return res, fmt.Errorf("client doesn't support '%s' as grant type", oidc.GrantTypeTokenExchange)
 	}
 
 	// Dispatch according to subject_token_type.
@@ -101,6 +86,7 @@ func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, re
 	return res, nil
 }
 
+//nolint:gocyclo,funlen // linear RFC-ordered validation chain; each guard is a protocol requirement
 func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest, res *flowv1.TokenResponse) error {
 	// Check parameters
 	if res == nil {
@@ -123,7 +109,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	// Check given token
 	st, err := s.tokens.GetByValue(ctx, req.Issuer, grant.SubjectToken)
 	if err != nil {
-		if err != storage.ErrNotFound {
+		if !errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.ServerError().Build()
 		} else {
 			res.Error = rfcerrors.InvalidRequest().Build()
@@ -134,26 +120,85 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	// Check token
 	if st.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return fmt.Errorf("subject_token in not active")
+		return fmt.Errorf("subject_token is not active")
 	}
 	if st.TokenType != tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return fmt.Errorf("subject_token must not be empty")
+		return fmt.Errorf("subject_token is not an access token")
 	}
 	if st.Metadata == nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return fmt.Errorf("token doesn't have metadata")
 	}
 
+	// RFC 8693 section 2.1: only access_token requested_token_type is
+	// supported; an explicit other type is an invalid_request.
+	if grant.RequestedTokenType != nil && *grant.RequestedTokenType != oidc.TokenExchangeAccessTokenType {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("unsupported requested_token_type '%s'", *grant.RequestedTokenType)
+	}
+
+	// RFC 8693 section 2.2.2: when an actor_token is present it MUST be a
+	// valid access token issued by this authorization server.
+	var actor *tokenv1.Token
+	if grant.ActorToken != nil && *grant.ActorToken != "" {
+		actor, err = s.tokens.GetByValue(ctx, req.Issuer, *grant.ActorToken)
+		if err != nil || actor == nil || actor.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE ||
+			actor.TokenType != tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN || actor.Metadata == nil {
+			res.Error = rfcerrors.InvalidRequest().Build()
+			return fmt.Errorf("actor_token is invalid")
+		}
+		if actor.Metadata.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
+			res.Error = rfcerrors.InvalidRequest().Build()
+			return fmt.Errorf("actor_token is invalid")
+		}
+
+		// RFC 8693 section 5: may_act, when present on the subject token,
+		// restricts the allowed actors; an unlisted actor is an
+		// invalid_request.
+		if len(st.MayAct) > 0 {
+			authorized := false
+			for _, mayAct := range st.MayAct {
+				if mayAct != nil && actor.Metadata != nil && mayAct.Subject == actor.Metadata.Subject {
+					authorized = true
+					break
+				}
+			}
+			if !authorized {
+				res.Error = rfcerrors.InvalidRequest().Build()
+				return fmt.Errorf("actor is not authorized to act (may_act)")
+			}
+		}
+	}
+
+	// DPoP confirmation binding: when the subject token is key-bound, the
+	// proof presented with this exchange must be made with the same key
+	// (prevents proof-key swap during exchange, RFC 9449 section 8).
+	if st.Confirmation != nil && st.Confirmation.Jkt != "" {
+		if req.TokenConfirmation == nil || !types.SecureCompareString(st.Confirmation.Jkt, req.TokenConfirmation.Jkt) {
+			res.Error = rfcerrors.InvalidGrant().Build()
+			return fmt.Errorf("token confirmation does not match subject token")
+		}
+	}
+
 	// If expired
-	if st.Metadata.ExpiresAt < uint64(timeFunc().Unix()) {
+	if st.Metadata.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return fmt.Errorf("subject_token is expired")
 	}
 
-	// Prepare token metadata
+	// Prepare token metadata: the requested scope MUST NOT exceed the
+	// subject token scope (RFC 8693 section 5: the new security token
+	// SHOULD NOT be issued with a broader scope than the original).
 	scope := st.Metadata.Scope
-	if req.Scope != nil {
+	if req.Scope != nil && *req.Scope != "" {
+		subject := types.StringArray(strings.Fields(st.Metadata.Scope))
+		for _, s := range strings.Fields(*req.Scope) {
+			if !subject.Contains(s) {
+				res.Error = rfcerrors.InvalidScope().Build()
+				return fmt.Errorf("requested scope '%s' exceeds subject token scope", *req.Scope)
+			}
+		}
 		scope = *req.Scope
 	}
 
@@ -161,28 +206,38 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	now := timeFunc()
 	at := &tokenv1.Token{
 		TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-		TokenId:   uniuri.NewLen(jtiLength),
+		TokenId:   random.String(jtiLength),
 		Metadata: &tokenv1.TokenMeta{
 			Issuer:    st.Metadata.Issuer,
 			Subject:   st.Metadata.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),
-			ExpiresAt: uint64(now.Add(1 * time.Minute).Unix()),
+			IssuedAt:  uint64(now.Unix()),                      //nolint:gosec // unix time is non-negative
+			ExpiresAt: uint64(now.Add(1 * time.Minute).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     scope,
 		},
 		Confirmation: st.Confirmation,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
+	// RFC 8693 section 4.4: when an actor token was presented, the issued
+	// token records the acting party (act chain).
+	if actor != nil && actor.Metadata != nil && actor.Metadata.Subject != "" {
+		at.Actor = append(at.Actor, &tokenv1.Actor{
+			Subject: actor.Metadata.Subject,
+		})
+		// Preserve any prior act chain carried by the actor token.
+		at.Actor = append(at.Actor, actor.Actor...)
+	}
+
 	// Add optional meta
 	if req.Audience != nil {
-		aud, err := s.resources.GetByURI(ctx, *req.Audience)
-		if err != nil && errors.Is(err, storage.ErrNotFound) {
-			return fmt.Errorf("unable to validate audience: %w", err)
-		}
-		if errors.Is(err, storage.ErrNotFound) {
+		aud, errAud := s.resources.GetByURI(ctx, *req.Audience)
+		if errors.Is(errAud, storage.ErrNotFound) {
 			res.Error = rfcerrors.InvalidTarget().Build()
 			return fmt.Errorf("audience '%s' not found", *req.Audience)
+		}
+		if errAud != nil {
+			return fmt.Errorf("unable to validate audience: %w", errAud)
 		}
 
 		// Assign urn
@@ -208,11 +263,11 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	// Assign access token
 	res.Issuer = st.Metadata.Issuer
 	res.AccessToken = at
-	res.IssuedTokenType = types.StringRef(oidc.TokenExchangeAccessTokenType)
+	res.IssuedTokenType = new(oidc.TokenExchangeAccessTokenType)
 
 	// Assign scope if different
 	if st.Metadata.Scope != scope {
-		res.Scope = types.StringRef(scope)
+		res.Scope = new(scope)
 	}
 
 	// No error

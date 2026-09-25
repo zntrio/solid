@@ -22,17 +22,34 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dchest/uniuri"
-
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
+	random "zntr.io/solid/sdk/random"
 )
 
 const (
-	jtiLength = 8
+	// jtiLength of 16 base62 characters carries ~95 bits of entropy
+	// (RFC 9700 section 4.12.2 recommends at least 64 bits of entropy for
+	// token identifiers).
+	jtiLength = 16
 )
 
 var timeFunc = time.Now
+
+// newGrantID mints a unique identifier for an authorization grant family.
+func newGrantID() string {
+	return random.String(16)
+}
+
+// containsString reports whether list contains the value.
+func containsString(list []string, value string) bool {
+	for _, v := range list {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
 
 func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Client, meta *tokenv1.TokenMeta, cnf *tokenv1.TokenConfirmation) (*tokenv1.Token, error) {
 	var err error
@@ -41,16 +58,21 @@ func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Clie
 	now := timeFunc()
 	at := &tokenv1.Token{
 		TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
-		TokenId:   uniuri.NewLen(jtiLength),
+		TokenId:   random.String(jtiLength),
 		Metadata: &tokenv1.TokenMeta{
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),
-			NotBefore: uint64(now.Unix() + 1),
-			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()),
+			IssuedAt:  uint64(now.Unix()),                    //nolint:gosec // unix time is non-negative
+			NotBefore: uint64(now.Unix() + 1),                //nolint:gosec // unix time is non-negative
+			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
+			GrantId:   meta.GrantId,
+			// RFC 9396 section 9: the granted authorization details ride
+			// the token metadata into access-token claims and
+			// introspection responses.
+			AuthorizationDetails: meta.AuthorizationDetails,
 		},
 		Confirmation: cnf,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -83,16 +105,20 @@ func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Cli
 	now := timeFunc()
 	at := &tokenv1.Token{
 		TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-		TokenId:   uniuri.NewLen(jtiLength),
+		TokenId:   random.String(jtiLength),
 		Metadata: &tokenv1.TokenMeta{
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),
-			NotBefore: uint64(now.Unix() + 1),
-			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()),
+			IssuedAt:  uint64(now.Unix()),                  //nolint:gosec // unix time is non-negative
+			NotBefore: uint64(now.Unix() + 1),              //nolint:gosec // unix time is non-negative
+			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
+			GrantId:   meta.GrantId,
+			// RFC 9396 section 9: authorization details survive refresh
+			// token rotation so narrowed families stay narrowed.
+			AuthorizationDetails: meta.AuthorizationDetails,
 		},
 		Confirmation: cnf,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,

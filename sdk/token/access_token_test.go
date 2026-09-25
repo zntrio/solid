@@ -19,10 +19,14 @@ package token_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
+	"time"
 
-	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/token"
@@ -170,4 +174,95 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_accessTokenGenerator_Generate_AuthorizationDetails asserts the
+// RFC 9396 section 9.1 top-level authorization_details claim is carried
+// from token metadata into the serialized access token claims.
+func Test_accessTokenGenerator_Generate_AuthorizationDetails(t *testing.T) {
+	details := []*tokenv1.AuthorizationDetail{
+		{
+			Type:    "payment_initiation",
+			Actions: []string{"initiate"},
+		},
+	}
+
+	tok := &tokenv1.Token{
+		TokenId: "123456789",
+		Metadata: &tokenv1.TokenMeta{
+			Issuer:               "http://localhost:8080",
+			Audience:             "azertyuiop",
+			ClientId:             "789456",
+			Subject:              "test",
+			Scope:                "openid",
+			IssuedAt:             1,
+			NotBefore:            2,
+			ExpiresAt:            3601,
+			AuthorizationDetails: details,
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	serializer := tokenmock.NewMockSerializer(ctrl)
+	var captured any
+	serializer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+		captured = claims
+	}).Return("fake-token", nil)
+
+	c := token.AccessToken(serializer)
+	got, err := c.Generate(context.Background(), tok)
+	require.NoError(t, err)
+	require.Equal(t, "fake-token", got)
+	require.NotNil(t, captured)
+
+	// The claim object is the internal claims struct: authorization_details
+	// must be present and equal the metadata's entries.
+	v := reflect.ValueOf(captured).FieldByName("AuthorizationDetails").Interface()
+	require.Equal(t, details, v)
+}
+
+// Test_accessTokenGenerator_Generate_Confirmation asserts the RFC-mandated
+// confirmation wire shape (RFC 8705 section 3.1 "x5t#S256" member; RFC 9449
+// "jkt") is emitted on the cnf claim: the JSON marshaler of the captured
+// claims must produce the exact member names, not the proto field names.
+func Test_accessTokenGenerator_Generate_Confirmation(t *testing.T) {
+	tok := &tokenv1.Token{
+		TokenId: "tid-1",
+		Metadata: &tokenv1.TokenMeta{
+			ClientId:  "client-1",
+			Issuer:    "https://as.example.org",
+			Subject:   "user-1",
+			Audience:  "aud",
+			ExpiresAt: uint64(time.Now().Add(time.Hour).Unix()),
+			NotBefore: uint64(time.Now().Unix()),
+			IssuedAt:  uint64(time.Now().Unix()),
+			Scope:     "openid",
+		},
+		Confirmation: &tokenv1.TokenConfirmation{
+			X5TS256: "A4DtL2JmUMhAsvJj5tKyn64SqzmuXbMrJa0n761y5v0",
+			Jkt:     "test-jkt",
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	serializer := tokenmock.NewMockSerializer(ctrl)
+	var captured any
+	serializer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+		captured = claims
+	}).Return("fake-token", nil)
+
+	c := token.AccessToken(serializer)
+	_, err := c.Generate(context.Background(), tok)
+	require.NoError(t, err)
+
+	// The cnf claim must serialize with the RFC-mandated member names.
+	raw, err := json.Marshal(reflect.ValueOf(captured).FieldByName("Cnf").Interface())
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"x5t#S256":"A4DtL2JmUMhAsvJj5tKyn64SqzmuXbMrJa0n761y5v0"`)
+	require.Contains(t, string(raw), `"jkt":"test-jkt"`)
+	require.NotContains(t, string(raw), `"x5t_s256"`)
 }

@@ -50,7 +50,7 @@ func (t *hashEncoder) Encode(sectorID, subject string) (string, error) {
 
 	// Normalize input
 	subject = strings.TrimSpace(subject)
-	if len(subject) == 0 {
+	if subject == "" {
 		return "", errors.New("subject can't be blank or empty")
 	}
 
@@ -60,13 +60,15 @@ func (t *hashEncoder) Encode(sectorID, subject string) (string, error) {
 		return "", fmt.Errorf("unable to initialize blake2b hasher: %w", err)
 	}
 
-	// Hash the content
-	h.Write([]byte(sectorID))
-	h.Write([]byte(subject))
+	// Hash the content with unambiguous framing: the sector identifier is
+	// length-prefixed so that ("ab","c") and ("a","bc") never collide.
+	_, _ = fmt.Fprintf(h, "%d:", len(sectorID))
+	_, _ = h.Write([]byte(sectorID))
+	_, _ = h.Write([]byte(subject))
 
 	// Finalize
 	sub := h.Sum(nil)
 
 	// Encode hash as Raw Base64 URL
-	return base64.RawURLEncoding.EncodeToString(sub[:]), nil
+	return base64.RawURLEncoding.EncodeToString(sub), nil
 }

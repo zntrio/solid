@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -224,7 +224,10 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 					switch v := claims.(type) {
 					case *responseClaims:
 						*v = responseClaims{
-							Error: "invalid_request",
+							Issuer:    "https://example.com",
+							Audience:  "https://example.com",
+							ExpiresAt: uint64(time.Now().Add(60 * time.Second).Unix()),
+							Error:     "invalid_request",
 						}
 					}
 				}).Return(nil)
@@ -234,6 +237,35 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 				Error: &corev1.Error{
 					Err: "invalid_request",
 				},
+			},
+		},
+		{
+			name: "claims has error but wrong issuer is rejected",
+			fields: fields{
+				issuer: "https://example.com",
+			},
+			args: args{
+				audience: "https://example.com",
+				response: "fake-token",
+			},
+			prepare: func(verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-token").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
+					switch v := claims.(type) {
+					case *responseClaims:
+						*v = responseClaims{
+							Issuer:    "https://evil.example",
+							Audience:  "https://example.com",
+							ExpiresAt: uint64(time.Now().Add(60 * time.Second).Unix()),
+							Error:     "invalid_request",
+						}
+					}
+				}).Return(nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Error: rfcerrors.InvalidToken().Build(),
 			},
 		},
 		{

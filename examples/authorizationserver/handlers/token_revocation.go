@@ -31,7 +31,10 @@ import (
 // TokenRevocation handles token revocation HTTP requests.
 func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			return
+		}
 
 		var (
 			ctx           = r.Context()

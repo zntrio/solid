@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -167,7 +167,7 @@ func Test_service_Revoke(t *testing.T) {
 		},
 		// ---------------------------------------------------------------------
 		{
-			name: "token not found",
+			name: "token not found (success no-op per RFC 7009 section 2.2)",
 			args: args{
 				ctx: context.Background(),
 				req: &tokenv1.RevokeRequest{
@@ -184,8 +184,37 @@ func Test_service_Revoke(t *testing.T) {
 				}, nil)
 				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(nil, storage.ErrNotFound)
 			},
-			wantErr: true,
+			wantErr: false,
 			want:    &tokenv1.RevokeResponse{},
+		},
+		{
+			name: "token issued to another client",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.RevokeRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId: "other-client",
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &tokenv1.RevokeResponse{
+				Error: rfcerrors.InvalidClient().Build(),
+			},
 		},
 		{
 			name: "token storage error",
@@ -258,6 +287,78 @@ func Test_service_Revoke(t *testing.T) {
 			},
 			wantErr: false,
 			want:    &tokenv1.RevokeResponse{},
+		},
+		{
+			name: "refresh token revocation cascades to grant family",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.RevokeRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:    "https://honest.as.example.com",
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId:   "123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Value:     "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId: "s6BhdRkqt3",
+						GrantId:  "g9",
+					},
+				}, nil)
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "123456789").Return(nil)
+				tokens.EXPECT().GetByGrantID(gomock.Any(), "https://honest.as.example.com", "g9").Return([]*tokenv1.Token{
+					{TokenId: "t1"},
+					{TokenId: "t2"},
+				})
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "t1").Return(nil)
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "t2").Return(nil)
+			},
+			wantErr: false,
+			want:    &tokenv1.RevokeResponse{},
+		},
+		{
+			name: "grant family cascade failure is ServerError",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.RevokeRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:    "https://honest.as.example.com",
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId:   "123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Value:     "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId: "s6BhdRkqt3",
+						GrantId:  "g9",
+					},
+				}, nil)
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "123456789").Return(nil)
+				tokens.EXPECT().GetByGrantID(gomock.Any(), "https://honest.as.example.com", "g9").Return([]*tokenv1.Token{
+					{TokenId: "t1"},
+				})
+				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "t1").Return(fmt.Errorf("boom"))
+			},
+			wantErr: true,
+			want: &tokenv1.RevokeResponse{
+				Error: rfcerrors.ServerError().Build(),
+			},
 		},
 	}
 	for _, tt := range tests {

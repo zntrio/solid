@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/go-cmp/cmp"
+	"go.uber.org/mock/gomock"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -33,7 +33,6 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	tokenmock "zntr.io/solid/sdk/token/mock"
-	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
@@ -81,9 +80,12 @@ func Test_service_deviceCode(t *testing.T) {
 		{
 			name: "nil grant",
 			args: args{
-				ctx:    context.Background(),
-				client: &clientv1.Client{},
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
 				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
 					GrantType: oidc.GrantTypeDeviceCode,
 				},
 			},
@@ -107,7 +109,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -125,7 +127,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -148,7 +150,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.UnsupportedGrantType().Build(),
+				Error: rfcerrors.UnauthorizedClient().Build(),
 			},
 		},
 		{
@@ -174,6 +176,189 @@ func Test_service_deviceCode(t *testing.T) {
 			wantErr: true,
 			want: &flowv1.TokenResponse{
 				Error: rfcerrors.InvalidRequest().Build(),
+			},
+		},
+		{
+			name: "authorization_details rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType:            oidc.GrantTypeDeviceCode,
+					AuthorizationDetails: []*tokenv1.AuthorizationDetail{{Type: "payment"}},
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidAuthorizationDetails().Build(),
+			},
+		},
+		{
+			name: "slowdown persist failure",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &flowv1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt:    200,
+					Status:       sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+					LastPolledAt: 8,
+					PollInterval: 5,
+				}, nil)
+				sessions.EXPECT().UpdateByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", gomock.Any()).Return(fmt.Errorf("boom"))
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.ServerError().Build(),
+			},
+		},
+		{
+			name: "poll timing persist failure",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &flowv1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt:    200,
+					Status:       sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+					LastPolledAt: 0,
+					PollInterval: 5,
+				}, nil)
+				sessions.EXPECT().UpdateByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", gomock.Any()).Return(fmt.Errorf("boom"))
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.ServerError().Build(),
+			},
+		},
+		{
+			name: "denied session",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &flowv1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_DENIED,
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.AccessDenied().Build(),
+			},
+		},
+		{
+			name: "consume failure",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &flowv1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt: 200,
+					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
+					Subject:   new("user1"),
+				}, nil)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, fmt.Errorf("boom"))
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -427,6 +612,7 @@ func Test_service_deviceCode(t *testing.T) {
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
 				}, nil)
+				sessions.EXPECT().UpdateByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", gomock.Any()).Return(nil)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
@@ -529,7 +715,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+				session := &sessionv1.DeviceCodeSession{
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -538,8 +724,10 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   types.StringRef("user-1"),
-				}, nil)
+					Subject:   new("user-1"),
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -568,7 +756,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(10, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+				session := &sessionv1.DeviceCodeSession{
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -577,8 +765,10 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   types.StringRef("user1"),
-				}, nil)
+					Subject:   new("user1"),
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("foo"))
 			},
@@ -588,7 +778,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 		},
 		{
-			name: "refresh token storage error",
+			name: "validated session already consumed (concurrent poll)",
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
@@ -604,32 +794,26 @@ func Test_service_deviceCode(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
-					Scope: types.StringRef(oidc.ScopeOfflineAccess),
 				},
 			},
-			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
-				timeFunc = func() time.Time { return time.Unix(1, 0) }
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
 				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
-						Scope:    types.StringRef(oidc.ScopeOfflineAccess),
 					},
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   types.StringRef("user1"),
-					Scope:     types.StringRef("offline_access"),
+					Subject:   new("user1"),
 				}, nil)
-				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
-				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
-				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(fmt.Errorf("error")).After(atSave)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(nil, storage.ErrNotFound)
 			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.ServerError().Build(),
+				Error: rfcerrors.InvalidGrant().Build(),
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -654,7 +838,7 @@ func Test_service_deviceCode(t *testing.T) {
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+				session := &sessionv1.DeviceCodeSession{
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
@@ -663,12 +847,13 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   types.StringRef("user1"),
-				}, nil)
+					Subject:   new("user1"),
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
-			wantErr: false,
 			want: &flowv1.TokenResponse{
 				Error: nil,
 				AccessToken: &tokenv1.Token{
@@ -703,38 +888,41 @@ func Test_service_deviceCode(t *testing.T) {
 							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
 						},
 					},
-					Scope: types.StringRef(oidc.ScopeOfflineAccess),
+					Scope: new("openid offline_access"),
 				},
 			},
 			prepare: func(sessions *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
 				timeFunc = func() time.Time { return time.Unix(1, 0) }
-				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(&sessionv1.DeviceCodeSession{
+				session := &sessionv1.DeviceCodeSession{
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
 					Request: &flowv1.DeviceAuthorizationRequest{
 						ClientId: "s6BhdRkqt3",
-						Scope:    types.StringRef(oidc.ScopeOfflineAccess),
+						Scope:    new("openid offline_access"),
 					},
 					ExpiresAt: 200,
 					Status:    sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED,
-					Subject:   types.StringRef("user1"),
-					Scope:     types.StringRef("offline_access"),
-				}, nil)
+					Subject:   new("user1"),
+					Scope:     new("openid offline_access"),
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().DeleteAndGetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
 				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
-				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
-				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi", nil)
-				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 			},
 			wantErr: false,
 			want: &flowv1.TokenResponse{
 				Error: nil,
+				// RFC 10027 section 6.1.9: the device grant never mints
+				// refresh tokens; offline_access is stripped from the
+				// granted scope.
 				AccessToken: &tokenv1.Token{
 					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					Metadata: &tokenv1.TokenMeta{
 						Issuer:    "http://127.0.0.1:8080",
-						Scope:     "offline_access",
+						Scope:     "openid",
 						IssuedAt:  1,
 						NotBefore: 2,
 						ExpiresAt: 3601,
@@ -743,20 +931,120 @@ func Test_service_deviceCode(t *testing.T) {
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
 				},
-				RefreshToken: &tokenv1.Token{
-					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
-					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
-					Metadata: &tokenv1.TokenMeta{
-						Issuer:    "http://127.0.0.1:8080",
-						Scope:     "offline_access",
-						IssuedAt:  1,
-						NotBefore: 2,
-						ExpiresAt: 604801,
-						ClientId:  "s6BhdRkqt3",
-						Subject:   "user1",
-					},
-					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+				RefreshToken: nil,
+			},
+		},
+		{
+			name: "slow_down on fast polling",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
 				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				session := &sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &flowv1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt:    200,
+					Status:       sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+					LastPolledAt: 8,
+					PollInterval: 5,
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().UpdateByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", gomock.Any()).
+					Do(func(_ context.Context, _, _ string, r *sessionv1.DeviceCodeSession) {
+						if r.PollInterval != 10 {
+							t.Errorf("persisted PollInterval = %d, want 10", r.PollInterval)
+						}
+					}).Return(nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.Slowdown().Build(),
+			},
+		},
+		{
+			name: "authorization pending on admissible poll",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeDeviceCode},
+					ClientId:   "s6BhdRkqt3",
+				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+				},
+			},
+			prepare: func(sessions *storagemock.MockDeviceCodeSession, _ *storagemock.MockToken, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(10, 0) }
+				session := &sessionv1.DeviceCodeSession{
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Request: &flowv1.DeviceAuthorizationRequest{
+						ClientId: "s6BhdRkqt3",
+					},
+					ExpiresAt:    200,
+					Status:       sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+					LastPolledAt: 2,
+					PollInterval: 5,
+				}
+				sessions.EXPECT().GetByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)
+				sessions.EXPECT().UpdateByDeviceCode(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS", gomock.Any()).Return(nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.AuthorizationPending().Build(),
+			},
+		},
+		{
+			name: "dpop-bound client without proof",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes:            []string{oidc.GrantTypeDeviceCode},
+					ClientId:              "s6BhdRkqt3",
+					DpopBoundAccessTokens: true,
+				},
+				req: &flowv1.TokenRequest{
+					Issuer:    "http://127.0.0.1:8080",
+					GrantType: oidc.GrantTypeDeviceCode,
+					Grant: &flowv1.TokenRequest_DeviceCode{
+						DeviceCode: &flowv1.GrantDeviceCode{
+							ClientId:   "s6BhdRkqt3",
+							DeviceCode: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS",
+						},
+					},
+					TokenConfirmation: nil,
+				},
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 	}

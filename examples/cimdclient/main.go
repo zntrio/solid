@@ -53,7 +53,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to decode client seed: %w", err)
 	}
-	jwkDoc := fmt.Sprintf(`{"alg":"ML-DSA-65","d":"%s","kid":"%s","kty":"AKP","pub":"%s"}`, base64.RawURLEncoding.EncodeToString(seed), cimddemo.ClientIdentifierURL, cimddemo.ClientPubB64)
+	jwkDoc := fmt.Sprintf(`{"alg":"ML-DSA-65","d":%q,"kid":%q,"kty":"AKP","pub":%q}`, base64.RawURLEncoding.EncodeToString(seed), cimddemo.ClientIdentifierURL, cimddemo.ClientPubB64)
 
 	// Create the OIDC client instance for the CIMD identifier.
 	oidcClient, err := client.HTTP(ctx, "http://127.0.0.1:8080", &client.Options{

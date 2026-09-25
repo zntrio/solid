@@ -84,7 +84,7 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 	// RFC 7662 section 2.2: a token that has expired MUST be reported as
 	// inactive. Map an expired (but still stored) token to the EXPIRED
 	// status so the transport layer renders active=false.
-	if t.Metadata != nil && t.Metadata.ExpiresAt < uint64(timeFunc().Unix()) && t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
+	if t.Metadata != nil && t.Metadata.ExpiresAt < uint64(timeFunc().Unix()) && t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE { //nolint:gosec // unix time is non-negative
 		res.Token = &tokenv1.Token{
 			Issuer: req.Issuer,
 			Value:  req.Token,

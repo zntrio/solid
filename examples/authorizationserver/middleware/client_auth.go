@@ -18,6 +18,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/pem"
 	"log"
 	"net/http"
@@ -72,7 +73,11 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 					return
 				}
 			} else {
-				r.ParseForm()
+				if err := r.ParseForm(); err != nil {
+					log.Println("unable to parse form:", err)
+					respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+					return
+				}
 
 				var (
 					authMethod    = r.PostFormValue("client_assertion_type")
@@ -94,40 +99,10 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				// RFC 8705 section 2: hoist the PEM-encoded client certificate
 				// for any mutual-TLS request; both the SPIFFE X.509-SVID and the
 				// PKI tls_client_auth method receive it as tls_client_cert.
-				var tlsClientCertPEM string
-				if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-					leaf := r.TLS.PeerCertificates[0]
-					pemCert := pem.EncodeToMemory(&pem.Block{
-						Type:  "CERTIFICATE",
-						Bytes: leaf.Raw,
-					})
-					tlsClientCertPEM = string(pemCert)
-				}
+				tlsClientCertPEM := pemClientCertificate(r)
 
-				switch {
-				case authMethod == oidc.AssertionTypeJWTSPIFFE:
-					authenticator = spiffeJWTAuth
-				case authMethod == "" && attestation != "" && attestationPop != "":
-					authenticator = spiffeWITAuth
-				case authMethod == "" && tlsClientCertPEM != "":
-					// RFC 8705 section 2.1 takes precedence when the resolved
-					// client is registered for tls_client_auth; otherwise the
-					// certificate is an X.509-SVID candidate (SPIFFE draft
-					// section 3.2).
-					if clientIDParam != "" {
-						if registered, err := clients.Get(ctx, clientIDParam); err == nil &&
-							registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth {
-							authenticator = tlsClientAuth
-						}
-					}
-					if authenticator == nil {
-						authenticator = spiffeX509Auth
-					}
-				case authMethod == oidc.AssertionTypeJWTBearer:
-					authenticator = clientAuth
-				case authMethod == oidc.AssertionTypeJWTClientAttestation:
-					authenticator = clientAttestationAuth
-				default:
+				authenticator, okAuth := selectAuthenticator(ctx, clients, authMethod, attestation, attestationPop, tlsClientCertPEM, clientIDParam, clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth)
+				if !okAuth {
 					respond.WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
 					return
 				}
@@ -177,5 +152,50 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 			// Delegate to next handler
 			h.ServeHTTP(w, r.WithContext(ctx))
 		})
+	}
+}
+
+// pemClientCertificate returns the PEM-encoded leaf client certificate
+// presented over mutual TLS, or an empty string (RFC 8705 section 2).
+func pemClientCertificate(r *http.Request) string {
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
+		return ""
+	}
+
+	leaf := r.TLS.PeerCertificates[0]
+	pemCert := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: leaf.Raw,
+	})
+	return string(pemCert)
+}
+
+// selectAuthenticator resolves the client authentication method from the
+// request inputs (SPIFFE draft sections 3.2/3.3, RFC 8705 section 2.1).
+func selectAuthenticator(ctx context.Context, clients storage.ClientReader, authMethod, attestation, attestationPop, tlsClientCertPEM, clientIDParam string,
+	clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth clientauthentication.AuthenticationProcessor) (clientauthentication.AuthenticationProcessor, bool) {
+	switch {
+	case authMethod == oidc.AssertionTypeJWTSPIFFE:
+		return spiffeJWTAuth, true
+	case authMethod == "" && attestation != "" && attestationPop != "":
+		return spiffeWITAuth, true
+	case authMethod == "" && tlsClientCertPEM != "":
+		// RFC 8705 section 2.1 takes precedence when the resolved
+		// client is registered for tls_client_auth; otherwise the
+		// certificate is an X.509-SVID candidate (SPIFFE draft
+		// section 3.2).
+		if clientIDParam != "" {
+			if registered, err := clients.Get(ctx, clientIDParam); err == nil &&
+				registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth {
+				return tlsClientAuth, true
+			}
+		}
+		return spiffeX509Auth, true
+	case authMethod == oidc.AssertionTypeJWTBearer:
+		return clientAuth, true
+	case authMethod == oidc.AssertionTypeJWTClientAttestation:
+		return clientAttestationAuth, true
+	default:
+		return nil, false
 	}
 }

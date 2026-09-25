@@ -88,7 +88,7 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 	}
 
 	// If expired
-	if rt.Metadata.ExpiresAt < uint64(timeFunc().Unix()) {
+	if rt.Metadata.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidGrant().Build()
 		return res, fmt.Errorf("refresh_token is expired")
 	}

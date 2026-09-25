@@ -60,7 +60,7 @@ func HTTP(ctx context.Context, issuer string, opts *Options) (Client, error) {
 	if err != nil || response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unable to parse server metadata request: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	// Parse response
 	if err := json.NewDecoder(response.Body).Decode(&c.serverMetadata); err != nil {
@@ -142,8 +142,8 @@ func (c *httpClient) Assertion() (string, error) {
 		"sub": c.opts.ClientID,
 		"iss": c.opts.ClientID,
 		"aud": c.issuer,
-		"exp": uint64(time.Now().Add(30 * time.Second).Unix()),
-		"iat": uint64(time.Now().Unix()),
+		"exp": uint64(time.Now().Add(30 * time.Second).Unix()), //nolint:gosec // unix time is non-negative
+		"iat": uint64(time.Now().Unix()),                       //nolint:gosec // unix time is non-negative
 	}
 
 	// Sign the assertion
@@ -185,7 +185,7 @@ func (c *httpClient) ClientCredentials(ctx context.Context, assertion string) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve token: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		var err corev1.Error
@@ -235,7 +235,7 @@ func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve instorspection response: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		var err corev1.Error
@@ -286,7 +286,7 @@ func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*
 
 func (c *httpClient) PublicKeys(ctx context.Context) (keys jwk.Set, expiresAt uint64, err error) {
 	// Check if keys are not cached and not expired
-	if c.jwks != nil && c.jwksExpiration > uint64(time.Now().Unix()) {
+	if c.jwks != nil && c.jwksExpiration > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		// Return cached public keys
 		return c.jwks, c.jwksExpiration, nil
 	}
@@ -308,7 +308,7 @@ func (c *httpClient) PublicKeys(ctx context.Context) (keys jwk.Set, expiresAt ui
 	if err != nil {
 		return nil, 0, fmt.Errorf("unable to retrieve jwks: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		var err corev1.Error
 
@@ -345,7 +345,7 @@ func (c *httpClient) PublicKeys(ctx context.Context) (keys jwk.Set, expiresAt ui
 	}
 
 	// Check expiration
-	if jwks.Expires > 0 && jwks.Expires < uint64(time.Now().Unix()) {
+	if jwks.Expires > 0 && jwks.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		return nil, 0, fmt.Errorf("remote jwks is expired")
 	}
 

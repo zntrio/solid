@@ -148,7 +148,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 			res.Error = rfcerrors.InvalidRequest().Build()
 			return fmt.Errorf("actor_token is invalid")
 		}
-		if actor.Metadata.ExpiresAt < uint64(timeFunc().Unix()) {
+		if actor.Metadata.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 			res.Error = rfcerrors.InvalidRequest().Build()
 			return fmt.Errorf("actor_token is invalid")
 		}
@@ -182,7 +182,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	}
 
 	// If expired
-	if st.Metadata.ExpiresAt < uint64(timeFunc().Unix()) {
+	if st.Metadata.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return fmt.Errorf("subject_token is expired")
 	}
@@ -211,8 +211,8 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 			Issuer:    st.Metadata.Issuer,
 			Subject:   st.Metadata.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),
-			ExpiresAt: uint64(now.Add(1 * time.Minute).Unix()),
+			IssuedAt:  uint64(now.Unix()),                      //nolint:gosec // unix time is non-negative
+			ExpiresAt: uint64(now.Add(1 * time.Minute).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     scope,
 		},
 		Confirmation: st.Confirmation,

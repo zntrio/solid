@@ -59,16 +59,61 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	dpopKey, _ := dpopKeySet.Key(0)
-	prover := dpop.DefaultProver(jwt.DPoPSigner("ML-DSA-65", func(context.Context) (jwk.Key, error) {
-		return dpopKey, nil
-	}))
+	prover := dpopProver(dpopKeySet)
 	proof, err := prover.Prove("POST", "http://127.0.0.1:8080/token")
 	if err != nil {
 		panic(err)
 	}
 
 	// Retrieve an access token (client_credentials with a DPoP proof).
+	t := fetchAccessToken(ctx, assertion, proof)
+
+	// Let some time to persistence to sync.
+	time.Sleep(1000 * time.Millisecond)
+
+	// The access token is DPoP-bound: mint a fresh proof carrying the token
+	// value and present it with the DPoP authorization scheme.
+	resourceProof, err := prover.Prove("POST", "http://127.0.0.1:8085/", dpop.WithTokenValue(t.AccessToken))
+	if err != nil {
+		panic(err)
+	}
+
+	// Call the timestamp service
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://127.0.0.1:8085", http.NoBody)
+	if err != nil {
+		panic(err)
+	}
+
+	// Set the access token value.
+	req.Header.Set("Authorization", fmt.Sprintf("DPoP %s", t.AccessToken))
+	req.Header.Set("DPoP", resourceProof)
+
+	// Use OAuth2 client
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() { _ = resp.Body.Close() }()
+	timestampRaw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(timestampRaw))
+}
+
+// dpopProver prepares the DPoP prover backed by the client ML-DSA key.
+func dpopProver(keySet jwk.Set) dpop.Prover {
+	key, _ := keySet.Key(0)
+	return dpop.DefaultProver(jwt.DPoPSigner("ML-DSA-65", func(context.Context) (jwk.Key, error) {
+		return key, nil
+	}))
+}
+
+// fetchAccessToken drives the token endpoint with the client assertion and
+// the DPoP proof, and decodes the issued access token.
+func fetchAccessToken(ctx context.Context, assertion, proof string) client.Token {
 	params := url.Values{}
 	params.Add("grant_type", "client_credentials")
 	params.Add("scope", "timestamp:read openid")
@@ -84,7 +129,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer tokenResp.Body.Close()
+	defer func() { _ = tokenResp.Body.Close() }()
 	var t client.Token
 	if err := json.NewDecoder(tokenResp.Body).Decode(&t); err != nil {
 		panic(err)
@@ -92,38 +137,5 @@ func main() {
 	if t.AccessToken == "" {
 		panic("no access token in token response")
 	}
-
-	// Let some time to persistence to sync.
-	time.Sleep(1000 * time.Millisecond)
-
-	// The access token is DPoP-bound: mint a fresh proof carrying the token
-	// value and present it with the DPoP authorization scheme.
-	resourceProof, err := prover.Prove("POST", "http://127.0.0.1:8085/", dpop.WithTokenValue(t.AccessToken))
-	if err != nil {
-		panic(err)
-	}
-
-	// Call the timestamp service
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://127.0.0.1:8085", nil)
-	if err != nil {
-		panic(err)
-	}
-
-	// Set the access token value.
-	req.Header.Set("Authorization", fmt.Sprintf("DPoP %s", t.AccessToken))
-	req.Header.Set("DPoP", resourceProof)
-
-	// Use OAuth2 client
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-	timestampRaw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(string(timestampRaw))
+	return t
 }

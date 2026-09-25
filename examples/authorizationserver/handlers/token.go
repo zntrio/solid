@@ -18,11 +18,13 @@
 package handlers
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
+	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/respond"
@@ -33,6 +35,9 @@ import (
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/services"
 )
+
+// bearerTokenType is the default OAuth 2.0 token type.
+const bearerTokenType = "Bearer"
 
 // Token handles token HTTP requests.
 func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) http.Handler {
@@ -46,40 +51,13 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 	}
 
 	messageBuilder := func(r *http.Request, client *clientv1.Client) (*flowv1.TokenRequest, error) {
-		grantType := r.FormValue("grant_type")
-
 		msg := &flowv1.TokenRequest{
 			Issuer:    issuer,
 			Client:    client,
-			GrantType: grantType,
+			GrantType: r.FormValue("grant_type"),
 		}
 
-		switch grantType {
-		case oidc.GrantTypeAuthorizationCode:
-			msg.Grant = &flowv1.TokenRequest_AuthorizationCode{
-				AuthorizationCode: &flowv1.GrantAuthorizationCode{
-					Code:         r.FormValue("code"),
-					CodeVerifier: r.FormValue("code_verifier"),
-					RedirectUri:  r.FormValue("redirect_uri"),
-				},
-			}
-		case oidc.GrantTypeClientCredentials:
-			msg.Grant = &flowv1.TokenRequest_ClientCredentials{
-				ClientCredentials: &flowv1.GrantClientCredentials{},
-			}
-		case oidc.GrantTypeDeviceCode:
-			msg.Grant = &flowv1.TokenRequest_DeviceCode{
-				DeviceCode: &flowv1.GrantDeviceCode{
-					DeviceCode: r.FormValue("device_code"),
-				},
-			}
-		case oidc.GrantTypeRefreshToken:
-			msg.Grant = &flowv1.TokenRequest_RefreshToken{
-				RefreshToken: &flowv1.GrantRefreshToken{
-					RefreshToken: r.FormValue("refresh_token"),
-				},
-			}
-		}
+		setGrantFromRequest(msg, r)
 
 		// RFC 9396 section 6: the authorization_details request parameter
 		// is a JSON array of objects. The grant services compare each entry
@@ -128,36 +106,14 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
-		if dpopProof != "" {
-			// Check dpop proof
-			jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
-			if err != nil {
-				log.Println("unable to validate dpop proof:", err)
-				respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
-				return
-			}
-
-			// Add confirmation
-			msg.TokenConfirmation = &tokenv1.TokenConfirmation{
-				Jkt: jkt,
-			}
-
-			// RFC 9449 section 10: carry the verified thumbprint on the
-			// authorization code grant so the service can enforce the code's
-			// key binding.
-			if ac := msg.GetAuthorizationCode(); ac != nil {
-				ac.DpopJkt = &jkt
-			}
+		if err := applyDPoPConfirmation(ctx, msg, r, dpopProof, dpopVerifier); err != nil {
+			respond.WithError(w, r, http.StatusBadRequest, err)
+			return
 		}
 
 		// RFC 8705 section 3: when the token request is made over mutual TLS
 		// with a client certificate, bind the issued token to that certificate.
-		if r.TLS != nil && len(r.TLS.PeerCertificates) > 0 {
-			if msg.TokenConfirmation == nil {
-				msg.TokenConfirmation = &tokenv1.TokenConfirmation{}
-			}
-			msg.TokenConfirmation.X5TS256 = token.X509ThumbprintS256(r.TLS.PeerCertificates[0])
-		}
+		applyClientCertificateBinding(msg, r)
 
 		// Send request to reactor
 		res, err := tokenz.Token(ctx, msg)
@@ -168,15 +124,12 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 
 		// Change token type according to DPoP usage.
-		tokenType := "Bearer"
-		if dpopProof != "" {
-			tokenType = "DPoP"
-		}
+		tokenType := bearerTokenType
 
 		// Prepare response
 		jsonResponse := &response{
 			AccessToken: res.AccessToken.Value,
-			ExpiresIn:   res.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()),
+			ExpiresIn:   res.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()), //nolint:gosec // unix time is non-negative
 			TokenType:   tokenType,
 			Scope:       res.AccessToken.Metadata.Scope,
 		}
@@ -190,7 +143,76 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			jsonResponse.AuthorizationDetails = res.AuthorizationDetails
 		}
 
-		// Send json reponse
+		// Send json response
 		respond.WithJSON(w, http.StatusOK, jsonResponse)
 	})
+}
+
+// applyDPoPConfirmation verifies the DPoP proof, when present, and records
+// the resulting key thumbprint as token confirmation on the request message.
+func applyDPoPConfirmation(ctx context.Context, msg *flowv1.TokenRequest, r *http.Request, dpopProof string, dpopVerifier dpop.Verifier) *corev1.Error {
+	if dpopProof == "" {
+		return nil
+	}
+	// Check dpop proof
+	jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
+	if err != nil {
+		log.Println("unable to validate dpop proof:", err)
+		return rfcerrors.InvalidDPoPProof().Build()
+	}
+	// Add confirmation
+	msg.TokenConfirmation = &tokenv1.TokenConfirmation{
+		Jkt: jkt,
+	}
+	// RFC 9449 section 10: carry the verified thumbprint on the
+	// authorization code grant so the service can enforce the code's
+	// key binding.
+	if ac := msg.GetAuthorizationCode(); ac != nil {
+		ac.DpopJkt = &jkt
+	}
+	return nil
+}
+
+// grantFromRequest extracts the grant-specific request parameters according
+// to the requested grant type.
+func setGrantFromRequest(msg *flowv1.TokenRequest, r *http.Request) {
+	switch r.FormValue("grant_type") {
+	case oidc.GrantTypeAuthorizationCode:
+		msg.Grant = &flowv1.TokenRequest_AuthorizationCode{
+			AuthorizationCode: &flowv1.GrantAuthorizationCode{
+				Code:         r.FormValue("code"),
+				CodeVerifier: r.FormValue("code_verifier"),
+				RedirectUri:  r.FormValue("redirect_uri"),
+			},
+		}
+	case oidc.GrantTypeClientCredentials:
+		msg.Grant = &flowv1.TokenRequest_ClientCredentials{
+			ClientCredentials: &flowv1.GrantClientCredentials{},
+		}
+	case oidc.GrantTypeDeviceCode:
+		msg.Grant = &flowv1.TokenRequest_DeviceCode{
+			DeviceCode: &flowv1.GrantDeviceCode{
+				DeviceCode: r.FormValue("device_code"),
+			},
+		}
+	case oidc.GrantTypeRefreshToken:
+		msg.Grant = &flowv1.TokenRequest_RefreshToken{
+			RefreshToken: &flowv1.GrantRefreshToken{
+				RefreshToken: r.FormValue("refresh_token"),
+			},
+		}
+	}
+}
+
+// applyClientCertificateBinding binds the issued token to the client
+// certificate presented over mutual TLS (RFC 8705 section 3).
+func applyClientCertificateBinding(msg *flowv1.TokenRequest, r *http.Request) {
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
+		return
+	}
+
+	if msg.TokenConfirmation == nil {
+		msg.TokenConfirmation = &tokenv1.TokenConfirmation{}
+	}
+	msg.TokenConfirmation.X5TS256 = token.X509ThumbprintS256(r.TLS.PeerCertificates[0])
 }

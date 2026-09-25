@@ -34,7 +34,7 @@ import (
 	"zntr.io/solid/sdk/types"
 )
 
-func ResourceMetadata(issuer string) http.Handler {
+func ResourceMetadata() http.Handler {
 	// Prepare metadata
 	md := &discoveryv1.ProtectedResourceMetadata{
 		Resource: "http://127.0.0.1:8085",
@@ -123,7 +123,11 @@ func main() {
 
 	// Create router
 	http.Handle("/", Authorizer(ResourceHandler(issuer, pub, priv), "timestamp:read", oidcClient, types.StringArray{"urn:solid:loa:1fa:any"}, 30))
-	http.Handle("/.well-known/oauth-protected-resource", ResourceMetadata(issuer))
+	http.Handle("/.well-known/oauth-protected-resource", ResourceMetadata())
 
-	log.Fatal(http.ListenAndServe(":8085", nil))
+	server := &http.Server{
+		Addr:              ":8085",
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

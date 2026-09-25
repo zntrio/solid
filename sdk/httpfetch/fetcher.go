@@ -168,7 +168,7 @@ func (f *fetcher) Fetch(ctx context.Context, documentURL string) ([]byte, error)
 	if err != nil {
 		return nil, fmt.Errorf("httpfetch: unable to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// The document must be served with exactly 200 OK; redirects are
 	// rejected by the client policy and surface here as non-200.

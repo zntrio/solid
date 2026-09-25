@@ -90,18 +90,18 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, op
 	}
 
 	// Check dpop
-	token, err := v.verifier.Parse(proof)
+	parsed, err := v.verifier.Parse(proof)
 	if err != nil {
 		return "", fmt.Errorf("proof has not a valid syntax: %w", err)
 	}
 
 	// Validate header
-	if errHdr := v.validateProofHeader(token); errHdr != nil {
+	if errHdr := v.validateProofHeader(parsed); errHdr != nil {
 		return "", errHdr
 	}
 
 	// Extract claims
-	claims, errClm := v.extractProofClaims(token)
+	claims, errClm := v.extractProofClaims(parsed)
 	if errClm != nil {
 		return "", errClm
 	}
@@ -113,7 +113,7 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, op
 	}
 
 	// Compute confirmation
-	thumb, err := token.PublicKeyThumbPrint()
+	thumb, err := parsed.PublicKeyThumbPrint()
 	if err != nil {
 		return "", fmt.Errorf("unable to compute confirmation: %w", err)
 	}
@@ -233,12 +233,12 @@ func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClai
 	}
 
 	// Check expiration
-	if uint64(time.Now().Add(-ExpirationTreshold).Unix()) > claims.IssuedAt {
+	if uint64(time.Now().Add(-ExpirationTreshold).Unix()) > claims.IssuedAt { //nolint:gosec // Unix time is non-negative
 		return "", fmt.Errorf("invalid proof: expired")
 	}
 
 	// Check future proof
-	if uint64(time.Now().Add(ExpirationTreshold).Unix()) < claims.IssuedAt {
+	if uint64(time.Now().Add(ExpirationTreshold).Unix()) < claims.IssuedAt { //nolint:gosec // Unix time is non-negative
 		return "", fmt.Errorf("invalid proof: issued in the future")
 	}
 

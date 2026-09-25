@@ -131,7 +131,7 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 	}
 
 	// Temporal validation.
-	if claims.IssuedAt > uint64(time.Now().Add(5*time.Minute).Unix()) {
+	if claims.IssuedAt > uint64(time.Now().Add(5*time.Minute).Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("iat is in the future")
 	}
@@ -139,7 +139,7 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("exp is too far in the future, svid lifetime must not exceed %s", maxAssertionLifetime)
 	}
-	if claims.Expires < uint64(time.Now().Unix()) {
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("expired token")
 	}

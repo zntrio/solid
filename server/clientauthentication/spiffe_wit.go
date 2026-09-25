@@ -134,7 +134,7 @@ func (p *spiffeWITAuthentication) Authenticate(ctx context.Context, req *clientv
 	}
 
 	// Temporal validation: WITs are short-lived workload credentials.
-	if claims.Expires < uint64(time.Now().Unix()) {
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("expired token")
 	}
@@ -142,7 +142,7 @@ func (p *spiffeWITAuthentication) Authenticate(ctx context.Context, req *clientv
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("exp is too far in the future, wit lifetime must not exceed %s", maxAssertionLifetime)
 	}
-	if claims.NotBefore > uint64(time.Now().Unix()) {
+	if claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("not useable token")
 	}
@@ -231,7 +231,7 @@ func (p *spiffeWITAuthentication) Authenticate(ctx context.Context, req *clientv
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("pop aud %q does not match issuer identifier %q nor receiving endpoint %q", popClaims.Audience, p.expectedAudience, req.GetEndpoint())
 	}
-	if popClaims.Expires < uint64(time.Now().Unix()) {
+	if popClaims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("expired pop")
 	}

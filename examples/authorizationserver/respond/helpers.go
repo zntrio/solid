@@ -37,7 +37,7 @@ func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Err
 	w.WriteHeader(code)
 
 	// Write response
-	w.Write(body)
+	_, _ = w.Write(body)
 }
 
 // WithJSON serialize the data with matching requested encoding
@@ -52,5 +52,5 @@ func WithJSON(w http.ResponseWriter, code int, data any) {
 	w.WriteHeader(code)
 
 	// Write response
-	w.Write(body)
+	_, _ = w.Write(body)
 }

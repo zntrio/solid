@@ -42,6 +42,17 @@ func Clients() storage.Client {
 
 // defaultClients holds the reference client fixtures used by the example
 // assemblies.
+
+// Reference fixture values shared across the example clients.
+const (
+	fixtureIntrospectionClientID = "5stz52n91hr7aw9q1h5hbuvkt2ovevdw"
+	fixtureSectorIdentifier      = "http://127.0.0.1:8085"
+	fixtureContactEmail          = "foo@bar.com"
+	spiffeMyOAuthClientID        = "spiffe://example.org/my-oauth-client"
+	spiffeX509WorkloadID         = "spiffe://example.org/x509-workload"
+	spiffeWITWorkloadID          = "spiffe://example.org/wit-workload"
+)
+
 var defaultClients = map[string]*clientv1.Client{
 	"t8p9duw4n2klximkv3kagaud796ul67g": {
 		ClientId:   "t8p9duw4n2klximkv3kagaud796ul67g",
@@ -63,10 +74,10 @@ var defaultClients = map[string]*clientv1.Client{
 		DpopBoundAccessTokens:   true,
 		// RFC 7662 section 2.1: the example resource server introspects
 		// this client's tokens at the timestamp endpoint.
-		AuthorizedIntrospectionClients: []string{"5stz52n91hr7aw9q1h5hbuvkt2ovevdw"},
+		AuthorizedIntrospectionClients: []string{fixtureIntrospectionClientID},
 		// Pairwise sector identitier
 		SubjectType:      oidc.SubjectTypePairwise,
-		SectorIdentifier: "http://127.0.0.1:8085",
+		SectorIdentifier: fixtureSectorIdentifier,
 	},
 	"5stz52n91hr7aw9q1h5hbuvkt2ovevdw": {
 		ClientId:   "5stz52n91hr7aw9q1h5hbuvkt2ovevdw",
@@ -88,7 +99,7 @@ var defaultClients = map[string]*clientv1.Client{
 		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
 		// Pairwise sector identitier
 		SubjectType:      oidc.SubjectTypePairwise,
-		SectorIdentifier: "http://127.0.0.1:8085",
+		SectorIdentifier: fixtureSectorIdentifier,
 	},
 	"6779ef20e75817b79602": {
 		ClientId:        "6779ef20e75817b79602",
@@ -112,7 +123,7 @@ var defaultClients = map[string]*clientv1.Client{
 			"http://127.0.0.1:8085/oidc/as/127.0.0.1",
 		},
 		Contacts: []string{
-			"foo@bar.com",
+			fixtureContactEmail,
 		},
 		// Authentication RSA public key
 		Jwks: []byte(`{
@@ -128,7 +139,7 @@ var defaultClients = map[string]*clientv1.Client{
 				}`),
 		// Pairwise sector identitier
 		SubjectType:      oidc.SubjectTypePairwise,
-		SectorIdentifier: "http://127.0.0.1:8085",
+		SectorIdentifier: fixtureSectorIdentifier,
 	},
 	"public-client": {
 		ClientId:        "public-client",
@@ -140,11 +151,11 @@ var defaultClients = map[string]*clientv1.Client{
 			oidc.GrantTypeRefreshToken, // Act as user
 		},
 		Contacts: []string{
-			"foo@bar.com",
+			fixtureContactEmail,
 		},
 		// Pairwise sector identitier
 		SubjectType:      oidc.SubjectTypePairwise,
-		SectorIdentifier: "http://127.0.0.1:8085",
+		SectorIdentifier: fixtureSectorIdentifier,
 	},
 	"attestation-client": {
 		ClientId:        "attestation-client",
@@ -155,39 +166,39 @@ var defaultClients = map[string]*clientv1.Client{
 			oidc.GrantTypeClientCredentials,
 		},
 		Contacts: []string{
-			"foo@bar.com",
+			fixtureContactEmail,
 		},
 		TokenEndpointAuthMethod: oidc.AuthMethodClientAttestationJWT,
 		// RFC 7662 section 2.1: the example resource server introspects
 		// this client's tokens at the timestamp endpoint.
-		AuthorizedIntrospectionClients: []string{"5stz52n91hr7aw9q1h5hbuvkt2ovevdw"},
+		AuthorizedIntrospectionClients: []string{fixtureIntrospectionClientID},
 	},
 	// draft-ietf-oauth-spiffe-client-auth-02 reference workloads of the
 	// example.org trust domain. No client Jwks: signing keys come from the
 	// trust domain bundle (spiffe.BundleSource), proving the decoupling.
-	"spiffe://example.org/my-oauth-client": {
-		ClientId:                "spiffe://example.org/my-oauth-client",
+	spiffeMyOAuthClientID: {
+		ClientId:                spiffeMyOAuthClientID,
 		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		ClientName:              "spiffe-workload",
 		GrantTypes:              []string{oidc.GrantTypeClientCredentials},
 		TokenEndpointAuthMethod: oidc.AuthMethodSPIFFEJWT,
-		SpiffeId:                "spiffe://example.org/my-oauth-client",
+		SpiffeId:                spiffeMyOAuthClientID,
 	},
-	"spiffe://example.org/x509-workload": {
-		ClientId:                "spiffe://example.org/x509-workload",
+	spiffeX509WorkloadID: {
+		ClientId:                spiffeX509WorkloadID,
 		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		ClientName:              "spiffe-x509-workload",
 		GrantTypes:              []string{oidc.GrantTypeClientCredentials},
 		TokenEndpointAuthMethod: oidc.AuthMethodSPIFFEX509,
-		SpiffeId:                "spiffe://example.org/x509-workload",
+		SpiffeId:                spiffeX509WorkloadID,
 	},
-	"spiffe://example.org/wit-workload": {
-		ClientId:                "spiffe://example.org/wit-workload",
+	spiffeWITWorkloadID: {
+		ClientId:                spiffeWITWorkloadID,
 		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		ClientName:              "spiffe-wit-workload",
 		GrantTypes:              []string{oidc.GrantTypeClientCredentials},
 		TokenEndpointAuthMethod: oidc.AuthMethodSPIFFEWIT,
-		SpiffeId:                "spiffe://example.org/wit-workload",
+		SpiffeId:                spiffeWITWorkloadID,
 	},
 	"urn:solid:attestation-server": {
 		ClientId:   "urn:solid:attestation-server",

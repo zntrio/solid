@@ -50,7 +50,8 @@ func getAttestation(ctx context.Context, pub *mldsa.PublicKey) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to import client public key: %w", err)
 	}
-	if err := pubJWK.Set(jwk.KeyUsageKey, "sig"); err != nil {
+	err = pubJWK.Set(jwk.KeyUsageKey, "sig")
+	if err != nil {
 		return "", fmt.Errorf("unable to set key usage: %w", err)
 	}
 	requestBodyRaw := map[string]any{
@@ -74,7 +75,7 @@ func getAttestation(ctx context.Context, pub *mldsa.PublicKey) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to process the request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("invalid attestation endpoint status code, got %d", resp.StatusCode)
@@ -142,7 +143,7 @@ func getToken(ctx context.Context, assertion string) (*client.Token, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve token: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
 		var err corev1.Error
@@ -205,7 +206,7 @@ func run() error {
 	time.Sleep(1000 * time.Millisecond)
 
 	// Call the timestamp service
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8085", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8085", http.NoBody)
 	if err != nil {
 		panic(err)
 	}
@@ -219,7 +220,7 @@ func run() error {
 		panic(err)
 	}
 
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	timestampRaw, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)

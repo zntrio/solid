@@ -48,10 +48,13 @@ func JWTSVIDSigningKey() jwxjwk.Key {
 	if !ok {
 		panic("spiffedemo: invalid signing key hex")
 	}
-	x, y := elliptic.P256().ScalarBaseMult(d.Bytes())
+	// The fixed scalar pins the whole key pair (public coordinates included)
+	// so the demo bundle matches across processes; the deprecated low-level
+	// curve access is the only way to materialize a deterministic P-256 key.
+	x, y := elliptic.P256().ScalarBaseMult(d.Bytes()) //nolint:staticcheck // SA1019: deterministic demo fixture requires deriving the public point from the fixed scalar
 	priv := &ecdsa.PrivateKey{
-		PublicKey: ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y},
-		D:         d,
+		PublicKey: ecdsa.PublicKey{Curve: elliptic.P256(), X: x, Y: y}, //nolint:staticcheck // SA1019: demo fixture sets the raw coordinates deterministically
+		D:         d,                                                   //nolint:staticcheck // SA1019: demo fixture pins the private scalar
 	}
 	k, err := jwxjwk.Import(priv)
 	if err != nil {

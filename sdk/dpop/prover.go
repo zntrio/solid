@@ -86,7 +86,7 @@ func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 		JTI:        random.String(JTICodeLength),
 		HTTPMethod: htm,
 		HTTPURL:    fmt.Sprintf("%s://%s%s", u.Scheme, u.Host, u.Path),
-		IssuedAt:   uint64(time.Now().UTC().Unix()),
+		IssuedAt:   uint64(time.Now().UTC().Unix()), //nolint:gosec // Unix time is non-negative
 	}
 
 	// If the DPoP proof is used in conjunction with the presentation of

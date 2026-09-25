@@ -106,7 +106,7 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 		}, fmt.Errorf("invalid response token, '%s' does not match expected audience", claims.Audience)
 	}
 
-	if claims.ExpiresAt < uint64(time.Now().Unix()) {
+	if claims.ExpiresAt < uint64(time.Now().Unix()) { //nolint:gosec // Unix time is non-negative
 		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response, response token is expired")

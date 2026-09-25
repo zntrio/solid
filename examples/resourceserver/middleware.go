@@ -72,7 +72,7 @@ func can(id *identity, intent string) bool {
 
 // -----------------------------------------------------------------------------
 
-func authenticateWithBearer(w http.ResponseWriter, req *http.Request, cli client.Client) (*identity, error) {
+func authenticateWithBearer(req *http.Request, cli client.Client) (*identity, error) {
 	ctx := req.Context()
 
 	// Get token from request
@@ -113,7 +113,7 @@ func authenticateWithBearer(w http.ResponseWriter, req *http.Request, cli client
 	}, nil
 }
 
-func authenticateWithDPoP(w http.ResponseWriter, req *http.Request, cli client.Client, dpopVerifier dpop.Verifier) (*identity, error) {
+func authenticateWithDPoP(req *http.Request, cli client.Client, dpopVerifier dpop.Verifier) (*identity, error) {
 	ctx := req.Context()
 
 	// Get token from request
@@ -189,9 +189,9 @@ func Authorizer(next http.Handler, intent string, cli client.Client, acrValues t
 			http.Error(w, "Authorization required.", http.StatusUnauthorized)
 			return
 		case strings.HasPrefix(strings.ToLower(authHeader), "bearer"):
-			id, authErr = authenticateWithBearer(w, r, cli)
+			id, authErr = authenticateWithBearer(r, cli)
 		case strings.HasPrefix(strings.ToLower(authHeader), "dpop"):
-			id, authErr = authenticateWithDPoP(w, r, cli, dpopVerifier)
+			id, authErr = authenticateWithDPoP(r, cli, dpopVerifier)
 		default:
 			http.Error(w, "Unsupported authorization method.", http.StatusBadRequest)
 			return
@@ -207,7 +207,7 @@ func Authorizer(next http.Handler, intent string, cli client.Client, acrValues t
 
 		// Control authentication context
 		if maxAuthAge > 0 && id.AuthTime != nil {
-			if uint64(time.Now().Unix())-*id.AuthTime > maxAuthAge {
+			if uint64(time.Now().Unix())-*id.AuthTime > maxAuthAge { //nolint:gosec // unix time is non-negative
 				w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", error_description="More recent authentication is required", resource="http://127.0.0.1:8085", resource_metadata="http://127.0.0.1:8085/.well-known/oauth-protected-resource"`+fmt.Sprintf(", max_age=%d", maxAuthAge))
 				http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
 				return

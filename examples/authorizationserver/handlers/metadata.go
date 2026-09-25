@@ -27,6 +27,9 @@ import (
 	"zntr.io/solid/sdk/token"
 )
 
+// mldsaAlg is the signature algorithm advertised by this example server.
+const mldsaAlg = "ML-DSA-65"
+
 // Metadata handle OIDC Discovery HTTP requests.
 func Metadata(issuer string, signer token.Serializer) http.Handler {
 	// Prepare metadata
@@ -65,18 +68,18 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 			oidc.AuthMethodSPIFFEX509,
 			oidc.AuthMethodTLSClientAuth,
 		},
-		TokenEndpointAuthSigningAlgValuesSupported:             []string{"ML-DSA-65"},
+		TokenEndpointAuthSigningAlgValuesSupported:             []string{mldsaAlg},
 		CodeChallengeMethodsSupported:                          []string{"S256"},
 		IntrospectionEndpoint:                                  fmt.Sprintf("%s/token/introspect", issuer),
 		IntrospectionEndpointAuthMethodsSupported:              []string{oidc.AuthMethodPrivateKeyJWT, oidc.AuthMethodClientAttestationJWT, oidc.AuthMethodSPIFFEJWT, oidc.AuthMethodSPIFFEWIT, oidc.AuthMethodSPIFFEX509, oidc.AuthMethodTLSClientAuth},
-		IntrospectionEndpointAuthSigningAlgValuesSupported:     []string{"ML-DSA-65"},
+		IntrospectionEndpointAuthSigningAlgValuesSupported:     []string{mldsaAlg},
 		RevocationEndpoint:                                     fmt.Sprintf("%s/token/revoke", issuer),
 		RevocationEndpointAuthMethodsSupported:                 []string{oidc.AuthMethodPrivateKeyJWT, oidc.AuthMethodClientAttestationJWT, oidc.AuthMethodSPIFFEJWT, oidc.AuthMethodSPIFFEWIT, oidc.AuthMethodSPIFFEX509, oidc.AuthMethodTLSClientAuth},
-		RevocationEndpointAuthSigningAlgValuesSupported:        []string{"ML-DSA-65"},
+		RevocationEndpointAuthSigningAlgValuesSupported:        []string{mldsaAlg},
 		DeviceAuthorizationEndpoint:                            fmt.Sprintf("%s/device/authorize", issuer),
-		DpopSigningAlgValuesSupported:                          []string{"ML-DSA-65"},
+		DpopSigningAlgValuesSupported:                          []string{mldsaAlg},
 		AuthorizationResponseIssParameterSupported:             true,
-		AuthorizationSigningAlgValuesSupported:                 []string{"ML-DSA-65"},
+		AuthorizationSigningAlgValuesSupported:                 []string{mldsaAlg},
 		PushedAuthorizationRequestEndpoint:                     fmt.Sprintf("%s/par", issuer),
 		PushedAuthorizationRequestEndpointAuthMethodsSupported: []string{oidc.AuthMethodPrivateKeyJWT, oidc.AuthMethodClientAttestationJWT, oidc.AuthMethodSPIFFEJWT, oidc.AuthMethodSPIFFEWIT, oidc.AuthMethodSPIFFEX509, oidc.AuthMethodTLSClientAuth},
 		// RFC 8705 section 3: access and refresh tokens issued over mutual
@@ -84,7 +87,7 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 		TlsClientCertificateBoundAccessTokens:  true,
 		RequestParameterSupported:              true,
 		ClientIdMetadataDocumentSupported:      true,
-		RequestObjectSigningAlgValuesSupported: []string{"ML-DSA-65"},
+		RequestObjectSigningAlgValuesSupported: []string{mldsaAlg},
 		AuthorizationDetailsTypesSupported:     []string{"payment_initiation"},
 	}
 

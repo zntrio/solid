@@ -136,7 +136,7 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorization
 		Audience:   req.Audience,
 		DeviceCode: deviceCode,
 		Status:     sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
-		ExpiresAt:  uint64(time.Now().Add(deviceSessionTTL).Unix()),
+		ExpiresAt:  uint64(time.Now().Add(deviceSessionTTL).Unix()), //nolint:gosec // unix time is non-negative
 		// Advertised polling interval (RFC 8628 section 3.2); the token
 		// grant enforces it with slow_down (RFC 8628 section 3.5).
 		PollInterval: defaultPollInterval,
@@ -243,7 +243,7 @@ func (s *service) Validate(ctx context.Context, req *flowv1.DeviceCodeValidation
 	}
 
 	// Check expiration
-	if session.ExpiresAt < uint64(timeFunc().Unix()) {
+	if session.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.TokenExpired().Build()
 		return res, fmt.Errorf("user_code '%s' is expired", req.UserCode)
 	}

@@ -39,7 +39,7 @@ func Subject(ctx context.Context) (string, bool) {
 
 // BasicAuthentication is a middleware to handle basic authentication.
 func BasicAuthentication() Adapter {
-	unauthorised := func(rw http.ResponseWriter) {
+	unauthorized := func(rw http.ResponseWriter) {
 		rw.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
 		rw.WriteHeader(http.StatusUnauthorized)
 	}
@@ -51,13 +51,13 @@ func BasicAuthentication() Adapter {
 
 			u, p, ok := r.BasicAuth()
 			if !ok || len(strings.TrimSpace(u)) < 1 || len(strings.TrimSpace(p)) < 1 {
-				unauthorised(w)
+				unauthorized(w)
 				return
 			}
 
 			// This is a dummy check for credentials.
 			if u != "hello" || p != "world" {
-				unauthorised(w)
+				unauthorized(w)
 				return
 			}
 

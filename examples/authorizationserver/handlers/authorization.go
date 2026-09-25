@@ -83,13 +83,13 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 
 		// Prepare client request decoder
 		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
-			jwks, err := jwk.Parse(client.Jwks)
-			if err != nil {
+			parsed, parseErr := jwk.Parse(client.Jwks)
+			if parseErr != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")
 			}
 
 			// No error
-			return jwks, nil
+			return parsed, nil
 		}, []string{jwk.MLDSA65}), issuer)
 
 		// Decode request

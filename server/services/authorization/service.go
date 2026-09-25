@@ -273,7 +273,7 @@ func (s *service) Register(ctx context.Context, req *flowv1.RegistrationRequest)
 	// through Authorize into the code session and is enforced at
 	// redemption.
 	if req.Confirmation != nil && req.Confirmation.Jkt != "" {
-		req.Request.DpopJkt = types.StringRef(req.Confirmation.Jkt)
+		req.Request.DpopJkt = &req.Confirmation.Jkt
 	}
 
 	// Register the authorization request

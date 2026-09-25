@@ -74,15 +74,19 @@ func signHandler(priv *mldsa.PrivateKey) http.Handler {
 			"nbf": now - 1,
 			"exp": now + 3600, // Valid for 1h
 			"cnf": map[string]any{
-				"jwk": json.RawMessage(data.ClientPublicKey),
+				"jwk": data.ClientPublicKey,
 			},
 		})
 		tok.Header["typ"] = "client-attestation+jwt"
 		tok.Header["jwk"] = pubJWK
 		response, err := tok.SignedString(priv)
+		if err != nil {
+			http.Error(w, "Unable to sign attestation", http.StatusInternalServerError)
+			return
+		}
 		// Set response type
 		w.Header().Set("Content-Type", "application/client-attestation+jwt; charset=utf-8")
-		fmt.Fprint(w, response)
+		_, _ = fmt.Fprint(w, response)
 	})
 }
 
@@ -131,5 +135,9 @@ func main() {
 	http.Handle("/attestations/sign", signHandler(priv))
 	http.Handle("/attestations/jwks", publicKeyHandler(pub))
 
-	log.Fatal(http.ListenAndServe(":8087", nil))
+	server := &http.Server{
+		Addr:              ":8087",
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

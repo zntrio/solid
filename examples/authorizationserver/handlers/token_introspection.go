@@ -32,7 +32,10 @@ import (
 // TokenIntrospection handles token introspection HTTP requests.
 func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
+		if err := r.ParseForm(); err != nil {
+			respond.WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			return
+		}
 
 		var (
 			ctx              = r.Context()
@@ -91,10 +94,10 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 				if res.Token.Confirmation.Jkt != "" {
 					resp["token_type"] = "DPoP"
 				} else {
-					resp["token_type"] = "Bearer"
+					resp["token_type"] = bearerTokenType
 				}
 			} else {
-				resp["token_type"] = "Bearer"
+				resp["token_type"] = bearerTokenType
 			}
 
 			// Add step-up authentication related claims
@@ -113,7 +116,7 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			}
 		}
 
-		// Send json reponse
+		// Send json response
 		respond.WithJSON(w, http.StatusOK, resp)
 	})
 }

@@ -70,9 +70,9 @@ func embeddedKey(t *gojwt.Token) (jwxjwk.Key, error) {
 	return k, nil
 }
 
-func (v *embeddedKeyVerifier) Parse(token string) (token.Token, error) {
+func (v *embeddedKeyVerifier) Parse(raw string) (token.Token, error) {
 	// Parse JWT token
-	t, parts, err := parseUnverified(token, v.supportedAlgorithms)
+	t, parts, err := parseUnverified(raw, v.supportedAlgorithms)
 	if err != nil {
 		return nil, errors.New("unable to parse signed token")
 	}
@@ -84,9 +84,9 @@ func (v *embeddedKeyVerifier) Parse(token string) (token.Token, error) {
 	}, nil
 }
 
-func (v *embeddedKeyVerifier) Verify(token string) error {
+func (v *embeddedKeyVerifier) Verify(raw string) error {
 	// Parse JWT token
-	t, _, err := parseUnverified(token, v.supportedAlgorithms)
+	t, _, err := parseUnverified(raw, v.supportedAlgorithms)
 	if err != nil {
 		return fmt.Errorf("unable to parse signed token: %w", err)
 	}

@@ -34,7 +34,7 @@ func IsUsable(t *tokenv1.Token) bool {
 	}
 
 	// Check expiration
-	now := uint64(time.Now().Unix())
+	now := uint64(time.Now().Unix()) //nolint:gosec // Unix time is non-negative
 	if t.Metadata.ExpiresAt < now {
 		return false
 	}

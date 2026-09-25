@@ -106,7 +106,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to process the request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Decode the token response
 	var tokenResponse client.Token

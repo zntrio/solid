@@ -27,6 +27,7 @@ import (
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"zntr.io/solid/sdk/jwk"
 )
 

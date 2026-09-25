@@ -194,7 +194,7 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience[0], p.issuer, receivingEndpoint)
 	}
-	if claims.IssuedAt > uint64(time.Now().Add(5*time.Minute).Unix()) {
+	if claims.IssuedAt > uint64(time.Now().Add(5*time.Minute).Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("iat is in the future")
 	}
@@ -202,11 +202,11 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("exp is too far in the future, assertion lifetime must not exceed %s", maxAssertionLifetime)
 	}
-	if claims.NotBefore > 0 && claims.NotBefore > uint64(time.Now().Unix()) {
+	if claims.NotBefore > 0 && claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("nbf is in the future")
 	}
-	if claims.Expires < uint64(time.Now().Unix()) {
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("expired token")
 	}

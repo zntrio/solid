@@ -52,6 +52,8 @@ const (
 	MLDSA87 = "ML-DSA-87"
 	// akpKty is the draft-ietf-cose-dilithium JWK key type of ML-DSA keys.
 	akpKty = "AKP"
+	// akpPub is the JWK member holding the raw ML-DSA public key bytes.
+	akpPub = "pub"
 )
 
 var (
@@ -232,7 +234,7 @@ func (k *MLDSAKey) Has(name string) bool {
 		return k.kid != ""
 	case jwxjwk.KeyUsageKey:
 		return k.use != ""
-	case "pub":
+	case akpPub:
 		return k.pub != nil
 	default:
 		return false
@@ -243,8 +245,7 @@ func (k *MLDSAKey) Has(name string) bool {
 func (k *MLDSAKey) Keys() []string {
 	k.mu.RLock()
 	defer k.mu.RUnlock()
-
-	keys := []string{jwxjwk.KeyTypeKey, "pub"}
+	keys := []string{jwxjwk.KeyTypeKey, akpPub}
 	if k.alg != "" {
 		keys = append(keys, jwxjwk.AlgorithmKey)
 	}
@@ -284,7 +285,7 @@ func (k *MLDSAKey) Get(name string, dst any) error {
 			return fmt.Errorf("field %q not found", name)
 		}
 		return assign(dst, k.use)
-	case "pub":
+	case akpPub:
 		if k.pub == nil {
 			return fmt.Errorf("field %q not found", name)
 		}
@@ -418,9 +419,9 @@ func (k *MLDSAKey) MarshalJSON() ([]byte, error) {
 	}
 
 	m := map[string]any{
-		"kty": akpKty,
-		"alg": k.alg,
-		"pub": base64.RawURLEncoding.EncodeToString(k.pub.Bytes()),
+		"kty":  akpKty,
+		"alg":  k.alg,
+		akpPub: base64.RawURLEncoding.EncodeToString(k.pub.Bytes()),
 	}
 	if k.kid != "" {
 		m["kid"] = k.kid

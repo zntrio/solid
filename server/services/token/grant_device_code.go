@@ -104,7 +104,7 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 	}
 
 	// Check expiration
-	if session.ExpiresAt < uint64(timeFunc().Unix()) {
+	if session.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.TokenExpired().Build()
 		return res, fmt.Errorf("token '%s' is expired", grant.DeviceCode)
 	}
@@ -116,7 +116,7 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 		if interval < 5 {
 			interval = 5 // RFC 8628 section 3.2 default
 		}
-		if session.LastPolledAt != 0 && now < int64(session.LastPolledAt)+int64(interval) {
+		if session.LastPolledAt != 0 && now < int64(session.LastPolledAt)+int64(interval) { //nolint:gosec // epoch seconds and small poll interval both fit int64
 			// RFC 8628 section 3.5: interval MUST increase by 5 seconds for
 			// this and all subsequent requests. LastPolledAt is unchanged, so
 			// the next admissible poll is LastPolledAt + new interval.
@@ -128,7 +128,7 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 			res.Error = rfcerrors.Slowdown().Build()
 			return res, fmt.Errorf("token '%s' is polling too fast", grant.DeviceCode)
 		}
-		session.LastPolledAt = uint64(now)
+		session.LastPolledAt = uint64(now) //nolint:gosec // unix time is non-negative
 		if err = s.deviceCodeSessions.UpdateByDeviceCode(ctx, req.Issuer, grant.DeviceCode, session); err != nil {
 			res.Error = rfcerrors.ServerError().Build()
 			return res, fmt.Errorf("unable to persist poll timing for '%s': %w", grant.DeviceCode, err)

@@ -62,9 +62,9 @@ func (t *hashEncoder) Encode(sectorID, subject string) (string, error) {
 
 	// Hash the content with unambiguous framing: the sector identifier is
 	// length-prefixed so that ("ab","c") and ("a","bc") never collide.
-	fmt.Fprintf(h, "%d:", len(sectorID))
-	h.Write([]byte(sectorID))
-	h.Write([]byte(subject))
+	_, _ = fmt.Fprintf(h, "%d:", len(sectorID))
+	_, _ = h.Write([]byte(sectorID))
+	_, _ = h.Write([]byte(subject))
 
 	// Finalize
 	sub := h.Sum(nil)

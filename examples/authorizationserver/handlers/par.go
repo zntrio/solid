@@ -61,7 +61,9 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		// Retrieve client front context
 		client, ok := clientauthentication.FromContext(ctx)
 		if client == nil || !ok {
-			json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build())
+			if err := json.NewEncoder(w).Encode(rfcerrors.InvalidClient().Build()); err != nil {
+				log.Println("unable to encode error response:", err)
+			}
 			return
 		}
 
@@ -75,13 +77,13 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 
 		// Prepare client request decoder
 		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
-			jwks, err := jwk.Parse(client.Jwks)
-			if err != nil {
+			parsed, parseErr := jwk.Parse(client.Jwks)
+			if parseErr != nil {
 				return nil, fmt.Errorf("unable to decode client JWKS")
 			}
 
 			// No error
-			return jwks, nil
+			return parsed, nil
 		}, []string{jwk.MLDSA65}), issuer)
 
 		// Decode request

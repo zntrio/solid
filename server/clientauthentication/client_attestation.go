@@ -167,7 +167,7 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 		res.Error = rfcerrors.UnauthorizedClient().Build()
 		return res, fmt.Errorf("PoP aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience, p.issuer, receivingEndpoint)
 	}
-	if claims.Expires < uint64(time.Now().Unix()) {
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("expired token")
 	}
@@ -175,7 +175,7 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("exp is too far in the future, assertion lifetime must not exceed %s", maxAssertionLifetime)
 	}
-	if claims.NotBefore > uint64(time.Now().Unix()) {
+	if claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("not useable token")
 	}
@@ -249,10 +249,10 @@ func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.
 	if claims.Issuer == "" || claims.Subject == "" || claims.Expires == 0 || claims.Confirmation == nil {
 		return nil, "", fmt.Errorf("iss, sub, exp, cnf are mandatory and not empty")
 	}
-	if claims.Expires < uint64(time.Now().Unix()) {
+	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		return nil, "", fmt.Errorf("expired token")
 	}
-	if claims.NotBefore > uint64(time.Now().Unix()) {
+	if claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
 		return nil, "", fmt.Errorf("not useable token")
 	}
 

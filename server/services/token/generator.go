@@ -63,9 +63,9 @@ func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Clie
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),
-			NotBefore: uint64(now.Unix() + 1),
-			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()),
+			IssuedAt:  uint64(now.Unix()),                    //nolint:gosec // unix time is non-negative
+			NotBefore: uint64(now.Unix() + 1),                //nolint:gosec // unix time is non-negative
+			ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
 			GrantId:   meta.GrantId,
@@ -110,9 +110,9 @@ func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Cli
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),
-			NotBefore: uint64(now.Unix() + 1),
-			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()),
+			IssuedAt:  uint64(now.Unix()),                  //nolint:gosec // unix time is non-negative
+			NotBefore: uint64(now.Unix() + 1),              //nolint:gosec // unix time is non-negative
+			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
 			GrantId:   meta.GrantId,

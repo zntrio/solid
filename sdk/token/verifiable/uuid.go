@@ -84,12 +84,12 @@ func uuidv4() ([16]byte, error) {
 func uuidv7() ([16]byte, error) {
 	var u [16]byte
 	ms := uint64(time.Now().UnixMilli())
-	u[0] = byte(ms >> 40)
-	u[1] = byte(ms >> 32)
-	u[2] = byte(ms >> 24)
-	u[3] = byte(ms >> 16)
-	u[4] = byte(ms >> 8)
-	u[5] = byte(ms)
+	u[0] = byte(ms >> 40) //nolint:gosec // shift keeps value within byte range
+	u[1] = byte(ms >> 32) //nolint:gosec // shift keeps value within byte range
+	u[2] = byte(ms >> 24) //nolint:gosec // shift keeps value within byte range
+	u[3] = byte(ms >> 16) //nolint:gosec // shift keeps value within byte range
+	u[4] = byte(ms >> 8)  //nolint:gosec // shift keeps value within byte range
+	u[5] = byte(ms)       //nolint:gosec // shift keeps value within byte range
 	if _, err := cryptorand.Read(u[6:]); err != nil {
 		return u, fmt.Errorf("unable to read random bytes: %w", err)
 	}

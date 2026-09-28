@@ -57,6 +57,37 @@ func DeviceCodeTransition(from, to sessionv1.DeviceCodeStatus) error {
 	return nil
 }
 
+// backchannelAuthenticationTransitions is the exhaustive transition table
+// for backchannel authentication sessions (OpenID CIBA Core 1.0): a session
+// is created PENDING and may only move to VALIDATED once, when the end user
+// approves the request on the authentication device, or to DENIED when the
+// end user refuses it. Both states are terminal; the token grant consumes
+// VALIDATED sessions and rejects DENIED ones.
+var backchannelAuthenticationTransitions = map[sessionv1.BackchannelAuthenticationStatus]map[sessionv1.BackchannelAuthenticationStatus]struct{}{
+	sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_PENDING: {
+		sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED: {},
+		sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_DENIED:    {},
+	},
+}
+
+// BackchannelAuthenticationTransition validates a backchannel
+// authentication session status change. It returns an error when the
+// transition is not permitted by the state machine; the caller MUST abort
+// the operation in that case.
+func BackchannelAuthenticationTransition(from, to sessionv1.BackchannelAuthenticationStatus) error {
+	if from == to {
+		return fmt.Errorf("invalid backchannel authentication session transition: %s is terminal", from)
+	}
+	allowed, ok := backchannelAuthenticationTransitions[from]
+	if !ok {
+		return fmt.Errorf("invalid backchannel authentication session transition: no transition from %s", from)
+	}
+	if _, ok := allowed[to]; !ok {
+		return fmt.Errorf("invalid backchannel authentication session transition: %s -> %s is not allowed", from, to)
+	}
+	return nil
+}
+
 // authorizationCodeTransitions is the exhaustive transition table for
 // authorization code sessions (RFC 6749 section 4.1.2): a code is created
 // ACTIVE and may be consumed exactly once. CONSUMED is terminal; a second

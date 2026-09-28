@@ -472,6 +472,7 @@ type TokenRequest struct {
 	//	*TokenRequest_RefreshToken
 	//	*TokenRequest_TokenExchange
 	//	*TokenRequest_JwtBearer
+	//	*TokenRequest_Ciba
 	Grant         isTokenRequest_Grant `protobuf_oneof:"grant"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -624,6 +625,15 @@ func (x *TokenRequest) GetJwtBearer() *GrantJWTBearer {
 	return nil
 }
 
+func (x *TokenRequest) GetCiba() *GrantCIBA {
+	if x != nil {
+		if x, ok := x.Grant.(*TokenRequest_Ciba); ok {
+			return x.Ciba
+		}
+	}
+	return nil
+}
+
 type isTokenRequest_Grant interface {
 	isTokenRequest_Grant()
 }
@@ -660,6 +670,11 @@ type TokenRequest_JwtBearer struct {
 	JwtBearer *GrantJWTBearer `protobuf:"bytes,15,opt,name=jwt_bearer,json=jwtBearer,proto3,oneof"`
 }
 
+type TokenRequest_Ciba struct {
+	// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-10.1
+	Ciba *GrantCIBA `protobuf:"bytes,16,opt,name=ciba,proto3,oneof"`
+}
+
 func (*TokenRequest_AuthorizationCode) isTokenRequest_Grant() {}
 
 func (*TokenRequest_ClientCredentials) isTokenRequest_Grant() {}
@@ -671,6 +686,8 @@ func (*TokenRequest_RefreshToken) isTokenRequest_Grant() {}
 func (*TokenRequest_TokenExchange) isTokenRequest_Grant() {}
 
 func (*TokenRequest_JwtBearer) isTokenRequest_Grant() {}
+
+func (*TokenRequest_Ciba) isTokenRequest_Grant() {}
 
 type TokenResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1095,6 +1112,362 @@ func (x *DeviceCodeValidationResponse) GetError() *v12.Error {
 	return nil
 }
 
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-7.1
+type BackchannelAuthenticationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// REQUIRED. Issuer uri.
+	Issuer string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	// REQUIRED. Client identifier (RFC 6749 section 2.2).
+	ClientId string `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	// REQUIRED by CIBA section 7.1 (must contain the openid scope value;
+	// enforced semantically in the service).
+	Scope *string `protobuf:"bytes,3,opt,name=scope,proto3,oneof" json:"scope,omitempty"`
+	// OPTIONAL. Target audience (resource indicators, RFC 8707).
+	Audience *string `protobuf:"bytes,4,opt,name=audience,proto3,oneof" json:"audience,omitempty"`
+	// OPTIONAL. Requested Authentication Context Class Reference values.
+	AcrValues *string `protobuf:"bytes,5,opt,name=acr_values,json=acrValues,proto3,oneof" json:"acr_values,omitempty"`
+	// OPTIONAL. Hint identifying the end-user (email, phone, subject...).
+	LoginHint *string `protobuf:"bytes,6,opt,name=login_hint,json=loginHint,proto3,oneof" json:"login_hint,omitempty"`
+	// OPTIONAL. Token identifying the end-user; opaque, resolved by the
+	// deployment-provided hint resolver.
+	LoginHintToken *string `protobuf:"bytes,7,opt,name=login_hint_token,json=loginHintToken,proto3,oneof" json:"login_hint_token,omitempty"`
+	// OPTIONAL. ID Token previously issued to the client; opaque, resolved
+	// by the deployment-provided hint resolver.
+	IdTokenHint *string `protobuf:"bytes,8,opt,name=id_token_hint,json=idTokenHint,proto3,oneof" json:"id_token_hint,omitempty"`
+	// REQUIRED (solid promotion). Human-readable interlock between the
+	// consumption and authentication devices; enforced semantically
+	// (4-64 chars, charset [A-Za-z0-9._-]).
+	BindingMessage *string `protobuf:"bytes,9,opt,name=binding_message,json=bindingMessage,proto3,oneof" json:"binding_message,omitempty"`
+	// OPTIONAL. Requested auth_req_id lifetime in seconds (CIBA section 7.1);
+	// honored when within (0, 3600], clamped otherwise by the service.
+	RequestedExpiry *uint64 `protobuf:"fixed64,10,opt,name=requested_expiry,json=requestedExpiry,proto3,oneof" json:"requested_expiry,omitempty"`
+	// OPTIONAL. RFC 9396 authorization details fixed at backchannel request
+	// time and consented on the session.
+	AuthorizationDetails []*v11.AuthorizationDetail `protobuf:"bytes,11,rep,name=authorization_details,json=authorizationDetails,proto3" json:"authorization_details,omitempty"`
+	// OPTIONAL. Signed authentication request JWT (CIBA section 7.1.1).
+	// When set, no authentication request parameter may appear outside it.
+	Request *string `protobuf:"bytes,12,opt,name=request,proto3,oneof" json:"request,omitempty"`
+	// OPTIONAL. Authorization Code Binding to a DPoP Key analog for CIBA:
+	// the JWK thumbprint (RFC 9449 section 10) of the key that MUST sign
+	// the DPoP proofs at the token endpoint when polling this auth_req_id.
+	// Carried inside the signed request object (dpop_jkt claim) — when a
+	// request object is used, it MUST NOT appear outside it.
+	DpopJkt       *string `protobuf:"bytes,13,opt,name=dpop_jkt,json=dpopJkt,proto3,oneof" json:"dpop_jkt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackchannelAuthenticationRequest) Reset() {
+	*x = BackchannelAuthenticationRequest{}
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackchannelAuthenticationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackchannelAuthenticationRequest) ProtoMessage() {}
+
+func (x *BackchannelAuthenticationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackchannelAuthenticationRequest.ProtoReflect.Descriptor instead.
+func (*BackchannelAuthenticationRequest) Descriptor() ([]byte, []int) {
+	return file_oidc_flow_v1_flow_api_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *BackchannelAuthenticationRequest) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetScope() string {
+	if x != nil && x.Scope != nil {
+		return *x.Scope
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetAudience() string {
+	if x != nil && x.Audience != nil {
+		return *x.Audience
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetAcrValues() string {
+	if x != nil && x.AcrValues != nil {
+		return *x.AcrValues
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetLoginHint() string {
+	if x != nil && x.LoginHint != nil {
+		return *x.LoginHint
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetLoginHintToken() string {
+	if x != nil && x.LoginHintToken != nil {
+		return *x.LoginHintToken
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetIdTokenHint() string {
+	if x != nil && x.IdTokenHint != nil {
+		return *x.IdTokenHint
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetBindingMessage() string {
+	if x != nil && x.BindingMessage != nil {
+		return *x.BindingMessage
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetRequestedExpiry() uint64 {
+	if x != nil && x.RequestedExpiry != nil {
+		return *x.RequestedExpiry
+	}
+	return 0
+}
+
+func (x *BackchannelAuthenticationRequest) GetAuthorizationDetails() []*v11.AuthorizationDetail {
+	if x != nil {
+		return x.AuthorizationDetails
+	}
+	return nil
+}
+
+func (x *BackchannelAuthenticationRequest) GetRequest() string {
+	if x != nil && x.Request != nil {
+		return *x.Request
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationRequest) GetDpopJkt() string {
+	if x != nil && x.DpopJkt != nil {
+		return *x.DpopJkt
+	}
+	return ""
+}
+
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-7.3
+type BackchannelAuthenticationResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Error *v12.Error             `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	// REQUIRED. Unique identifier of the authentication request.
+	AuthReqId string `protobuf:"bytes,2,opt,name=auth_req_id,json=authReqId,proto3" json:"auth_req_id,omitempty"`
+	// REQUIRED. Lifetime of the auth_req_id in seconds.
+	ExpiresIn uint64 `protobuf:"fixed64,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
+	// OPTIONAL. Minimum polling interval in seconds (poll mode only).
+	Interval uint64 `protobuf:"fixed64,4,opt,name=interval,proto3" json:"interval,omitempty"`
+	// REQUIRED. Issuer url.
+	Issuer        string `protobuf:"bytes,5,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackchannelAuthenticationResponse) Reset() {
+	*x = BackchannelAuthenticationResponse{}
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackchannelAuthenticationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackchannelAuthenticationResponse) ProtoMessage() {}
+
+func (x *BackchannelAuthenticationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackchannelAuthenticationResponse.ProtoReflect.Descriptor instead.
+func (*BackchannelAuthenticationResponse) Descriptor() ([]byte, []int) {
+	return file_oidc_flow_v1_flow_api_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *BackchannelAuthenticationResponse) GetError() *v12.Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *BackchannelAuthenticationResponse) GetAuthReqId() string {
+	if x != nil {
+		return x.AuthReqId
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationResponse) GetExpiresIn() uint64 {
+	if x != nil {
+		return x.ExpiresIn
+	}
+	return 0
+}
+
+func (x *BackchannelAuthenticationResponse) GetInterval() uint64 {
+	if x != nil {
+		return x.Interval
+	}
+	return 0
+}
+
+func (x *BackchannelAuthenticationResponse) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+// End-user approval channel for a backchannel authentication request
+// (the "authentication device" side of CIBA section 8).
+type BackchannelAuthenticationValidationRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// REQUIRED. Issuer uri.
+	Issuer string `protobuf:"bytes,1,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	// REQUIRED. The authentication request identifier.
+	AuthReqId string `protobuf:"bytes,2,opt,name=auth_req_id,json=authReqId,proto3" json:"auth_req_id,omitempty"`
+	// REQUIRED. User identity.
+	Subject       string `protobuf:"bytes,3,opt,name=subject,proto3" json:"subject,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackchannelAuthenticationValidationRequest) Reset() {
+	*x = BackchannelAuthenticationValidationRequest{}
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackchannelAuthenticationValidationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackchannelAuthenticationValidationRequest) ProtoMessage() {}
+
+func (x *BackchannelAuthenticationValidationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackchannelAuthenticationValidationRequest.ProtoReflect.Descriptor instead.
+func (*BackchannelAuthenticationValidationRequest) Descriptor() ([]byte, []int) {
+	return file_oidc_flow_v1_flow_api_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *BackchannelAuthenticationValidationRequest) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationValidationRequest) GetAuthReqId() string {
+	if x != nil {
+		return x.AuthReqId
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationValidationRequest) GetSubject() string {
+	if x != nil {
+		return x.Subject
+	}
+	return ""
+}
+
+type BackchannelAuthenticationValidationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *v12.Error             `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackchannelAuthenticationValidationResponse) Reset() {
+	*x = BackchannelAuthenticationValidationResponse{}
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackchannelAuthenticationValidationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackchannelAuthenticationValidationResponse) ProtoMessage() {}
+
+func (x *BackchannelAuthenticationValidationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_flow_v1_flow_api_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackchannelAuthenticationValidationResponse.ProtoReflect.Descriptor instead.
+func (*BackchannelAuthenticationValidationResponse) Descriptor() ([]byte, []int) {
+	return file_oidc_flow_v1_flow_api_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *BackchannelAuthenticationValidationResponse) GetError() *v12.Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
 var File_oidc_flow_v1_flow_api_proto protoreflect.FileDescriptor
 
 const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
@@ -1131,7 +1504,7 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"requestUri\x12\x1d\n" +
 	"\n" +
 	"expires_in\x18\x03 \x01(\x06R\texpiresIn\x12\x16\n" +
-	"\x06issuer\x18\x04 \x01(\tR\x06issuer\"\x9f\a\n" +
+	"\x06issuer\x18\x04 \x01(\tR\x06issuer\"\xce\a\n" +
 	"\fTokenRequest\x12%\n" +
 	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
 	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x126\n" +
@@ -1152,7 +1525,8 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\rrefresh_token\x18\r \x01(\v2\x1f.oidc.flow.v1.GrantRefreshTokenH\x00R\frefreshToken\x12I\n" +
 	"\x0etoken_exchange\x18\x0e \x01(\v2 .oidc.flow.v1.GrantTokenExchangeH\x00R\rtokenExchange\x12=\n" +
 	"\n" +
-	"jwt_bearer\x18\x0f \x01(\v2\x1c.oidc.flow.v1.GrantJWTBearerH\x00R\tjwtBearerB\x0e\n" +
+	"jwt_bearer\x18\x0f \x01(\v2\x1c.oidc.flow.v1.GrantJWTBearerH\x00R\tjwtBearer\x12-\n" +
+	"\x04ciba\x18\x10 \x01(\v2\x17.oidc.flow.v1.GrantCIBAH\x00R\x04cibaB\x0e\n" +
 	"\x05grant\x12\x05\xbaH\x02\b\x01B\b\n" +
 	"\x06_scopeB\x15\n" +
 	"\x13_token_confirmationB\v\n" +
@@ -1195,6 +1569,47 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\tuser_code\x18\x02 \x01(\tR\buserCode\x12\x18\n" +
 	"\asubject\x18\x03 \x01(\tR\asubject\"I\n" +
 	"\x1cDeviceCodeValidationResponse\x12)\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\"\xc7\x05\n" +
+	" BackchannelAuthenticationRequest\x12\x16\n" +
+	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1b\n" +
+	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x19\n" +
+	"\x05scope\x18\x03 \x01(\tH\x00R\x05scope\x88\x01\x01\x12\x1f\n" +
+	"\baudience\x18\x04 \x01(\tH\x01R\baudience\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"acr_values\x18\x05 \x01(\tH\x02R\tacrValues\x88\x01\x01\x12\"\n" +
+	"\n" +
+	"login_hint\x18\x06 \x01(\tH\x03R\tloginHint\x88\x01\x01\x12-\n" +
+	"\x10login_hint_token\x18\a \x01(\tH\x04R\x0eloginHintToken\x88\x01\x01\x12'\n" +
+	"\rid_token_hint\x18\b \x01(\tH\x05R\vidTokenHint\x88\x01\x01\x12,\n" +
+	"\x0fbinding_message\x18\t \x01(\tH\x06R\x0ebindingMessage\x88\x01\x01\x12.\n" +
+	"\x10requested_expiry\x18\n" +
+	" \x01(\x06H\aR\x0frequestedExpiry\x88\x01\x01\x12W\n" +
+	"\x15authorization_details\x18\v \x03(\v2\".oidc.token.v1.AuthorizationDetailR\x14authorizationDetails\x12\x1d\n" +
+	"\arequest\x18\f \x01(\tH\bR\arequest\x88\x01\x01\x12\x1e\n" +
+	"\bdpop_jkt\x18\r \x01(\tH\tR\adpopJkt\x88\x01\x01B\b\n" +
+	"\x06_scopeB\v\n" +
+	"\t_audienceB\r\n" +
+	"\v_acr_valuesB\r\n" +
+	"\v_login_hintB\x13\n" +
+	"\x11_login_hint_tokenB\x10\n" +
+	"\x0e_id_token_hintB\x12\n" +
+	"\x10_binding_messageB\x13\n" +
+	"\x11_requested_expiryB\n" +
+	"\n" +
+	"\b_requestB\v\n" +
+	"\t_dpop_jkt\"\xc1\x01\n" +
+	"!BackchannelAuthenticationResponse\x12)\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\x12\x1e\n" +
+	"\vauth_req_id\x18\x02 \x01(\tR\tauthReqId\x12\x1d\n" +
+	"\n" +
+	"expires_in\x18\x03 \x01(\x06R\texpiresIn\x12\x1a\n" +
+	"\binterval\x18\x04 \x01(\x06R\binterval\x12\x16\n" +
+	"\x06issuer\x18\x05 \x01(\tR\x06issuer\"~\n" +
+	"*BackchannelAuthenticationValidationRequest\x12\x16\n" +
+	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1e\n" +
+	"\vauth_req_id\x18\x02 \x01(\tR\tauthReqId\x12\x18\n" +
+	"\asubject\x18\x03 \x01(\tR\asubject\"X\n" +
+	"+BackchannelAuthenticationValidationResponse\x12)\n" +
 	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error2\xa6\x01\n" +
 	"\x14AuthorizationService\x12L\n" +
 	"\tAuthorize\x12\x1e.oidc.flow.v1.AuthorizeRequest\x1a\x1f.oidc.flow.v1.AuthorizeResponse\x12@\n" +
@@ -1212,66 +1627,75 @@ func file_oidc_flow_v1_flow_api_proto_rawDescGZIP() []byte {
 	return file_oidc_flow_v1_flow_api_proto_rawDescData
 }
 
-var file_oidc_flow_v1_flow_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_oidc_flow_v1_flow_api_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_oidc_flow_v1_flow_api_proto_goTypes = []any{
-	(*AuthorizeRequest)(nil),             // 0: oidc.flow.v1.AuthorizeRequest
-	(*AuthorizeResponse)(nil),            // 1: oidc.flow.v1.AuthorizeResponse
-	(*RegistrationRequest)(nil),          // 2: oidc.flow.v1.RegistrationRequest
-	(*RegistrationResponse)(nil),         // 3: oidc.flow.v1.RegistrationResponse
-	(*TokenRequest)(nil),                 // 4: oidc.flow.v1.TokenRequest
-	(*TokenResponse)(nil),                // 5: oidc.flow.v1.TokenResponse
-	(*DeviceAuthorizationRequest)(nil),   // 6: oidc.flow.v1.DeviceAuthorizationRequest
-	(*DeviceAuthorizationResponse)(nil),  // 7: oidc.flow.v1.DeviceAuthorizationResponse
-	(*DeviceCodeValidationRequest)(nil),  // 8: oidc.flow.v1.DeviceCodeValidationRequest
-	(*DeviceCodeValidationResponse)(nil), // 9: oidc.flow.v1.DeviceCodeValidationResponse
-	(*v1.Client)(nil),                    // 10: oidc.client.v1.Client
-	(*AuthorizationRequest)(nil),         // 11: oidc.flow.v1.AuthorizationRequest
-	(*v11.TokenConfirmation)(nil),        // 12: oidc.token.v1.TokenConfirmation
-	(*v12.Error)(nil),                    // 13: oidc.core.v1.Error
-	(*v11.AuthorizationDetail)(nil),      // 14: oidc.token.v1.AuthorizationDetail
-	(*GrantAuthorizationCode)(nil),       // 15: oidc.flow.v1.GrantAuthorizationCode
-	(*GrantClientCredentials)(nil),       // 16: oidc.flow.v1.GrantClientCredentials
-	(*GrantDeviceCode)(nil),              // 17: oidc.flow.v1.GrantDeviceCode
-	(*GrantRefreshToken)(nil),            // 18: oidc.flow.v1.GrantRefreshToken
-	(*GrantTokenExchange)(nil),           // 19: oidc.flow.v1.GrantTokenExchange
-	(*GrantJWTBearer)(nil),               // 20: oidc.flow.v1.GrantJWTBearer
-	(*v11.Token)(nil),                    // 21: oidc.token.v1.Token
+	(*AuthorizeRequest)(nil),                            // 0: oidc.flow.v1.AuthorizeRequest
+	(*AuthorizeResponse)(nil),                           // 1: oidc.flow.v1.AuthorizeResponse
+	(*RegistrationRequest)(nil),                         // 2: oidc.flow.v1.RegistrationRequest
+	(*RegistrationResponse)(nil),                        // 3: oidc.flow.v1.RegistrationResponse
+	(*TokenRequest)(nil),                                // 4: oidc.flow.v1.TokenRequest
+	(*TokenResponse)(nil),                               // 5: oidc.flow.v1.TokenResponse
+	(*DeviceAuthorizationRequest)(nil),                  // 6: oidc.flow.v1.DeviceAuthorizationRequest
+	(*DeviceAuthorizationResponse)(nil),                 // 7: oidc.flow.v1.DeviceAuthorizationResponse
+	(*DeviceCodeValidationRequest)(nil),                 // 8: oidc.flow.v1.DeviceCodeValidationRequest
+	(*DeviceCodeValidationResponse)(nil),                // 9: oidc.flow.v1.DeviceCodeValidationResponse
+	(*BackchannelAuthenticationRequest)(nil),            // 10: oidc.flow.v1.BackchannelAuthenticationRequest
+	(*BackchannelAuthenticationResponse)(nil),           // 11: oidc.flow.v1.BackchannelAuthenticationResponse
+	(*BackchannelAuthenticationValidationRequest)(nil),  // 12: oidc.flow.v1.BackchannelAuthenticationValidationRequest
+	(*BackchannelAuthenticationValidationResponse)(nil), // 13: oidc.flow.v1.BackchannelAuthenticationValidationResponse
+	(*v1.Client)(nil),                                   // 14: oidc.client.v1.Client
+	(*AuthorizationRequest)(nil),                        // 15: oidc.flow.v1.AuthorizationRequest
+	(*v11.TokenConfirmation)(nil),                       // 16: oidc.token.v1.TokenConfirmation
+	(*v12.Error)(nil),                                   // 17: oidc.core.v1.Error
+	(*v11.AuthorizationDetail)(nil),                     // 18: oidc.token.v1.AuthorizationDetail
+	(*GrantAuthorizationCode)(nil),                      // 19: oidc.flow.v1.GrantAuthorizationCode
+	(*GrantClientCredentials)(nil),                      // 20: oidc.flow.v1.GrantClientCredentials
+	(*GrantDeviceCode)(nil),                             // 21: oidc.flow.v1.GrantDeviceCode
+	(*GrantRefreshToken)(nil),                           // 22: oidc.flow.v1.GrantRefreshToken
+	(*GrantTokenExchange)(nil),                          // 23: oidc.flow.v1.GrantTokenExchange
+	(*GrantJWTBearer)(nil),                              // 24: oidc.flow.v1.GrantJWTBearer
+	(*GrantCIBA)(nil),                                   // 25: oidc.flow.v1.GrantCIBA
+	(*v11.Token)(nil),                                   // 26: oidc.token.v1.Token
 }
 var file_oidc_flow_v1_flow_api_proto_depIdxs = []int32{
-	10, // 0: oidc.flow.v1.AuthorizeRequest.client:type_name -> oidc.client.v1.Client
-	11, // 1: oidc.flow.v1.AuthorizeRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
-	12, // 2: oidc.flow.v1.AuthorizeRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	13, // 3: oidc.flow.v1.AuthorizeResponse.error:type_name -> oidc.core.v1.Error
-	10, // 4: oidc.flow.v1.RegistrationRequest.client:type_name -> oidc.client.v1.Client
-	11, // 5: oidc.flow.v1.RegistrationRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
-	12, // 6: oidc.flow.v1.RegistrationRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	13, // 7: oidc.flow.v1.RegistrationResponse.error:type_name -> oidc.core.v1.Error
-	10, // 8: oidc.flow.v1.TokenRequest.client:type_name -> oidc.client.v1.Client
-	12, // 9: oidc.flow.v1.TokenRequest.token_confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	14, // 10: oidc.flow.v1.TokenRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	15, // 11: oidc.flow.v1.TokenRequest.authorization_code:type_name -> oidc.flow.v1.GrantAuthorizationCode
-	16, // 12: oidc.flow.v1.TokenRequest.client_credentials:type_name -> oidc.flow.v1.GrantClientCredentials
-	17, // 13: oidc.flow.v1.TokenRequest.device_code:type_name -> oidc.flow.v1.GrantDeviceCode
-	18, // 14: oidc.flow.v1.TokenRequest.refresh_token:type_name -> oidc.flow.v1.GrantRefreshToken
-	19, // 15: oidc.flow.v1.TokenRequest.token_exchange:type_name -> oidc.flow.v1.GrantTokenExchange
-	20, // 16: oidc.flow.v1.TokenRequest.jwt_bearer:type_name -> oidc.flow.v1.GrantJWTBearer
-	13, // 17: oidc.flow.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
-	21, // 18: oidc.flow.v1.TokenResponse.access_token:type_name -> oidc.token.v1.Token
-	21, // 19: oidc.flow.v1.TokenResponse.refresh_token:type_name -> oidc.token.v1.Token
-	21, // 20: oidc.flow.v1.TokenResponse.id_token:type_name -> oidc.token.v1.Token
-	14, // 21: oidc.flow.v1.TokenResponse.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	14, // 22: oidc.flow.v1.DeviceAuthorizationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	13, // 23: oidc.flow.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
-	13, // 24: oidc.flow.v1.DeviceCodeValidationResponse.error:type_name -> oidc.core.v1.Error
-	0,  // 25: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
-	4,  // 26: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
-	1,  // 27: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
-	5,  // 28: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
-	27, // [27:29] is the sub-list for method output_type
-	25, // [25:27] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	14, // 0: oidc.flow.v1.AuthorizeRequest.client:type_name -> oidc.client.v1.Client
+	15, // 1: oidc.flow.v1.AuthorizeRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
+	16, // 2: oidc.flow.v1.AuthorizeRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	17, // 3: oidc.flow.v1.AuthorizeResponse.error:type_name -> oidc.core.v1.Error
+	14, // 4: oidc.flow.v1.RegistrationRequest.client:type_name -> oidc.client.v1.Client
+	15, // 5: oidc.flow.v1.RegistrationRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
+	16, // 6: oidc.flow.v1.RegistrationRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	17, // 7: oidc.flow.v1.RegistrationResponse.error:type_name -> oidc.core.v1.Error
+	14, // 8: oidc.flow.v1.TokenRequest.client:type_name -> oidc.client.v1.Client
+	16, // 9: oidc.flow.v1.TokenRequest.token_confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	18, // 10: oidc.flow.v1.TokenRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	19, // 11: oidc.flow.v1.TokenRequest.authorization_code:type_name -> oidc.flow.v1.GrantAuthorizationCode
+	20, // 12: oidc.flow.v1.TokenRequest.client_credentials:type_name -> oidc.flow.v1.GrantClientCredentials
+	21, // 13: oidc.flow.v1.TokenRequest.device_code:type_name -> oidc.flow.v1.GrantDeviceCode
+	22, // 14: oidc.flow.v1.TokenRequest.refresh_token:type_name -> oidc.flow.v1.GrantRefreshToken
+	23, // 15: oidc.flow.v1.TokenRequest.token_exchange:type_name -> oidc.flow.v1.GrantTokenExchange
+	24, // 16: oidc.flow.v1.TokenRequest.jwt_bearer:type_name -> oidc.flow.v1.GrantJWTBearer
+	25, // 17: oidc.flow.v1.TokenRequest.ciba:type_name -> oidc.flow.v1.GrantCIBA
+	17, // 18: oidc.flow.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
+	26, // 19: oidc.flow.v1.TokenResponse.access_token:type_name -> oidc.token.v1.Token
+	26, // 20: oidc.flow.v1.TokenResponse.refresh_token:type_name -> oidc.token.v1.Token
+	26, // 21: oidc.flow.v1.TokenResponse.id_token:type_name -> oidc.token.v1.Token
+	18, // 22: oidc.flow.v1.TokenResponse.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	18, // 23: oidc.flow.v1.DeviceAuthorizationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	17, // 24: oidc.flow.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
+	17, // 25: oidc.flow.v1.DeviceCodeValidationResponse.error:type_name -> oidc.core.v1.Error
+	18, // 26: oidc.flow.v1.BackchannelAuthenticationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	17, // 27: oidc.flow.v1.BackchannelAuthenticationResponse.error:type_name -> oidc.core.v1.Error
+	17, // 28: oidc.flow.v1.BackchannelAuthenticationValidationResponse.error:type_name -> oidc.core.v1.Error
+	0,  // 29: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
+	4,  // 30: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
+	1,  // 31: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
+	5,  // 32: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
+	31, // [31:33] is the sub-list for method output_type
+	29, // [29:31] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_oidc_flow_v1_flow_api_proto_init() }
@@ -1290,17 +1714,19 @@ func file_oidc_flow_v1_flow_api_proto_init() {
 		(*TokenRequest_RefreshToken)(nil),
 		(*TokenRequest_TokenExchange)(nil),
 		(*TokenRequest_JwtBearer)(nil),
+		(*TokenRequest_Ciba)(nil),
 	}
 	file_oidc_flow_v1_flow_api_proto_msgTypes[5].OneofWrappers = []any{}
 	file_oidc_flow_v1_flow_api_proto_msgTypes[6].OneofWrappers = []any{}
 	file_oidc_flow_v1_flow_api_proto_msgTypes[7].OneofWrappers = []any{}
+	file_oidc_flow_v1_flow_api_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_oidc_flow_v1_flow_api_proto_rawDesc), len(file_oidc_flow_v1_flow_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

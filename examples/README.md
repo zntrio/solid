@@ -16,16 +16,20 @@ client-authentication mechanisms.
 
 | Example | Kind | Port | Requires |
 |---|---|---|---|
-| `authorizationserver` | server | `:8080` (`SOLID_EXAMPLE_LISTEN_ADDR`) | — |
-| `attestationserver` | server | `:8087` | — |
-| `resourceserver` | server | `:8085` | `authorizationserver` running |
-| `deviceclient` | client | — | `authorizationserver` + `resourceserver` |
-| `attestationclient` | client | — | `authorizationserver` + `attestationserver` + `resourceserver` |
-| `spiffeclient` | client | — | `authorizationserver` |
-| `cimdclient` | client | — | `authorizationserver` |
+| [`authorizationserver`](authorizationserver/README.md) | server | `:8080` (`SOLID_EXAMPLE_LISTEN_ADDR`) | — |
+| [`attestationserver`](attestationserver/README.md) | server | `:8087` | — |
+| [`resourceserver`](resourceserver/README.md) | server | `:8085` | `authorizationserver` running |
+| [`deviceclient`](deviceclient/README.md) | client | — | `authorizationserver` + `resourceserver` |
+| [`attestationclient`](attestationclient/README.md) | client | — | `authorizationserver` + `attestationserver` + `resourceserver` |
+| [`spiffeclient`](spiffeclient/README.md) | client | — | `authorizationserver` |
+| [`cibaclient`](cibaclient/README.md) | client | — | `authorizationserver` |
+| [`cimdclient`](cimdclient/README.md) | client | — | `authorizationserver` |
 
 Client demos are one-shot: they run, print the exchanged token (and the
 resource response when applicable), then exit.
+
+Each example directory carries a `README.md` with a mermaid sequence
+diagram describing the exact flow its `main.go` implements.
 
 ## Running the servers
 
@@ -51,7 +55,7 @@ Once up, the authorization server serves:
 * `http://127.0.0.1:8080/keys` — JWKS
 * `http://127.0.0.1:8080/spiffe/bundle.json` — SPIFFE trust bundle
 * `/par`, `/authorize`, `/token`, `/token/introspect`, `/token/revoke`,
-  `/device/authorize`, `/device`
+  `/device/authorize`, `/device`, `/bc-authorize`, `/backchannel`
 
 and the resource server serves:
 
@@ -77,6 +81,9 @@ go run ./examples/spiffeclient
 
 # Client ID Metadata Document client (draft-ietf-oauth-client-id-metadata-document)
 go run ./examples/cimdclient
+
+# CIBA poll-mode client (OpenID Client-Initiated Backchannel Authentication)
+go run ./examples/cibaclient
 ```
 
 What each demo exercises:
@@ -93,6 +100,15 @@ What each demo exercises:
 * **`cimdclient`** — authenticates with the URL-shaped client identifier
   `https://cimd.example.org/client`, which the AS resolves through its Client
   ID Metadata Document fixture, then introspects the issued token.
+* **`cibaclient`** — CIBA poll mode end to end with DPoP: `private_key_jwt`
+  (ES256) authentication, a signed request object posted to `/bc-authorize`
+  (CIBA §7.1.1) declaring the DPoP key thumbprint as `dpop_jkt`
+  (RFC 9449 §10), end-user approval on the authentication device
+  (`/backchannel`, standing in for the user's phone), then token-endpoint
+  polling with `urn:openid:params:grant-type:ciba` presenting a fresh DPoP
+  proof of the bound key with every poll (honoring the advertised interval
+  and `slow_down`); prints the sender-constrained access token
+  (`token_type: DPoP`, no refresh token, per RFC 9700 §4.12.2).
 
 ## Authorization server configuration
 

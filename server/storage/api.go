@@ -170,6 +170,40 @@ type DeviceCodeSession interface {
 	DeviceCodeSessionWriter
 }
 
+//go:generate mockgen -destination mock/backchannel_authentication_session_reader.gen.go -package mock zntr.io/solid/server/storage BackchannelAuthenticationSessionReader
+
+// BackchannelAuthenticationSessionReader describes backchannel authentication
+// session read-only operation contract (OpenID CIBA Core 1.0).
+type BackchannelAuthenticationSessionReader interface {
+	GetByAuthReqID(ctx context.Context, issuer, authReqID string) (*sessionv1.BackchannelAuthenticationSession, error)
+}
+
+//go:generate mockgen -destination mock/backchannel_authentication_session_writer.gen.go -package mock zntr.io/solid/server/storage BackchannelAuthenticationSessionWriter
+
+// BackchannelAuthenticationSessionWriter describes backchannel authentication
+// session write-only operation contract (OpenID CIBA Core 1.0).
+type BackchannelAuthenticationSessionWriter interface {
+	Register(ctx context.Context, issuer, authReqID string, r *sessionv1.BackchannelAuthenticationSession) (uint64, error)
+	Delete(ctx context.Context, issuer, authReqID string) error
+	Validate(ctx context.Context, issuer, authReqID string, r *sessionv1.BackchannelAuthenticationSession) error
+	// UpdateByAuthReqID persists a mutated backchannel authentication session
+	// (poll timing state).
+	UpdateByAuthReqID(ctx context.Context, issuer, authReqID string, r *sessionv1.BackchannelAuthenticationSession) error
+	// DeleteAndGetByAuthReqID atomically consumes a validated backchannel
+	// authentication session, enforcing one-time use of the auth_req_id;
+	// returns storage.ErrNotFound when the session was already consumed.
+	DeleteAndGetByAuthReqID(ctx context.Context, issuer, authReqID string) (*sessionv1.BackchannelAuthenticationSession, error)
+}
+
+//go:generate mockgen -destination mock/backchannel_authentication_session.gen.go -package mock zntr.io/solid/server/storage BackchannelAuthenticationSession
+
+// BackchannelAuthenticationSession describes backchannel authentication
+// session operation contract (OpenID CIBA Core 1.0).
+type BackchannelAuthenticationSession interface {
+	BackchannelAuthenticationSessionReader
+	BackchannelAuthenticationSessionWriter
+}
+
 //go:generate mockgen -destination mock/user_code_attempts.gen.go -package mock zntr.io/solid/server/storage UserCodeAttempts
 
 // UserCodeAttempts throttles user-code brute-forcing (RFC 8628 section 5.1,

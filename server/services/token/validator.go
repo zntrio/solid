@@ -83,6 +83,10 @@ func validateGrantPresence(req *flowv1.TokenRequest) *corev1.Error {
 		if req.GetJwtBearer() == nil {
 			return rfcerrors.InvalidGrant().Build()
 		}
+	case oidc.GrantTypeCIBA:
+		if req.GetCiba() == nil {
+			return rfcerrors.InvalidGrant().Build()
+		}
 	default:
 		// RFC 6749 section 5.2: an unknown grant_type string is
 		// unsupported_grant_type, not invalid_grant.

@@ -48,6 +48,37 @@ func (m *ServerMetadata) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if len(m.BackchannelAuthenticationRequestSigningAlgValuesSupported) > 0 {
+		for iNdEx := len(m.BackchannelAuthenticationRequestSigningAlgValuesSupported) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BackchannelAuthenticationRequestSigningAlgValuesSupported[iNdEx])
+			copy(dAtA[i:], m.BackchannelAuthenticationRequestSigningAlgValuesSupported[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BackchannelAuthenticationRequestSigningAlgValuesSupported[iNdEx])))
+			i--
+			dAtA[i] = 0x3
+			i--
+			dAtA[i] = 0xfa
+		}
+	}
+	if len(m.BackchannelTokenDeliveryModesSupported) > 0 {
+		for iNdEx := len(m.BackchannelTokenDeliveryModesSupported) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.BackchannelTokenDeliveryModesSupported[iNdEx])
+			copy(dAtA[i:], m.BackchannelTokenDeliveryModesSupported[iNdEx])
+			i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BackchannelTokenDeliveryModesSupported[iNdEx])))
+			i--
+			dAtA[i] = 0x3
+			i--
+			dAtA[i] = 0xf2
+		}
+	}
+	if len(m.BackchannelAuthenticationEndpoint) > 0 {
+		i -= len(m.BackchannelAuthenticationEndpoint)
+		copy(dAtA[i:], m.BackchannelAuthenticationEndpoint)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(m.BackchannelAuthenticationEndpoint)))
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0xea
+	}
 	if len(m.AuthorizationGrantProfilesSupported) > 0 {
 		for iNdEx := len(m.AuthorizationGrantProfilesSupported) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.AuthorizationGrantProfilesSupported[iNdEx])
@@ -1040,6 +1071,22 @@ func (m *ServerMetadata) SizeVT() (n int) {
 	}
 	if len(m.AuthorizationGrantProfilesSupported) > 0 {
 		for _, s := range m.AuthorizationGrantProfilesSupported {
+			l = len(s)
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	l = len(m.BackchannelAuthenticationEndpoint)
+	if l > 0 {
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if len(m.BackchannelTokenDeliveryModesSupported) > 0 {
+		for _, s := range m.BackchannelTokenDeliveryModesSupported {
+			l = len(s)
+			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+		}
+	}
+	if len(m.BackchannelAuthenticationRequestSigningAlgValuesSupported) > 0 {
+		for _, s := range m.BackchannelAuthenticationRequestSigningAlgValuesSupported {
 			l = len(s)
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
@@ -2946,6 +2993,102 @@ func (m *ServerMetadata) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.AuthorizationGrantProfilesSupported = append(m.AuthorizationGrantProfilesSupported, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 61:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BackchannelAuthenticationEndpoint", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BackchannelAuthenticationEndpoint = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 62:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BackchannelTokenDeliveryModesSupported", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BackchannelTokenDeliveryModesSupported = append(m.BackchannelTokenDeliveryModesSupported, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 63:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field BackchannelAuthenticationRequestSigningAlgValuesSupported", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.BackchannelAuthenticationRequestSigningAlgValuesSupported = append(m.BackchannelAuthenticationRequestSigningAlgValuesSupported, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

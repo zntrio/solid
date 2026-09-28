@@ -51,6 +51,12 @@ const (
 	spiffeMyOAuthClientID        = "spiffe://example.org/my-oauth-client"
 	spiffeX509WorkloadID         = "spiffe://example.org/x509-workload"
 	spiffeWITWorkloadID          = "spiffe://example.org/wit-workload"
+	cibaClientID                 = "ciba-fixture-client"
+	// ES256 P-256 signing key shared with the CIBA example client
+	// (integration test fixture key, client authentication + signed
+	// request objects).
+	cibaClientPrivateKey = `{"kty":"EC","d":"olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use":"sig","crv":"P-256","x":"h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y":"yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg":"ES256"}`
+	cibaClientJWKS       = `{"keys": [{"kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`
 )
 
 var defaultClients = map[string]*clientv1.Client{
@@ -213,6 +219,20 @@ var defaultClients = map[string]*clientv1.Client{
 					  }
 					]
 				  }`),
+	},
+	// OpenID CIBA reference client (examples/cibaclient): poll mode,
+	// private_key_jwt authentication and ES256 signed request objects
+	// against the shared fixture key above.
+	cibaClientID: {
+		ClientId:                cibaClientID,
+		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+		ClientName:              "ciba-fixture-client",
+		GrantTypes:              []string{oidc.GrantTypeCIBA},
+		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
+		Jwks:                    []byte(cibaClientJWKS),
+		// Pairwise sector identifier
+		SubjectType:      oidc.SubjectTypePairwise,
+		SectorIdentifier: fixtureSectorIdentifier,
 	},
 }
 

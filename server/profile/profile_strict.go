@@ -27,6 +27,7 @@ var strictProfile = &defaultServerProfile{
 				oidc.GrantTypeAuthorizationCode,
 				oidc.GrantTypeTokenExchange,
 				oidc.GrantTypeJWTBearer,
+				oidc.GrantTypeCIBA,
 			},
 			responseTypesSupported: []string{
 				oidc.ResponseTypeCode,
@@ -55,6 +56,7 @@ var strictProfile = &defaultServerProfile{
 		oidc.ApplicationTypeDevice: &defaultClientProfile{
 			grantTypesSupported: []string{
 				oidc.GrantTypeDeviceCode,
+				oidc.GrantTypeCIBA,
 				oidc.GrantTypeRefreshToken,
 			},
 			responseTypesSupported: []string{

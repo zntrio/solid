@@ -362,8 +362,15 @@ type ServerMetadata struct {
 	// tenant, client, subject, audience, or authorization request.
 	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-7.2
 	AuthorizationGrantProfilesSupported []string `protobuf:"bytes,60,rep,name=authorization_grant_profiles_supported,json=authorizationGrantProfilesSupported,proto3" json:"authorization_grant_profiles_supported,omitempty"`
-	unknownFields                       protoimpl.UnknownFields
-	sizeCache                           protoimpl.SizeCache
+	// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-4
+	BackchannelAuthenticationEndpoint string `protobuf:"bytes,61,opt,name=backchannel_authentication_endpoint,json=backchannelAuthenticationEndpoint,proto3" json:"backchannel_authentication_endpoint,omitempty"`
+	// REQUIRED when CIBA is supported. One or more of: poll, ping, push.
+	BackchannelTokenDeliveryModesSupported []string `protobuf:"bytes,62,rep,name=backchannel_token_delivery_modes_supported,json=backchannelTokenDeliveryModesSupported,proto3" json:"backchannel_token_delivery_modes_supported,omitempty"`
+	// OPTIONAL. JWS algs the OP accepts for signed authentication requests
+	// (CIBA section 7.1.1). Omitted means unsupported.
+	BackchannelAuthenticationRequestSigningAlgValuesSupported []string `protobuf:"bytes,63,rep,name=backchannel_authentication_request_signing_alg_values_supported,json=backchannelAuthenticationRequestSigningAlgValuesSupported,proto3" json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
+	unknownFields                                             protoimpl.UnknownFields
+	sizeCache                                                 protoimpl.SizeCache
 }
 
 func (x *ServerMetadata) Reset() {
@@ -816,6 +823,27 @@ func (x *ServerMetadata) GetAuthorizationGrantProfilesSupported() []string {
 	return nil
 }
 
+func (x *ServerMetadata) GetBackchannelAuthenticationEndpoint() string {
+	if x != nil {
+		return x.BackchannelAuthenticationEndpoint
+	}
+	return ""
+}
+
+func (x *ServerMetadata) GetBackchannelTokenDeliveryModesSupported() []string {
+	if x != nil {
+		return x.BackchannelTokenDeliveryModesSupported
+	}
+	return nil
+}
+
+func (x *ServerMetadata) GetBackchannelAuthenticationRequestSigningAlgValuesSupported() []string {
+	if x != nil {
+		return x.BackchannelAuthenticationRequestSigningAlgValuesSupported
+	}
+	return nil
+}
+
 // MTLSEndpoints contains endpoints for mTLS Client Authentication
 // https://www.rfc-editor.org/rfc/rfc8705.html
 type MTLSEndpoints struct {
@@ -898,7 +926,7 @@ var File_oidc_discovery_v1_server_proto protoreflect.FileDescriptor
 
 const file_oidc_discovery_v1_server_proto_rawDesc = "" +
 	"\n" +
-	"\x1eoidc/discovery/v1/server.proto\x12\x11oidc.discovery.v1\"\xbb\"\n" +
+	"\x1eoidc/discovery/v1/server.proto\x12\x11oidc.discovery.v1\"\xec$\n" +
 	"\x0eServerMetadata\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x125\n" +
 	"\x16authorization_endpoint\x18\x02 \x01(\tR\x15authorizationEndpoint\x12%\n" +
@@ -961,7 +989,10 @@ const file_oidc_discovery_v1_server_proto_rawDesc = "" +
 	"%client_id_metadata_document_supported\x189 \x01(\bR!clientIdMetadataDocumentSupported\x12Q\n" +
 	"%authorization_details_types_supported\x18: \x03(\tR\"authorizationDetailsTypesSupported\x12g\n" +
 	"1identity_chaining_requested_token_types_supported\x18; \x03(\tR,identityChainingRequestedTokenTypesSupported\x12S\n" +
-	"&authorization_grant_profiles_supported\x18< \x03(\tR#authorizationGrantProfilesSupported\"\xb5\x02\n" +
+	"&authorization_grant_profiles_supported\x18< \x03(\tR#authorizationGrantProfilesSupported\x12N\n" +
+	"#backchannel_authentication_endpoint\x18= \x01(\tR!backchannelAuthenticationEndpoint\x12Z\n" +
+	"*backchannel_token_delivery_modes_supported\x18> \x03(\tR&backchannelTokenDeliveryModesSupported\x12\x82\x01\n" +
+	"?backchannel_authentication_request_signing_alg_values_supported\x18? \x03(\tR9backchannelAuthenticationRequestSigningAlgValuesSupported\"\xb5\x02\n" +
 	"\rMTLSEndpoints\x12%\n" +
 	"\x0etoken_endpoint\x18\x01 \x01(\tR\rtokenEndpoint\x12/\n" +
 	"\x13revocation_endpoint\x18\x02 \x01(\tR\x12revocationEndpoint\x125\n" +

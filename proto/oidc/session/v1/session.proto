@@ -86,3 +86,36 @@ message DeviceCodeSession {
   // session: the device grant has no token-endpoint narrowing.
   repeated .oidc.token.v1.AuthorizationDetail authorization_details = 13;
 }
+
+enum BackchannelAuthenticationStatus {
+  BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED = 0;
+  BACKCHANNEL_AUTHENTICATION_STATUS_PENDING = 1;
+  BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED = 2;
+  // Terminal state set when the end user refuses the request
+  // (CIBA section 11: access_denied).
+  BACKCHANNEL_AUTHENTICATION_STATUS_DENIED = 3;
+}
+
+message BackchannelAuthenticationSession {
+  .oidc.client.v1.Client client = 1;
+  string issuer = 2;
+  fixed64 expires_at = 3;
+  .oidc.flow.v1.BackchannelAuthenticationRequest request = 4;
+  BackchannelAuthenticationStatus status = 5;
+  string auth_req_id = 6;
+  optional string subject = 7;
+  optional string scope = 8;
+  optional string audience = 9;
+  // Epoch seconds of the last token-endpoint poll; enforces the advertised
+  // polling interval (CIBA section 10.1 slow_down).
+  fixed64 last_polled_at = 10;
+  // Required polling interval in seconds; increased by 5 on every slow_down.
+  fixed64 poll_interval = 11;
+  // RFC 9396 section 3: authorization details fixed at backchannel
+  // authentication time; the CIBA grant has no token-endpoint narrowing.
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 12;
+  // OPTIONAL. DPoP key confirmation (jkt, RFC 9449 section 10) bound to the
+  // session at backchannel authentication time: the token request MUST
+  // prove possession of that same key when polling the auth_req_id.
+  optional .oidc.token.v1.TokenConfirmation confirmation = 13;
+}

@@ -406,6 +406,13 @@ message ServerMetadata {
   // tenant, client, subject, audience, or authorization request.
   // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-7.2
   repeated string authorization_grant_profiles_supported = 60;
+  // https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-4
+  string backchannel_authentication_endpoint = 61;
+  // REQUIRED when CIBA is supported. One or more of: poll, ping, push.
+  repeated string backchannel_token_delivery_modes_supported = 62;
+  // OPTIONAL. JWS algs the OP accepts for signed authentication requests
+  // (CIBA section 7.1.1). Omitted means unsupported.
+  repeated string backchannel_authentication_request_signing_alg_values_supported = 63;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

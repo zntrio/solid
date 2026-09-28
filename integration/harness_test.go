@@ -30,6 +30,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -55,6 +56,7 @@ import (
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/services"
 	"zntr.io/solid/server/services/authorization"
+	"zntr.io/solid/server/services/backchannel"
 	"zntr.io/solid/server/services/device"
 	"zntr.io/solid/server/services/token"
 	"zntr.io/solid/server/storage"
@@ -81,19 +83,21 @@ var (
 // harness wires the real authorization and token services with in-memory
 // storage, mirroring examples/authorizationserver/main.go.
 type harness struct {
-	issuer           string
-	clients          storage.Client
-	tokens           storage.Token
-	resources        storage.ResourceReader
-	proofs           storage.DPoP
-	authRequests     storage.AuthorizationRequest
-	authSessions     storage.AuthorizationCodeSession
-	deviceSessions   storage.DeviceCodeSession
-	userCodeAttempts storage.UserCodeAttempts
-	authz            services.Authorization
-	tokenz           services.Token
-	devicez          services.Device
-	clientAuth       clientauthentication.AuthenticationProcessor
+	issuer              string
+	clients             storage.Client
+	tokens              storage.Token
+	resources           storage.ResourceReader
+	proofs              storage.DPoP
+	authRequests        storage.AuthorizationRequest
+	authSessions        storage.AuthorizationCodeSession
+	deviceSessions      storage.DeviceCodeSession
+	backchannelSessions storage.BackchannelAuthenticationSession
+	userCodeAttempts    storage.UserCodeAttempts
+	authz               services.Authorization
+	tokenz              services.Token
+	devicez             services.Device
+	backchannelz        services.BackchannelAuthentication
+	clientAuth          clientauthentication.AuthenticationProcessor
 }
 
 // newHarness builds a fully wired service stack.
@@ -114,33 +118,43 @@ func newHarness(t *testing.T) *harness {
 	authRequests := inmemory.AuthorizationRequests(storageKey)
 	authSessions := inmemory.AuthorizationCodeSessions(storageKey)
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
+	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 	userCodeAttempts := inmemory.UserCodeAttempts()
 
 	// Token generators
 	accessTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("integration-at-mac-key"))
+	hintResolver := backchannel.HintResolverFunc(func(_ context.Context, req *flowv1.BackchannelAuthenticationRequest) (string, error) {
+		if req.GetLoginHint() == "unknown-user" {
+			return "", fmt.Errorf("unknown user")
+		}
+		return req.GetLoginHint(), nil
+	})
 	refreshTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("integration-rt-mac-key"))
 
 	// Services
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs,
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
-	tokenz := token.New(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, tokens, resources)
+	tokenz := token.New(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, backchannelSessions, tokens, resources)
+	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(), hintResolver, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
 	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts)
 	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})
 
 	return &harness{
-		issuer:           testIssuer,
-		clients:          clients,
-		tokens:           tokens,
-		resources:        resources,
-		proofs:           proofs,
-		authRequests:     authRequests,
-		authSessions:     authSessions,
-		deviceSessions:   deviceSessions,
-		userCodeAttempts: userCodeAttempts,
-		authz:            authz,
-		tokenz:           tokenz,
-		devicez:          devicez,
-		clientAuth:       clientAuth,
+		issuer:              testIssuer,
+		clients:             clients,
+		tokens:              tokens,
+		resources:           resources,
+		proofs:              proofs,
+		authRequests:        authRequests,
+		authSessions:        authSessions,
+		deviceSessions:      deviceSessions,
+		backchannelSessions: backchannelSessions,
+		userCodeAttempts:    userCodeAttempts,
+		authz:               authz,
+		tokenz:              tokenz,
+		devicez:             devicez,
+		backchannelz:        backchannelz,
+		clientAuth:          clientAuth,
 	}
 }
 
@@ -495,6 +509,161 @@ func (h *harness) pollDeviceTokenWithConfirmation(t *testing.T, clientID, device
 	req.TokenConfirmation = cnf
 	h.authenticateClient(t, clientID)
 	return h.tokenz.Token(context.Background(), req)
+}
+
+// startBackchannelAuth drives the backchannel authentication service and
+// returns the auth_req_id (OpenID CIBA Core 1.0 section 7).
+func (h *harness) startBackchannelAuth(t *testing.T, client *clientv1.Client, opts ...func(*flowv1.BackchannelAuthenticationRequest)) string {
+	t.Helper()
+
+	req := &flowv1.BackchannelAuthenticationRequest{
+		Issuer:         h.issuer,
+		ClientId:       client.ClientId,
+		Scope:          new("openid profile"),
+		LoginHint:      new("hello"),
+		BindingMessage: new("W4SCT"),
+	}
+	for _, opt := range opts {
+		opt(req)
+	}
+	res, err := h.backchannelz.Authorize(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unable to start backchannel authentication: %v", err)
+	}
+	if res.Error != nil {
+		t.Fatalf("backchannel authentication failed: %s", res.Error.Error)
+	}
+	return res.AuthReqId
+}
+
+// approveBackchannel validates the auth_req_id, completing the end-user
+// approval on the authentication device (CIBA section 8).
+func (h *harness) approveBackchannel(t *testing.T, authReqID, subject string) {
+	t.Helper()
+
+	res, err := h.backchannelz.Validate(context.Background(), &flowv1.BackchannelAuthenticationValidationRequest{
+		Issuer:    h.issuer,
+		AuthReqId: authReqID,
+		Subject:   subject,
+	})
+	if err != nil {
+		t.Fatalf("unable to approve backchannel authentication: %v", err)
+	}
+	if res.Error != nil {
+		t.Fatalf("backchannel approval failed: %s", res.Error.Error)
+	}
+}
+
+// denyBackchannel refuses the auth_req_id on the authentication device
+// (CIBA section 11: access_denied).
+func (h *harness) denyBackchannel(t *testing.T, authReqID, subject string) {
+	t.Helper()
+
+	res, err := h.backchannelz.Deny(context.Background(), &flowv1.BackchannelAuthenticationValidationRequest{
+		Issuer:    h.issuer,
+		AuthReqId: authReqID,
+		Subject:   subject,
+	})
+	if err != nil {
+		t.Fatalf("unable to deny backchannel authentication: %v", err)
+	}
+	if res.Error != nil {
+		t.Fatalf("backchannel denial failed: %s", res.Error.Error)
+	}
+}
+
+// cibaTokenRequest builds a TokenRequest for the CIBA grant
+// (CIBA section 10.1).
+func cibaTokenRequest(issuer, clientID, authReqID string) *flowv1.TokenRequest {
+	return &flowv1.TokenRequest{
+		Issuer:    issuer,
+		GrantType: oidc.GrantTypeCIBA,
+		Client:    &clientv1.Client{ClientId: clientID},
+		Grant: &flowv1.TokenRequest_Ciba{
+			Ciba: &flowv1.GrantCIBA{
+				AuthReqId: authReqID,
+				ClientId:  clientID,
+			},
+		},
+	}
+}
+
+// pollCIBAToken authenticates the client then polls the token endpoint with
+// the CIBA grant.
+func (h *harness) pollCIBAToken(t *testing.T, clientID, authReqID string) (*flowv1.TokenResponse, error) {
+	t.Helper()
+
+	h.authenticateClient(t, clientID)
+	return h.tokenz.Token(context.Background(), cibaTokenRequest(h.issuer, clientID, authReqID))
+}
+
+// pollCIBATokenWithConfirmation polls the CIBA grant carrying an explicit
+// token confirmation (DPoP proof thumbprint, RFC 9449 section 10).
+func (h *harness) pollCIBATokenWithConfirmation(t *testing.T, clientID, authReqID string, cnf *tokenv1.TokenConfirmation) (*flowv1.TokenResponse, error) {
+	t.Helper()
+
+	req := cibaTokenRequest(h.issuer, clientID, authReqID)
+	req.TokenConfirmation = cnf
+	h.authenticateClient(t, clientID)
+	return h.tokenz.Token(context.Background(), req)
+}
+
+// signedCIBARequestObject signs a CIBA request object claim set with the
+// client fixture ES256 key (CIBA section 7.1.1).
+func signedCIBARequestObject(t *testing.T, claims map[string]any) string {
+	t.Helper()
+
+	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
+	if err != nil {
+		t.Fatalf("unable to decode client private key: %v", err)
+	}
+	var rawKey any
+	if err := jwxjwk.Export(privateKey, &rawKey); err != nil {
+		t.Fatalf("unable to materialize client private key: %v", err)
+	}
+
+	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, gojwt.MapClaims(claims))
+	tok.Header["typ"] = "JWT"
+	raw, err := tok.SignedString(rawKey)
+	if err != nil {
+		t.Fatalf("unable to serialize request object: %v", err)
+	}
+	return raw
+}
+
+// otherClientKey is a distinct ES256 P-256 fixture used to forge CIBA
+// request-object signatures in adversarial tests.
+var otherClientKey = func() jwk.Key {
+	pk, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	key, err := jwxjwk.Import(pk)
+	if err != nil {
+		panic(err)
+	}
+	if err := key.Set(jwxjwk.AlgorithmKey, "ES256"); err != nil {
+		panic(err)
+	}
+	return key
+}()
+
+// forgedCIBARequestObject signs the claims with a key NOT registered to the
+// client (adversarial signature test).
+func forgedCIBARequestObject(t *testing.T, claims map[string]any) string {
+	t.Helper()
+
+	var rawKey any
+	if err := jwxjwk.Export(otherClientKey, &rawKey); err != nil {
+		t.Fatalf("unable to materialize forged signing key: %v", err)
+	}
+	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, gojwt.MapClaims(claims))
+	tok.Header["typ"] = "JWT"
+	raw, err := tok.SignedString(rawKey)
+	if err != nil {
+		t.Fatalf("unable to serialize request object: %v", err)
+	}
+	return raw
 }
 
 // revoke authenticates the client then exercises the revocation endpoint.

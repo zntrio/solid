@@ -110,3 +110,55 @@ func TestAuthorizationCodeTransition(t *testing.T) {
 		})
 	}
 }
+
+func TestBackchannelAuthenticationTransition(t *testing.T) {
+	tests := []struct {
+		name    string
+		from    sessionv1.BackchannelAuthenticationStatus
+		to      sessionv1.BackchannelAuthenticationStatus
+		wantErr bool
+	}{
+		{
+			name: "pending to validated",
+			from: sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_PENDING,
+			to:   sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+		},
+		{
+			name: "pending to denied",
+			from: sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_PENDING,
+			to:   sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_DENIED,
+		},
+		{
+			name:    "validated to pending is forbidden",
+			from:    sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+			to:      sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_PENDING,
+			wantErr: true,
+		},
+		{
+			name:    "validated to validated is forbidden (no replay)",
+			from:    sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+			to:      sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+			wantErr: true,
+		},
+		{
+			name:    "denied to validated is forbidden",
+			from:    sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_DENIED,
+			to:      sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+			wantErr: true,
+		},
+		{
+			name:    "unspecified to validated is forbidden",
+			from:    sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED,
+			to:      sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := BackchannelAuthenticationTransition(tt.from, tt.to)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("BackchannelAuthenticationTransition(%v, %v) error = %v, wantErr %v", tt.from, tt.to, err, tt.wantErr)
+			}
+		})
+	}
+}

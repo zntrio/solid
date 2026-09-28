@@ -44,6 +44,13 @@ type DeviceCode interface {
 	Generate(ctx context.Context, issuer string) (string, error)
 }
 
+//go:generate mockgen -destination mock/auth_req_id.gen.go -package mock zntr.io/solid/sdk/generator AuthReqID
+
+// AuthReqID describes CIBA authentication request identifier generator contract.
+type AuthReqID interface {
+	Generate(ctx context.Context, issuer string) (string, error)
+}
+
 //go:generate mockgen -destination mock/client_id.gen.go -package mock zntr.io/solid/sdk/generator ClientID
 
 // ClientID describes client identified generator contract.

@@ -244,7 +244,7 @@ func TestRFC8705_TlsClientAuth_SubjectMismatch(t *testing.T) {
 	res, err := h.mtlsAuthenticate(t, client.ClientId, attacker.pem)
 	require.Error(t, err, "foreign certificate must not authenticate")
 	require.NotNil(t, res.Error)
-	assert.Equal(t, "invalid_client", res.Error.Err)
+	assert.Equal(t, "invalid_client", res.Error.Error)
 	assert.Nil(t, res.Client)
 }
 
@@ -260,7 +260,7 @@ func TestRFC8705_TlsClientAuth_NoCertificateAndMethodConfusion(t *testing.T) {
 		})
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_request", res.Error.Err)
+		assert.Equal(t, "invalid_request", res.Error.Error)
 	})
 
 	t.Run("method confusion via private_key_jwt", func(t *testing.T) {
@@ -276,7 +276,7 @@ func TestRFC8705_TlsClientAuth_NoCertificateAndMethodConfusion(t *testing.T) {
 		})
 		require.Error(t, err, "private_key_jwt must not authenticate a tls_client_auth client")
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 }
 
@@ -291,7 +291,7 @@ func TestRFC8705_TlsClientAuth_AmbiguousSubject(t *testing.T) {
 		res, err := h.mtlsAuthenticate(t, client.ClientId, cert.pem)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("two bindings", func(t *testing.T) {
@@ -303,7 +303,7 @@ func TestRFC8705_TlsClientAuth_AmbiguousSubject(t *testing.T) {
 		res, err := h.mtlsAuthenticate(t, client.ClientId, cert.pem)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 }
 
@@ -332,7 +332,7 @@ func TestRFC8705_TlsClientAuth_UnregisteredMethod(t *testing.T) {
 	res, err := h.mtlsAuthenticate(t, confusedID, cert.pem)
 	require.Error(t, err, "matching certificate must not authenticate a private_key_jwt client")
 	require.NotNil(t, res.Error)
-	assert.Equal(t, "invalid_client", res.Error.Err)
+	assert.Equal(t, "invalid_client", res.Error.Error)
 	require.Nil(t, res.Client)
 	_ = client
 }
@@ -450,13 +450,13 @@ func TestRFC8705_RefreshTokenCertificateBinding(t *testing.T) {
 	mismatched, err := h.tokenz.Token(context.Background(), refreshReq("attacker-thumbprint"))
 	require.Error(t, err, "stolen refresh token replay without the certificate must fail")
 	require.NotNil(t, mismatched.Error)
-	assert.Equal(t, "invalid_grant", mismatched.Error.Err)
+	assert.Equal(t, "invalid_grant", mismatched.Error.Error)
 
 	// No confirmation at all: also fails closed.
 	noCnf, err := h.tokenz.Token(context.Background(), refreshReq(""))
 	require.Error(t, err, "refresh without any confirmation must fail closed")
 	require.NotNil(t, noCnf.Error)
-	assert.Equal(t, "invalid_grant", noCnf.Error.Err)
+	assert.Equal(t, "invalid_grant", noCnf.Error.Error)
 }
 
 // TestRFC8705_TokenExchangeCertificateBinding asserts an mTLS-bound subject

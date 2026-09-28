@@ -381,14 +381,14 @@ func TestIDJAGAdversarial(t *testing.T) {
 		res, err := h.idpTokenz.Token(context.Background(), req)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_target", res.Error.Err)
+		require.Equal(t, "invalid_target", res.Error.Error)
 	})
 
 	t.Run("issuance rejects scope exceeding subject context", func(t *testing.T) {
 		res, err := h.idpTokenz.Token(context.Background(), xaaExchangeRequest(h.idpClient.ClientId, aliceRT, "admin.write"))
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_scope", res.Error.Err)
+		require.Equal(t, "invalid_scope", res.Error.Error)
 	})
 
 	t.Run("issuance rejects unmapped client", func(t *testing.T) {
@@ -399,7 +399,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		res, err := h.idpTokenz.Token(context.Background(), req)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_request", res.Error.Err)
+		require.Equal(t, "invalid_request", res.Error.Error)
 	})
 
 	t.Run("redemption rejects wrong typ", func(t *testing.T) {
@@ -412,7 +412,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects wrong aud", func(t *testing.T) {
@@ -422,7 +422,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects multi-element aud array", func(t *testing.T) {
@@ -432,7 +432,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects self-issued ID-JAG", func(t *testing.T) {
@@ -443,7 +443,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects client_id mismatch", func(t *testing.T) {
@@ -453,7 +453,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects expired ID-JAG", func(t *testing.T) {
@@ -463,7 +463,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects foreign-key signature", func(t *testing.T) {
@@ -474,7 +474,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("redemption rejects untrusted issuer", func(t *testing.T) {
@@ -485,7 +485,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		})
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("cnf-bound ID-JAG requires matching DPoP proof", func(t *testing.T) {
@@ -500,7 +500,7 @@ func TestIDJAGAdversarial(t *testing.T) {
 		redeemRes, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, res.AccessToken.Value))
 		require.Error(t, err)
 		require.NotNil(t, redeemRes.Error)
-		require.Equal(t, "invalid_grant", redeemRes.Error.Err)
+		require.Equal(t, "invalid_grant", redeemRes.Error.Error)
 	})
 
 	t.Run("valid ID-JAG remains replayable until expiry", func(t *testing.T) {
@@ -553,7 +553,7 @@ func TestIdentityChainingGrantLaundering(t *testing.T) {
 	redeemRes, err := thirdSvc.Token(context.Background(), xaaRedeemRequest(thirdClient.ClientId, idjagForB))
 	require.Error(t, err)
 	require.NotNil(t, redeemRes.Error)
-	require.Equal(t, "invalid_grant", redeemRes.Error.Err)
+	require.Equal(t, "invalid_grant", redeemRes.Error.Error)
 }
 
 // TestIdentityChainingUnresolvableSubject plays identity-chaining-17
@@ -605,7 +605,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 	t.Run("rejects a non-JWT assertion", func(t *testing.T) {
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, "not-a-jwt"))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	t.Run("rejects garbage base64 payload", func(t *testing.T) {
@@ -614,7 +614,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 		corrupt := parts[0] + ".!!!!" + "." + parts[2]
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, corrupt))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	// RFC 7523 section 3 point 2: every REQUIRED claim missing case.
@@ -625,7 +625,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 			raw := mintTypedJWT(t, h.idpKey, sdktoken.TypeIDJAG, claims)
 			res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 			require.Error(t, err, "missing %s should be rejected", claim)
-			require.Equal(t, "invalid_grant", res.Error.Err)
+			require.Equal(t, "invalid_grant", res.Error.Error)
 		}
 	})
 
@@ -637,7 +637,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 		raw := mintTypedJWT(t, h.idpKey, sdktoken.TypeIDJAG, claims)
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	// RFC 7523 section 3 point 3: nbf in the future.
@@ -647,7 +647,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 		raw := mintTypedJWT(t, h.idpKey, sdktoken.TypeIDJAG, claims)
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	// RFC 7523 section 3 point 4: the assertion issuer is unknown to the
@@ -659,7 +659,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 		raw := mintTypedJWT(t, attackerKey, sdktoken.TypeIDJAG, claims)
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 
 	// RFC 8725 section 3.11 via the ID-JAG profile: wrong typ.
@@ -667,7 +667,7 @@ func TestRFC7521AssertionProfile(t *testing.T) {
 		raw := mintTypedJWT(t, h.idpKey, "at", valid())
 		res, err := h.rasTokenz.Token(context.Background(), xaaRedeemRequest(h.rasClient.ClientId, raw))
 		require.Error(t, err)
-		require.Equal(t, "invalid_grant", res.Error.Err)
+		require.Equal(t, "invalid_grant", res.Error.Error)
 	})
 }
 

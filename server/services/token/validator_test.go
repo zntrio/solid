@@ -40,7 +40,7 @@ func Test_validateRequest_unknownGrantType(t *testing.T) {
 				Client:    &clientv1.Client{ClientId: "s6BhdRkqt3"},
 			})
 			require.NotNil(t, err)
-			require.Equal(t, "unsupported_grant_type", err.Err)
+			require.Equal(t, "unsupported_grant_type", err.Error)
 		})
 	}
 }
@@ -57,7 +57,7 @@ func Test_validateRequest_blankIssuer(t *testing.T) {
 		},
 	})
 	require.NotNil(t, err)
-	require.Equal(t, "invalid_request", err.Err)
+	require.Equal(t, "invalid_request", err.Error)
 }
 
 // Test_validateRequest_grantSpecificity pins the invalid_grant
@@ -79,7 +79,7 @@ func Test_validateRequest_grantSpecificity(t *testing.T) {
 				Client:    &clientv1.Client{ClientId: "s6BhdRkqt3"},
 			})
 			require.NotNil(t, err)
-			require.Equal(t, "invalid_grant", err.Err)
+			require.Equal(t, "invalid_grant", err.Error)
 		})
 	}
 }

@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 
@@ -34,26 +35,60 @@ import (
 // paired with token.HeaderType to derive typ header values.
 const contentTypeJWT = "JWT"
 
-// parseUnverified syntactically parses raw, resolves the signing method,
-// enforces the algorithm allowlist, and returns the token plus raw segments.
-func parseUnverified(raw string, supportedAlgorithms []string) (*gojwt.Token, []string, error) {
-	t, parts, err := gojwt.NewParser().ParseUnverified(raw, gojwt.MapClaims{})
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to parse signed token: %w", err)
+// decodeHeader base64-decodes the JWS header segment of a compact token
+// and unmarshals it into a gojwt.Token shell (header, method, signature).
+// No claim values are exposed by this call: the payload segment is left
+// untouched — every claim read goes through signature-verified parsing
+// (gojwt.Parser.Parse) in Claims.
+func decodeHeader(raw string, supportedAlgorithms []string) (*gojwt.Token, []string, error) {
+	// Split the compact form: header.payload.signature.
+	parts := strings.Split(raw, ".")
+	if len(parts) != 3 {
+		return nil, nil, errors.New("token is not a compact JWS")
 	}
 
-	// Enforce the algorithm allowlist: ParseUnverified does not apply
-	// WithValidMethods, so the check is done manually here.
-	alg := t.Method.Alg()
+	// Decode the header segment only.
+	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to decode token header: %w", err)
+	}
+	var header map[string]any
+	if err = json.Unmarshal(headerJSON, &header); err != nil {
+		return nil, nil, fmt.Errorf("unable to decode token header: %w", err)
+	}
+
+	// Resolve the signing method from the alg header.
+	alg, _ := header["alg"].(string)
+	method := gojwt.GetSigningMethod(alg)
+	if method == nil {
+		return nil, nil, fmt.Errorf("token signed with unknown algorithm %q", alg)
+	}
+
+	// Enforce the algorithm allowlist.
 	supported := false
 	for _, a := range supportedAlgorithms {
-		if a == alg {
+		if a == method.Alg() {
 			supported = true
 			break
 		}
 	}
 	if !supported {
-		return nil, nil, fmt.Errorf("token signed with unsupported algorithm %q", alg)
+		return nil, nil, fmt.Errorf("token signed with unsupported algorithm %q", method.Alg())
+	}
+
+	// Decode the signature segment (payload is deliberately not decoded).
+	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to decode token signature: %w", err)
+	}
+
+	// Build the token shell carrying header + method + signature; the
+	// claims map stays empty until a verifying Parse fills it.
+	t := &gojwt.Token{
+		Header:    header,
+		Method:    method,
+		Signature: signature,
+		Claims:    gojwt.MapClaims{},
 	}
 
 	// No error
@@ -68,15 +103,6 @@ func decodeClaims(parts []string, claims any) error {
 	}
 	if err := json.Unmarshal(payload, claims); err != nil {
 		return fmt.Errorf("unable to unmarshal token claims: %w", err)
-	}
-	return nil
-}
-
-// verifyWithKey cryptographically verifies token (from parseUnverified)
-// against a materialized public key.
-func verifyWithKey(t *gojwt.Token, parts []string, publicKey any) error {
-	if err := t.Method.Verify(parts[0]+"."+parts[1], t.Signature, publicKey); err != nil {
-		return fmt.Errorf("unable to verify token signature: %w", err)
 	}
 	return nil
 }
@@ -98,7 +124,7 @@ type defaultVerifier struct {
 
 func (v *defaultVerifier) Parse(raw string) (token.Token, error) {
 	// Parse JWT token
-	t, parts, err := parseUnverified(raw, v.supportedAlgorithms)
+	t, parts, err := decodeHeader(raw, v.supportedAlgorithms)
 	if err != nil {
 		return nil, errors.New("unable to parse signed token")
 	}
@@ -110,86 +136,127 @@ func (v *defaultVerifier) Parse(raw string) (token.Token, error) {
 	}, nil
 }
 
+// Verify checks the token signature against the verifier key set.
 func (v *defaultVerifier) Verify(raw string) error {
-	// Parse JWT token
-	if _, _, err := parseUnverified(raw, v.supportedAlgorithms); err != nil {
-		return fmt.Errorf("unable to parse signed token: %w", err)
-	}
-
-	// No error
-	return nil
+	return v.Claims(context.Background(), raw, &struct{}{})
 }
 
 func (v *defaultVerifier) ContentType() string {
 	return contentTypeJWT
 }
 
-// Claims extracts claims from given raw token with verifier keyset provider.
+// Claims verifies the token signature against the verifier key set and
+// extracts the verified claims.
+//
+// Verification goes through the golang-jwt parser (WithValidMethods
+// enforces the algorithm allowlist): each candidate key from the key set
+// is attempted until one verifies. kid routing narrows the candidates when
+// the token header carries a kid present in the set.
 func (v *defaultVerifier) Claims(ctx context.Context, raw string, claims any) error {
-	// Parse JWT token
-	t, parts, err := parseUnverified(raw, v.supportedAlgorithms)
-	if err != nil {
-		return fmt.Errorf("unable to parse signed token: %w", err)
-	}
-
 	// Retrieve KeySet
 	jwks, err := v.keySetProvider(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve KeySet: %w", err)
 	}
-	// Set all keys by default
+
+	// Resolve candidate signing keys, honoring kid routing when the
+	// token carries one present in the key set.
+	keys := candidateSigningKeys(jwks)
+	routed, errRoute := routeOnKid(raw, jwks)
+	switch {
+	case errRoute != nil:
+		return token.ErrInvalidTokenSignature
+	case len(routed) > 0:
+		keys = routed
+	}
+
+	// Attempt verification with each candidate key through the
+	// standard verifying parser.
+	// Claims validation (exp/nbf) stays with the caller: temporal
+	// semantics belong to the token consumers (e.g. JARM decoder, ID-JAG
+	// verifier), which own their clock.
+	parser := gojwt.NewParser(gojwt.WithValidMethods(v.supportedAlgorithms), gojwt.WithoutClaimsValidation())
+	var verified *gojwt.Token
+	for _, k := range keys {
+		publicKey, errKey := MaterializeSigningKey(k)
+		if errKey != nil {
+			continue
+		}
+		parsed, errParse := parser.Parse(raw, func(*gojwt.Token) (any, error) {
+			return publicKey, nil
+		})
+		if errParse == nil && parsed != nil && parsed.Valid {
+			verified = parsed
+			break
+		}
+	}
+	if verified == nil {
+		return token.ErrInvalidTokenSignature
+	}
+
+	// Decode the verified claims into the target object.
+	if errDecode := decodeVerifiedClaims(verified, claims); errDecode != nil {
+		return errDecode
+	}
+
+	// No error
+	return nil
+}
+
+// candidateSigningKeys returns every signing (non-enc) key of the set.
+func candidateSigningKeys(jwks jwk.Set) []jwk.Key {
 	var keys []jwk.Key
-	for i := 0; i < jwks.Len(); i++ {
+	for i := range jwks.Len() {
 		k, ok := jwks.Key(i)
 		if !ok {
 			continue
 		}
+		if use, hasUse := k.KeyUsage(); hasUse && use == "enc" {
+			continue
+		}
 		keys = append(keys, k)
 	}
+	return keys
+}
 
-	// Check if token refer to a key
-	if kid, ok := t.Header["kid"]; ok {
-		if k, found := jwks.LookupKeyID(fmt.Sprintf("%v", kid)); found {
-			keys = []jwk.Key{k}
-		}
+// routeOnKid syntactically resolves the token kid header against the key
+// set; an absent or unknown kid yields no candidates (the caller then uses
+// every signing key).
+func routeOnKid(raw string, jwks jwk.Set) ([]jwk.Key, error) {
+	// Decode the header only: kid routing happens before verification,
+	// the header values are never trusted beyond key selection.
+	parts := strings.Split(raw, ".")
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("token is not a compact JWS")
 	}
-	// Iterate on all keys to find a matching one.
-	valid := false
-	// For each key in keyset
-	for i := range keys {
-		// Extract key
-		k := keys[i]
-
-		// Check key type
-		if use, ok := k.KeyUsage(); ok && use == "enc" {
-			// Ignore encryption key
-			continue
-		}
-
-		// Materialize public key
-		publicKey, err := MaterializeSigningKey(k)
-		if err != nil {
-			continue
-		}
-
-		// Try to verify with current key
-		if err := verifyWithKey(t, parts, publicKey); err != nil {
-			continue
-		}
-
-		// Decode claims into the target object
-		if err := decodeClaims(parts, claims); err != nil {
-			return err
-		}
-
-		// Found a valid key
-		valid = true
-		break
+	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode token header: %w", err)
 	}
-	if !valid {
-		return token.ErrInvalidTokenSignature
+	var header struct {
+		KID string `json:"kid"`
 	}
+	if err := json.Unmarshal(headerJSON, &header); err != nil {
+		return nil, fmt.Errorf("unable to decode token header: %w", err)
+	}
+	if header.KID == "" {
+		return nil, nil
+	}
+	k, found := jwks.LookupKeyID(header.KID)
+	if !found {
+		return nil, nil
+	}
+	return []jwk.Key{k}, nil
+}
 
-	// No error
+// decodeVerifiedClaims unmarshals the parsed claims into the target.
+func decodeVerifiedClaims(t *gojwt.Token, claims any) error {
+	raw, err := json.Marshal(t.Claims)
+	if err != nil {
+		return fmt.Errorf("unable to encode verified claims: %w", err)
+	}
+	if err := json.Unmarshal(raw, claims); err != nil {
+		return fmt.Errorf("unable to decode verified claims: %w", err)
+	}
 	return nil
 }

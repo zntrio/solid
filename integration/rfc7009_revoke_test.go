@@ -74,7 +74,7 @@ func TestRFC7009_RevokeCascadesToGrantFamily_2_1(t *testing.T) {
 	fres, ferr := h.refresh(t, client.ClientId, res.RefreshToken.Value)
 	require.Error(t, ferr, "revoked refresh token must not rotate")
 	require.NotNil(t, fres.Error)
-	require.Equal(t, "invalid_grant", fres.Error.Err)
+	require.Equal(t, "invalid_grant", fres.Error.Error)
 }
 
 // TestRFC7009_RevokeHintDoesNotBlock_2_1 asserts token_type_hint never
@@ -129,7 +129,7 @@ func TestRFC7009_RevokeOtherClientToken_2_1(t *testing.T) {
 	rres, rerr := h.revoke(t, clientB.ClientId, res.AccessToken.Value)
 	require.Error(t, rerr, "revoking another client's token must fail")
 	require.NotNil(t, rres.Error)
-	require.Equal(t, "invalid_client", rres.Error.Err)
+	require.Equal(t, "invalid_client", rres.Error.Error)
 
 	// The token is still active for its owner.
 	ires, ierr := h.introspect(t, clientA.ClientId, res.AccessToken.Value)

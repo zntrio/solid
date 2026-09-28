@@ -63,7 +63,7 @@ func TestRFC9396_Adversarial_UnknownTypeRejected_5(t *testing.T) {
 	})
 	require.Error(t, err, "an unregistered authorization_details type must be rejected")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_authorization_details", res.Error.Err)
+	require.Equal(t, "invalid_authorization_details", res.Error.Error)
 	require.Empty(t, res.Code)
 }
 
@@ -104,7 +104,7 @@ func TestRFC9396_Adversarial_NilValidatorFailsClosed(t *testing.T) {
 	})
 	require.Error(t, err, "a validator that does not know the type must fail closed")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_authorization_details", res.Error.Err)
+	require.Equal(t, "invalid_authorization_details", res.Error.Error)
 }
 
 // TestRFC9396_Adversarial_EntryTamperingEscalation asserts subtle
@@ -155,7 +155,7 @@ func TestRFC9396_Adversarial_EntryTamperingEscalation(t *testing.T) {
 		res, err := h.tokenz.Token(t.Context(), msg)
 		require.Error(t, err, "tampered entry %d must be rejected", i)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_authorization_details", res.Error.Err, "tampered entry %d", i)
+		require.Equal(t, "invalid_authorization_details", res.Error.Error, "tampered entry %d", i)
 		require.Nil(t, res.AccessToken)
 	}
 }
@@ -187,7 +187,7 @@ func TestRFC9396_Adversarial_CrossGrantReuse(t *testing.T) {
 	h.authenticateClient(t, clientA.ClientId)
 	res, err := h.tokenz.Token(t.Context(), msg)
 	require.NoError(t, err)
-	require.Empty(t, res.Error.GetErr())
+	require.Empty(t, res.Error.GetError())
 	require.Len(t, res.AccessToken.Metadata.AuthorizationDetails, 1)
 
 	// B presents A's details entry against its own grant.
@@ -197,7 +197,7 @@ func TestRFC9396_Adversarial_CrossGrantReuse(t *testing.T) {
 	resB, errB := h.tokenz.Token(t.Context(), msgB)
 	require.Error(t, errB, "a client must not import another client's consented details")
 	require.NotNil(t, resB.Error)
-	require.Equal(t, "invalid_authorization_details", resB.Error.Err)
+	require.Equal(t, "invalid_authorization_details", resB.Error.Error)
 	require.Nil(t, resB.AccessToken)
 }
 
@@ -239,7 +239,7 @@ func TestRFC9396_Adversarial_RefreshReplayEscalation(t *testing.T) {
 	wres, werr := h.tokenz.Token(t.Context(), rmsg2)
 	require.Error(t, werr, "a narrowed family must not widen back")
 	require.NotNil(t, wres.Error)
-	require.Equal(t, "invalid_authorization_details", wres.Error.Err)
+	require.Equal(t, "invalid_authorization_details", wres.Error.Error)
 
 	// Replay of the stolen (revoked) pre-rotation token fails closed.
 	_, rerr := h.refresh(t, client.ClientId, stolen)
@@ -287,7 +287,7 @@ func TestRFC9396_Adversarial_JarSmuggledUnknownType(t *testing.T) {
 	})
 	require.Error(t, errAuth, "the authorization service must reject the smuggled type")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_authorization_details", res.Error.Err)
+	require.Equal(t, "invalid_authorization_details", res.Error.Error)
 	require.Empty(t, res.Code)
 }
 
@@ -338,5 +338,5 @@ func TestRFC9396_Adversarial_DeviceEndpointTampering(t *testing.T) {
 	wres, werr := h.tokenz.Token(t.Context(), msg)
 	require.Error(t, werr, "device grant must reject token-endpoint details")
 	require.NotNil(t, wres.Error)
-	require.Equal(t, "invalid_authorization_details", wres.Error.Err)
+	require.Equal(t, "invalid_authorization_details", wres.Error.Error)
 }

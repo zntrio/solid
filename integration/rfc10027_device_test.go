@@ -53,7 +53,7 @@ func TestRFC10027_DeviceCodeSingleUse(t *testing.T) {
 	res2, err2 := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err2, "consumed device code must not mint tokens twice")
 	require.NotNil(t, res2.Error)
-	require.Equal(t, "invalid_request", res2.Error.Err)
+	require.Equal(t, "invalid_request", res2.Error.Error)
 	require.Nil(t, res2.AccessToken)
 }
 
@@ -72,19 +72,19 @@ func TestRFC10027_SlowDownOnFastPolling(t *testing.T) {
 	res, err := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err)
 	require.NotNil(t, res.Error)
-	require.Equal(t, "authorization_pending", res.Error.Err)
+	require.Equal(t, "authorization_pending", res.Error.Error)
 
 	// Immediate second poll: slow_down.
 	res2, err2 := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err2, "fast poll must be rejected")
 	require.NotNil(t, res2.Error)
-	require.Equal(t, "slow_down", res2.Error.Err)
+	require.Equal(t, "slow_down", res2.Error.Error)
 
 	// Immediate third poll: still slow_down — the interval grew 5 -> 10.
 	res3, err3 := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err3, "fast poll must stay rejected after a slow_down")
 	require.NotNil(t, res3.Error)
-	require.Equal(t, "slow_down", res3.Error.Err)
+	require.Equal(t, "slow_down", res3.Error.Error)
 }
 
 // TestRFC10027_UserCodeBruteForceThrottled asserts user-code attempt
@@ -109,7 +109,7 @@ func TestRFC10027_UserCodeBruteForceThrottled(t *testing.T) {
 		})
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_request", res.Error.Err)
+		require.Equal(t, "invalid_request", res.Error.Error)
 	}
 
 	// 6th attempt carries the CORRECT user code: throttled anyway.
@@ -120,13 +120,13 @@ func TestRFC10027_UserCodeBruteForceThrottled(t *testing.T) {
 	})
 	require.Error(t, err, "throttled subject must not redeem the correct code")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "access_denied", res.Error.Err)
+	require.Equal(t, "access_denied", res.Error.Error)
 
 	// The device code stays pending and unconsumed.
 	pollRes, pollErr := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, pollErr)
 	require.NotNil(t, pollRes.Error)
-	require.Equal(t, "authorization_pending", pollRes.Error.Err)
+	require.Equal(t, "authorization_pending", pollRes.Error.Error)
 }
 
 // TestRFC10027_UserCodeFirstAttemptSucceeds is the negative control for the
@@ -182,7 +182,7 @@ func TestRFC10027_DPoPBoundClientRequiresProof(t *testing.T) {
 	res, err := h.pollDeviceTokenWithConfirmation(t, client.ClientId, deviceCode, nil)
 	require.Error(t, err, "DPoP-bound client must not obtain a bearer token")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 
 	// The rejection happened before the consume: the session survives,

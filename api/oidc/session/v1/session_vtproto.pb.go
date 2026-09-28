@@ -7,12 +7,10 @@ package sessionv1
 import (
 	binary "encoding/binary"
 	fmt "fmt"
-	io "io"
-
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
+	io "io"
 	v1 "zntr.io/solid/api/oidc/client/v1"
 	v11 "zntr.io/solid/api/oidc/flow/v1"
 	v12 "zntr.io/solid/api/oidc/token/v1"

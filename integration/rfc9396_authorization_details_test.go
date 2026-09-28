@@ -75,7 +75,7 @@ func TestRFC9396_AuthorizationDetailsEndToEnd(t *testing.T) {
 	res, err := h.redeemCode(t, client.ClientId, code, verifier, testRedirectURI)
 	require.NoError(t, err)
 	require.NotNil(t, res.AccessToken)
-	require.Empty(t, res.Error.GetErr())
+	require.Empty(t, res.Error.GetError())
 	require.Len(t, res.AuthorizationDetails, 2)
 	require.Len(t, res.AccessToken.Metadata.AuthorizationDetails, 2)
 	require.True(t, proto.Equal(details[0], res.AccessToken.Metadata.AuthorizationDetails[0]),
@@ -111,7 +111,7 @@ func TestRFC9396_TokenEndpointNarrowing_6(t *testing.T) {
 	h.authenticateClient(t, client.ClientId)
 	res, err := h.tokenz.Token(t.Context(), msg)
 	require.NoError(t, err)
-	require.Empty(t, res.Error.GetErr())
+	require.Empty(t, res.Error.GetError())
 	require.Len(t, res.AuthorizationDetails, 1)
 	require.True(t, proto.Equal(both[0], res.AuthorizationDetails[0]))
 	require.Len(t, res.AccessToken.Metadata.AuthorizationDetails, 1)
@@ -129,7 +129,7 @@ func TestRFC9396_TokenEndpointNarrowing_6(t *testing.T) {
 	h.authenticateClient(t, client.ClientId)
 	nres, nerr := h.tokenz.Token(t.Context(), rmsg)
 	require.NoError(t, nerr)
-	require.Empty(t, nres.Error.GetErr())
+	require.Empty(t, nres.Error.GetError())
 	require.Len(t, nres.AuthorizationDetails, 1)
 }
 
@@ -165,7 +165,7 @@ func TestRFC9396_NarrowingViolationRejected_6(t *testing.T) {
 	res, err := h.tokenz.Token(t.Context(), msg)
 	require.Error(t, err, "an entry not consented must be rejected")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_authorization_details", res.Error.Err)
+	require.Equal(t, "invalid_authorization_details", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 }
 
@@ -189,7 +189,7 @@ func TestRFC9396_ClientCredentialsFailsClosed(t *testing.T) {
 	res, err := h.tokenz.Token(t.Context(), msg)
 	require.Error(t, err, "client_credentials must not carry authorization_details")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_authorization_details", res.Error.Err)
+	require.Equal(t, "invalid_authorization_details", res.Error.Error)
 }
 
 // TestRFC9396_DeviceFlowCarriesDetails asserts the device authorization
@@ -216,7 +216,7 @@ func TestRFC9396_DeviceFlowCarriesDetails(t *testing.T) {
 
 	res, err := h.pollDeviceToken(t, client.ClientId, dres.DeviceCode)
 	require.NoError(t, err)
-	require.Empty(t, res.Error.GetErr())
+	require.Empty(t, res.Error.GetError())
 	require.NotNil(t, res.AccessToken)
 	require.Len(t, res.AccessToken.Metadata.AuthorizationDetails, 1)
 	require.True(t, proto.Equal(details[0], res.AccessToken.Metadata.AuthorizationDetails[0]),
@@ -239,5 +239,5 @@ func TestRFC9396_DeviceFlowCarriesDetails(t *testing.T) {
 	nres, nerr := h.tokenz.Token(t.Context(), msg)
 	require.Error(t, nerr, "device grant must not accept authorization_details at the token endpoint")
 	require.NotNil(t, nres.Error)
-	require.Equal(t, "invalid_authorization_details", nres.Error.Err)
+	require.Equal(t, "invalid_authorization_details", nres.Error.Error)
 }

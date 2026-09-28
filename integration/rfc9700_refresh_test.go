@@ -52,7 +52,7 @@ func TestRFC9700_Rotation_4_14_2(t *testing.T) {
 	resReplay, err := h.refresh(t, client.ClientId, res1.RefreshToken.Value)
 	require.Error(t, err, "a rotated refresh token must be refused")
 	require.NotNil(t, resReplay.Error)
-	require.Equal(t, "invalid_grant", resReplay.Error.Err)
+	require.Equal(t, "invalid_grant", resReplay.Error.Error)
 }
 
 // TestRFC9700_FamilyRevocationOnReplay_4_14_2 plays the A5 attacker who
@@ -82,14 +82,14 @@ func TestRFC9700_FamilyRevocationOnReplay_4_14_2(t *testing.T) {
 	resReplay, err := h.refresh(t, client.ClientId, res1.RefreshToken.Value)
 	require.Error(t, err, "stale refresh token must be refused")
 	require.NotNil(t, resReplay.Error)
-	require.Equal(t, "invalid_grant", resReplay.Error.Err)
+	require.Equal(t, "invalid_grant", resReplay.Error.Error)
 
 	// Family revocation: the honest client's current token (RT3 family
 	// descendant) is now dead too.
 	resAfter, err := h.refresh(t, client.ClientId, res3.RefreshToken.Value)
 	require.Error(t, err, "family revocation must kill the descendant refresh token")
 	require.NotNil(t, resAfter.Error)
-	require.Equal(t, "invalid_grant", resAfter.Error.Err)
+	require.Equal(t, "invalid_grant", resAfter.Error.Error)
 
 	// The access token minted from the same grant family is revoked as well.
 	atRecord, err := h.tokens.GetByValue(t.Context(), h.issuer, res1.AccessToken.Value)
@@ -115,7 +115,7 @@ func TestRFC9700_RefreshTokenBoundToClient_2_2_2(t *testing.T) {
 	res, err := h.refresh(t, clientB.ClientId, res1.RefreshToken.Value)
 	require.Error(t, err, "refresh token must be bound to its issuing client")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 }
 
 // TestRFC9700_RefreshTokenNotAnAccessToken_4_14 asserts an access token value
@@ -135,5 +135,5 @@ func TestRFC9700_RefreshTokenNotAnAccessToken_4_14(t *testing.T) {
 	res, err := h.refresh(t, client.ClientId, res1.AccessToken.Value)
 	require.Error(t, err, "access tokens must not be redeemable as refresh tokens")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 }

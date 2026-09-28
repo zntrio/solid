@@ -206,7 +206,7 @@ func (c *httpClient) ClientCredentials(ctx context.Context, assertion string) (*
 			return nil, fmt.Errorf("unable to decode json error for token retrieval request: %w", err)
 		}
 
-		return nil, fmt.Errorf("unable to request for token got %s, %s", err.Err, err.ErrorDescription)
+		return nil, fmt.Errorf("unable to request for token got %s, %s", err.Error, err.ErrorDescription)
 	}
 
 	// Decode payload
@@ -256,7 +256,7 @@ func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*
 			return nil, fmt.Errorf("unable to decode json error for token introspection request: %w", err)
 		}
 
-		return nil, fmt.Errorf("unable to request for token introspection got %s, %s", err.Err, err.ErrorDescription)
+		return nil, fmt.Errorf("unable to request for token introspection got %s, %s", err.Error, err.ErrorDescription)
 	}
 	// Read the payload once: the proto TokenMeta custom unmarshaler would
 	// consume the whole JSON object when embedded in a struct, shadowing
@@ -328,7 +328,7 @@ func (c *httpClient) PublicKeys(ctx context.Context) (keys jwk.Set, expiresAt ui
 			return nil, 0, fmt.Errorf("unable to decode json error for jwks retrieval request: %w", err)
 		}
 
-		return nil, 0, fmt.Errorf("unable to request for jwks got %s, %s", err.Err, err.ErrorDescription)
+		return nil, 0, fmt.Errorf("unable to request for jwks got %s, %s", err.Error, err.ErrorDescription)
 	}
 
 	// Decode payload: parse the JWKS with the tolerant parser (AKP entries

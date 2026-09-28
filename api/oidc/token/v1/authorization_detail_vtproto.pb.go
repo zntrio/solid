@@ -6,12 +6,11 @@ package tokenv1
 
 import (
 	fmt "fmt"
-	io "io"
-
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	structpb "github.com/planetscale/vtprotobuf/types/known/structpb"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb1 "google.golang.org/protobuf/types/known/structpb"
+	io "io"
 )
 
 const (

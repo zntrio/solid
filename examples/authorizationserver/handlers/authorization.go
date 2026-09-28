@@ -113,10 +113,12 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 			return
 		}
 
-		// Process according to response_mode
+		// Process according to response_mode. The draft-ietf-oauth-v2-1-16
+		// §4.1.2 default response mode for response_type=code is the
+		// plain code response in the query component.
 		switch res.ResponseMode {
-		case oidc.ResponseTypeCode:
-			responseTypeCode(w, r, res)
+		case oidc.ResponseModeFormPost:
+			responseTypeFormPost(w, r, res)
 		case oidc.ResponseModeQueryJWT:
 			responseTypeQueryJWT(w, r, res, jarmEncoder)
 		case oidc.ResponseModeFragmentJWT:
@@ -124,7 +126,9 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		case oidc.ResponseModeFormPOSTJWT:
 			responseTypeFormPostJWT(w, r, res, jarmEncoder)
 		default:
-			responseTypeQueryJWT(w, r, res, jarmEncoder)
+			// Empty (request omitted response_mode) or query: plain code
+			// response (draft-ietf-oauth-v2-1-16 §4.1.2).
+			responseTypeCode(w, r, res)
 		}
 	})
 }
@@ -143,7 +147,7 @@ func responseTypeCode(w http.ResponseWriter, r *http.Request, authRes *flowv1.Au
 	// Assemble final uri
 	params := url.Values{}
 	if authRes.Error != nil {
-		params.Set("error", authRes.Error.Err)
+		params.Set("error", authRes.Error.Error)
 		params.Set("state", authRes.State)
 		// RFC 9207 section 2: the issuer identifier MUST be included in
 		// error responses as well, so the client can detect mix-up
@@ -248,6 +252,53 @@ func responseTypeFormPostJWT(w http.ResponseWriter, r *http.Request, authRes *fl
 	if err := form.Execute(w, map[string]string{
 		"RedirectURI": u.String(),
 		"Response":    jarmToken,
+		"Nonce":       nonce,
+	}); err != nil {
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		return
+	}
+}
+
+// responseTypeFormPost renders the plain (non-JARM) form_post response mode:
+// the authorization response parameters (code, state, iss — or the error
+// fields) are submitted as auto-posted form fields.
+func responseTypeFormPost(w http.ResponseWriter, r *http.Request, authRes *flowv1.AuthorizeResponse) {
+	// Build redirection uri
+	u, err := url.ParseRequestURI(authRes.RedirectUri)
+	if err != nil {
+		log.Println("unable to process redirect uri:", err)
+		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+		return
+	}
+
+	// Assemble form fields
+	var (
+		code  string
+		errc  string
+		state = authRes.State
+	)
+	if authRes.Error != nil {
+		errc = authRes.Error.Error
+	} else {
+		code = authRes.Code
+	}
+
+	// Prepare template
+	form := template.Must(template.New("form-post").Parse(`<!DOCTYPE html><html><head><title>Submit This Form</title></head><body><form method="post" action="{{ .RedirectURI }}">{{ if .Code }}<input type="hidden" name="code" value="{{ .Code }}"/>{{ end }}{{ if .Error }}<input type="hidden" name="error" value="{{ .Error }}"/>{{ end }}<input type="hidden" name="state" value="{{ .State }}"/><input type="hidden" name="iss" value="{{ .Issuer }}"/></form><script type="text/javascript" nonce="{{ .Nonce }}" integrity="sha384-ZGMxYzUyZTk2ZGY3OGNjZDNlMGFiMTI1M2RmMmNiNmY4MzgyZjY3NDcyZDc1M2U4YTRmNTEzYzc0NTE4M2FiOGZkMWQ1YzFhMjA2MDI2ZTNjOWMyOWEyYzY2YTRhY2Y2Cg==">window.onload = function() {document.forms[0].submit();};</script></body></html>`))
+	nonce := base64.URLEncoding.EncodeToString([]byte(random.String(8)))
+
+	// Set headers
+	w.Header().Set("Cache-Control", "no-cache, no-store")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Content-Security-Policy", fmt.Sprintf("script-src 'self' 'sha384-ZGMxYzUyZTk2ZGY3OGNjZDNlMGFiMTI1M2RmMmNiNmY4MzgyZjY3NDcyZDc1M2U4YTRmNTEzYzc0NTE4M2FiOGZkMWQ1YzFhMjA2MDI2ZTNjOWMyOWEyYzY2YTRhY2Y2Cg==' 'nonce-%s';", nonce))
+
+	// Write template to output
+	if err := form.Execute(w, map[string]string{
+		"RedirectURI": u.String(),
+		"Code":        code,
+		"Error":       errc,
+		"State":       state,
+		"Issuer":      authRes.Issuer,
 		"Nonce":       nonce,
 	}); err != nil {
 		respond.WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())

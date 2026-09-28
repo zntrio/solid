@@ -29,9 +29,12 @@ func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Err
 	// Marshal response as json
 	body, _ := json.Marshal(err)
 
+	// Set response as non cacheable (draft-ietf-oauth-v2-1-16 §3.2.3)
+	w.Header().Set("Cache-Control", "no-store")
+
 	// Set content type header
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm=%q, error=%q, error_description=%q`, r.URL.Host, err.Err, err.ErrorDescription))
+	w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm=%q, error=%q, error_description=%q`, r.URL.Host, err.Error, err.ErrorDescription))
 
 	// Write status
 	w.WriteHeader(code)
@@ -44,6 +47,8 @@ func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Err
 func WithJSON(w http.ResponseWriter, code int, data any) {
 	// Marshal response as json
 	body, _ := json.Marshal(data)
+	// Set response as non cacheable (draft-ietf-oauth-v2-1-16 §3.2.3)
+	w.Header().Set("Cache-Control", "no-store")
 
 	// Set content type header
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

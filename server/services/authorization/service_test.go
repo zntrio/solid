@@ -401,6 +401,7 @@ func Test_service_Authorize(t *testing.T) {
 			want: &flowv1.AuthorizeResponse{
 				Issuer: "https://honest.as.example",
 				Error:  rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+				State:  "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 			},
 		},
 		// ---------------------------------------------------------------------
@@ -454,6 +455,173 @@ func Test_service_Authorize(t *testing.T) {
 				RedirectUri: "https://client.example.org/cb",
 				ClientId:    "s6BhdRkqt3",
 				ExpiresIn:   uint64(60),
+			},
+		},
+		{
+			name: "loopback redirect port variance accepted (draft-ietf-oauth-v2-1-16 §8.4.2)",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:LoopbackPortVariance0000000000"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, sessions *storagemock.MockAuthorizationCodeSessionWriter, codes *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:LoopbackPortVariance0000000000").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:LoopbackPortVariance0000000000").Return(&flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "http://127.0.0.1:9527/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Prompt:              types.StringRef(oidc.PromptConsent),
+				}, nil)
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"http://127.0.0.1:8080/cb"},
+				}, nil)
+				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
+				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _, _ string, s *sessionv1.AuthorizationCodeSession) (uint64, error) {
+						if s.GrantId == "" {
+							return 0, fmt.Errorf("grant_id must be set at code issuance")
+						}
+						return uint64(60), nil
+					})
+			},
+			wantErr: false,
+			want: &flowv1.AuthorizeResponse{
+				Issuer:      "https://honest.as.example",
+				Error:       nil,
+				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri: "http://127.0.0.1:9527/cb",
+				ClientId:    "s6BhdRkqt3",
+				ExpiresIn:   uint64(60),
+			},
+		},
+		{
+			name: "loopback port variance with differing path rejected",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:LoopbackPathDiff000000000000000"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:LoopbackPathDiff000000000000000").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:LoopbackPathDiff000000000000000").Return(&flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "http://127.0.0.1:9527/other",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Prompt:              types.StringRef(oidc.PromptConsent),
+				}, nil)
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"http://127.0.0.1:8080/cb"},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+				State:  "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+			},
+		},
+		{
+			name: "port variance on non-loopback host rejected",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:NonLoopbackPort00000000000000000"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, clients *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:NonLoopbackPort00000000000000000").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:NonLoopbackPort00000000000000000").Return(&flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org:9527/cb",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Prompt:              types.StringRef(oidc.PromptConsent),
+				}, nil)
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					ResponseTypes: []string{"code"},
+					RedirectUris:  []string{"https://client.example.org/cb"},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+				State:  "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+			},
+		},
+		{
+			name: "redirect_uri with fragment rejected (draft-ietf-oauth-v2-1-16 §2.3)",
+			args: args{
+				ctx: context.Background(),
+				req: &flowv1.AuthorizeRequest{
+					Issuer:  "https://honest.as.example",
+					Subject: "foo",
+					Client:  &clientv1.Client{ClientId: "s6BhdRkqt3"},
+					Request: &flowv1.AuthorizationRequest{
+						RequestUri: types.StringRef("urn:solid:FragmentRedirect000000000000000000"),
+					},
+				},
+			},
+			prepare: func(ar *storagemock.MockAuthorizationRequest, _ *storagemock.MockClientReader, _ *storagemock.MockAuthorizationCodeSessionWriter, _ *generatormock.MockAuthorizationCode, mru *generatormock.MockRequestURI) {
+				mru.EXPECT().Validate(gomock.Any(), "https://honest.as.example", "urn:solid:FragmentRedirect000000000000000000").Return(nil)
+				ar.EXPECT().DeleteAndGet(gomock.Any(), "https://honest.as.example", "urn:solid:FragmentRedirect000000000000000000").Return(&flowv1.AuthorizationRequest{
+					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+					ResponseType:        "code",
+					Scope:               "openid profile email offline_access",
+					ClientId:            "s6BhdRkqt3",
+					State:               "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+					Nonce:               "XDwbBH4MokU8BmrZ",
+					RedirectUri:         "https://client.example.org/cb#frag",
+					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
+					CodeChallengeMethod: "S256",
+					Prompt:              types.StringRef(oidc.PromptConsent),
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.AuthorizeResponse{
+				Issuer: "https://honest.as.example",
+				Error:  rfcerrors.InvalidRequest().State("oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU").Build(),
+				State:  "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
 			},
 		},
 		{

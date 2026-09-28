@@ -154,6 +154,9 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.AuthorizeRequest) (
 	publicErr, err := s.validate(ctx, req.Request)
 	if err != nil {
 		res.Error = publicErr
+		// draft-ietf-oauth-v2-1-16 §4.1.2.1 / RFC 6749 §4.1.2.1: the
+		// error response carries the request state back to the client.
+		res.State = req.Request.State
 		return res, err
 	}
 
@@ -209,6 +212,12 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.AuthorizeRequest) (
 	res.ExpiresIn = expiresIn
 	// Assign issuer
 	res.Issuer = req.Issuer
+	// Propagate the response mode resolved during validation (the
+	// draft-ietf-oauth-v2-1-16 §4.1.2 default for response_type=code is
+	// the plain query mode; presentation layers dispatch on it).
+	if req.Request.ResponseMode != nil {
+		res.ResponseMode = *req.Request.ResponseMode
+	}
 
 	return res, err
 }
@@ -328,10 +337,21 @@ func (s *service) validate(ctx context.Context, req *flowv1.AuthorizationRequest
 		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("code_challenge contains characters outside the unreserved set")
 	}
 
-	// Prepare redirection uri
-	_, err := url.ParseRequestURI(req.RedirectUri)
-	if err != nil {
+	// Prepare redirection uri. url.Parse is used (not ParseRequestURI)
+	// because the fragment component MUST be inspected: ParseRequestURI
+	// rejects fragments with a syntax error instead of exposing them.
+	// Custom application schemes (e.g. com.example.app:/cb) carry no host;
+	// only the scheme presence is required here, the exact-match against
+	// the client registration remains the effective gate.
+	uri, err := url.Parse(req.RedirectUri)
+	if err != nil || uri.Scheme == "" {
 		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("redirect_uri has an invalid syntax: %w", err)
+	}
+
+	// draft-ietf-oauth-v2-1-16 §2.3: the redirect URI MUST NOT include a
+	// fragment component.
+	if uri.Fragment != "" {
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("redirect_uri must not include a fragment component")
 	}
 
 	// Validate response type: this authorization server profile only supports
@@ -415,8 +435,10 @@ func (s *service) validateClientCapabilities(ctx context.Context, req *flowv1.Au
 		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("client doesn't support `%s` as response type", req.ResponseType)
 	}
 
-	// Validate client response_types
-	if !types.StringArray(client.RedirectUris).Contains(req.RedirectUri) {
+	// Validate client redirect_uris: exact string comparison, plus the
+	// loopback port exception for native applications
+	// (draft-ietf-oauth-v2-1-16 §8.4.2).
+	if !services.RedirectURIMatchesRegistered(client.RedirectUris, req.RedirectUri) {
 		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("client doesn't support `%s` as redirect_uri type", req.RedirectUri)
 	}
 

@@ -160,7 +160,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, res.Client)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("no registered jwks fails closed", func(t *testing.T) {
@@ -176,7 +176,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, client, true)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("malformed jwks fails closed", func(t *testing.T) {
@@ -193,7 +193,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, client, true)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("method confusion rejected", func(t *testing.T) {
@@ -213,7 +213,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, client, true)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("missing client_id rejected", func(t *testing.T) {
@@ -224,7 +224,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, nil, false)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("missing certificate rejected", func(t *testing.T) {
@@ -235,7 +235,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, nil, false)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_request", res.Error.Err)
+		assert.Equal(t, "invalid_request", res.Error.Error)
 	})
 
 	t.Run("expired certificate rejected", func(t *testing.T) {
@@ -260,7 +260,7 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, nil, false)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 
 	t.Run("garbage pem rejected", func(t *testing.T) {
@@ -273,6 +273,6 @@ func Test_selfSignedTLSClientAuthentication_Authenticate(t *testing.T) {
 		res, err := runSelfSignedTLSClientAuth(t, req, nil, false)
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		assert.Equal(t, "invalid_client", res.Error.Err)
+		assert.Equal(t, "invalid_client", res.Error.Error)
 	})
 }

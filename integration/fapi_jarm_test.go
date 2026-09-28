@@ -138,7 +138,7 @@ func TestJARM_WrongAudienceRejected(t *testing.T) {
 	res, err := fx.decoder.Decode(context.Background(), "client-b", raw)
 	require.Error(t, err, "a JARM addressed to another client must be refused")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_token", res.Error.Err)
+	require.Equal(t, "invalid_token", res.Error.Error)
 }
 
 // TestJARM_WrongIssuerRejected asserts section 5.1 step 3: the client checks
@@ -158,7 +158,7 @@ func TestJARM_WrongIssuerRejected(t *testing.T) {
 	res, err := fx.decoder.Decode(context.Background(), "client-a", raw)
 	require.Error(t, err, "a JARM claiming a foreign issuer must be refused")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_token", res.Error.Err)
+	require.Equal(t, "invalid_token", res.Error.Error)
 }
 
 // TestJARM_ExpiredResponseRejected asserts section 5.1 step 5: the client
@@ -260,13 +260,13 @@ func TestJARM_ErrorResponseStillBound(t *testing.T) {
 	res, err := fx.decoder.Decode(context.Background(), "client-a", raw)
 	require.NoError(t, err, "a properly bound error response decodes without transport error")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "access_denied", res.Error.Err)
+	require.Equal(t, "access_denied", res.Error.Error)
 
 	// The same error JARM addressed to another client is still rejected.
 	res2, err2 := fx.decoder.Decode(context.Background(), "client-b", raw)
 	require.Error(t, err2)
 	require.NotNil(t, res2.Error)
-	require.Equal(t, "invalid_token", res2.Error.Err)
+	require.Equal(t, "invalid_token", res2.Error.Error)
 }
 
 // TestJARM_GarbageRejected asserts malformed inputs fail closed.

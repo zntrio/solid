@@ -31,7 +31,7 @@ var validateRequest = func(ctx context.Context, req *flowv1.TokenRequest) *corev
 	// Check req nullity
 	if req == nil {
 		return &corev1.Error{
-			Err:              "invalid_request",
+			Error:            "invalid_request",
 			ErrorDescription: "request is nil",
 		}
 	}

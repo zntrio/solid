@@ -44,7 +44,7 @@ func TestRFC8628_AuthorizationPending(t *testing.T) {
 	res, err := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err, "poll before approval must fail")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "authorization_pending", res.Error.Err)
+	require.Equal(t, "authorization_pending", res.Error.Error)
 }
 
 // TestRFC8628_ApprovalThenToken asserts approval via the user code lets the
@@ -87,7 +87,7 @@ func TestRFC8628_ExpiredDeviceCode(t *testing.T) {
 	res, err := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err, "expired device code must fail")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "expired_token", res.Error.Err)
+	require.Equal(t, "expired_token", res.Error.Error)
 }
 
 // TestRFC8628_AccessDenied asserts a denied device session yields
@@ -109,7 +109,7 @@ func TestRFC8628_AccessDenied(t *testing.T) {
 	res, err := h.pollDeviceToken(t, client.ClientId, deviceCode)
 	require.Error(t, err, "denied device flow must fail")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "access_denied", res.Error.Err)
+	require.Equal(t, "access_denied", res.Error.Error)
 }
 
 // TestRFC8628_WrongClientPoll asserts client B cannot poll client A's device
@@ -125,7 +125,7 @@ func TestRFC8628_WrongClientPoll(t *testing.T) {
 	res, err := h.pollDeviceToken(t, clientB.ClientId, deviceCode)
 	require.Error(t, err, "another client must not consume the device session")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 }
 
 // TestRFC8628_UnknownDeviceCode asserts an unknown device_code yields
@@ -137,5 +137,5 @@ func TestRFC8628_UnknownDeviceCode(t *testing.T) {
 	res, err := h.pollDeviceToken(t, client.ClientId, random.String(32))
 	require.Error(t, err)
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 }

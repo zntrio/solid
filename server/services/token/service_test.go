@@ -63,7 +63,7 @@ func Test_service_Token(t *testing.T) {
 			wantErr: true,
 			want: &flowv1.TokenResponse{
 				Error: &corev1.Error{
-					Err:              "invalid_request",
+					Error:            "invalid_request",
 					ErrorDescription: "request is nil",
 				},
 			},

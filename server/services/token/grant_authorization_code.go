@@ -33,6 +33,7 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
+	"zntr.io/solid/server/services"
 	"zntr.io/solid/server/storage"
 )
 
@@ -58,10 +59,14 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
-	// Validate request
-	if grant.Code == "" || grant.CodeVerifier == "" || grant.RedirectUri == "" {
+	// Validate request (draft-ietf-oauth-v2-1-16 §4.1.3): the token request
+	// REQUIRES code and code_verifier; redirect_uri is no longer a parameter
+	// of the authorization code grant in OAuth 2.1. When a client does send
+	// it (OAuth 2.0 compatibility, §10.2), it MUST exactly match the
+	// authorization-time value and the client registration.
+	if grant.Code == "" || grant.CodeVerifier == "" {
 		res.Error = rfcerrors.InvalidGrant().Build()
-		return res, fmt.Errorf("invalid authorization request: code, code_verifier and redirect_uri are mandatory")
+		return res, fmt.Errorf("invalid authorization request: code and code_verifier are mandatory")
 	}
 
 	// Validate code length
@@ -161,14 +166,17 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 	// grant is enforced at refresh-token family level (grant_refresh_token.go),
 	// where the replayed token carries its grant identifier.
 
-	// Validate redirectUri
-	if ar.Request.RedirectUri != grant.RedirectUri {
-		res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
-		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and token '%s' must be identic", ar.Request.RedirectUri, grant.RedirectUri)
-	}
-	if !types.StringArray(client.RedirectUris).Contains(grant.RedirectUri) {
-		res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
-		return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and client '%s' must be validated", grant.RedirectUri, client.RedirectUris)
+	// Validate redirectUri: only when the token request carries the
+	// parameter (OAuth 2.0 compatibility, draft-ietf-oauth-v2-1-16 §10.2).
+	if grant.RedirectUri != "" {
+		if ar.Request.RedirectUri != grant.RedirectUri {
+			res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
+			return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and token '%s' must be identic", ar.Request.RedirectUri, grant.RedirectUri)
+		}
+		if !services.RedirectURIMatchesRegistered(client.RedirectUris, grant.RedirectUri) {
+			res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
+			return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and client '%v' must be validated", grant.RedirectUri, client.RedirectUris)
+		}
 	}
 
 	// Check PKCE verifier

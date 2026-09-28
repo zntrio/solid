@@ -23,7 +23,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/stretchr/testify/require"
-
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 )
@@ -62,7 +61,7 @@ func TestRFC7636_VerifierCharset_4_1(t *testing.T) {
 			// Rejected either by the protovalidate syntax layer
 			// (invalid_request) or by the service-level PKCE checks
 			// (invalid_grant): both are RFC 7636 conformant rejections.
-			require.Contains(t, []string{"invalid_request", "invalid_grant"}, res.Error.Err)
+			require.Contains(t, []string{"invalid_request", "invalid_grant"}, res.Error.Error)
 		})
 	}
 }
@@ -88,7 +87,7 @@ func TestRFC7636_ChallengeCharset(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 }
 
 // TestRFC7636_VerifierBoundary asserts the verifier length bounds are
@@ -109,7 +108,7 @@ func TestRFC7636_VerifierBoundary(t *testing.T) {
 		require.Error(t, err)
 		// Rejected either by the protovalidate syntax layer or the
 		// service-level bound; both conform to RFC 7636.
-		require.Contains(t, []string{"invalid_request", "invalid_grant"}, res.Error.Err)
+		require.Contains(t, []string{"invalid_request", "invalid_grant"}, res.Error.Error)
 	})
 
 	t.Run("43 runes succeeds", func(t *testing.T) {
@@ -139,6 +138,6 @@ func TestRFC7636_VerifierBoundary(t *testing.T) {
 		code := h.seedAuthorization(t, client, req)
 		res, err := h.redeemCode(t, client.ClientId, code, verifier, testRedirectURI)
 		require.Error(t, err)
-		require.Contains(t, []string{"invalid_request", "invalid_grant"}, res.Error.Err)
+		require.Contains(t, []string{"invalid_request", "invalid_grant"}, res.Error.Error)
 	})
 }

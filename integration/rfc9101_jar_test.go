@@ -160,6 +160,6 @@ func TestRFC9101_ClientIdMismatch(t *testing.T) {
 	})
 	require.Error(t, err, "request bound to another client must be rejected")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 	require.NotEmpty(t, clientA.ClientId)
 }

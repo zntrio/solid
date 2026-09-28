@@ -72,7 +72,7 @@ func embeddedKey(t *gojwt.Token) (jwxjwk.Key, error) {
 
 func (v *embeddedKeyVerifier) Parse(raw string) (token.Token, error) {
 	// Parse JWT token
-	t, parts, err := parseUnverified(raw, v.supportedAlgorithms)
+	t, parts, err := decodeHeader(raw, v.supportedAlgorithms)
 	if err != nil {
 		return nil, errors.New("unable to parse signed token")
 	}
@@ -84,58 +84,45 @@ func (v *embeddedKeyVerifier) Parse(raw string) (token.Token, error) {
 	}, nil
 }
 
+// Verify checks the token signature against the key embedded in the
+// token header.
 func (v *embeddedKeyVerifier) Verify(raw string) error {
-	// Parse JWT token
-	t, _, err := parseUnverified(raw, v.supportedAlgorithms)
-	if err != nil {
-		return fmt.Errorf("unable to parse signed token: %w", err)
-	}
-
-	// Validate algorithm
-	alg, _ := t.Header["alg"].(string)
-
-	// Validate embedded key existence
-	k, err := embeddedKey(t)
-	if err != nil {
-		return err
-	}
-
-	// Ensure key algorithm alignment
-	keyAlg, ok := k.Algorithm()
-	if !ok || keyAlg.String() != alg {
-		return errors.New("token has an invalid key for given algorithm")
-	}
-
-	// No error
-	return nil
+	return v.Claims(context.Background(), raw, &struct{}{})
 }
 
-// Claims extracts claims from given raw token with verifier keyset provider.
+// Claims verifies the token signature against the key embedded in the
+// token header and extracts the verified claims.
 func (v *embeddedKeyVerifier) Claims(ctx context.Context, raw string, claims any) error {
-	// Parse JWT token
-	t, parts, err := parseUnverified(raw, v.supportedAlgorithms)
-	if err != nil {
-		return fmt.Errorf("unable to parse signed token: %w", err)
-	}
+	_ = ctx
 
-	// Get embedded key.
-	k, err := embeddedKey(t)
-	if err != nil {
+	// Parse and verify through the standard parser: the signature is
+	// checked against the public key embedded in the token header.
+	// WithValidMethods enforces the algorithm allowlist; the keyfunc
+	// additionally requires the embedded key alg to match the token alg.
+	parsed, err := gojwt.NewParser(
+		gojwt.WithValidMethods(v.supportedAlgorithms),
+		gojwt.WithoutClaimsValidation(),
+	).Parse(raw, func(t *gojwt.Token) (any, error) {
+		// The embedded key is the only trust anchor of this verifier
+		// (self-asserted proofs, e.g. DPoP: RFC 9449 §4.2).
+		k, errKey := embeddedKey(t)
+		if errKey != nil {
+			return nil, errKey
+		}
+		// Key algorithm must match the token alg.
+		keyAlg, hasAlg := k.Algorithm()
+		alg, _ := t.Header["alg"].(string)
+		if !hasAlg || keyAlg.String() != alg {
+			return nil, errors.New("token has an invalid key for given algorithm")
+		}
+		return MaterializeSigningKey(k)
+	})
+	if err != nil || parsed == nil || !parsed.Valid {
 		return token.ErrInvalidTokenSignature
 	}
 
-	// Materialize public key
-	publicKey, err := MaterializeSigningKey(k)
-	if err != nil {
-		return token.ErrInvalidTokenSignature
-	}
-
-	if err := verifyWithKey(t, parts, publicKey); err != nil {
-		return token.ErrInvalidTokenSignature
-	}
-
-	// Decode claims into target object
-	if err := decodeClaims(parts, claims); err != nil {
+	// Decode the verified claims into the target object.
+	if errDecode := decodeVerifiedClaims(parsed, claims); errDecode != nil {
 		return token.ErrInvalidTokenSignature
 	}
 

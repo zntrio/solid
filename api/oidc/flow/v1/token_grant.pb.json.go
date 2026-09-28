@@ -70,6 +70,21 @@ func (msg *GrantDeviceCode) UnmarshalJSON(b []byte) error {
 }
 
 // MarshalJSON implements json.Marshaler
+func (msg *GrantCIBA) MarshalJSON() ([]byte, error) {
+	return protojson.MarshalOptions{
+		EmitUnpopulated: true,
+		UseProtoNames:   true,
+	}.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *GrantCIBA) UnmarshalJSON(b []byte) error {
+	return protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
 func (msg *GrantClientCredentials) MarshalJSON() ([]byte, error) {
 	return protojson.MarshalOptions{
 		EmitUnpopulated: true,

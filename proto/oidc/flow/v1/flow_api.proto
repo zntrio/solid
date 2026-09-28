@@ -235,6 +235,8 @@ message TokenRequest {
     // as profiled by draft-ietf-oauth-identity-assertion-authz-grant-04
     // section 4.4: the assertion MUST be an ID-JAG.
     GrantJWTBearer jwt_bearer = 15;
+    // https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-10.1
+    GrantCIBA ciba = 16;
   }
 }
 
@@ -323,5 +325,75 @@ message DeviceCodeValidationRequest {
 }
 
 message DeviceCodeValidationResponse {
+  .oidc.core.v1.Error error = 1;
+}
+
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-7.1
+message BackchannelAuthenticationRequest {
+  // REQUIRED. Issuer uri.
+  string issuer = 1;
+  // REQUIRED. Client identifier (RFC 6749 section 2.2).
+  string client_id = 2;
+  // REQUIRED by CIBA section 7.1 (must contain the openid scope value;
+  // enforced semantically in the service).
+  optional string scope = 3;
+  // OPTIONAL. Target audience (resource indicators, RFC 8707).
+  optional string audience = 4;
+  // OPTIONAL. Requested Authentication Context Class Reference values.
+  optional string acr_values = 5;
+  // OPTIONAL. Hint identifying the end-user (email, phone, subject...).
+  optional string login_hint = 6;
+  // OPTIONAL. Token identifying the end-user; opaque, resolved by the
+  // deployment-provided hint resolver.
+  optional string login_hint_token = 7;
+  // OPTIONAL. ID Token previously issued to the client; opaque, resolved
+  // by the deployment-provided hint resolver.
+  optional string id_token_hint = 8;
+  // REQUIRED (solid promotion). Human-readable interlock between the
+  // consumption and authentication devices; enforced semantically
+  // (4-64 chars, charset [A-Za-z0-9._-]).
+  optional string binding_message = 9;
+  // OPTIONAL. Requested auth_req_id lifetime in seconds (CIBA section 7.1);
+  // honored when within (0, 3600], clamped otherwise by the service.
+  optional fixed64 requested_expiry = 10;
+  // OPTIONAL. RFC 9396 authorization details fixed at backchannel request
+  // time and consented on the session.
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 11;
+  // OPTIONAL. Signed authentication request JWT (CIBA section 7.1.1).
+  // When set, no authentication request parameter may appear outside it.
+  optional string request = 12;
+  // OPTIONAL. Authorization Code Binding to a DPoP Key analog for CIBA:
+  // the JWK thumbprint (RFC 9449 section 10) of the key that MUST sign
+  // the DPoP proofs at the token endpoint when polling this auth_req_id.
+  // Carried inside the signed request object (dpop_jkt claim) — when a
+  // request object is used, it MUST NOT appear outside it.
+  optional string dpop_jkt = 13;
+}
+
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-7.3
+message BackchannelAuthenticationResponse {
+  .oidc.core.v1.Error error = 1;
+  // REQUIRED. Unique identifier of the authentication request.
+  string auth_req_id = 2;
+  // REQUIRED. Lifetime of the auth_req_id in seconds.
+  fixed64 expires_in = 3;
+  // OPTIONAL. Minimum polling interval in seconds (poll mode only).
+  fixed64 interval = 4;
+  // REQUIRED. Issuer url.
+  string issuer = 5;
+}
+
+// End-user approval channel for a backchannel authentication request
+// (the "authentication device" side of CIBA section 8).
+message BackchannelAuthenticationValidationRequest {
+  // REQUIRED. Issuer uri.
+  string issuer = 1;
+  // REQUIRED. The authentication request identifier.
+  string auth_req_id = 2;
+  // REQUIRED. User identity.
+  string subject = 3;
+}
+
+message BackchannelAuthenticationValidationResponse {
   .oidc.core.v1.Error error = 1;
 }

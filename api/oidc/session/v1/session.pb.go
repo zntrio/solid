@@ -151,6 +151,60 @@ func (DeviceCodeStatus) EnumDescriptor() ([]byte, []int) {
 	return file_oidc_session_v1_session_proto_rawDescGZIP(), []int{1}
 }
 
+type BackchannelAuthenticationStatus int32
+
+const (
+	BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED BackchannelAuthenticationStatus = 0
+	BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_PENDING     BackchannelAuthenticationStatus = 1
+	BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED   BackchannelAuthenticationStatus = 2
+	// Terminal state set when the end user refuses the request
+	// (CIBA section 11: access_denied).
+	BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_DENIED BackchannelAuthenticationStatus = 3
+)
+
+// Enum value maps for BackchannelAuthenticationStatus.
+var (
+	BackchannelAuthenticationStatus_name = map[int32]string{
+		0: "BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED",
+		1: "BACKCHANNEL_AUTHENTICATION_STATUS_PENDING",
+		2: "BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED",
+		3: "BACKCHANNEL_AUTHENTICATION_STATUS_DENIED",
+	}
+	BackchannelAuthenticationStatus_value = map[string]int32{
+		"BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED": 0,
+		"BACKCHANNEL_AUTHENTICATION_STATUS_PENDING":     1,
+		"BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED":   2,
+		"BACKCHANNEL_AUTHENTICATION_STATUS_DENIED":      3,
+	}
+)
+
+func (x BackchannelAuthenticationStatus) Enum() *BackchannelAuthenticationStatus {
+	p := new(BackchannelAuthenticationStatus)
+	*p = x
+	return p
+}
+
+func (x BackchannelAuthenticationStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BackchannelAuthenticationStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_oidc_session_v1_session_proto_enumTypes[2].Descriptor()
+}
+
+func (BackchannelAuthenticationStatus) Type() protoreflect.EnumType {
+	return &file_oidc_session_v1_session_proto_enumTypes[2]
+}
+
+func (x BackchannelAuthenticationStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BackchannelAuthenticationStatus.Descriptor instead.
+func (BackchannelAuthenticationStatus) EnumDescriptor() ([]byte, []int) {
+	return file_oidc_session_v1_session_proto_rawDescGZIP(), []int{2}
+}
+
 type AuthorizationCodeSession struct {
 	state   protoimpl.MessageState    `protogen:"open.v1"`
 	Client  *v1.Client                `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
@@ -398,6 +452,154 @@ func (x *DeviceCodeSession) GetAuthorizationDetails() []*v12.AuthorizationDetail
 	return nil
 }
 
+type BackchannelAuthenticationSession struct {
+	state     protoimpl.MessageState                `protogen:"open.v1"`
+	Client    *v1.Client                            `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
+	Issuer    string                                `protobuf:"bytes,2,opt,name=issuer,proto3" json:"issuer,omitempty"`
+	ExpiresAt uint64                                `protobuf:"fixed64,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	Request   *v11.BackchannelAuthenticationRequest `protobuf:"bytes,4,opt,name=request,proto3" json:"request,omitempty"`
+	Status    BackchannelAuthenticationStatus       `protobuf:"varint,5,opt,name=status,proto3,enum=oidc.session.v1.BackchannelAuthenticationStatus" json:"status,omitempty"`
+	AuthReqId string                                `protobuf:"bytes,6,opt,name=auth_req_id,json=authReqId,proto3" json:"auth_req_id,omitempty"`
+	Subject   *string                               `protobuf:"bytes,7,opt,name=subject,proto3,oneof" json:"subject,omitempty"`
+	Scope     *string                               `protobuf:"bytes,8,opt,name=scope,proto3,oneof" json:"scope,omitempty"`
+	Audience  *string                               `protobuf:"bytes,9,opt,name=audience,proto3,oneof" json:"audience,omitempty"`
+	// Epoch seconds of the last token-endpoint poll; enforces the advertised
+	// polling interval (CIBA section 10.1 slow_down).
+	LastPolledAt uint64 `protobuf:"fixed64,10,opt,name=last_polled_at,json=lastPolledAt,proto3" json:"last_polled_at,omitempty"`
+	// Required polling interval in seconds; increased by 5 on every slow_down.
+	PollInterval uint64 `protobuf:"fixed64,11,opt,name=poll_interval,json=pollInterval,proto3" json:"poll_interval,omitempty"`
+	// RFC 9396 section 3: authorization details fixed at backchannel
+	// authentication time; the CIBA grant has no token-endpoint narrowing.
+	AuthorizationDetails []*v12.AuthorizationDetail `protobuf:"bytes,12,rep,name=authorization_details,json=authorizationDetails,proto3" json:"authorization_details,omitempty"`
+	// OPTIONAL. DPoP key confirmation (jkt, RFC 9449 section 10) bound to the
+	// session at backchannel authentication time: the token request MUST
+	// prove possession of that same key when polling the auth_req_id.
+	Confirmation  *v12.TokenConfirmation `protobuf:"bytes,13,opt,name=confirmation,proto3,oneof" json:"confirmation,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackchannelAuthenticationSession) Reset() {
+	*x = BackchannelAuthenticationSession{}
+	mi := &file_oidc_session_v1_session_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackchannelAuthenticationSession) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackchannelAuthenticationSession) ProtoMessage() {}
+
+func (x *BackchannelAuthenticationSession) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_session_v1_session_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackchannelAuthenticationSession.ProtoReflect.Descriptor instead.
+func (*BackchannelAuthenticationSession) Descriptor() ([]byte, []int) {
+	return file_oidc_session_v1_session_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BackchannelAuthenticationSession) GetClient() *v1.Client {
+	if x != nil {
+		return x.Client
+	}
+	return nil
+}
+
+func (x *BackchannelAuthenticationSession) GetIssuer() string {
+	if x != nil {
+		return x.Issuer
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationSession) GetExpiresAt() uint64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
+func (x *BackchannelAuthenticationSession) GetRequest() *v11.BackchannelAuthenticationRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+func (x *BackchannelAuthenticationSession) GetStatus() BackchannelAuthenticationStatus {
+	if x != nil {
+		return x.Status
+	}
+	return BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED
+}
+
+func (x *BackchannelAuthenticationSession) GetAuthReqId() string {
+	if x != nil {
+		return x.AuthReqId
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationSession) GetSubject() string {
+	if x != nil && x.Subject != nil {
+		return *x.Subject
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationSession) GetScope() string {
+	if x != nil && x.Scope != nil {
+		return *x.Scope
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationSession) GetAudience() string {
+	if x != nil && x.Audience != nil {
+		return *x.Audience
+	}
+	return ""
+}
+
+func (x *BackchannelAuthenticationSession) GetLastPolledAt() uint64 {
+	if x != nil {
+		return x.LastPolledAt
+	}
+	return 0
+}
+
+func (x *BackchannelAuthenticationSession) GetPollInterval() uint64 {
+	if x != nil {
+		return x.PollInterval
+	}
+	return 0
+}
+
+func (x *BackchannelAuthenticationSession) GetAuthorizationDetails() []*v12.AuthorizationDetail {
+	if x != nil {
+		return x.AuthorizationDetails
+	}
+	return nil
+}
+
+func (x *BackchannelAuthenticationSession) GetConfirmation() *v12.TokenConfirmation {
+	if x != nil {
+		return x.Confirmation
+	}
+	return nil
+}
+
 var File_oidc_session_v1_session_proto protoreflect.FileDescriptor
 
 const file_oidc_session_v1_session_proto_rawDesc = "" +
@@ -432,7 +634,28 @@ const file_oidc_session_v1_session_proto_rawDesc = "" +
 	"\n" +
 	"\b_subjectB\b\n" +
 	"\x06_scopeB\v\n" +
-	"\t_audience*\x92\x01\n" +
+	"\t_audience\"\xbb\x05\n" +
+	" BackchannelAuthenticationSession\x12.\n" +
+	"\x06client\x18\x01 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12\x16\n" +
+	"\x06issuer\x18\x02 \x01(\tR\x06issuer\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\x06R\texpiresAt\x12H\n" +
+	"\arequest\x18\x04 \x01(\v2..oidc.flow.v1.BackchannelAuthenticationRequestR\arequest\x12H\n" +
+	"\x06status\x18\x05 \x01(\x0e20.oidc.session.v1.BackchannelAuthenticationStatusR\x06status\x12\x1e\n" +
+	"\vauth_req_id\x18\x06 \x01(\tR\tauthReqId\x12\x1d\n" +
+	"\asubject\x18\a \x01(\tH\x00R\asubject\x88\x01\x01\x12\x19\n" +
+	"\x05scope\x18\b \x01(\tH\x01R\x05scope\x88\x01\x01\x12\x1f\n" +
+	"\baudience\x18\t \x01(\tH\x02R\baudience\x88\x01\x01\x12$\n" +
+	"\x0elast_polled_at\x18\n" +
+	" \x01(\x06R\flastPolledAt\x12#\n" +
+	"\rpoll_interval\x18\v \x01(\x06R\fpollInterval\x12W\n" +
+	"\x15authorization_details\x18\f \x03(\v2\".oidc.token.v1.AuthorizationDetailR\x14authorizationDetails\x12I\n" +
+	"\fconfirmation\x18\r \x01(\v2 .oidc.token.v1.TokenConfirmationH\x03R\fconfirmation\x88\x01\x01B\n" +
+	"\n" +
+	"\b_subjectB\b\n" +
+	"\x06_scopeB\v\n" +
+	"\t_audienceB\x0f\n" +
+	"\r_confirmation*\x92\x01\n" +
 	"\x17AuthorizationCodeStatus\x12)\n" +
 	"%AUTHORIZATION_CODE_STATUS_UNSPECIFIED\x10\x00\x12$\n" +
 	" AUTHORIZATION_CODE_STATUS_ACTIVE\x10\x01\x12&\n" +
@@ -443,7 +666,12 @@ const file_oidc_session_v1_session_proto_rawDesc = "" +
 	"(DEVICE_CODE_STATUS_AUTHORIZATION_PENDING\x10\x02\x12+\n" +
 	"'DEVICE_CODE_STATUS_CONFIRMATION_PENDING\x10\x03\x12 \n" +
 	"\x1cDEVICE_CODE_STATUS_VALIDATED\x10\x04\x12\x1d\n" +
-	"\x19DEVICE_CODE_STATUS_DENIED\x10\x05B-Z+zntr.io/solid/api/oidc/session/v1;sessionv1b\x06proto3"
+	"\x19DEVICE_CODE_STATUS_DENIED\x10\x05*\xe2\x01\n" +
+	"\x1fBackchannelAuthenticationStatus\x121\n" +
+	"-BACKCHANNEL_AUTHENTICATION_STATUS_UNSPECIFIED\x10\x00\x12-\n" +
+	")BACKCHANNEL_AUTHENTICATION_STATUS_PENDING\x10\x01\x12/\n" +
+	"+BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED\x10\x02\x12,\n" +
+	"(BACKCHANNEL_AUTHENTICATION_STATUS_DENIED\x10\x03B-Z+zntr.io/solid/api/oidc/session/v1;sessionv1b\x06proto3"
 
 var (
 	file_oidc_session_v1_session_proto_rawDescOnce sync.Once
@@ -457,33 +685,41 @@ func file_oidc_session_v1_session_proto_rawDescGZIP() []byte {
 	return file_oidc_session_v1_session_proto_rawDescData
 }
 
-var file_oidc_session_v1_session_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_oidc_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_oidc_session_v1_session_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_oidc_session_v1_session_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_oidc_session_v1_session_proto_goTypes = []any{
-	(AuthorizationCodeStatus)(0),           // 0: oidc.session.v1.AuthorizationCodeStatus
-	(DeviceCodeStatus)(0),                  // 1: oidc.session.v1.DeviceCodeStatus
-	(*AuthorizationCodeSession)(nil),       // 2: oidc.session.v1.AuthorizationCodeSession
-	(*DeviceCodeSession)(nil),              // 3: oidc.session.v1.DeviceCodeSession
-	(*v1.Client)(nil),                      // 4: oidc.client.v1.Client
-	(*v11.AuthorizationRequest)(nil),       // 5: oidc.flow.v1.AuthorizationRequest
-	(*v12.TokenConfirmation)(nil),          // 6: oidc.token.v1.TokenConfirmation
-	(*v11.DeviceAuthorizationRequest)(nil), // 7: oidc.flow.v1.DeviceAuthorizationRequest
-	(*v12.AuthorizationDetail)(nil),        // 8: oidc.token.v1.AuthorizationDetail
+	(AuthorizationCodeStatus)(0),                 // 0: oidc.session.v1.AuthorizationCodeStatus
+	(DeviceCodeStatus)(0),                        // 1: oidc.session.v1.DeviceCodeStatus
+	(BackchannelAuthenticationStatus)(0),         // 2: oidc.session.v1.BackchannelAuthenticationStatus
+	(*AuthorizationCodeSession)(nil),             // 3: oidc.session.v1.AuthorizationCodeSession
+	(*DeviceCodeSession)(nil),                    // 4: oidc.session.v1.DeviceCodeSession
+	(*BackchannelAuthenticationSession)(nil),     // 5: oidc.session.v1.BackchannelAuthenticationSession
+	(*v1.Client)(nil),                            // 6: oidc.client.v1.Client
+	(*v11.AuthorizationRequest)(nil),             // 7: oidc.flow.v1.AuthorizationRequest
+	(*v12.TokenConfirmation)(nil),                // 8: oidc.token.v1.TokenConfirmation
+	(*v11.DeviceAuthorizationRequest)(nil),       // 9: oidc.flow.v1.DeviceAuthorizationRequest
+	(*v12.AuthorizationDetail)(nil),              // 10: oidc.token.v1.AuthorizationDetail
+	(*v11.BackchannelAuthenticationRequest)(nil), // 11: oidc.flow.v1.BackchannelAuthenticationRequest
 }
 var file_oidc_session_v1_session_proto_depIdxs = []int32{
-	4, // 0: oidc.session.v1.AuthorizationCodeSession.client:type_name -> oidc.client.v1.Client
-	5, // 1: oidc.session.v1.AuthorizationCodeSession.request:type_name -> oidc.flow.v1.AuthorizationRequest
-	0, // 2: oidc.session.v1.AuthorizationCodeSession.status:type_name -> oidc.session.v1.AuthorizationCodeStatus
-	6, // 3: oidc.session.v1.AuthorizationCodeSession.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	4, // 4: oidc.session.v1.DeviceCodeSession.client:type_name -> oidc.client.v1.Client
-	7, // 5: oidc.session.v1.DeviceCodeSession.request:type_name -> oidc.flow.v1.DeviceAuthorizationRequest
-	1, // 6: oidc.session.v1.DeviceCodeSession.status:type_name -> oidc.session.v1.DeviceCodeStatus
-	8, // 7: oidc.session.v1.DeviceCodeSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	6,  // 0: oidc.session.v1.AuthorizationCodeSession.client:type_name -> oidc.client.v1.Client
+	7,  // 1: oidc.session.v1.AuthorizationCodeSession.request:type_name -> oidc.flow.v1.AuthorizationRequest
+	0,  // 2: oidc.session.v1.AuthorizationCodeSession.status:type_name -> oidc.session.v1.AuthorizationCodeStatus
+	8,  // 3: oidc.session.v1.AuthorizationCodeSession.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	6,  // 4: oidc.session.v1.DeviceCodeSession.client:type_name -> oidc.client.v1.Client
+	9,  // 5: oidc.session.v1.DeviceCodeSession.request:type_name -> oidc.flow.v1.DeviceAuthorizationRequest
+	1,  // 6: oidc.session.v1.DeviceCodeSession.status:type_name -> oidc.session.v1.DeviceCodeStatus
+	10, // 7: oidc.session.v1.DeviceCodeSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	6,  // 8: oidc.session.v1.BackchannelAuthenticationSession.client:type_name -> oidc.client.v1.Client
+	11, // 9: oidc.session.v1.BackchannelAuthenticationSession.request:type_name -> oidc.flow.v1.BackchannelAuthenticationRequest
+	2,  // 10: oidc.session.v1.BackchannelAuthenticationSession.status:type_name -> oidc.session.v1.BackchannelAuthenticationStatus
+	10, // 11: oidc.session.v1.BackchannelAuthenticationSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	8,  // 12: oidc.session.v1.BackchannelAuthenticationSession.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_oidc_session_v1_session_proto_init() }
@@ -493,13 +729,14 @@ func file_oidc_session_v1_session_proto_init() {
 	}
 	file_oidc_session_v1_session_proto_msgTypes[0].OneofWrappers = []any{}
 	file_oidc_session_v1_session_proto_msgTypes[1].OneofWrappers = []any{}
+	file_oidc_session_v1_session_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_oidc_session_v1_session_proto_rawDesc), len(file_oidc_session_v1_session_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   2,
+			NumEnums:      3,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

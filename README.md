@@ -86,7 +86,9 @@ simple and solid implementations of 4 OAuth flows.
 ## Getting started
 
 I made sample server and various integrations inside `examples/` folder.
-See [`examples/README.md`](examples/README.md) for how to run them.
+See [`examples/README.md`](examples/README.md) for how to run them; every
+example directory also carries a `README.md` with a mermaid sequence diagram
+describing the exact flow its `main.go` implements.
 
 ## Features
 
@@ -153,7 +155,7 @@ See [`examples/README.md`](examples/README.md) for how to run them.
     * [x] `refresh_token` grant type
     * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type — `expired_token` / `access_denied` / `slow_down` semantics all enforced server-side - [rfc8628](https://tools.ietf.org/html/rfc8628)
     * [x] [RFC7523 - JWT Bearer grant](https://tools.ietf.org/html/rfc7523#section-4) — `urn:ietf:params:oauth:grant-type:jwt-bearer` (`server/services/token/grant_jwt_bearer.go`); used to redeem ID-JAG assertions at the Resource AS
-    * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
+    * [x] `urn:openid:params:grant-type:ciba` grant type — [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) (poll delivery mode; `binding_message` promoted to required; signed request objects verified against client JWKS; optional `dpop_jkt` session binding with enforced proof-of-possession at the token endpoint — RFC 9449 §10; `authorization_details` fixed at bc-authorize time; no refresh tokens, `offline_access` stripped — RFC 9700 §4.12.2) — adversarial tests in `integration/ciba_adversarial_test.go`
   * Resource
     * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
     * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470)
@@ -204,6 +206,7 @@ See [`examples/README.md`](examples/README.md) for how to run them.
 * [OAuth 2.0 Client Authentication](https://medium.com/@darutk/oauth-2-0-client-authentication-4b5f929305d4)
 * [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)
 * The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8414, 8693, 8705, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-v2-1-16, draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
+* [OpenID Connect Client-Initiated Backchannel Authentication Flow (CIBA) Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) — vendored as `docs/rfcs/openid-client-initiated-backchannel-authentication-core-1_0.txt`
 * [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — SPIFFE workload identity (SVIDs) as OAuth client credentials
 * [SPIFFE](https://spiffe.io/) — Secure Production Identity Framework For Everyone (SPIFFE IDs, trust domains, SVIDs, bundle endpoints)
 * [OAuth 2.0 for Browser-Based Apps](https://tools.ietf.org/id/draft-parecki-oauth-browser-based-apps-02.html)

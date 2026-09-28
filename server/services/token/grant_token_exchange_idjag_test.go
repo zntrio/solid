@@ -90,7 +90,7 @@ func newIDJAGIssuanceHarness(t *testing.T) *idjagIssuanceHarness {
 		},
 	}
 
-	svc := NewWithOptions(nil, nil, nil, nil, nil, nil, tokens, nil,
+	svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, tokens, nil,
 		WithIDJAGIssuance(signer, audience, staticSubjectResolver{})).(*service)
 
 	return &idjagIssuanceHarness{service: svc, signer: signer, tokens: tokens}
@@ -324,7 +324,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 	timeFunc = func() time.Time { return now }
 
 	t.Run("fails closed when issuance roles are unwired", func(t *testing.T) {
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil).(*service)
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil).(*service)
 
 		res, err := svc.tokenExchange(context.Background(), idjagClient(), idjagIssuanceRequest(""))
 		if err == nil {
@@ -360,7 +360,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 				ClientIDMapping: map[string]string{idjagClientID: idjagTargetClient},
 			},
 		}
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGIssuance(idjagmock.NewMockSigner(ctrl), audience, failingSubjects)).(*service)
 
 		tokens.EXPECT().GetByValue(gomock.Any(), idjagTestIssuer, "refresh-token-value").Return(idjagRefreshToken(now), nil)
@@ -445,7 +445,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 				ClientIDMapping: map[string]string{}, // no mapping for the client
 			},
 		}
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGIssuance(idjagmock.NewMockSigner(ctrl), audience, staticSubjectResolver{})).(*service)
 
 		tokens.EXPECT().GetByValue(gomock.Any(), idjagTestIssuer, "refresh-token-value").Return(idjagRefreshToken(now), nil)

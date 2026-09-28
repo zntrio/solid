@@ -205,3 +205,21 @@ func UnsupportedResponseType() ErrorBuilder {
 		errorDescription: "The authorization server does not support obtaining an authorization code using this method.",
 	}
 }
+
+// UnknownUserID returns a compliant `unknown_user_id` error.
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-13
+func UnknownUserID() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "unknown_user_id",
+		errorDescription: "The OpenID Provider is not able to identify the end-user by the hints provided in the request.",
+	}
+}
+
+// InvalidBindingMessage returns a compliant `invalid_binding_message` error.
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-13
+func InvalidBindingMessage() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "invalid_binding_message",
+		errorDescription: "The binding_message is missing or invalid.",
+	}
+}

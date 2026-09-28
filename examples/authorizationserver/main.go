@@ -40,17 +40,24 @@ import (
 	"zntr.io/solid/sdk/token/jwt"
 	"zntr.io/solid/sdk/token/verifiable"
 	"zntr.io/solid/server/services/authorization"
+	"zntr.io/solid/server/services/backchannel"
 	"zntr.io/solid/server/services/device"
 	"zntr.io/solid/server/services/token"
 	"zntr.io/solid/server/storage/inmemory"
 )
 
+// es256Alg is the ECDSA P-256 signature algorithm accepted alongside the
+// post-quantum ML-DSA-65 (elliptic curves + PQ only, repo rule).
+const es256Alg = "ES256"
+
+//nolint:funlen // example assembly: linear wiring of the reference stack
 func main() {
 	// Generators
 	authorizationCodes := generator.DefaultAuthorizationCode()
 	requestURIs := generator.DefaultRequestURI()
 	deviceCodes := generator.DefaultDeviceCode()
 	deviceUserCodes := generator.DefaultDeviceUserCode()
+	authReqIDs := generator.DefaultAuthReqID()
 
 	// Storage key for keyed hashing of in-memory indexes. Generated at boot:
 	// the example server does not persist storage across restarts.
@@ -85,6 +92,7 @@ func main() {
 	authRequests := inmemory.AuthorizationRequests(storageKey)
 	authSessions := inmemory.AuthorizationCodeSessions(storageKey)
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
+	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 
 	// Token generator
 	accessTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("very-secret-key-for-access-token-verification"))
@@ -98,8 +106,9 @@ func main() {
 	// SOLID_EXAMPLE_XAA_CONFIG; absent configuration disables both roles.
 	issuer := "http://127.0.0.1:8080"
 	xaaOpts := mustXAAOptions(issuer)
-	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, tokens, resources, xaaOpts...)
+	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, backchannelSessions, tokens, resources, xaaOpts...)
 	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts())
+	backchannelz := backchannel.New(clients, backchannelSessions, authReqIDs, backchannel.LoginHintResolver(), authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{es256Alg, jwk.MLDSA65})
 
 	// SPIFFE trust bundles (draft-ietf-oauth-spiffe-client-auth-02 section 6):
 	// the example.org trust domain keys are pre-configured statically; the
@@ -119,12 +128,12 @@ func main() {
 	// Middlewares
 	secHeaders := middleware.SecurityHaders()
 	basicAuth := middleware.BasicAuthentication()
-	clientAuth := middleware.ClientAuthentication(clients, issuer, []string{"ES256", jwk.MLDSA65}, spiffeBundles)
+	clientAuth := middleware.ClientAuthentication(clients, issuer, []string{es256Alg, jwk.MLDSA65}, spiffeBundles)
 
 	// Request encoders
 	keys := keyProvider()
 	keySet := keySetProvider()
-	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, []string{jwk.MLDSA65}))
+	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, []string{es256Alg, jwk.MLDSA65}))
 	jarmEncoder := jarm.Encoder(jwt.JARMSigner(jwk.MLDSA65, keys))
 	pairwiseEncoder := pairwise.Hash([]byte("U|(vBPu45_Vkvv*Tr*8Y[^s?,$ka@bQziM5]9.+[{.n47]'zokA7-j8ypJ=W]WS"))
 
@@ -140,6 +149,8 @@ func main() {
 	http.Handle("/token/revoke", middleware.Adapt(handlers.TokenRevocation(issuer, tokenz), clientAuth))
 	http.Handle("/device/authorize", middleware.Adapt(handlers.DeviceAuthorization(issuer, devicez), clientAuth))
 	http.Handle("/device", middleware.Adapt(handlers.Device(issuer, devicez), secHeaders, basicAuth))
+	http.Handle("/bc-authorize", middleware.Adapt(handlers.BackchannelAuthorization(issuer, backchannelz), clientAuth))
+	http.Handle("/backchannel", middleware.Adapt(handlers.BackchannelValidation(issuer, backchannelz), secHeaders, basicAuth))
 
 	listenAddr := os.Getenv("SOLID_EXAMPLE_LISTEN_ADDR")
 	if listenAddr == "" {

@@ -38,6 +38,7 @@ type service struct {
 	authorizationRequests     storage.AuthorizationRequestReader
 	authorizationCodeSessions storage.AuthorizationCodeSession
 	deviceCodeSessions        storage.DeviceCodeSession
+	backchannelSessions       storage.BackchannelAuthenticationSession
 	tokens                    storage.Token
 	resources                 storage.ResourceReader
 	messageValidator          *messageValidator
@@ -48,7 +49,7 @@ type service struct {
 }
 
 // New build and returns an authorization service implementation.
-func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
+func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
 	// Initialize the syntactic validation level (protovalidate).
 	mv, err := newMessageValidator()
 	if err != nil {
@@ -63,6 +64,7 @@ func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.Client
 		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
 		deviceCodeSessions:        deviceCodeSessions,
+		backchannelSessions:       backchannelSessions,
 		tokens:                    tokens,
 		resources:                 resources,
 		messageValidator:          mv,
@@ -82,8 +84,8 @@ func WithIDJAGVerifier(v idjag.Verifier) Option {
 }
 
 // NewWithOptions builds a token service with constructor options.
-func NewWithOptions(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token, resources storage.ResourceReader, opts ...Option) services.Token {
-	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens, resources).(*service)
+func NewWithOptions(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader, opts ...Option) services.Token {
+	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, backchannelSessions, tokens, resources).(*service)
 	for _, opt := range opts {
 		if opt != nil {
 			opt(svc)
@@ -146,6 +148,8 @@ func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.
 		res, err = s.tokenExchange(ctx, client, req)
 	case oidc.GrantTypeJWTBearer:
 		res, err = s.jwtBearer(ctx, client, req)
+	case oidc.GrantTypeCIBA:
+		res, err = s.ciba(ctx, client, req)
 	default:
 		// RFC 6749 section 5.2: an unsupported grant_type string is
 		// rejected with unsupported_grant_type (validated upstream; kept

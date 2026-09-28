@@ -93,7 +93,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -123,7 +123,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -144,7 +144,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -168,7 +168,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -200,7 +200,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		verifier.EXPECT().Verify(gomock.Any(), "assertion").Return(nil, sdkidjag.ErrInvalidGrant)
@@ -218,7 +218,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -237,7 +237,7 @@ func Test_service_jwtBearer(t *testing.T) {
 	})
 
 	t.Run("fails closed without configured verifier", func(t *testing.T) {
-		svc := New(nil, nil, nil, nil, nil, nil, nil, nil).(*service)
+		svc := New(nil, nil, nil, nil, nil, nil, nil, nil, nil).(*service)
 
 		res, err := svc.jwtBearer(context.Background(), jwtBearerClient(), jwtBearerRequest(""))
 		if err == nil {
@@ -262,7 +262,7 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -292,7 +292,7 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -318,7 +318,7 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -342,7 +342,7 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -373,7 +373,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 	timeFunc = func() time.Time { return now }
 
 	t.Run("rejects nil client", func(t *testing.T) {
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil).(*service)
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil).(*service)
 		res, err := svc.jwtBearer(context.Background(), nil, jwtBearerRequest(""))
 		if err == nil {
 			t.Fatal("expected error, got none")
@@ -384,7 +384,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 	})
 
 	t.Run("rejects client without jwt-bearer capability", func(t *testing.T) {
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil).(*service)
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil).(*service)
 		capless := &clientv1.Client{ClientId: jwtBearerClientID, ClientType: clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL, GrantTypes: []string{oidc.GrantTypeClientCredentials}}
 
 		res, err := svc.jwtBearer(context.Background(), capless, jwtBearerRequest(""))
@@ -397,7 +397,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 	})
 
 	t.Run("rejects nil grant", func(t *testing.T) {
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil).(*service)
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil, nil).(*service)
 		req := &flowv1.TokenRequest{
 			Issuer:    jwtBearerTestIssuer,
 			Client:    &clientv1.Client{ClientId: jwtBearerClientID},
@@ -419,7 +419,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -444,7 +444,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, nil, tokens, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -472,7 +472,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		clients := storagemock.NewMockClientReader(ctrl)
 
-		svc := NewWithOptions(nil, nil, clients, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, clients, nil, nil, nil, nil, nil, nil,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		clients.EXPECT().Get(gomock.Any(), jwtBearerClientID).Return(jwtBearerClient(), nil)

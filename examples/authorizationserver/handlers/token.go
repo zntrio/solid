@@ -228,6 +228,13 @@ func setGrantFromRequest(msg *flowv1.TokenRequest, r *http.Request) {
 				RefreshToken: r.FormValue("refresh_token"),
 			},
 		}
+	case oidc.GrantTypeCIBA:
+		msg.Grant = &flowv1.TokenRequest_Ciba{
+			Ciba: &flowv1.GrantCIBA{
+				AuthReqId: r.FormValue("auth_req_id"),
+				ClientId:  r.FormValue("client_id"),
+			},
+		}
 	}
 }
 

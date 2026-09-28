@@ -579,7 +579,7 @@ func Test_service_Token(t *testing.T) {
 			}
 
 			// instantiate service
-			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens, nil)
+			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, nil, tokens, nil)
 
 			// Under test
 			got, err := underTest.Token(tt.args.ctx, tt.args.req)

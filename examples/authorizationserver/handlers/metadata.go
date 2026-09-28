@@ -57,6 +57,7 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 			oidc.GrantTypeAuthorizationCode,
 			oidc.GrantTypeRefreshToken,
 			oidc.GrantTypeDeviceCode,
+			oidc.GrantTypeCIBA,
 			oidc.GrantTypeTokenExchange,
 		},
 		TokenEndpoint: fmt.Sprintf("%s/token", issuer),
@@ -94,7 +95,13 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 		// exchange, and the ID-JAG grant profile it can process as a
 		// Resource Authorization Server.
 		IdentityChainingRequestedTokenTypesSupported: []string{oidc.IDJAGTokenType},
-		AuthorizationGrantProfilesSupported:          []string{oidc.IDJAGGrantProfile},
+		// OpenID CIBA Core 1.0 section 4: poll mode only (no OP->client
+		// callback surface), signed authentication requests with
+		// elliptic-curve algorithms.
+		BackchannelAuthenticationEndpoint:                         fmt.Sprintf("%s/bc-authorize", issuer),
+		BackchannelTokenDeliveryModesSupported:                    []string{"poll"},
+		BackchannelAuthenticationRequestSigningAlgValuesSupported: []string{"ES256", mldsaAlg},
+		AuthorizationGrantProfilesSupported:                       []string{oidc.IDJAGGrantProfile},
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

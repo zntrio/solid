@@ -324,6 +324,28 @@ Implemented: AS metadata endpoint `/.well-known/oauth-authorization-server` (`ex
 
 **Unverified (resolved):** act/`may_act` delegation-chain coverage was added in the gap-fix pass — `integration/identity_chaining_act_test.go` covers deep-chain preservation (RFC 8693 §4.4), may_act gating against chained actors (§5), a positive control, and the security depth cap (`maxActChainDepth = 3`, fail-closed). Chaining remains proven at the service layer.
 
+
+### 2.20 OpenID CIBA Core 1.0 — Client-Initiated Backchannel Authentication — **compliant (hardened, poll mode)**
+
+| § | Requirement | Evidence | Test (PASS) |
+|---|---|---|---|
+| 7.1 | `scope` MUST contain `openid` | `server/services/backchannel/service.go` (scope guard) | `TestCIBA_MissingOpenIDScope` |
+| 7.2 step 3 | exactly one of `login_hint`/`login_hint_token`/`id_token_hint` | `service.go` `hintCount` guard | `TestCIBA_MultipleHints` |
+| 7.2 step 4 | unresolvable hint → `unknown_user_id` | `HintResolver` contract; deployment-provided resolver | `TestCIBA_UnknownUser` |
+| 7.1.1 | signed request objects: `iss`, `aud`, `exp`, `iat`, `nbf`, `jti`, signature vs client JWKS, alg allowlist (EC-only) | `service.go` `applySignedRequest` | `TestCIBA_SignedRequest`, `TestCIBA_SignedRequest_Adversarial` (wrong iss, forged key, missing exp, parameter outside JWT) |
+| 7.3 | `auth_req_id` ≥ 160 bits recommended, allowed charset | `sdk/generator/auth_req_id.go` (32 alphanumeric chars, ~190 bits) | `Test_authReqIDGenerator_Generate` |
+| 10.1/11 | `authorization_pending` / `slow_down` (interval +5s, persisted) | `server/services/token/grant_ciba.go` poll-timing block | `TestCIBA_AuthorizationPending`, `TestCIBA_SlowDown` |
+| 11 | `access_denied` on end-user refusal | `grant_ciba.go` DENIED branch; `backchannel/service.go` `Deny` | `TestCIBA_AccessDenied` |
+| 11 | `expired_token` | `grant_ciba.go` expiry check before unknown branch | `TestCIBA_ExpiredAuthReqID` |
+| 11 | unknown/wrong-client/consumed `auth_req_id` → `invalid_grant` (mandated, unlike RFC 8628) | `grant_ciba.go` unknown, client-match, and `DeleteAndGetByAuthReqID` replay branches | `TestCIBA_UnknownAuthReqID`, `TestCIBA_WrongClientPoll`, `TestCIBA_ApprovalThenToken` (replay) |
+| 10.1 | one-time `auth_req_id` | atomic `DeleteAndGetByAuthReqID` | `TestCIBA_ApprovalThenToken` (second poll → `invalid_grant`) |
+| 9396 §3 | `authorization_details` fixed at bc-authorize time, consented on session, carried into token; no token-endpoint narrowing | `backchannel/service.go` validator + `grant_ciba.go` narrowing rejection | `TestCIBA_AuthorizationDetails`, `TestCIBA_UnknownAuthorizationDetails` (fail-closed static validator) |
+| 9449 §10 | optional `dpop_jkt` session binding (request-object claim or form param): token polls MUST prove possession of the bound key; minted tokens are sender-constrained (`cnf.jkt`, `token_type: DPoP`) | `backchannel/service.go` session confirmation + `grant_ciba.go` proof-key-swap guard | `TestCIBA_DPoPKeyBinding` (no proof → `invalid_grant`; wrong key → `invalid_grant`; bound key → DPoP-typed token) |
+
+**Divergences (stricter):** (1) `binding_message` promoted to REQUIRED (4–64 chars, `[A-Za-z0-9._-]`) — it is the CD/AD anti-phishing interlock; violations return `invalid_binding_message`. (2) Poll delivery mode only (`backchannel_token_delivery_modes_supported: ["poll"]`): ping/push would open an OP→client callback surface the project deliberately does not offer. (3) No refresh tokens; `offline_access` stripped from the session scope — same cross-device-phishing rationale as the device grant (RFC 9700 §4.12.2). (4) `user_code` and `client_notification_token` unsupported (poll mode; ignored when sent).
+
+**Unverified:** hint-resolution semantics for `login_hint_token`/`id_token_hint` are deployment-specific (opaque to the SDK); the default resolver handles `login_hint` only, and integration coverage exercises that path.
+
 ---
 
 ## 3. Cross-cutting divergence themes
@@ -378,6 +400,7 @@ Every divergence found is **in one direction only: stricter than the standard**,
 | ID-JAG-04 | compliant (hardened) | 8 |
 | identity-chaining-17 | compliant (hardened — act/may_act chains + depth cap) | 3 + 4 act/may_act |
 | FAPI JARM | compliant (hardened) | 8 |
+| CIBA Core 1.0 (backchannel, poll mode) | compliant (hardened) | 15 |
 
 All cited tests executed and passing on the current working tree (post gap-fix pass, 2026-09-28); every divergence is stricter-than-standard and individually justified above. The one exception is the PRM (RFC 9728) client-side surface, which remains untested in the audited tree (ledger item 1) pending the owner's in-flight work being committed.
 
@@ -410,6 +433,7 @@ d6a8f032d8a585daae1c33a8c7b6e539d199f886ec8cc1c7898436f7f2eed29c  rfc9396.txt
 9919d061d40a97886ca866b51c69389b6c81c65cd4b979056c14fdbebfcf622a  rfc9700.txt  ※
 b65bcd0d9daf90fd7006a42cf48e0ac3ba24b7f5637d5197f2de41c6b91c8a89  rfc9728.txt
 5be3ad47bd2c4e8f8d0a1994a4fe509582db0e8b17b8087f83b372e7bc16de49  openid-financial-api-jarm-ID1.txt
+134613a42fc7d3dde8acc17e3486ea543283d2ab5b8fe9fcad36468c414903b7  openid-client-initiated-backchannel-authentication-core-1_0.txt
 ```
 
 `※` — byte-identical to the canonical copy fetched live from rfc-editor.org (`rfc9700.txt`) and ietf.org (`draft-ietf-oauth-security-topics-update-03.txt`) during verification.

@@ -220,6 +220,61 @@ func (x *GrantDeviceCode) GetClientId() string {
 	return ""
 }
 
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-10.1
+type GrantCIBA struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// REQUIRED. The authentication request identifier.
+	AuthReqId string `protobuf:"bytes,1,opt,name=auth_req_id,json=authReqId,proto3" json:"auth_req_id,omitempty"`
+	// REQUIRED. Client identifier.
+	ClientId      string `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GrantCIBA) Reset() {
+	*x = GrantCIBA{}
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantCIBA) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantCIBA) ProtoMessage() {}
+
+func (x *GrantCIBA) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantCIBA.ProtoReflect.Descriptor instead.
+func (*GrantCIBA) Descriptor() ([]byte, []int) {
+	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GrantCIBA) GetAuthReqId() string {
+	if x != nil {
+		return x.AuthReqId
+	}
+	return ""
+}
+
+func (x *GrantCIBA) GetClientId() string {
+	if x != nil {
+		return x.ClientId
+	}
+	return ""
+}
+
 type GrantClientCredentials struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -228,7 +283,7 @@ type GrantClientCredentials struct {
 
 func (x *GrantClientCredentials) Reset() {
 	*x = GrantClientCredentials{}
-	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[3]
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +295,7 @@ func (x *GrantClientCredentials) String() string {
 func (*GrantClientCredentials) ProtoMessage() {}
 
 func (x *GrantClientCredentials) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[3]
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +308,7 @@ func (x *GrantClientCredentials) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GrantClientCredentials.ProtoReflect.Descriptor instead.
 func (*GrantClientCredentials) Descriptor() ([]byte, []int) {
-	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{3}
+	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{4}
 }
 
 // https://tools.ietf.org/html/rfc8693#section-2.1
@@ -291,7 +346,7 @@ type GrantTokenExchange struct {
 
 func (x *GrantTokenExchange) Reset() {
 	*x = GrantTokenExchange{}
-	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[4]
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +358,7 @@ func (x *GrantTokenExchange) String() string {
 func (*GrantTokenExchange) ProtoMessage() {}
 
 func (x *GrantTokenExchange) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[4]
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +371,7 @@ func (x *GrantTokenExchange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GrantTokenExchange.ProtoReflect.Descriptor instead.
 func (*GrantTokenExchange) Descriptor() ([]byte, []int) {
-	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{4}
+	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GrantTokenExchange) GetRequestedTokenType() string {
@@ -368,7 +423,7 @@ type GrantJWTBearer struct {
 
 func (x *GrantJWTBearer) Reset() {
 	*x = GrantJWTBearer{}
-	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[5]
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +435,7 @@ func (x *GrantJWTBearer) String() string {
 func (*GrantJWTBearer) ProtoMessage() {}
 
 func (x *GrantJWTBearer) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[5]
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +448,7 @@ func (x *GrantJWTBearer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GrantJWTBearer.ProtoReflect.Descriptor instead.
 func (*GrantJWTBearer) Descriptor() ([]byte, []int) {
-	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{5}
+	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GrantJWTBearer) GetAssertion() string {
@@ -422,6 +477,11 @@ const file_oidc_flow_v1_token_grant_proto_rawDesc = "" +
 	"\vdevice_code\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\n" +
 	"deviceCode\x12'\n" +
+	"\tclient_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\bclientId\"`\n" +
+	"\tGrantCIBA\x12*\n" +
+	"\vauth_req_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tauthReqId\x12'\n" +
 	"\tclient_id\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\bclientId\"\x18\n" +
 	"\x16GrantClientCredentials\"\xc9\x02\n" +
@@ -452,14 +512,15 @@ func file_oidc_flow_v1_token_grant_proto_rawDescGZIP() []byte {
 	return file_oidc_flow_v1_token_grant_proto_rawDescData
 }
 
-var file_oidc_flow_v1_token_grant_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_oidc_flow_v1_token_grant_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_oidc_flow_v1_token_grant_proto_goTypes = []any{
 	(*GrantAuthorizationCode)(nil), // 0: oidc.flow.v1.GrantAuthorizationCode
 	(*GrantRefreshToken)(nil),      // 1: oidc.flow.v1.GrantRefreshToken
 	(*GrantDeviceCode)(nil),        // 2: oidc.flow.v1.GrantDeviceCode
-	(*GrantClientCredentials)(nil), // 3: oidc.flow.v1.GrantClientCredentials
-	(*GrantTokenExchange)(nil),     // 4: oidc.flow.v1.GrantTokenExchange
-	(*GrantJWTBearer)(nil),         // 5: oidc.flow.v1.GrantJWTBearer
+	(*GrantCIBA)(nil),              // 3: oidc.flow.v1.GrantCIBA
+	(*GrantClientCredentials)(nil), // 4: oidc.flow.v1.GrantClientCredentials
+	(*GrantTokenExchange)(nil),     // 5: oidc.flow.v1.GrantTokenExchange
+	(*GrantJWTBearer)(nil),         // 6: oidc.flow.v1.GrantJWTBearer
 }
 var file_oidc_flow_v1_token_grant_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -475,14 +536,14 @@ func file_oidc_flow_v1_token_grant_proto_init() {
 		return
 	}
 	file_oidc_flow_v1_token_grant_proto_msgTypes[0].OneofWrappers = []any{}
-	file_oidc_flow_v1_token_grant_proto_msgTypes[4].OneofWrappers = []any{}
+	file_oidc_flow_v1_token_grant_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_oidc_flow_v1_token_grant_proto_rawDesc), len(file_oidc_flow_v1_token_grant_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

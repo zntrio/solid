@@ -80,6 +80,21 @@ message GrantDeviceCode {
   }];
 }
 
+// https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-10.1
+message GrantCIBA {
+  // REQUIRED. The authentication request identifier.
+  string auth_req_id = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 256
+  }];
+
+  // REQUIRED. Client identifier.
+  string client_id = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
+}
+
 message GrantClientCredentials {}
 
 // https://tools.ietf.org/html/rfc8693#section-2.1

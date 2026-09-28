@@ -51,3 +51,13 @@ type Device interface {
 	// Deny user code (RFC 8628 section 3.5: access_denied).
 	Deny(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error)
 }
+
+// Backchannel authentication service contract (OpenID CIBA Core 1.0).
+type BackchannelAuthentication interface {
+	// Authorize process a backchannel authentication request (CIBA section 7).
+	Authorize(ctx context.Context, req *flowv1.BackchannelAuthenticationRequest) (*flowv1.BackchannelAuthenticationResponse, error)
+	// Validate completes the end-user approval on the authentication device (CIBA section 8).
+	Validate(ctx context.Context, req *flowv1.BackchannelAuthenticationValidationRequest) (*flowv1.BackchannelAuthenticationValidationResponse, error)
+	// Deny refuses a backchannel authentication request (CIBA section 11: access_denied).
+	Deny(ctx context.Context, req *flowv1.BackchannelAuthenticationValidationRequest) (*flowv1.BackchannelAuthenticationValidationResponse, error)
+}

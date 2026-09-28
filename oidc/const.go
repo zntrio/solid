@@ -34,6 +34,8 @@ const (
 	GrantTypeSAML2Bearer = "urn:ietf:params:oauth:grant-type:saml2-bearer"
 	// GrantTypeTokenExchange represent token exchange flow (RFC8693)
 	GrantTypeTokenExchange = "urn:ietf:params:oauth:grant-type:token-exchange"
+	// GrantTypeCIBA represents CIBA grant type name (OpenID CIBA Core 1.0 section 4).
+	GrantTypeCIBA = "urn:openid:params:grant-type:ciba"
 )
 
 // Scopes ----------------------------------------------------------------------

@@ -382,7 +382,7 @@ func Test_tlsClientAuthentication_Authenticate_Failures(t *testing.T) {
 				res, err := TLSClientAuth(clients).Authenticate(context.Background(), tc.req)
 				require.Error(t, err)
 				require.NotNil(t, res.Error)
-				assert.Equal(t, tc.wantErrCode, res.Error.Err)
+				assert.Equal(t, tc.wantErrCode, res.Error.Error)
 				assert.Nil(t, res.Client)
 				return
 			}
@@ -394,7 +394,7 @@ func Test_tlsClientAuthentication_Authenticate_Failures(t *testing.T) {
 			}
 			require.Error(t, err)
 			require.NotNil(t, res.Error)
-			assert.Equal(t, tc.wantErrCode, res.Error.Err)
+			assert.Equal(t, tc.wantErrCode, res.Error.Error)
 			assert.Nil(t, res.Client)
 		})
 	}

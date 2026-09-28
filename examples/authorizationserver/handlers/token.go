@@ -39,17 +39,22 @@ import (
 // bearerTokenType is the default OAuth 2.0 token type.
 const bearerTokenType = "Bearer"
 
+// dpopTokenType is the token type for DPoP-bound access tokens (RFC 9449 §6).
+const dpopTokenType = "DPoP"
+
+// tokenEndpointResponse is the successful token endpoint JSON body
+// (draft-ietf-oauth-v2-1-16 §3.2.2.1).
+type tokenEndpointResponse struct {
+	AccessToken          string                         `json:"access_token"`
+	ExpiresIn            uint64                         `json:"expires_in"`
+	TokenType            string                         `json:"token_type"`
+	RefreshToken         string                         `json:"refresh_token,omitempty"`
+	Scope                string                         `json:"scope"`
+	AuthorizationDetails []*tokenv1.AuthorizationDetail `json:"authorization_details,omitempty"`
+}
+
 // Token handles token HTTP requests.
 func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) http.Handler {
-	type response struct {
-		AccessToken          string                         `json:"access_token"`
-		ExpiresIn            uint64                         `json:"expires_in"`
-		TokenType            string                         `json:"token_type"`
-		RefreshToken         string                         `json:"refresh_token,omitempty"`
-		Scope                string                         `json:"scope"`
-		AuthorizationDetails []*tokenv1.AuthorizationDetail `json:"authorization_details,omitempty"`
-	}
-
 	messageBuilder := func(r *http.Request, client *clientv1.Client) (*flowv1.TokenRequest, error) {
 		msg := &flowv1.TokenRequest{
 			Issuer:    issuer,
@@ -58,6 +63,13 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 		}
 
 		setGrantFromRequest(msg, r)
+
+		// draft-ietf-oauth-v2-1-16 §4.3.1 (RFC 6749 §6): a refresh request
+		// may carry a scope parameter; grant services enforce the
+		// narrowing rule.
+		if v := r.FormValue("scope"); v != "" {
+			msg.Scope = &v
+		}
 
 		// RFC 9396 section 6: the authorization_details request parameter
 		// is a JSON array of objects. The grant services compare each entry
@@ -123,29 +135,44 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier) htt
 			return
 		}
 
-		// Change token type according to DPoP usage.
-		tokenType := bearerTokenType
-
-		// Prepare response
-		jsonResponse := &response{
-			AccessToken: res.AccessToken.Value,
-			ExpiresIn:   res.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()), //nolint:gosec // unix time is non-negative
-			TokenType:   tokenType,
-			Scope:       res.AccessToken.Metadata.Scope,
-		}
-		if res.RefreshToken != nil {
-			jsonResponse.RefreshToken = res.RefreshToken.Value
-		}
-
-		// RFC 9396 section 7: the granted authorization_details MUST be
-		// returned in the token response.
-		if len(res.AuthorizationDetails) > 0 {
-			jsonResponse.AuthorizationDetails = res.AuthorizationDetails
-		}
-
-		// Send json response
-		respond.WithJSON(w, http.StatusOK, jsonResponse)
+		// Prepare and send the JSON response.
+		writeTokenResponse(w, res)
 	})
+}
+
+// tokenResponseType resolves the token_type of an issued access token:
+// RFC 9449 section 6 — DPoP-bound tokens (cnf.jkt set at mint time) MUST
+// signal "DPoP", everything else is "Bearer".
+func tokenResponseType(at *tokenv1.Token) string {
+	if at != nil && at.Confirmation != nil && at.Confirmation.Jkt != "" {
+		return dpopTokenType
+	}
+	return bearerTokenType
+}
+
+// writeTokenResponse serializes the successful token response as JSON,
+// including the refresh token and authorization details when present
+// (RFC 9396 section 7).
+func writeTokenResponse(w http.ResponseWriter, res *flowv1.TokenResponse) {
+	// Prepare response
+	jsonResponse := &tokenEndpointResponse{
+		AccessToken: res.AccessToken.Value,
+		ExpiresIn:   res.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()), //nolint:gosec // unix time is non-negative
+		TokenType:   tokenResponseType(res.AccessToken),
+		Scope:       res.AccessToken.Metadata.Scope,
+	}
+	if res.RefreshToken != nil {
+		jsonResponse.RefreshToken = res.RefreshToken.Value
+	}
+
+	// RFC 9396 section 7: the granted authorization_details MUST be
+	// returned in the token response.
+	if len(res.AuthorizationDetails) > 0 {
+		jsonResponse.AuthorizationDetails = res.AuthorizationDetails
+	}
+
+	// Send json response
+	respond.WithJSON(w, http.StatusOK, jsonResponse)
 }
 
 // applyDPoPConfirmation verifies the DPoP proof, when present, and records

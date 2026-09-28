@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -113,7 +114,20 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 		}
 	}
 
-	// RFC 9396 section 6: a refresh request may narrow the authorization
+	// draft-ietf-oauth-v2-1-16 §4.3.1 (RFC 6749 §6): when the refresh
+	// request carries a scope parameter, it MUST NOT exceed the scope
+	// granted to the original refresh token; narrowing is permitted.
+	// A violation is an invalid_scope.
+	if req.Scope != nil && *req.Scope != "" {
+		granted := types.StringArray(strings.Fields(rt.Metadata.Scope))
+		for _, s := range strings.Fields(*req.Scope) {
+			if !granted.Contains(s) {
+				res.Error = rfcerrors.InvalidScope().Build()
+				return res, fmt.Errorf("requested scope '%s' exceeds refresh token granted scope", *req.Scope)
+			}
+		}
+	}
+
 	// details carried by the refresh token: every requested entry MUST
 	// match one entry of the granted set. The narrowed (or unchanged) set
 	// is what the rotated tokens carry; the AS never grants more than
@@ -128,9 +142,13 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 		grantedDetails = rt.Metadata.AuthorizationDetails
 	}
 
-	// Generate access token with the effective authorization details.
+	// Generate access token with the effective authorization details and
+	// the (possibly narrowed) effective scope.
 	narrowedMeta := proto.Clone(rt.Metadata).(*tokenv1.TokenMeta)
 	narrowedMeta.AuthorizationDetails = grantedDetails
+	if req.Scope != nil && *req.Scope != "" {
+		narrowedMeta.Scope = *req.Scope
+	}
 	at, err := s.generateAccessToken(ctx, client, narrowedMeta, rt.Confirmation)
 	if err != nil {
 		res.Error = rfcerrors.ServerError().Build()
@@ -157,6 +175,9 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 	// Assign access token
 	res.AccessToken = at
 	res.AuthorizationDetails = grantedDetails
+	if narrowedMeta.Scope != rt.Metadata.Scope {
+		res.Scope = new(narrowedMeta.Scope)
+	}
 
 	// No error
 	return res, nil

@@ -66,7 +66,7 @@ func (eb *defaultErrorBuilder) Resource(value string) ErrorBuilder {
 func (eb *defaultErrorBuilder) Build() *corev1.Error {
 	// Create error object
 	err := &corev1.Error{
-		Err:              eb.err,
+		Error:            eb.err,
 		ErrorDescription: eb.errorDescription,
 	}
 	if eb.state != "" {

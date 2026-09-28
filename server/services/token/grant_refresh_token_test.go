@@ -36,6 +36,13 @@ import (
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
+var (
+	// narrowedScope is a valid subset of "openid profile email offline_access".
+	narrowedScope = "openid profile"
+	// exceedingScope exceeds the granted "openid profile".
+	exceedingScope = "openid profile admin"
+)
+
 func Test_service_refreshToken(t *testing.T) {
 	type args struct {
 		ctx    context.Context
@@ -718,6 +725,126 @@ func Test_service_refreshToken(t *testing.T) {
 						ExpiresAt: 604801,
 					},
 				},
+			},
+		},
+		// -----------------------------------------------------------------
+		{
+			name: "scope narrowing: valid subset",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeRefreshToken},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeRefreshToken,
+					Scope:     &narrowedScope,
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
+							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+						},
+					},
+				},
+			},
+			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
+					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+					TokenId:   "0123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile email offline_access",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 604801,
+					},
+				}, nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
+				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
+				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(nil)
+			},
+			wantErr: false,
+			want: &flowv1.TokenResponse{
+				AccessToken: &tokenv1.Token{
+					Value:     "xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM",
+					TokenId:   "0123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 3601,
+					},
+				},
+				RefreshToken: &tokenv1.Token{
+					Value:     "JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr",
+					TokenId:   "0123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 604801,
+					},
+				},
+				Scope: &narrowedScope,
+			},
+		},
+		{
+			name: "scope narrowing: exceeding scope rejected",
+			args: args{
+				ctx: context.Background(),
+				client: &clientv1.Client{
+					GrantTypes: []string{oidc.GrantTypeRefreshToken},
+				},
+				req: &flowv1.TokenRequest{
+					Issuer: "http://127.0.0.1:8080",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					GrantType: oidc.GrantTypeRefreshToken,
+					Scope:     &exceedingScope,
+					Grant: &flowv1.TokenRequest_RefreshToken{
+						RefreshToken: &flowv1.GrantRefreshToken{
+							RefreshToken: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+						},
+					},
+				},
+			},
+			prepare: func(tokens *storagemock.MockToken, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
+					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+					TokenId:   "0123456789",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						Audience:  "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						Scope:     "openid profile",
+						IssuedAt:  1,
+						NotBefore: 2,
+						ExpiresAt: 604801,
+					},
+				}, nil)
+			},
+			wantErr: true,
+			want: &flowv1.TokenResponse{
+				Error: rfcerrors.InvalidScope().Build(),
 			},
 		},
 		// -----------------------------------------------------------------

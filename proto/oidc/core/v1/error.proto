@@ -24,7 +24,7 @@ option go_package = "zntr.io/solid/api/oidc/core/v1;corev1";
 // https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2.1
 message Error {
   // REQUIRED. Error code.
-  string err = 1;
+  string error = 1 [json_name = "error"];
   // OPTIONAL. Human-readable ASCII encoded text description of the error.
   string error_description = 2;
   // OPTIONAL. URI of a web page that includes additional information about the

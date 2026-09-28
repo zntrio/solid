@@ -338,7 +338,7 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
-			name: "missing redirect_uri",
+			name: "redemption without redirect_uri proceeds (draft-ietf-oauth-v2-1-16 §4.1.3)",
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
@@ -361,10 +361,23 @@ func Test_service_authorizationCode(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
-			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
+			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
+				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+					Request: &flowv1.AuthorizationRequest{
+						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+						ResponseType:        "code",
+						Scope:               "email profile",
+						ClientId:            "s6BhdRkqt3",
+						State:               "af0ifjsldkj",
+						RedirectUri:         "https://client.example.org/cb",
+						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+						CodeChallengeMethod: "S256",
+					},
+				}, nil)
 			},
+			wantErr: false,
+			want:    &flowv1.TokenResponse{},
 		},
 		{
 			name: "authorization request not found",

@@ -132,7 +132,7 @@ func TestIdentityChainingMayActGatesChainedActor_5(t *testing.T) {
 	res, err := exchangeWithActor(t, h, client, subject.Value, actor.Value)
 	require.Error(t, err, "an immediate actor absent from may_act must be rejected even if a prior chain entry is listed")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 }
 
 // TestIdentityChainingActChainDepthCapped asserts the deep-delegation
@@ -164,7 +164,7 @@ func TestIdentityChainingActChainDepthCapped(t *testing.T) {
 	res, err := exchangeWithActor(t, h, client, subject.Value, deepActor.Value)
 	require.Error(t, err, "a delegation chain deeper than the cap must be rejected, not minted")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 	require.Nil(t, res.AccessToken, "no token may be issued for an over-deep chain")
 }
 

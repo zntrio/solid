@@ -32,11 +32,14 @@ message GrantAuthorizationCode {
     max_len: 1024
   }];
 
-  // REQUIRED. Redirection URI as registered by the client.
+  // OPTIONAL (OAuth 2.0 compatibility, draft-ietf-oauth-v2-1-16 §10.2):
+  // the authorization code grant no longer carries redirect_uri in
+  // OAuth 2.1. When a client does send it, it MUST exactly match the
+  // authorization-time value and the client registration (enforced in
+  // the grant business logic, not here: an empty value is a present-but-
+  // absent parameter and must pass the syntactic level).
   string redirect_uri = 2 [(buf.validate.field).string = {
-    min_len: 1
     max_len: 2048
-    uri: true
   }];
 
   // REQUIRED. PKCE code verifier.

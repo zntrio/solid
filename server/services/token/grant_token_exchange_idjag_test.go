@@ -198,7 +198,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidTarget().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidTarget().Build().Error {
 			t.Errorf("expected invalid_target, got %+v", res.Error)
 		}
 	})
@@ -212,7 +212,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -229,7 +229,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -246,7 +246,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -261,7 +261,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidScope().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidScope().Build().Error {
 			t.Errorf("expected invalid_scope, got %+v", res.Error)
 		}
 	})
@@ -275,7 +275,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -290,7 +290,7 @@ func Test_service_tokenExchangeIDJAG(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -330,7 +330,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -344,7 +344,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidAuthorizationDetails().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidAuthorizationDetails().Build().Error {
 			t.Errorf("expected invalid authorization_details error, got %+v", res.Error)
 		}
 	})
@@ -369,7 +369,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidGrant().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidGrant().Build().Error {
 			t.Errorf("expected invalid_grant, got %+v", res.Error)
 		}
 	})
@@ -384,7 +384,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -397,7 +397,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.ServerError().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.ServerError().Build().Error {
 			t.Errorf("expected server_error, got %+v", res.Error)
 		}
 	})
@@ -454,7 +454,7 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidGrant().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidGrant().Build().Error {
 			t.Errorf("expected invalid_grant for unmapped client, got %+v", res.Error)
 		}
 	})

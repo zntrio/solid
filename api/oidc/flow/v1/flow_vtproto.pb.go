@@ -6,12 +6,10 @@ package flowv1
 
 import (
 	fmt "fmt"
-	io "io"
-
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
 	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
+	io "io"
 	v1 "zntr.io/solid/api/oidc/token/v1"
 )
 

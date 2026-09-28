@@ -108,7 +108,7 @@ func TestRFC9449_DpopJktBinding_10(t *testing.T) {
 	})
 	require.Error(t, err, "proof-key swap against the bound dpop_jkt must fail")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 }
 
 // TestRFC9449_TypHeaderHardening asserts a DPoP proof JWT with a typ other

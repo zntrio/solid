@@ -59,7 +59,7 @@ func (d *tokenEncoder) Encode(ctx context.Context, issuer string, resp *flowv1.A
 			State:            resp.State,
 			Issuer:           resp.Issuer,
 			Audience:         resp.ClientId,
-			Error:            resp.Error.Err,
+			Error:            resp.Error.Error,
 			ErrorDescription: resp.Error.ErrorDescription,
 			ExpiresAt:        uint64(time.Now().Add(2 * time.Minute).Unix()), //nolint:gosec // Unix time is non-negative
 		}

@@ -24,14 +24,12 @@
 package flowv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 	v1 "zntr.io/solid/api/oidc/client/v1"
 	v12 "zntr.io/solid/api/oidc/core/v1"
 	v11 "zntr.io/solid/api/oidc/token/v1"

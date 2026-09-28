@@ -121,7 +121,7 @@ See [`examples/README.md`](examples/README.md) for how to run them.
 ### Framework
 
 * OAuth Core
-  * [OAuth 2.1](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) - <https://oauth.net/2.1/>
+  * [x] [draft-ietf-oauth-v2-1-16 - The OAuth 2.1 Authorization Framework](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) — vendored (`docs/rfcs/draft-ietf-oauth-v2-1-16.txt`), core requirements enforced and adversarially tested (`integration/oauth21_adversarial_test.go`)
   * [x] [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html) — implemented and adversarially tested (`integration/`)
   * [x] [draft-ietf-oauth-security-topics-update-03 - Updates to OAuth 2.0 Security Best Current Practice](https://www.ietf.org/archive/id/draft-ietf-oauth-security-topics-update-03.txt) — vendored and adversarially tested (`integration/securities_adversarial_test.go`); AS-side audience hardening (§2.1) and client-side issuer-identifier audience (§2.1.2.1) applied
 * OAuth Extensions
@@ -203,7 +203,7 @@ See [`examples/README.md`](examples/README.md) for how to run them.
 * [OAuth 2.0](https://oauth.net/2/)
 * [OAuth 2.0 Client Authentication](https://medium.com/@darutk/oauth-2-0-client-authentication-4b5f929305d4)
 * [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)
-* The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8414, 8628, 8693, 8705, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
+* The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8414, 8693, 8705, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-v2-1-16, draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
 * [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — SPIFFE workload identity (SVIDs) as OAuth client credentials
 * [SPIFFE](https://spiffe.io/) — Secure Production Identity Framework For Everyone (SPIFFE IDs, trust domains, SVIDs, bundle endpoints)
 * [OAuth 2.0 for Browser-Based Apps](https://tools.ietf.org/id/draft-parecki-oauth-browser-based-apps-02.html)

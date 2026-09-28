@@ -237,7 +237,7 @@ func (h *harness) seedAuthorization(t *testing.T, client *clientv1.Client, req *
 		t.Fatalf("unable to authorize: %v", err)
 	}
 	if res.Error != nil {
-		t.Fatalf("authorization failed: %s", res.Error.Err)
+		t.Fatalf("authorization failed: %s", res.Error.Error)
 	}
 	if res.Code == "" {
 		t.Fatal("authorization response has no code")
@@ -439,7 +439,7 @@ func (h *harness) startDeviceAuthorization(t *testing.T, client *clientv1.Client
 		t.Fatalf("unable to start device authorization: %v", err)
 	}
 	if res.Error != nil {
-		t.Fatalf("device authorization failed: %s", res.Error.Err)
+		t.Fatalf("device authorization failed: %s", res.Error.Error)
 	}
 	return res.DeviceCode, res.UserCode
 }
@@ -458,7 +458,7 @@ func (h *harness) approveDevice(t *testing.T, userCode, subject string) {
 		t.Fatalf("unable to approve device authorization: %v", err)
 	}
 	if res.Error != nil {
-		t.Fatalf("device approval failed: %s", res.Error.Err)
+		t.Fatalf("device approval failed: %s", res.Error.Error)
 	}
 }
 

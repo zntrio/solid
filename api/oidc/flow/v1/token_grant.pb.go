@@ -24,13 +24,12 @@
 package flowv1
 
 import (
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
-
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
 )
 
 const (
@@ -44,7 +43,12 @@ type GrantAuthorizationCode struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// REQUIRED. The authorization code issued for this request.
 	Code string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
-	// REQUIRED. Redirection URI as registered by the client.
+	// OPTIONAL (OAuth 2.0 compatibility, draft-ietf-oauth-v2-1-16 §10.2):
+	// the authorization code grant no longer carries redirect_uri in
+	// OAuth 2.1. When a client does send it, it MUST exactly match the
+	// authorization-time value and the client registration (enforced in
+	// the grant business logic, not here: an empty value is a present-but-
+	// absent parameter and must pass the syntactic level).
 	RedirectUri string `protobuf:"bytes,2,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
 	// REQUIRED. PKCE code verifier.
 	CodeVerifier string `protobuf:"bytes,3,opt,name=code_verifier,json=codeVerifier,proto3" json:"code_verifier,omitempty"`
@@ -403,12 +407,11 @@ var File_oidc_flow_v1_token_grant_proto protoreflect.FileDescriptor
 
 const file_oidc_flow_v1_token_grant_proto_rawDesc = "" +
 	"\n" +
-	"\x1eoidc/flow/v1/token_grant.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\"\xe4\x01\n" +
+	"\x1eoidc/flow/v1/token_grant.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\"\xdf\x01\n" +
 	"\x16GrantAuthorizationCode\x12\x1e\n" +
 	"\x04code\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\bR\x04code\x120\n" +
-	"\fredirect_uri\x18\x02 \x01(\tB\r\xbaH\n" +
-	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\vredirectUri\x12K\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\bR\x04code\x12+\n" +
+	"\fredirect_uri\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\vredirectUri\x12K\n" +
 	"\rcode_verifier\x18\x03 \x01(\tB&\xbaH#r!\x10+\x18\x80\x012\x1a^[A-Za-z0-9\\-._~]{43,128}$R\fcodeVerifier\x12\x1e\n" +
 	"\bdpop_jkt\x18\x04 \x01(\tH\x00R\adpopJkt\x88\x01\x01B\v\n" +
 	"\t_dpop_jkt\"D\n" +

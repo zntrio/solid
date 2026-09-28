@@ -24,13 +24,11 @@
 package sessionv1
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-
 	v1 "zntr.io/solid/api/oidc/client/v1"
 	v11 "zntr.io/solid/api/oidc/flow/v1"
 	v12 "zntr.io/solid/api/oidc/token/v1"

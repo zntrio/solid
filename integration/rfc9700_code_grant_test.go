@@ -45,7 +45,7 @@ func TestRFC9700_CodeInjection_BindingToClient_4_5(t *testing.T) {
 	res, err := h.redeemCode(t, clientB.ClientId, code, verifier, testRedirectURI)
 	require.Error(t, err, "a code must only be redeemable by its issuing client")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 }
 
@@ -70,7 +70,7 @@ func TestRFC9700_CodeSingleUse_4_2_4(t *testing.T) {
 	res2, err := h.redeemCode(t, client.ClientId, code, verifier, testRedirectURI)
 	require.Error(t, err, "a burned code must not be redeemable a second time")
 	require.NotNil(t, res2.Error)
-	require.Equal(t, "invalid_grant", res2.Error.Err)
+	require.Equal(t, "invalid_grant", res2.Error.Error)
 	require.Nil(t, res2.AccessToken)
 	require.Nil(t, res2.RefreshToken)
 
@@ -97,7 +97,7 @@ func TestRFC9700_RedirectUriTampering_4_5_1(t *testing.T) {
 	res, err := h.redeemCode(t, client.ClientId, code, verifier, secondURI)
 	require.Error(t, err, "redirect_uri must be identical between authorize and token")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 }
 

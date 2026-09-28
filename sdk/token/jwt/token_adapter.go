@@ -21,6 +21,7 @@ import (
 	"crypto"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
@@ -84,6 +85,9 @@ func (tw *tokenAdapter) Algorithm() (string, error) {
 	return "", fmt.Errorf("unable to retrieve `alg` claim from header")
 }
 
+// Claims verifies the token signature against the given key and decodes
+// the verified claims. Verification goes through the standard parser so
+// the signature check is enforced by golang-jwt itself.
 func (tw *tokenAdapter) Claims(publicKey, claims any) error {
 	// Materialize the public key (a jwk.Key from PublicKey()).
 	k, ok := publicKey.(jwxjwk.Key)
@@ -95,13 +99,20 @@ func (tw *tokenAdapter) Claims(publicKey, claims any) error {
 		return fmt.Errorf("unable to materialize public key: %w", err)
 	}
 
-	// Verify token signature
-	if err := verifyWithKey(tw.token, tw.parts, rawKey); err != nil {
-		return err
+	// Verify through the standard parser: the signature is checked by
+	// the library; claims validation (exp/nbf) stays with the caller,
+	// which owns the clock (e.g. the ID-JAG verifier injects its now).
+	parsed, err := gojwt.NewParser(
+		gojwt.WithoutClaimsValidation(),
+	).Parse(strings.Join(tw.parts, "."), func(*gojwt.Token) (any, error) {
+		return rawKey, nil
+	})
+	if err != nil || parsed == nil || !parsed.Valid {
+		return fmt.Errorf("unable to verify token signature: %w", err)
 	}
 
-	// Decode claims into target object
-	return decodeClaims(tw.parts, claims)
+	// Decode the verified claims into the target object.
+	return decodeVerifiedClaims(parsed, claims)
 }
 
 // UnverifiedClaims decodes the payload without signature verification:

@@ -153,7 +153,7 @@ func getToken(ctx context.Context, assertion string) (*client.Token, error) {
 			return nil, fmt.Errorf("unable to decode json error for token retrieval request: %w", err)
 		}
 
-		return nil, fmt.Errorf("unable to request for token got %s, %s", err.Err, err.ErrorDescription)
+		return nil, fmt.Errorf("unable to request for token got %s, %s", err.Error, err.ErrorDescription)
 	}
 
 	// Decode payload

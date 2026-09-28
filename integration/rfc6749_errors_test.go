@@ -49,7 +49,7 @@ func TestRFC6749_UnsupportedGrantType_5_2(t *testing.T) {
 			})
 			require.Error(t, err)
 			require.NotNil(t, res.Error)
-			require.Equal(t, "unsupported_grant_type", res.Error.Err)
+			require.Equal(t, "unsupported_grant_type", res.Error.Error)
 		})
 	}
 }
@@ -72,7 +72,7 @@ func TestRFC6749_UnauthorizedClient_5_2(t *testing.T) {
 	})
 	require.Error(t, err)
 	require.NotNil(t, res.Error)
-	require.Equal(t, "unauthorized_client", res.Error.Err)
+	require.Equal(t, "unauthorized_client", res.Error.Error)
 }
 
 // TestRFC6749_BlankIssuer_InvalidRequest asserts a blank or malformed issuer
@@ -103,7 +103,7 @@ func TestRFC6749_BlankIssuer_InvalidRequest(t *testing.T) {
 			})
 			require.Error(t, err)
 			require.NotNil(t, res.Error)
-			require.Equal(t, "invalid_request", res.Error.Err)
+			require.Equal(t, "invalid_request", res.Error.Error)
 		})
 	}
 }

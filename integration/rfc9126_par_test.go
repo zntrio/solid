@@ -109,7 +109,7 @@ func TestRFC9126_RequestUriSingleUse(t *testing.T) {
 	bres, berr := authorize()
 	require.Error(t, berr, "request_uri must be single-use")
 	require.NotNil(t, bres.Error)
-	require.Equal(t, "invalid_request", bres.Error.Err)
+	require.Equal(t, "invalid_request", bres.Error.Error)
 }
 
 // TestRFC9126_RequestUriClientBinding_2_2 asserts client B cannot consume a
@@ -142,7 +142,7 @@ func TestRFC9126_RequestUriClientBinding_2_2(t *testing.T) {
 	})
 	require.Error(t, berr, "request_uri must not be consumable by another client")
 	require.NotNil(t, bres.Error)
-	require.Equal(t, "invalid_request", bres.Error.Err)
+	require.Equal(t, "invalid_request", bres.Error.Error)
 }
 
 // TestRFC9126_UnknownRequestUri asserts an unknown (expired or never
@@ -165,5 +165,5 @@ func TestRFC9126_UnknownRequestUri(t *testing.T) {
 	})
 	require.Error(t, err, "unknown request_uri must be rejected")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 }

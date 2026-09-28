@@ -235,7 +235,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
 				Error: &corev1.Error{
-					Err: "invalid_request",
+					Error: "invalid_request",
 				},
 			},
 		},

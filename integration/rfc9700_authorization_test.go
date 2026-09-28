@@ -61,7 +61,7 @@ func TestRFC9700_RedirectUriAttacks_4_1(t *testing.T) {
 				})
 				require.Error(t, err, "attacker redirect_uri must be rejected")
 				require.NotNil(t, res.Error, "an RFC 6749 error must be surfaced")
-				require.Equal(t, "invalid_request", res.Error.Err)
+				require.Equal(t, "invalid_request", res.Error.Error)
 				require.Empty(t, res.Code, "no code must be issued to an attacker redirect_uri")
 			})
 		}
@@ -98,7 +98,7 @@ func TestRFC9700_ResponseTypeCodeOnly_2_1_2(t *testing.T) {
 			})
 			require.Error(t, err, "implicit and hybrid response types must not be offered")
 			require.NotNil(t, res.Error)
-			require.Equal(t, "unsupported_response_type", res.Error.Err)
+			require.Equal(t, "unsupported_response_type", res.Error.Error)
 			require.Empty(t, res.Code)
 		})
 	}
@@ -125,21 +125,21 @@ func TestRFC9700_PkceNotOptional_2_1_1(t *testing.T) {
 		res, err := authorize(t, func(req *flowv1.AuthorizationRequest) { req.CodeChallenge = "" })
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_request", res.Error.Err)
+		require.Equal(t, "invalid_request", res.Error.Error)
 	})
 
 	t.Run("plain method refused", func(t *testing.T) {
 		res, err := authorize(t, func(req *flowv1.AuthorizationRequest) { req.CodeChallengeMethod = "plain" })
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_request", res.Error.Err)
+		require.Equal(t, "invalid_request", res.Error.Error)
 	})
 
 	t.Run("challenge shorter than 43 chars", func(t *testing.T) {
 		res, err := authorize(t, func(req *flowv1.AuthorizationRequest) { req.CodeChallenge = "short-challenge" })
 		require.Error(t, err)
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_request", res.Error.Err)
+		require.Equal(t, "invalid_request", res.Error.Error)
 	})
 }
 
@@ -158,7 +158,7 @@ func TestRFC9700_PkceVerifierMismatch_4_5_3_1(t *testing.T) {
 	res, err := h.redeemCode(t, client.ClientId, code, attackerVerifier, testRedirectURI)
 	require.Error(t, err, "PKCE verifier mismatch must fail the grant")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 	require.Nil(t, res.AccessToken, "no tokens must be issued on verifier mismatch")
 	require.Nil(t, res.RefreshToken)
 }
@@ -179,6 +179,6 @@ func TestRFC9700_DowngradeVerifiers_4_8_2(t *testing.T) {
 	res, err := h.redeemCode(t, client.ClientId, code, req.CodeChallenge, testRedirectURI)
 	require.Error(t, err, "raw challenge presented as verifier must fail S256 comparison")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 }

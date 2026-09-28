@@ -24,12 +24,11 @@
 package corev1
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -43,7 +42,7 @@ const (
 type Error struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// REQUIRED. Error code.
-	Err string `protobuf:"bytes,1,opt,name=err,proto3" json:"err,omitempty"`
+	Error string `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
 	// OPTIONAL. Human-readable ASCII encoded text description of the error.
 	ErrorDescription string `protobuf:"bytes,2,opt,name=error_description,json=errorDescription,proto3" json:"error_description,omitempty"`
 	// OPTIONAL. URI of a web page that includes additional information about the
@@ -88,9 +87,9 @@ func (*Error) Descriptor() ([]byte, []int) {
 	return file_oidc_core_v1_error_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Error) GetErr() string {
+func (x *Error) GetError() string {
 	if x != nil {
-		return x.Err
+		return x.Error
 	}
 	return ""
 }
@@ -127,9 +126,9 @@ var File_oidc_core_v1_error_proto protoreflect.FileDescriptor
 
 const file_oidc_core_v1_error_proto_rawDesc = "" +
 	"\n" +
-	"\x18oidc/core/v1/error.proto\x12\foidc.core.v1\"\xc9\x01\n" +
-	"\x05Error\x12\x10\n" +
-	"\x03err\x18\x01 \x01(\tR\x03err\x12+\n" +
+	"\x18oidc/core/v1/error.proto\x12\foidc.core.v1\"\xcd\x01\n" +
+	"\x05Error\x12\x14\n" +
+	"\x05error\x18\x01 \x01(\tR\x05error\x12+\n" +
 	"\x11error_description\x18\x02 \x01(\tR\x10errorDescription\x12 \n" +
 	"\terror_uri\x18\x03 \x01(\tH\x00R\berrorUri\x88\x01\x01\x12\x19\n" +
 	"\x05state\x18\x04 \x01(\tH\x01R\x05state\x88\x01\x01\x12\x1f\n" +

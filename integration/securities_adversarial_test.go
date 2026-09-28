@@ -212,7 +212,7 @@ func TestOAuthSecTopics_CoatCodeRedeemedAtHonestAS_2_2(t *testing.T) {
 	res, err := h.redeemCode(t, attackerClient.ClientId, code, verifier, "https://honest.example/cb")
 	require.Error(t, err, "a code issued to the honest client must not be redeemable by the attacker-toolkit client")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 }
 
@@ -238,7 +238,7 @@ func TestOAuthSecTopics_CoatRedirectContextMismatch_2_2(t *testing.T) {
 	res, err := h.redeemCode(t, client.ClientId, code, verifier, "https://client.example.org/attack-cb")
 	require.Error(t, err, "a code bound to one redirect context must not be redeemable through another")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 	require.Nil(t, res.AccessToken)
 }
 
@@ -367,7 +367,7 @@ func TestOAuthSecTopics_SessionFixationSubjectNotInRequest_2_3(t *testing.T) {
 	})
 	require.Error(t, err, "authorization without an authenticated subject must be refused")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 	require.Empty(t, res.Code, "no code may be minted without a subject")
 }
 
@@ -405,14 +405,14 @@ func TestOAuthSecTopics_SharedConsentPerClientRegistration_2_4_2_1(t *testing.T)
 	res2, err2 := h.redeemCode(t, mClient.ClientId, code2, verifier2, "https://h-client.example/cb")
 	require.Error(t, err2, "a code granted under H-Client's registration must not be redeemable by M-Client")
 	require.NotNil(t, res2.Error)
-	require.Equal(t, "invalid_grant", res2.Error.Err)
+	require.Equal(t, "invalid_grant", res2.Error.Error)
 	require.Nil(t, res2.AccessToken)
 
 	// M-Client cannot refresh H-Client's refresh token.
 	res3, err3 := h.refresh(t, mClient.ClientId, res.RefreshToken.Value)
 	require.Error(t, err3, "a refresh token from H-Client's grant must not be refreshable by M-Client")
 	require.NotNil(t, res3.Error)
-	require.Equal(t, "invalid_grant", res3.Error.Err)
+	require.Equal(t, "invalid_grant", res3.Error.Error)
 }
 
 // -----------------------------------------------------------------------------

@@ -116,7 +116,7 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 	if claims.HasError() {
 		return &flowv1.AuthorizeResponse{
 			Error: &corev1.Error{
-				Err:              claims.Error,
+				Error:            claims.Error,
 				ErrorDescription: claims.ErrorDescription,
 			},
 		}, nil

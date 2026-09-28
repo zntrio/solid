@@ -135,7 +135,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidGrant().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidGrant().Build().Error {
 			t.Errorf("expected invalid_grant, got %+v", res.Error)
 		}
 	})
@@ -157,7 +157,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidGrant().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidGrant().Build().Error {
 			t.Errorf("expected invalid_grant, got %+v", res.Error)
 		}
 	})
@@ -209,7 +209,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidGrant().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidGrant().Build().Error {
 			t.Errorf("expected invalid_grant, got %+v", res.Error)
 		}
 	})
@@ -231,7 +231,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidScope().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidScope().Build().Error {
 			t.Errorf("expected invalid_scope, got %+v", res.Error)
 		}
 	})
@@ -243,7 +243,7 @@ func Test_service_jwtBearer(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.UnsupportedGrantType().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.UnsupportedGrantType().Build().Error {
 			t.Errorf("expected unsupported_grant_type, got %+v", res.Error)
 		}
 	})
@@ -331,7 +331,7 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidScope().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidScope().Build().Error {
 			t.Errorf("expected invalid_scope, got %+v", res.Error)
 		}
 	})
@@ -378,7 +378,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.ServerError().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.ServerError().Build().Error {
 			t.Errorf("expected server_error, got %+v", res.Error)
 		}
 	})
@@ -391,7 +391,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.UnauthorizedClient().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.UnauthorizedClient().Build().Error {
 			t.Errorf("expected unauthorized_client, got %+v", res.Error)
 		}
 	})
@@ -408,7 +408,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidRequest().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidRequest().Build().Error {
 			t.Errorf("expected invalid_request, got %+v", res.Error)
 		}
 	})
@@ -433,7 +433,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.ServerError().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.ServerError().Build().Error {
 			t.Errorf("expected server_error, got %+v", res.Error)
 		}
 	})
@@ -482,7 +482,7 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error, got none")
 		}
-		if res.Error == nil || res.Error.Err != rfcerrors.InvalidGrant().Build().Err {
+		if res.Error == nil || res.Error.Error != rfcerrors.InvalidGrant().Build().Error {
 			t.Errorf("expected invalid_grant, got %+v", res.Error)
 		}
 	})

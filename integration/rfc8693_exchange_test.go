@@ -56,7 +56,7 @@ func TestRFC8693_RequestedTokenTypeUnsupported(t *testing.T) {
 	})
 	require.Error(t, err, "saml2 requested_token_type must be rejected")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_request", res.Error.Err)
+	require.Equal(t, "invalid_request", res.Error.Error)
 }
 
 // TestRFC8693_ActorTokenInvalid asserts an actor_token that is unknown or
@@ -89,7 +89,7 @@ func TestRFC8693_ActorTokenInvalid(t *testing.T) {
 			})
 			require.Error(t, err, "invalid actor_token must be rejected")
 			require.NotNil(t, res.Error)
-			require.Equal(t, "invalid_request", res.Error.Err)
+			require.Equal(t, "invalid_request", res.Error.Error)
 		})
 	}
 }
@@ -168,7 +168,7 @@ func TestRFC8693_MayActEnforced(t *testing.T) {
 		})
 		require.Error(t, err, "unlisted actor must be rejected by may_act")
 		require.NotNil(t, res.Error)
-		require.Equal(t, "invalid_request", res.Error.Err)
+		require.Equal(t, "invalid_request", res.Error.Error)
 	})
 
 	t.Run("listed actor succeeds", func(t *testing.T) {
@@ -255,7 +255,7 @@ func TestRFC8693_ConfirmationMismatch(t *testing.T) {
 	})
 	require.Error(t, err, "proof-key swap during exchange must fail")
 	require.NotNil(t, res.Error)
-	require.Equal(t, "invalid_grant", res.Error.Err)
+	require.Equal(t, "invalid_grant", res.Error.Error)
 
 	// Exchange with the SAME key: must succeed.
 	h.authenticateClient(t, client.ClientId)

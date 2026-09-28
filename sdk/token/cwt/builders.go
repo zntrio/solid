@@ -81,7 +81,7 @@ func ClientAssertionSigner(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc)
 // TokenIntrospection represents CWT Token Introspection Assertion signer.
 func TokenIntrospection(alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   token.TypeTokenInstrospection,
+		tokenType:   token.TypeTokenIntrospection,
 		alg:         alg,
 		keyProvider: keyProvider,
 	}

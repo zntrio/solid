@@ -19,6 +19,8 @@ syntax = "proto3";
 
 package oidc.discovery.v1;
 
+import "buf/validate/validate.proto";
+
 option go_package = "zntr.io/solid/api/oidc/discovery/v1;discoveryv1";
 
 // ProtectedResourceMetadata describes the Protected Resource Metadata properties.
@@ -26,56 +28,84 @@ option go_package = "zntr.io/solid/api/oidc/discovery/v1;discoveryv1";
 message ProtectedResourceMetadata {
     // REQUIRED. The protected resource's resource identifier, which is a URL that
     // uses the https scheme and has no fragment components.
-    string resource = 1;
-    // OPTIONAL. JSON array containing a list of OAuth authorization server issuer 
+    string resource = 1 [(buf.validate.field).string = {
+      min_len: 1
+      max_len: 2048
+      uri: true
+    }];
+    // OPTIONAL. JSON array containing a list of OAuth authorization server issuer
     // identifiers, as defined in [OAuth.AuthorizationMetadata], for authorization
-    // servers that can be used with this protected resource. Protected resources 
-    // MAY choose not to advertise some supported authorization servers even when 
-    // this parameter is used. In some use cases, the set of authorization servers 
-    // will not be enumerable, in which case this metadata parameter would not be 
+    // servers that can be used with this protected resource. Protected resources
+    // MAY choose not to advertise some supported authorization servers even when
+    // this parameter is used. In some use cases, the set of authorization servers
+    // will not be enumerable, in which case this metadata parameter would not be
     // used.
     repeated string authorization_servers = 2;
-    // OPTIONAL. URL of the protected resource's JWK Set [JWK] document. This 
-    // contains keys belonging to the protected resource. For instance, this JWK 
-    // Set MAY contain encryption key(s) that are used to encrypt access tokens 
-    // to the protected resource. When both signing and encryption keys are made 
-    // available, a use (public key use) parameter value is REQUIRED for all keys 
+    // OPTIONAL. URL of the protected resource's JWK Set [JWK] document. This
+    // contains keys belonging to the protected resource. For instance, this JWK
+    // Set MAY contain encryption key(s) that are used to encrypt access tokens
+    // to the protected resource. When both signing and encryption keys are made
+    // available, a use (public key use) parameter value is REQUIRED for all keys
     // in the referenced JWK Set to indicate each key's intended usage.
-    optional string jwks_uri = 3;
-    // RECOMMENDED. JSON array containing a list of the OAuth 2.0 [RFC6749] scope 
-    // values that are used in authorization requests to request access to this 
-    // protected resource. Protected resources MAY choose not to advertise some 
-    // scope values provided even when this parameter is used.
-    repeated string scopes_provided = 4;
-    // OPTIONAL. JSON array containing a list of the OAuth 2.0 Bearer Token 
-    // [RFC6750] presentation methods that this protected resource supports. 
-    // Defined values are ["header", "fragment", "query"], corresponding to 
+    optional string jwks_uri = 3 [(buf.validate.field).string = {
+      max_len: 2048
+      uri: true
+    }];
+    // RECOMMENDED. JSON array containing a list of the OAuth 2.0 [RFC6749] scope
+    // values that are used in authorization requests to request access to this
+    // protected resource. Protected resources MAY choose not to advertise some
+    // scope values supported even when this parameter is used.
+    repeated string scopes_supported = 4;
+    // OPTIONAL. JSON array containing a list of the OAuth 2.0 Bearer Token
+    // [RFC6750] presentation methods that this protected resource supports.
+    // Defined values are ["header", "fragment", "query"], corresponding to
     // Sections 2.1, 2.2, and 2.3 of RFC 6750.
     repeated string bearer_methods_supported = 5;
-    // OPTIONAL. JSON array containing a list of the JWS [JWS] signing algorithms 
-    // (alg values) [JWA] supported by the protected resource for signed content. 
-    // The value none MAY be included.
+    // OPTIONAL. JSON array containing a list of the JWS [JWS] signing algorithms
+    // (alg values) [JWA] supported by the protected resource for signed content.
+    // The value none MUST NOT be used.
     repeated string resource_signing_alg_values_supported = 6;
-    // OPTIONAL. JSON array containing a list of the JWE [JWE] encryption 
-    // algorithms (alg values) [JWA] supported by the protected resource for 
+    // OPTIONAL. JSON array containing a list of the JWE [JWE] encryption
+    // algorithms (alg values) [JWA] supported by the protected resource for
     // encrypted content.
     repeated string resource_encryption_alg_values_supported = 7;
-    // OPTIONAL. JSON array containing a list of the JWE encryption algorithms 
-    // (enc values) [JWA] supported by the protected resource for encrypted 
+    // OPTIONAL. JSON array containing a list of the JWE encryption algorithms
+    // (enc values) [JWA] supported by the protected resource for encrypted
     // content.
     repeated string resource_encryption_enc_values_supported = 8;
-    // OPTIONAL. URL of a page containing human-readable information that 
+    // OPTIONAL. URL of a page containing human-readable information that
     // developers might want or need to know when using the protected resource.
-    optional string resource_documentation = 9;
-    // OPTIONAL. URL that the protected resource provides to read about the 
-    // protected resource's requirements on how the client can use the data 
+    optional string resource_documentation = 9 [(buf.validate.field).string = {
+      max_len: 2048
+    }];
+    // OPTIONAL. URL that the protected resource provides to read about the
+    // protected resource's requirements on how the client can use the data
     // provided by the protected resource.
-    optional string resource_policy_uri = 10;
-    // OPTIONAL. URL that the protected resource provides to read about the 
+    optional string resource_policy_uri = 10 [(buf.validate.field).string = {
+      max_len: 2048
+    }];
+    // OPTIONAL. URL that the protected resource provides to read about the
     // protected resource's terms of service.
-    optional string resource_tos_uri = 11;
-    // OPTIONAL. A JWT containing metadata values about the protected resource as 
-    // claims. This is a string value consisting of the entire signed JWT. A 
+    optional string resource_tos_uri = 11 [(buf.validate.field).string = {
+      max_len: 2048
+    }];
+    // OPTIONAL. A JWT containing metadata values about the protected resource as
+    // claims. This is a string value consisting of the entire signed JWT. A
     // signed_metadata metadata value SHOULD NOT appear as a claim in the JWT.
     optional string signed_metadata = 12;
+    // OPTIONAL. Human-readable name of the protected resource intended for
+    // display to the end user.
+    optional string resource_name = 14;
+    // OPTIONAL. Boolean value indicating protected resource support for
+    // mutual-TLS client certificate-bound access tokens [RFC8705].
+    optional bool tls_client_certificate_bound_access_tokens = 15;
+    // OPTIONAL. JSON array containing a list of the authorization details type
+    // values supported by the resource server [RFC9396].
+    repeated string authorization_details_types_supported = 16;
+    // OPTIONAL. JSON array containing a list of the JWS alg values supported by
+    // the resource server for validating DPoP proof JWTs [RFC9449].
+    repeated string dpop_signing_alg_values_supported = 17;
+    // OPTIONAL. Boolean value specifying whether the protected resource always
+    // requires the use of DPoP-bound access tokens [RFC9449].
+    optional bool dpop_bound_access_tokens_required = 18;
   }

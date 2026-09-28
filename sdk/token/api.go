@@ -32,18 +32,43 @@ const (
 	TypeRefreshToken = "rt"
 	// TypeAuthzRequest describes Authorization Request header type.
 	TypeAuthzRequest = "oauth-authz-req"
-	// TypeAuthzResponseMode describes Authorization Response Mode header type.
+	// TypeAuthzResponseMode describes Authorization Response Mode header
+	// type (RFC 8725 section 3.11 typ confusion: the value must match what
+	// the JARM decoder accepts, "jarm+jwt").
 	TypeAuthzResponseMode = "jarm"
 	// TypeDPoP describes DPoP proof header type, as required by
 	// RFC 9449 section 4.1.
-	TypeDPoP = "dpop+jwt"
+	TypeDPoP = "dpop"
 	// TypeClientAssertion describes client assertion header type.
 	TypeClientAssertion = "client-assertion"
-	// TypeTokenInstrospection describes token instrospection response header type.
-	TypeTokenInstrospection = "token-introspection"
-	// TypeServerMetadata describes authorization server metdata response header type.
+	// TypeTokenIntrospection describes token introspection response
+	// header type.
+	TypeTokenIntrospection = "token-introspection"
+	// TypeServerMetadata describes authorization server metadata response
+	// header type.
 	TypeServerMetadata = "oauth-authorization-server"
+	// TypeIDJAG is the base typ value of an ID-JAG
+	// (draft-ietf-oauth-identity-assertion-authz-grant-04, section 3.1,
+	// per RFC 8725 section 3.11). The serializer appends its media-type
+	// suffix: a JWT-serialized ID-JAG carries typ "oauth-id-jag+jwt".
+	TypeIDJAG = "oauth-id-jag"
 )
+
+// HeaderType derives the typ value of a signed token from its base type
+// and serialization format. Serializers follow the RFC 8725 section 3.11
+// media-type convention: the JWT serializer emits "<base>+jwt" and the
+// CWT serializer "<base>+cwt"; PASETO carries the base type in its
+// footer unchanged.
+func HeaderType(base, contentType string) string {
+	switch contentType {
+	case "JWT":
+		return base + "+jwt"
+	case "CWT":
+		return base + "+cwt"
+	default:
+		return base
+	}
+}
 
 // -----------------------------------------------------------------------------
 
@@ -74,6 +99,10 @@ type Verifier interface {
 	Parse(token string) (Token, error)
 	Verify(token string) error
 	Claims(ctx context.Context, token string, claims any) error
+	// ContentType returns the serialization format the verifier parses
+	// ("JWT", "CWT", "PASETO"): paired with token.HeaderType it derives
+	// the typ value a token of the given base type must carry.
+	ContentType() string
 }
 
 //go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/sdk/token Token
@@ -86,4 +115,10 @@ type Token interface {
 	PublicKey() (any, error)
 	PublicKeyThumbPrint() (string, error)
 	Claims(publicKey any, claims any) error
+	// UnverifiedClaims decodes the token claims without any signature
+	// verification. The values are attacker-controlled: callers MUST
+	// only use them to route key resolution (e.g. by issuer identifier),
+	// never to accept or reject an assertion. Verification-grade claim
+	// values come exclusively from Claims.
+	UnverifiedClaims(claims any) error
 }

@@ -30,6 +30,10 @@ import (
 	"zntr.io/solid/sdk/token"
 )
 
+// contentTypeJWT is the ContentType of the JWT serializer and verifiers,
+// paired with token.HeaderType to derive typ header values.
+const contentTypeJWT = "JWT"
+
 // parseUnverified syntactically parses raw, resolves the signing method,
 // enforces the algorithm allowlist, and returns the token plus raw segments.
 func parseUnverified(raw string, supportedAlgorithms []string) (*gojwt.Token, []string, error) {
@@ -114,6 +118,10 @@ func (v *defaultVerifier) Verify(raw string) error {
 
 	// No error
 	return nil
+}
+
+func (v *defaultVerifier) ContentType() string {
+	return contentTypeJWT
 }
 
 // Claims extracts claims from given raw token with verifier keyset provider.

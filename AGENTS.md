@@ -4,7 +4,7 @@ Guidance for AI agents (and humans) working in this repository.
 
 ## What this project is
 
-`solid` (module `zntr.io/solid`, Go 1.26) is a set of **modular SDK building blocks
+`solid` (module `zntr.io/solid`, Go 1.27) is a set of **modular SDK building blocks
 for assembling an OIDC/OAuth authorization server** — not a ready-to-use, final
 authorization server.
 
@@ -37,10 +37,17 @@ independent building block with a small interface, assembled by the consumer
    injection via constructor options; blocks must remain usable in isolation.
    Resist coupling an `sdk/` mechanism to a specific storage, transport, or
    service implementation.
+5. **Token serialization format agnostic** - JWT/CWT are token serialization 
+   formats keep `sdk/token` implementing final encoder/decoder. Keep all 
+   implementation token format agnostic, so that we could decide to switch from 
+   serialization format while we assemble the stack. Choosing a serilization 
+   format is an SDK user decision.
 
 The backbone is **OAuth RFC compliance**: each feature maps to a specific RFC
 (see README "Framework" for the checklist). When in doubt, the RFC wins; when
 the RFC leaves options open, the most defensive option wins.
+
+All implemented RFCs are and must be kept in docs/rfcs folder.
 
 ## Architecture
 
@@ -110,3 +117,4 @@ files (`.pb.go`, mocks) are excluded from lint.
    merely available.
 4. Add/adjust tests next to the implementation (unit tests in the same package;
   see existing `*_test.go`).
+5. Produce adversarial tests in `integration/`.

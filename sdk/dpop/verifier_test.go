@@ -451,6 +451,100 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			wantErr: false,
 			want:    "fake-confirmation",
 		},
+		{
+			name: "valid with nonce",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithExpectedNonce("server-issued-nonce"),
+				},
+			},
+			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				nonce := "server-issued-nonce"
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod: http.MethodGet,
+							HTTPURL:    "https://server.com/resource",
+							IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:        "non-existent-jti",
+							Nonce:      &nonce,
+						}
+					}
+				}).Return(nil)
+				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
+				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: false,
+			want:    "fake-confirmation",
+		},
+		{
+			name: "nonce required but missing",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithExpectedNonce("server-issued-nonce"),
+				},
+			},
+			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod: http.MethodGet,
+							HTTPURL:    "https://server.com/resource",
+							IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:        "non-existent-jti",
+						}
+					}
+				}).Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: true,
+		},
+		{
+			name: "nonce mismatch",
+			args: args{
+				htm:   http.MethodGet,
+				htu:   "https://server.com/resource",
+				proof: "fake-proof",
+				opts: []Option{
+					WithExpectedNonce("server-issued-nonce"),
+				},
+			},
+			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
+				token.EXPECT().Type().Return(HeaderType, nil)
+				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
+				wrongNonce := "attacker-nonce"
+				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Do(func(key any, claims any) {
+					switch v := claims.(type) {
+					case *proofClaims:
+						*v = proofClaims{
+							HTTPMethod: http.MethodGet,
+							HTTPURL:    "https://server.com/resource",
+							IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+							JTI:        "non-existent-jti",
+							Nonce:      &wrongNonce,
+						}
+					}
+				}).Return(nil)
+				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

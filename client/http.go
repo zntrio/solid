@@ -49,8 +49,19 @@ func HTTP(ctx context.Context, issuer string, opts *Options) (Client, error) {
 		httpClient: http.DefaultClient,
 	}
 
-	// Query server metadata endpoint
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/.well-known/oauth-authorization-server", issuer), http.NoBody)
+	// Query server metadata endpoint. RFC 8414 section 3: the well-known
+	// URI string "/.well-known/oauth-authorization-server" is inserted
+	// between the host component and the path component of the issuer
+	// identifier, with any terminating "/" of the issuer path removed
+	// first (section 3.1). Suffix concatenation would be wrong for
+	// path-bearing issuers (e.g. https://host/issuer1).
+	issuerURL, err := url.Parse(issuer)
+	if err != nil || issuerURL.Host == "" {
+		return nil, fmt.Errorf("unable to parse issuer identifier: %w", err)
+	}
+	issuerPath := strings.TrimRight(issuerURL.Path, "/")
+	metadataURL := issuerURL.Scheme + "://" + issuerURL.Host + "/.well-known/oauth-authorization-server" + issuerPath
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, metadataURL, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("unable to query server metadata: %w", err)
 	}

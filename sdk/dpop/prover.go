@@ -98,6 +98,12 @@ func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 		claims.AccessTokenHash = &athEncoded
 	}
 
+	// RFC 9449 section 4.3: echo the server-issued DPoP-Nonce value in the
+	// proof nonce claim when the caller pins one.
+	if dopts.expectedNonce != nil {
+		claims.Nonce = dopts.expectedNonce
+	}
+
 	// Sign claims
 	proof, err := p.signer.Serialize(context.Background(), claims)
 	if err != nil {

@@ -173,7 +173,8 @@ func pemClientCertificate(r *http.Request) string {
 // selectAuthenticator resolves the client authentication method from the
 // request inputs (SPIFFE draft sections 3.2/3.3, RFC 8705 section 2.1).
 func selectAuthenticator(ctx context.Context, clients storage.ClientReader, authMethod, attestation, attestationPop, tlsClientCertPEM, clientIDParam string,
-	clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth clientauthentication.AuthenticationProcessor) (clientauthentication.AuthenticationProcessor, bool) {
+	clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth clientauthentication.AuthenticationProcessor,
+) (clientauthentication.AuthenticationProcessor, bool) {
 	switch {
 	case authMethod == oidc.AssertionTypeJWTSPIFFE:
 		return spiffeJWTAuth, true

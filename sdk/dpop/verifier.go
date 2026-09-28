@@ -140,6 +140,20 @@ func (v *defaultVerifier) Verify(ctx context.Context, htm, htu, proof string, op
 		}
 	}
 
+	// RFC 9449 section 4.3: when the authorization server requires a
+	// nonce, the proof MUST carry a matching nonce claim. Absence or
+	// mismatch fails closed; a nonce-requiring server issues the expected
+	// value in a DPoP-Nonce response header (section 9) so the client can
+	// retry with a fresh proof.
+	if dopts.expectedNonce != nil {
+		if claims.Nonce == nil {
+			return "", errors.New("invalid proof / nonce association, nonce not bound")
+		}
+		if !types.SecureCompareString(*claims.Nonce, *dopts.expectedNonce) {
+			return "", errors.New("invalid proof / nonce association, nonce mismatch")
+		}
+	}
+
 	// Check the proof cache last: the jti is burned only after the proof
 	// has been fully validated, so a rejected proof does not consume it.
 	if errCache := v.checkProofCache(ctx, jtiHash); errCache != nil {

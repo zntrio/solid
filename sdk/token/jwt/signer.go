@@ -128,5 +128,5 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 }
 
 func (ds *defaultSigner) ContentType() string {
-	return "JWT"
+	return contentTypeJWT
 }

@@ -10,8 +10,9 @@
 package mock
 
 import (
-	gomock "go.uber.org/mock/gomock"
 	reflect "reflect"
+
+	gomock "go.uber.org/mock/gomock"
 
 	dpop "zntr.io/solid/sdk/dpop"
 )

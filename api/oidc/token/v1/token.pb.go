@@ -24,11 +24,12 @@
 package tokenv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -176,7 +177,7 @@ type TokenMeta struct {
 	Acr *string `protobuf:"bytes,9,opt,name=acr,proto3,oneof" json:"acr,omitempty"`
 	// OPTIONAL. Time when the user authentication occurred. A JSON numeric value
 	// representing the number of seconds from 1970-01-01T00:00:00Z UTC until the
-	// date/time of the authentication event.
+	//date/time of the authentication event.
 	// https://datatracker.ietf.org/doc/html/rfc9470#name-oauth-20-token-introspectio
 	AuthTime *uint64 `protobuf:"fixed64,10,opt,name=auth_time,json=authTime,proto3,oneof" json:"auth_time,omitempty"`
 	// REQUIRED. Identifier of the authorization grant this token derives from.

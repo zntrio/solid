@@ -86,6 +86,7 @@ simple and solid implementations of 4 OAuth flows.
 ## Getting started
 
 I made sample server and various integrations inside `examples/` folder.
+See [`examples/README.md`](examples/README.md) for how to run them.
 
 ## Features
 
@@ -152,7 +153,7 @@ I made sample server and various integrations inside `examples/` folder.
   * Resource
     * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
     * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470)
-    * [x] [(DRAFT) OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-resource-metadata-03.html)
+    * [x] [RFC9728 - OAuth 2.0 Protected Resource Metadata](https://www.rfc-editor.org/rfc/rfc9728)
   * Client
     * [ ] [RFC7591 - OAuth 2.0 Dynamic Client Registration](https://tools.ietf.org/html/rfc7591)
     * [ ] [RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol](https://tools.ietf.org/html/rfc7592)

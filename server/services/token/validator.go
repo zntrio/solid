@@ -47,6 +47,17 @@ var validateRequest = func(ctx context.Context, req *flowv1.TokenRequest) *corev
 	}
 
 	// Check assigned grant_type
+	if errGrant := validateGrantPresence(req); errGrant != nil {
+		return errGrant
+	}
+
+	// Return result
+	return nil
+}
+
+// validateGrantPresence checks that the grant_type-specific request arm is
+// present (RFC 7521 section 4.2: a missing assertion is an invalid_grant).
+func validateGrantPresence(req *flowv1.TokenRequest) *corev1.Error {
 	switch req.GrantType {
 	case oidc.GrantTypeAuthorizationCode:
 		if req.GetAuthorizationCode() == nil {
@@ -68,12 +79,14 @@ var validateRequest = func(ctx context.Context, req *flowv1.TokenRequest) *corev
 		if req.GetTokenExchange() == nil {
 			return rfcerrors.InvalidGrant().Build()
 		}
+	case oidc.GrantTypeJWTBearer:
+		if req.GetJwtBearer() == nil {
+			return rfcerrors.InvalidGrant().Build()
+		}
 	default:
 		// RFC 6749 section 5.2: an unknown grant_type string is
 		// unsupported_grant_type, not invalid_grant.
 		return rfcerrors.UnsupportedGrantType().Build()
 	}
-
-	// Return result
 	return nil
 }

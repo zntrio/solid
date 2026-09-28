@@ -28,7 +28,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
-
 	"zntr.io/solid/sdk/jwk"
 	solidjwt "zntr.io/solid/sdk/token/jwt"
 )
@@ -55,7 +54,7 @@ func TestMLDSAEndToEnd(t *testing.T) {
 	provider := func(context.Context) (jwk.Key, error) { return key, nil }
 
 	// Sign an access token.
-	signer := solidjwt.MLDSASigner("ML-DSA-65", provider)
+	signer := solidjwt.AccessTokenSigner("ML-DSA-65", provider)
 	raw, err := signer.Serialize(context.Background(), map[string]any{"sub": "alice", "iss": "https://as.example"})
 	if err != nil {
 		t.Fatal(err)

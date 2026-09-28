@@ -70,6 +70,7 @@ func Test_validateRequest_grantSpecificity(t *testing.T) {
 		oidc.GrantTypeDeviceCode,
 		oidc.GrantTypeRefreshToken,
 		oidc.GrantTypeTokenExchange,
+		oidc.GrantTypeJWTBearer,
 	} {
 		t.Run("grant_type="+grantType, func(t *testing.T) {
 			err := validateRequest(context.Background(), &flowv1.TokenRequest{

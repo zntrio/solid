@@ -23,4 +23,10 @@ type proofClaims struct {
 	HTTPURL         string  `json:"htu"`
 	IssuedAt        uint64  `json:"iat"`
 	AccessTokenHash *string `json:"ath,omitempty"`
+
+	// nonce carries the value of the most recent DPoP-Nonce header issued
+	// by the authorization server (RFC 9449 section 4.3). It is validated
+	// by the verifier only when the server requires a nonce; proofs
+	// without a nonce claim remain valid for nonce-optional deployments.
+	Nonce *string `json:"nonce,omitempty"`
 }

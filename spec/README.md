@@ -9,8 +9,13 @@ profile (PAR → authorize → code → redeem → refresh → revoke).
 - `solid.qnt` — the model: state, actions, invariants, witnesses.
 - `solid_test.qnt` — deterministic scenario tests (run: `quint test
   solid_test.qnt --main solidTest`).
+- `xaa.qnt` — the Cross-App Access / ID-JAG model (XAA protocol).
+- `xaa_test.qnt` — XAA deterministic scenario tests (run: `quint test
+  xaa_test.qnt --main xaaTest`).
 
 ## Source correspondence map
+
+### solid ( `solid.qnt` )
 
 | Quint action | solid source |
 |---|---|
@@ -19,7 +24,45 @@ profile (PAR → authorize → code → redeem → refresh → revoke).
 | `redeem` | `server/services/token/grant_authorization_code.go` `authorizationCode` |
 | `refresh` | `server/services/token/grant_refresh_token.go` `refreshToken` (+ `revokeGrantFamily`) |
 
-## Verified properties
+
+### XAA ( `xaa.qnt` )
+
+| Quint action | solid source |
+|---|---|
+| `ssoLogin` | abstract SSO output (subject refresh token, as seeded by `integration/idjag_adversarial_test.go` `xaaSeedRefreshToken`) |
+| `exchangeForJag` | `server/services/token/grant_token_exchange_idjag.go` `tokenExchangeIDJAG` (+ `sdk/idjag` signer) |
+| `forgeJag` / `foreignIssuerJag` | attacker model (crypto abstraction: `authentic` iff genuinely signed) |
+| `redeemJag` | `server/services/token/grant_jwt_bearer.go` `jwtBearer` (+ `sdk/idjag/verifier.go` `Verify`) |
+
+Verified properties:
+
+| ID | Property | RFC/draft | Status |
+|---|---|---|---|
+| J1 | `inv_signatureTrust` — every minted access token derives from an authentic ID-JAG of a trusted issuer | 7523 §3.4, chain §2.1 | ✔ |
+| J2 | `inv_noGrantLaundering` — grants minted for another AS never mint tokens at the RAS | chain §2.3.3 | ✔ |
+| J3 | `inv_clientContinuity` — redeemer == the client the IdP vouched for | ID-JAG §4.4.1 | ✔ |
+| J4 | `inv_subjectTranscription` — token subject is the pairwise grant subject; raw user ids never cross the boundary | chain §2.5 | ✔ |
+| J5 | `inv_noScopeEscalation` — token scope ⊆ grant scope ⊆ SSO context | chain §2.5 | ✔ |
+| J6 | `inv_dpopKeyContinuity` — key-bound grants mint key-bound tokens with the same key | ID-JAG §9.8.1.2 | ✔ |
+| J7 | `inv_noRefreshFromBearer` — jwt-bearer redemptions mint no refresh tokens (structural) | ID-JAG §4.4.3, chain §5.4 | ✔ |
+
+Verification: `quint run` (3000 traces × 41 steps, no violations) with
+witnesses all live (`w_tokenMinted` 42.9%, attack-surface witnesses ~96% —
+the attacker actions fire constantly; the guards are what stop them).
+Deterministic tests: 15/15 passing (happy path, scope narrowing and
+escalation at both hops, forged signature, untrusted issuer, grant
+laundering, expiry, client impersonation, DPoP wrong/matching proof,
+subject-token client binding, unmapped client, replay-until-expiry,
+pairwise-per-target disjointness).
+
+Modeling finding fixed during verification: the first draft of
+`redeemJag` accepted redemption at any `atAS`, letting a grant minted for
+AS_C "redeem at AS_C" while the tracked state was AS_B's — the same
+audience-laundering class J2 guards against. The guard `atAS == AS_B` (the
+modeled stack) now pins it, matching the implementation where the
+verifier's `localIssuer` is fixed at wiring time.
+
+### solid properties ( `solid.qnt` )
 
 | ID | Property | RFC | Status |
 |---|---|---|---|
@@ -84,5 +127,10 @@ changing:
 - `server/services/token/grant_refresh_token.go`
 - `server/services/authorization/service.go`
 - `server/storage/api.go` (authorization-request contract)
+
+Re-verify the XAA model (`xaa.qnt`) before changing:
+- `server/services/token/grant_token_exchange_idjag.go`
+- `server/services/token/grant_jwt_bearer.go`
+- `sdk/idjag/verifier.go`
 
 The spec is the ground truth. Never edit the spec to match broken code.

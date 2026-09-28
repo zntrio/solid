@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"zntr.io/solid/examples/authorizationserver/cimddemo"
@@ -92,9 +93,13 @@ func main() {
 	// Prepare services
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs,
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
-	tokenz := token.New(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, tokens, resources)
-	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts())
+
+	// Cross-App Access (ID-JAG) roles: static trust configuration from
+	// SOLID_EXAMPLE_XAA_CONFIG; absent configuration disables both roles.
 	issuer := "http://127.0.0.1:8080"
+	xaaOpts := mustXAAOptions(issuer)
+	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, tokens, resources, xaaOpts...)
+	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts())
 
 	// SPIFFE trust bundles (draft-ietf-oauth-spiffe-client-auth-02 section 6):
 	// the example.org trust domain keys are pre-configured statically; the
@@ -136,8 +141,12 @@ func main() {
 	http.Handle("/device/authorize", middleware.Adapt(handlers.DeviceAuthorization(issuer, devicez), clientAuth))
 	http.Handle("/device", middleware.Adapt(handlers.Device(issuer, devicez), secHeaders, basicAuth))
 
+	listenAddr := os.Getenv("SOLID_EXAMPLE_LISTEN_ADDR")
+	if listenAddr == "" {
+		listenAddr = ":8080"
+	}
 	server := &http.Server{
-		Addr:              ":8080",
+		Addr:              listenAddr,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	log.Fatal(server.ListenAndServe())

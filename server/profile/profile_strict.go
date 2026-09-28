@@ -25,6 +25,8 @@ var strictProfile = &defaultServerProfile{
 		oidc.ApplicationTypeServerSideWeb: &defaultClientProfile{
 			grantTypesSupported: []string{
 				oidc.GrantTypeAuthorizationCode,
+				oidc.GrantTypeTokenExchange,
+				oidc.GrantTypeJWTBearer,
 			},
 			responseTypesSupported: []string{
 				oidc.ResponseTypeCode,

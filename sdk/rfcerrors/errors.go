@@ -125,6 +125,15 @@ func InvalidDPoPProof() ErrorBuilder {
 	}
 }
 
+// UseDPoPNonce returns a compliant `use_dpop_nonce` error.
+// https://www.rfc-editor.org/rfc/rfc9449#section-9
+func UseDPoPNonce() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "use_dpop_nonce",
+		errorDescription: "Authorization server requires nonce in DPoP proof.",
+	}
+}
+
 // InvalidRedirectURI returns a compliant `invalid_redirect_uri` error.
 // https://tools.ietf.org/html/rfc7591#section-3.2.2
 func InvalidRedirectURI() ErrorBuilder {

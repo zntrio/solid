@@ -18,54 +18,36 @@
 package jwt
 
 import (
+	"fmt"
+
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 )
 
 // AccessTokenSigner represents JWT Access Token signer.
 func AccessTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeAccessToken,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeAccessToken, alg, keyProvider)
 }
 
 // RefreshTokenSigner represents JWT Refresh Token signer.
 func RefreshTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeRefreshToken,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeRefreshToken, alg, keyProvider)
 }
 
 // RequestSigner represents JWT Request Token signer.
 func RequestSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeAuthzRequest,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeAuthzRequest, alg, keyProvider)
 }
 
 // JARMSigner represents JWT JARM Token signer.
 func JARMSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeAuthzResponseMode,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeAuthzResponseMode, alg, keyProvider)
 }
 
 // DPoPSigner represents JWT DPoP Token signer.
 func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   token.TypeDPoP,
+		tokenType:   fmt.Sprintf("%s+jwt", token.TypeDPoP),
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    true,
@@ -74,41 +56,31 @@ func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 
 // ClientAssertionSigner represents JWT Client Assertion signer.
 func ClientAssertionSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeClientAssertion,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeClientAssertion, alg, keyProvider)
 }
 
 // TokenIntrospection represents JWT Token Introspection Assertion signer.
 func TokenIntrospection(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeTokenInstrospection,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeTokenIntrospection, alg, keyProvider)
 }
 
 // ServerMetadata represents JWT Server Metadata Assertion signer.
 func ServerMetadata(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
-	return &defaultSigner{
-		tokenType:   token.TypeServerMetadata,
-		alg:         alg,
-		keyProvider: keyProvider,
-		embedJWK:    false,
-	}
+	return TypedSigner(token.TypeServerMetadata, alg, keyProvider)
 }
 
-// MLDSASigner represents a JWT signer using a post-quantum ML-DSA key
-// (FIPS 204, draft-ietf-cose-dilithium). alg must be one of MLDSA44,
-// MLDSA65 or MLDSA87; the key provider must return an *MLDSAKey built
-// with NewMLDSAKey.
-func MLDSASigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// IDJAG represents JWT ID-JAG.
+func IDJAG(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+	return TypedSigner(token.TypeIDJAG, alg, keyProvider)
+}
+
+// TypedSigner returns a JWT signer with an explicit typ header value, for
+// mechanisms defining their own token type (e.g. the ID-JAG profile
+// "oauth-id-jag+jwt"). The alg allowlist is the caller's responsibility:
+// assemblies must pass an elliptic-curve or ML-DSA identifier.
+func TypedSigner(tokenType, alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
-		tokenType:   token.TypeAccessToken,
+		tokenType:   fmt.Sprintf("%s+jwt", tokenType),
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,

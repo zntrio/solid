@@ -24,11 +24,12 @@
 package discoveryv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -125,8 +126,7 @@ type ServerMetadata struct {
 	UserinfoSigningAlgValuesSupported []string `protobuf:"bytes,16,rep,name=userinfo_signing_alg_values_supported,json=userinfoSigningAlgValuesSupported,proto3" json:"userinfo_signing_alg_values_supported,omitempty"`
 	// OPTIONAL. JSON array containing a list of the JWE [JWE] encryption
 	// algorithms (alg values) [JWA] supported by the UserInfo Endpoint to encode
-	//
-	//	the Claims in a JWT [JWT].
+	//  the Claims in a JWT [JWT].
 	UserinfoEncryptionAlgValuesSupported []string `protobuf:"bytes,17,rep,name=userinfo_encryption_alg_values_supported,json=userinfoEncryptionAlgValuesSupported,proto3" json:"userinfo_encryption_alg_values_supported,omitempty"`
 	// OPTIONAL. JSON array containing a list of the JWE encryption algorithms
 	// (enc values) [JWA] supported by the UserInfo Endpoint to encode the Claims
@@ -351,8 +351,20 @@ type ServerMetadata struct {
 	// does not support the authorization_details parameter.
 	// https://www.rfc-editor.org/rfc/rfc9396#section-10
 	AuthorizationDetailsTypesSupported []string `protobuf:"bytes,58,rep,name=authorization_details_types_supported,json=authorizationDetailsTypesSupported,proto3" json:"authorization_details_types_supported,omitempty"`
-	unknownFields                      protoimpl.UnknownFields
-	sizeCache                          protoimpl.SizeCache
+	// OPTIONAL. JSON array containing a list of Token Types that can be
+	// requested as a requested_token_type in the Token Exchange request
+	// when performing Identity and Authorization Chaining Across Domains.
+	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-chaining#section-3
+	IdentityChainingRequestedTokenTypesSupported []string `protobuf:"bytes,59,rep,name=identity_chaining_requested_token_types_supported,json=identityChainingRequestedTokenTypesSupported,proto3" json:"identity_chaining_requested_token_types_supported,omitempty"`
+	// OPTIONAL. JSON array of supported authorization grant profile
+	// identifiers. Inclusion of a profile identifier indicates only that
+	// this authorization server implements the processing rules for that
+	// profile; it does not indicate acceptance of any particular issuer,
+	// tenant, client, subject, audience, or authorization request.
+	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-7.2
+	AuthorizationGrantProfilesSupported []string `protobuf:"bytes,60,rep,name=authorization_grant_profiles_supported,json=authorizationGrantProfilesSupported,proto3" json:"authorization_grant_profiles_supported,omitempty"`
+	unknownFields                       protoimpl.UnknownFields
+	sizeCache                           protoimpl.SizeCache
 }
 
 func (x *ServerMetadata) Reset() {
@@ -791,6 +803,20 @@ func (x *ServerMetadata) GetAuthorizationDetailsTypesSupported() []string {
 	return nil
 }
 
+func (x *ServerMetadata) GetIdentityChainingRequestedTokenTypesSupported() []string {
+	if x != nil {
+		return x.IdentityChainingRequestedTokenTypesSupported
+	}
+	return nil
+}
+
+func (x *ServerMetadata) GetAuthorizationGrantProfilesSupported() []string {
+	if x != nil {
+		return x.AuthorizationGrantProfilesSupported
+	}
+	return nil
+}
+
 // MTLSEndpoints contains endpoints for mTLS Client Authentication
 // https://www.rfc-editor.org/rfc/rfc8705.html
 type MTLSEndpoints struct {
@@ -873,7 +899,7 @@ var File_oidc_discovery_v1_server_proto protoreflect.FileDescriptor
 
 const file_oidc_discovery_v1_server_proto_rawDesc = "" +
 	"\n" +
-	"\x1eoidc/discovery/v1/server.proto\x12\x11oidc.discovery.v1\"\xfd \n" +
+	"\x1eoidc/discovery/v1/server.proto\x12\x11oidc.discovery.v1\"\xbb\"\n" +
 	"\x0eServerMetadata\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x125\n" +
 	"\x16authorization_endpoint\x18\x02 \x01(\tR\x15authorizationEndpoint\x12%\n" +
@@ -934,7 +960,9 @@ const file_oidc_discovery_v1_server_proto_rawDesc = "" +
 	"-introspection_encryption_enc_values_supported\x187 \x03(\tR)introspectionEncryptionEncValuesSupported\x12'\n" +
 	"\x0fsigned_metadata\x188 \x01(\tR\x0esignedMetadata\x12P\n" +
 	"%client_id_metadata_document_supported\x189 \x01(\bR!clientIdMetadataDocumentSupported\x12Q\n" +
-	"%authorization_details_types_supported\x18: \x03(\tR\"authorizationDetailsTypesSupported\"\xb5\x02\n" +
+	"%authorization_details_types_supported\x18: \x03(\tR\"authorizationDetailsTypesSupported\x12g\n" +
+	"1identity_chaining_requested_token_types_supported\x18; \x03(\tR,identityChainingRequestedTokenTypesSupported\x12S\n" +
+	"&authorization_grant_profiles_supported\x18< \x03(\tR#authorizationGrantProfilesSupported\"\xb5\x02\n" +
 	"\rMTLSEndpoints\x12%\n" +
 	"\x0etoken_endpoint\x18\x01 \x01(\tR\rtokenEndpoint\x12/\n" +
 	"\x13revocation_endpoint\x18\x02 \x01(\tR\x12revocationEndpoint\x125\n" +

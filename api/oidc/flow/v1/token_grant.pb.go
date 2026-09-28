@@ -24,12 +24,13 @@
 package flowv1
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -349,6 +350,55 @@ func (x *GrantTokenExchange) GetActorTokenType() string {
 	return ""
 }
 
+// https://datatracker.ietf.org/doc/html/rfc7523#section-2.1 as profiled
+// by draft-ietf-oauth-identity-assertion-authz-grant-04 section 4.4: the
+// assertion MUST contain an ID-JAG (typ oauth-id-jag+jwt).
+type GrantJWTBearer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// REQUIRED. The ID-JAG JWT obtained from the IdP Authorization Server
+	// via Token Exchange.
+	Assertion     string `protobuf:"bytes,1,opt,name=assertion,proto3" json:"assertion,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GrantJWTBearer) Reset() {
+	*x = GrantJWTBearer{}
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GrantJWTBearer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GrantJWTBearer) ProtoMessage() {}
+
+func (x *GrantJWTBearer) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_flow_v1_token_grant_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GrantJWTBearer.ProtoReflect.Descriptor instead.
+func (*GrantJWTBearer) Descriptor() ([]byte, []int) {
+	return file_oidc_flow_v1_token_grant_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GrantJWTBearer) GetAssertion() string {
+	if x != nil {
+		return x.Assertion
+	}
+	return ""
+}
+
 var File_oidc_flow_v1_token_grant_proto protoreflect.FileDescriptor
 
 const file_oidc_flow_v1_token_grant_proto_rawDesc = "" +
@@ -383,7 +433,9 @@ const file_oidc_flow_v1_token_grant_proto_rawDesc = "" +
 	"\x10actor_token_type\x18\x05 \x01(\tH\x02R\x0eactorTokenType\x88\x01\x01B\x17\n" +
 	"\x15_requested_token_typeB\x0e\n" +
 	"\f_actor_tokenB\x13\n" +
-	"\x11_actor_token_typeB'Z%zntr.io/solid/api/oidc/flow/v1;flowv1b\x06proto3"
+	"\x11_actor_token_type\";\n" +
+	"\x0eGrantJWTBearer\x12)\n" +
+	"\tassertion\x18\x01 \x01(\tB\v\xbaH\br\x06\x10\x01\x18\x80\x80\x01R\tassertionB'Z%zntr.io/solid/api/oidc/flow/v1;flowv1b\x06proto3"
 
 var (
 	file_oidc_flow_v1_token_grant_proto_rawDescOnce sync.Once
@@ -397,13 +449,14 @@ func file_oidc_flow_v1_token_grant_proto_rawDescGZIP() []byte {
 	return file_oidc_flow_v1_token_grant_proto_rawDescData
 }
 
-var file_oidc_flow_v1_token_grant_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_oidc_flow_v1_token_grant_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_oidc_flow_v1_token_grant_proto_goTypes = []any{
 	(*GrantAuthorizationCode)(nil), // 0: oidc.flow.v1.GrantAuthorizationCode
 	(*GrantRefreshToken)(nil),      // 1: oidc.flow.v1.GrantRefreshToken
 	(*GrantDeviceCode)(nil),        // 2: oidc.flow.v1.GrantDeviceCode
 	(*GrantClientCredentials)(nil), // 3: oidc.flow.v1.GrantClientCredentials
 	(*GrantTokenExchange)(nil),     // 4: oidc.flow.v1.GrantTokenExchange
+	(*GrantJWTBearer)(nil),         // 5: oidc.flow.v1.GrantJWTBearer
 }
 var file_oidc_flow_v1_token_grant_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -426,7 +479,7 @@ func file_oidc_flow_v1_token_grant_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_oidc_flow_v1_token_grant_proto_rawDesc), len(file_oidc_flow_v1_token_grant_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

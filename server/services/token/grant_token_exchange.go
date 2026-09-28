@@ -34,6 +34,16 @@ import (
 	"zntr.io/solid/server/storage"
 )
 
+// maxActChainDepth caps the total act chain length on exchanged tokens
+// (RFC 8693 section 4.4 act chain; policy is server discretion). Deep
+// delegation chains are a privilege-laundering vector: every hop is
+// another party that may have mis-delegated, and chain resolution cost
+// grows linearly. The defensive posture caps the chain at 3 entries —
+// immediate actor + at most two prior delegations; deeper chains fail
+// closed rather than truncate (silent truncation would misrepresent the
+// authorization history to the Resource Server).
+const maxActChainDepth = 3
+
 func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
 	res := &flowv1.TokenResponse{}
 
@@ -67,6 +77,16 @@ func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, re
 	if grant.SubjectToken == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("subject_token must not be empty")
+	}
+
+	// Dispatch according to subject_token_type and requested_token_type.
+	requestedIDJAG := grant.RequestedTokenType != nil && *grant.RequestedTokenType == oidc.IDJAGTokenType
+	if requestedIDJAG {
+		// draft-ietf-oauth-identity-assertion-authz-grant-04 section 4.3.
+		if errIDJAG := s.tokenExchangeIDJAG(ctx, client, req, res); errIDJAG != nil {
+			return res, fmt.Errorf("unable to process ID-JAG token exchange: %w", errIDJAG)
+		}
+		return res, nil
 	}
 
 	// Dispatch according to subject_token_type.
@@ -222,6 +242,15 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	// RFC 8693 section 4.4: when an actor token was presented, the issued
 	// token records the acting party (act chain).
 	if actor != nil && actor.Metadata != nil && actor.Metadata.Subject != "" {
+		// Security cap: the resulting chain (immediate actor + preserved
+		// prior chain) must not exceed maxActChainDepth. Deeper chains
+		// fail closed: an over-deep delegation history is a policy
+		// violation, and silently truncating it would misrepresent the
+		// authorization history to the Resource Server.
+		if 1+len(actor.Actor) > maxActChainDepth {
+			res.Error = rfcerrors.InvalidRequest().Build()
+			return fmt.Errorf("act chain too deep: %d entries exceeds the maximum of %d", 1+len(actor.Actor), maxActChainDepth)
+		}
 		at.Actor = append(at.Actor, &tokenv1.Actor{
 			Subject: actor.Metadata.Subject,
 		})

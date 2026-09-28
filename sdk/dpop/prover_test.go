@@ -18,6 +18,7 @@
 package dpop
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -120,6 +121,30 @@ func Test_defaultProver_Prove(t *testing.T) {
 			},
 			prepare: func(signer *tokenmock.MockSerializer) {
 				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			},
+			wantErr: false,
+			want:    "fake-token",
+		},
+		{
+			name: "valid with nonce echoes server-issued value",
+			args: args{
+				htm: "POST",
+				htu: "https://server.com/resource",
+				opts: []Option{
+					WithExpectedNonce("server-issued-nonce"),
+				},
+			},
+			prepare: func(signer *tokenmock.MockSerializer) {
+				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, claims any) (string, error) {
+					pc, ok := claims.(*proofClaims)
+					if !ok {
+						return "", fmt.Errorf("unexpected claims type %T", claims)
+					}
+					if pc.Nonce == nil || *pc.Nonce != "server-issued-nonce" {
+						return "", fmt.Errorf("nonce claim not echoed: %v", pc.Nonce)
+					}
+					return "fake-token", nil
+				})
 			},
 			wantErr: false,
 			want:    "fake-token",

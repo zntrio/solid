@@ -86,6 +86,7 @@ simple and solid implementations of 4 OAuth flows.
 ## Getting started
 
 I made sample server and various integrations inside `examples/` folder.
+See [`examples/README.md`](examples/README.md) for how to run them.
 
 ## Features
 
@@ -128,6 +129,10 @@ I made sample server and various integrations inside `examples/` folder.
     * [x] [RFC8414 - OAuth 2.0 Authorization Server Metadata](https://tools.ietf.org/html/rfc8414)
   * Identity authentication
     * [ ] [Nonce pattern authenticator](https://curity.io/resources/learn/nonce-authenticator-pattern/)
+  * Cross-App Access / identity chaining
+    * [x] [RFC8693 - OAuth 2.0 Token Exchange](https://tools.ietf.org/html/rfc8693) — `token_exchange` grant with `may_act` gating, `act` delegation-chain preservation (fail-closed depth cap), and confirmation (`cnf`) key binding carried over secure-compared
+    * [x] [draft-ietf-oauth-identity-chaining-17 - OAuth 2.0 Identity Chaining](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-chaining) — identity-chained access tokens minted via token exchange; `act`/`may_act` semantics adversarially tested (`integration/identity_chaining_act_test.go`)
+    * [x] [draft-ietf-oauth-identity-assertion-authz-grant-04 - OAuth 2.0 Identity Assertion Authorization Grant (Cross-App Access)](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant) — ID-JAG issuance at the IdP AS, redemption by the Resource AS via the JWT Bearer grant (`sdk/idjag`, `server/services/token`); serialization-format agnostic, pairwise subject identifiers, adversarially tested (`integration/idjag_adversarial_test.go`)
   * Client authentication
     * Asymmetric authentication
       * [x] [RFC7523 - JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants](https://tools.ietf.org/html/rfc7523)
@@ -147,12 +152,12 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [RFC9396 - OAuth 2.0 Rich Authorization Requests](https://datatracker.ietf.org/doc/html/rfc9396) (`authorization_details` carried in JAR request objects; deep-equal subset narrowing at the token endpoint; fail-closed for `client_credentials`/`token_exchange`)
     * [x] `refresh_token` grant type
     * [x] RFC8628 - `urn:ietf:params:oauth:grant-type:device_code` grant type — `expired_token` / `access_denied` / `slow_down` semantics all enforced server-side - [rfc8628](https://tools.ietf.org/html/rfc8628)
-    * [x] RFC10027 - BCP 247 cross-device flow security — device grant hardened: one-time device codes, server-enforced polling interval (`slow_down`), user-code attempt throttling, DPoP-flag enforcement, no refresh tokens from the device grant; proximity / trusted-device mitigations are deployment concerns - [rfc10027](https://www.rfc-editor.org/rfc/rfc10027.txt)
+    * [x] [RFC7523 - JWT Bearer grant](https://tools.ietf.org/html/rfc7523#section-4) — `urn:ietf:params:oauth:grant-type:jwt-bearer` (`server/services/token/grant_jwt_bearer.go`); used to redeem ID-JAG assertions at the Resource AS
     * [ ] `urn:openid:params:grant-type:ciba`grant type - [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
   * Resource
     * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
     * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470)
-    * [x] [(DRAFT) OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-resource-metadata-03.html)
+    * [x] [RFC9728 - OAuth 2.0 Protected Resource Metadata](https://www.rfc-editor.org/rfc/rfc9728)
   * Client
     * [ ] [RFC7591 - OAuth 2.0 Dynamic Client Registration](https://tools.ietf.org/html/rfc7591)
     * [ ] [RFC7592 - OAuth 2.0 Dynamic Client Registration Management Protocol](https://tools.ietf.org/html/rfc7592)
@@ -165,7 +170,7 @@ I made sample server and various integrations inside `examples/` folder.
       * [x] [RFC6750 - The OAuth 2.0 Authorization Framework: Bearer Token Usage](https://tools.ietf.org/html/rfc6750)
       * [x] [RFC7800 - Proof-of-Possession Key Semantics for JSON Web Tokens (JWTs)](https://datatracker.ietf.org/doc/html/rfc7800) 
       * [x] [RFC9449 - OAuth 2.0 Demonstrating Proof-of-Possession at the Application Layer (DPoP)](https://datatracker.ietf.org/doc/html/rfc9449)
-      * [ ] [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705)
+      * [x] [RFC8705 - OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens](https://tools.ietf.org/html/rfc8705) — certificate-bound tokens (`x5t#S256` `cnf` member, §3.1); client authentication (`tls_client_auth` / `self_signed_tls_client_auth`) listed under Client authentication
     * Authentication by reference
       * [x] Random string
       * [x] Verifiable token (signed UUID)
@@ -198,7 +203,7 @@ I made sample server and various integrations inside `examples/` folder.
 * [OAuth 2.0](https://oauth.net/2/)
 * [OAuth 2.0 Client Authentication](https://medium.com/@darutk/oauth-2-0-client-authentication-4b5f929305d4)
 * [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)
-* The standard texts of the implemented RFCs (6749, 7009, 7523, 7636, 7662, 8628, 8693, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
+* The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8414, 8628, 8693, 8705, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
 * [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — SPIFFE workload identity (SVIDs) as OAuth client credentials
 * [SPIFFE](https://spiffe.io/) — Secure Production Identity Framework For Everyone (SPIFFE IDs, trust domains, SVIDs, bundle endpoints)
 * [OAuth 2.0 for Browser-Based Apps](https://tools.ietf.org/id/draft-parecki-oauth-browser-based-apps-02.html)

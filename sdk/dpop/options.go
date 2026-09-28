@@ -22,6 +22,7 @@ package dpop
 type options struct {
 	tokenValue        *string
 	tokenConfirmation *string
+	expectedNonce     *string
 }
 
 type Option func(*options)
@@ -35,5 +36,15 @@ func WithTokenValue(t string) func(opts *options) {
 func WithTokenConfirmation(jkt string) func(opts *options) {
 	return func(opts *options) {
 		opts.tokenConfirmation = &jkt
+	}
+}
+
+// WithExpectedNonce pins the nonce value the proof MUST carry (RFC 9449
+// section 4.3): when set, the verifier rejects proofs whose nonce claim is
+// absent or differs. Servers issue the value in a DPoP-Nonce response
+// header and clients echo it in the proof nonce claim.
+func WithExpectedNonce(nonce string) func(opts *options) {
+	return func(opts *options) {
+		opts.expectedNonce = &nonce
 	}
 }

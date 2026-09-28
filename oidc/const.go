@@ -133,6 +133,10 @@ const (
 	// AuthMethodTLSClientAuth represents the PKI mutual-TLS client
 	// authentication mechanism (RFC 8705, section 2.1).
 	AuthMethodTLSClientAuth = "tls_client_auth"
+	// AuthMethodSelfSignedTLSClientAuth represents the self-signed
+	// certificate mutual-TLS client authentication mechanism
+	// (RFC 8705, section 2.2).
+	AuthMethodSelfSignedTLSClientAuth = "self_signed_tls_client_auth"
 )
 
 // Application Type ------------------------------------------------------------
@@ -183,6 +187,21 @@ const (
 	TokenExchangeSAML2Type = "urn:ietf:params:oauth:token-type:saml2"
 	// TokenExchangeJWTType indicates that the token is a JWT.
 	TokenExchangeJWTType = "urn:ietf:params:oauth:token-type:jwt"
+)
+
+// ID-JAG (draft-ietf-oauth-identity-assertion-authz-grant-04) -----------------
+
+const (
+	// IDJAGTokenType is the Token Exchange requested_token_type / issued
+	// token type URI for an Identity Assertion JWT Authorization Grant
+	// (draft-ietf-oauth-identity-assertion-authz-grant-04, section 10.2).
+	IDJAGTokenType = "urn:ietf:params:oauth:token-type:id-jag"
+
+	// IDJAGGrantProfile identifies the ID-JAG authorization grant profile
+	// in the authorization_grant_profiles_supported AS and client metadata
+	// (draft-ietf-oauth-identity-assertion-authz-grant-04, sections 7.2,
+	// 8 and 10.2).
+	IDJAGGrantProfile = "urn:ietf:params:oauth:grant-profile:id-jag"
 )
 
 // Prompt ----------------------------------------------------------------------

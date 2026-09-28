@@ -24,6 +24,7 @@ import (
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/idjag"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/server/services"
@@ -40,6 +41,10 @@ type service struct {
 	tokens                    storage.Token
 	resources                 storage.ResourceReader
 	messageValidator          *messageValidator
+	idjagVerifier             idjag.Verifier
+	idjagSigner               idjag.Signer
+	idjagAudienceResolver     IDJAGAudienceResolver
+	idjagSubjectResolver      IDJAGSubjectResolver
 }
 
 // New build and returns an authorization service implementation.
@@ -61,6 +66,41 @@ func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.Client
 		tokens:                    tokens,
 		resources:                 resources,
 		messageValidator:          mv,
+	}
+}
+
+// Option is a token service constructor option.
+type Option func(*service)
+
+// WithIDJAGVerifier wires the ID-JAG verifier used by the JWT Bearer grant
+// (draft-ietf-oauth-identity-assertion-authz-grant-04 section 4.4). Without
+// it, jwt-bearer requests fail closed.
+func WithIDJAGVerifier(v idjag.Verifier) Option {
+	return func(s *service) {
+		s.idjagVerifier = v
+	}
+}
+
+// NewWithOptions builds a token service with constructor options.
+func NewWithOptions(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, tokens storage.Token, resources storage.ResourceReader, opts ...Option) services.Token {
+	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, tokens, resources).(*service)
+	for _, opt := range opts {
+		if opt != nil {
+			opt(svc)
+		}
+	}
+	return svc
+}
+
+// WithIDJAGIssuance wires the ID-JAG issuance role (Token Exchange with
+// requested_token_type=id-jag, draft section 4.3): signer, trusted
+// audience resolver and subject resolver. Without it, ID-JAG token
+// exchange requests fail closed.
+func WithIDJAGIssuance(signer idjag.Signer, audienceResolver IDJAGAudienceResolver, subjectResolver IDJAGSubjectResolver) Option {
+	return func(s *service) {
+		s.idjagSigner = signer
+		s.idjagAudienceResolver = audienceResolver
+		s.idjagSubjectResolver = subjectResolver
 	}
 }
 
@@ -104,6 +144,8 @@ func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.
 		res, err = s.refreshToken(ctx, client, req)
 	case oidc.GrantTypeTokenExchange:
 		res, err = s.tokenExchange(ctx, client, req)
+	case oidc.GrantTypeJWTBearer:
+		res, err = s.jwtBearer(ctx, client, req)
 	default:
 		// RFC 6749 section 5.2: an unsupported grant_type string is
 		// rejected with unsupported_grant_type (validated upstream; kept

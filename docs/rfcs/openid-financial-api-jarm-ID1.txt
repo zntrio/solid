@@ -1,0 +1,840 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en"><head><title>Draft-02: Financial-grade API: JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="description" content="Financial-grade API: JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)">
+<meta name="generator" content="xml2rfc v1.36 (http://xml2rfc.ietf.org/)">
+<style type='text/css'><!--
+        body {
+                font-family: verdana, charcoal, helvetica, arial, sans-serif;
+                font-size: small; color: #000; background-color: #FFF;
+                margin: 2em;
+        }
+        h1, h2, h3, h4, h5, h6 {
+                font-family: helvetica, monaco, "MS Sans Serif", arial, sans-serif;
+                font-weight: bold; font-style: normal;
+        }
+        h1 { color: #900; background-color: transparent; text-align: right; }
+        h3 { color: #333; background-color: transparent; }
+
+        td.RFCbug {
+                font-size: x-small; text-decoration: none;
+                width: 30px; height: 30px; padding-top: 2px;
+                text-align: justify; vertical-align: middle;
+                background-color: #000;
+        }
+        td.RFCbug span.RFC {
+                font-family: monaco, charcoal, geneva, "MS Sans Serif", helvetica, verdana, sans-serif;
+                font-weight: bold; color: #666;
+        }
+        td.RFCbug span.hotText {
+                font-family: charcoal, monaco, geneva, "MS Sans Serif", helvetica, verdana, sans-serif;
+                font-weight: normal; text-align: center; color: #FFF;
+        }
+
+        table.TOCbug { width: 30px; height: 15px; }
+        td.TOCbug {
+                text-align: center; width: 30px; height: 15px;
+                color: #FFF; background-color: #900;
+        }
+        td.TOCbug a {
+                font-family: monaco, charcoal, geneva, "MS Sans Serif", helvetica, sans-serif;
+                font-weight: bold; font-size: x-small; text-decoration: none;
+                color: #FFF; background-color: transparent;
+        }
+
+        td.header {
+                font-family: arial, helvetica, sans-serif; font-size: x-small;
+                vertical-align: top; width: 33%;
+                color: #FFF; background-color: #666;
+        }
+        td.author { font-weight: bold; font-size: x-small; margin-left: 4em; }
+        td.author-text { font-size: x-small; }
+
+        /* info code from SantaKlauss at http://www.madaboutstyle.com/tooltip2.html */
+        a.info {
+                /* This is the key. */
+                position: relative;
+                z-index: 24;
+                text-decoration: none;
+        }
+        a.info:hover {
+                z-index: 25;
+                color: #FFF; background-color: #900;
+        }
+        a.info span { display: none; }
+        a.info:hover span.info {
+                /* The span will display just on :hover state. */
+                display: block;
+                position: absolute;
+                font-size: smaller;
+                top: 2em; left: -5em; width: 15em;
+                padding: 2px; border: 1px solid #333;
+                color: #900; background-color: #EEE;
+                text-align: left;
+        }
+
+        a { font-weight: bold; }
+        a:link    { color: #900; background-color: transparent; }
+        a:visited { color: #633; background-color: transparent; }
+        a:active  { color: #633; background-color: transparent; }
+
+        p { margin-left: 2em; margin-right: 2em; }
+        p.copyright { font-size: x-small; }
+        p.toc { font-size: small; font-weight: bold; margin-left: 3em; }
+        table.toc { margin: 0 0 0 3em; padding: 0; border: 0; vertical-align: text-top; }
+        td.toc { font-size: small; font-weight: bold; vertical-align: text-top; }
+
+        ol.text { margin-left: 2em; margin-right: 2em; }
+        ul.text { margin-left: 2em; margin-right: 2em; }
+        li      { margin-left: 3em; }
+
+        /* RFC-2629 <spanx>s and <artwork>s. */
+        em     { font-style: italic; }
+        strong { font-weight: bold; }
+        dfn    { font-weight: bold; font-style: normal; }
+        cite   { font-weight: normal; font-style: normal; }
+        tt     { color: #036; }
+        tt, pre, pre dfn, pre em, pre cite, pre span {
+                font-family: "Courier New", Courier, monospace; font-size: small;
+        }
+        pre {
+                text-align: left; padding: 4px;
+                color: #000; background-color: #CCC;
+        }
+        pre dfn  { color: #900; }
+        pre em   { color: #66F; background-color: #FFC; font-weight: normal; }
+        pre .key { color: #33C; font-weight: bold; }
+        pre .id  { color: #900; }
+        pre .str { color: #000; background-color: #CFF; }
+        pre .val { color: #066; }
+        pre .rep { color: #909; }
+        pre .oth { color: #000; background-color: #FCF; }
+        pre .err { background-color: #FCC; }
+
+        /* RFC-2629 <texttable>s. */
+        table.all, table.full, table.headers, table.none {
+                font-size: small; text-align: center; border-width: 2px;
+                vertical-align: top; border-collapse: collapse;
+        }
+        table.all, table.full { border-style: solid; border-color: black; }
+        table.headers, table.none { border-style: none; }
+        th {
+                font-weight: bold; border-color: black;
+                border-width: 2px 2px 3px 2px;
+        }
+        table.all th, table.full th { border-style: solid; }
+        table.headers th { border-style: none none solid none; }
+        table.none th { border-style: none; }
+        table.all td {
+                border-style: solid; border-color: #333;
+                border-width: 1px 2px;
+        }
+        table.full td, table.headers td, table.none td { border-style: none; }
+
+        hr { height: 1px; }
+        hr.insert {
+                width: 80%; border-style: none; border-width: 0;
+                color: #CCC; background-color: #CCC;
+        }
+--></style>
+</head>
+<body>
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<table summary="layout" width="66%" border="0" cellpadding="0" cellspacing="0"><tr><td><table summary="layout" width="100%" border="0" cellpadding="2" cellspacing="1">
+<tr><td class="header">Draft-02</td><td class="header">T. Lodderstedt</td></tr>
+<tr><td class="header">&nbsp;</td><td class="header">Yes</td></tr>
+<tr><td class="header">&nbsp;</td><td class="header">B. Campbell</td></tr>
+<tr><td class="header">&nbsp;</td><td class="header">Ping</td></tr>
+<tr><td class="header">&nbsp;</td><td class="header">October 17, 2018</td></tr>
+</table></td></tr></table>
+<h1><br />Financial-grade API: JWT Secured Authorization Response Mode for OAuth 2.0 (JARM)</h1>
+
+<h3>Warning</h3>
+
+<p>This document is not an OIDF International Standard. It is distributed for review and comment. It is subject to change without notice and may not be referred to as an International Standard.  
+</p>
+<p>Recipients of this draft are invited to submit, with their comments, notification of any relevant patent rights of which they are aware and to provide supporting documentation.  
+</p>
+<h3>Copyright notice &amp; license</h3>
+
+<p>The OpenID Foundation (OIDF) grants to any Contributor, developer, implementer, or other interested party a non-exclusive, royalty free, worldwide copyright license to reproduce, prepare derivative works from, distribute, perform and display, this Implementers Draft or Final Specification solely for the purposes of (i) developing specifications, and (ii) implementing Implementers Drafts and Final Specifications based on such documents, provided that attribution be made to the OIDF as the source of the material, but that such attribution does not indicate an endorsement by the OIDF.
+</p>
+<p>The technology described in this specification was made available from contributions from various sources, including members of the OpenID Foundation and others. Although the OpenID Foundation has taken steps to help ensure that the technology is available for distribution, it takes no position regarding the validity or scope of any intellectual property or other rights that might be claimed to pertain to the implementation or use of the technology described in this specification or the extent to which any license under such rights might or might not be available; neither does it represent that it has made any independent effort to identify any such rights. The OpenID Foundation and the contributors to this specification make no (and hereby expressly disclaim any) warranties (express, implied, or otherwise), including implied warranties of merchantability, non-infringement, fitness for a particular purpose, or title, related to this specification, and the entire risk as to implementing this specification is assumed by the implementer. The OpenID Intellectual Property Rights policy requires contributors to offer a patent promise not to assert certain patent claims against other contributors and against implementers. The OpenID Foundation invites any interested party to bring to its attention any copyrights, patents, patent applications, or other proprietary rights that may cover technology that may be required to practice this specification.
+</p>
+<h3>Foreword</h3>
+
+<p>The OpenID Foundation (OIDF) promotes, protects and nurtures the OpenID community and technologies. As a non-profit international standardizing body, it is comprised by over 160 participating entities (workgroup participants). The work of preparing implementer drafts and final international standards is carried out through OIDF workgroups in accordance with the OpenID Process. Participants interested in a subject for which a workgroup has been established has the right to be represented in that workgroup. International organizations, governmental and non-governmental, in liaison with OIDF, also take part in the work. OIDF collaborates closely with other standardizing bodies in the related fields.
+</p>
+<p>Final drafts adopted by the Workgroup through consensus are circulated publicly for the public review for 60 days and for the OIDF members for voting. Publication as an OIDF Standard requires approval by at least 50 % of the members casting a vote. There is a possibility that some of the elements of this document may be the subject to patent rights. OIDF shall not be held responsible for identifying any or all such patent rights.
+</p>
+<p>Financial-grade API consists of the following parts:
+</p>
+<p>
+        </p>
+<ul class="text">
+<li>Part 1: Read-Only API Security Profile 
+</li>
+<li>Part 2: Read and Write API Security Profile 
+</li>
+<li>Client Initiated Backchannel Authentication Profile
+</li>
+</ul><p>
+      
+</p>
+<p>Future parts may follow.
+</p>
+<p>These parts are intended to be used with [RFC6749], [RFC6750], [RFC7636], and [OIDC].
+</p>
+<h3>Introduction</h3>
+
+<p>Fintech is an area of future economic growth around the world and Fintech organizations need to improve the security of their operations and protect customer data. It is common practice of aggregation services to use screen scraping as a method to capture data by storing users' passwords. This brittle, inefficient, and insecure practice creates security vulnerabilities which require financial institutions to allow what appears to be an automated attack against their applications and to maintain a whitelist of aggregators. A new draft standard, proposed by this workgroup would instead utilize an API model with structured data and a token model, such as OAuth [RFC6749, RFC6750].
+</p>
+<p>The Financial-grade API aims to provide specific implementation guidelines for online financial services to adopt by developing a REST/JSON data model protected by a highly secured OAuth profile.
+</p>
+<p>This document defines a new JWT-based mode to encode authorization responses. Clients are enabled to request the transmission of the authorization response parameters along with additional data in JWT format. This mechanism enhances the security of the standard authorization response since it adds support for signing and encryption, sender authentication, audience restriction as well as protection from replay, credential leakage, and mix-up attacks. It can be combined with any response type.
+</p>
+<h3>Notational conventions</h3>
+
+<p>The keywords "shall", "shall not", "should", "should not", "may", and "can" in this document are to be interpreted as described in ISO Directive Part 2 [ISODIR2]. These keywords are not used as dictionary terms such that any occurrence of them shall be interpreted as keywords and are not to be interpreted with their natural language meanings.
+</p><a name="toc"></a><br /><hr />
+<h3>Table of Contents</h3>
+<p class="toc">
+<a href="#normative-references">1.</a>&nbsp;
+Normative references<br />
+<a href="#terms-and-definitions">2.</a>&nbsp;
+Terms and definitions<br />
+<a href="#symbols-and-abbreviated-terms">3.</a>&nbsp;
+Symbols and Abbreviated terms<br />
+<a href="#jwt-based-response-mode">4.</a>&nbsp;
+JWT-based Response Mode<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#the-jwt-response-document">4.1.</a>&nbsp;
+The JWT Response Document<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-type-code">4.1.1.</a>&nbsp;
+Response Type &quot;code&quot;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-type-token">4.1.2.</a>&nbsp;
+Response Type &quot;token&quot;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#signing-and-encryption">4.2.</a>&nbsp;
+Signing and Encryption<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-encoding">4.3.</a>&nbsp;
+Response Encoding<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-mode-query.jwt">4.3.1.</a>&nbsp;
+Response Mode &quot;query.jwt&quot;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-mode-fragment.jwt">4.3.2.</a>&nbsp;
+Response Mode &quot;fragment.jwt&quot;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-mode-form_post.jwt">4.3.3.</a>&nbsp;
+Response Mode &quot;form_post.jwt&quot;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#response-mode-jwt">4.3.4.</a>&nbsp;
+Response Mode &quot;jwt&quot;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#processing-rules">4.4.</a>&nbsp;
+Processing rules<br />
+<a href="#client-metadata">5.</a>&nbsp;
+Client Metadata<br />
+<a href="#authorization-server-metadata">6.</a>&nbsp;
+Authorization Server Metadata<br />
+<a href="#security-considerations">7.</a>&nbsp;
+Security considerations<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#dos-using-specially-crafted-jwts">7.1.</a>&nbsp;
+DoS using specially crafted JWTs<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#code-replay">7.2.</a>&nbsp;
+Code Replay<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#mix-up">7.3.</a>&nbsp;
+Mix-Up<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#code-leakage">7.4.</a>&nbsp;
+Code Leakage<br />
+<a href="#privacy-considerations">8.</a>&nbsp;
+Privacy considerations<br />
+<a href="#acknowledgement">9.</a>&nbsp;
+Acknowledgement<br />
+<a href="#iana-considerations">10.</a>&nbsp;
+IANA Considerations<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#oauth-dynamic-client-registration-metadata-registration">10.1.</a>&nbsp;
+OAuth Dynamic Client Registration Metadata Registration<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#registry-contents">10.1.1.</a>&nbsp;
+Registry Contents<br />
+&nbsp;&nbsp;&nbsp;&nbsp;<a href="#oauth-authorization-server-metadata-registration">10.2.</a>&nbsp;
+OAuth Authorization Server Metadata Registration<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="#registry-contents-1">10.2.1.</a>&nbsp;
+Registry Contents<br />
+<a href="#bibliography">11.</a>&nbsp;
+Bibliography<br />
+<a href="#rfc.authors">&#167;</a>&nbsp;
+Authors' Addresses<br />
+</p>
+<br clear="all" />
+
+<a name="normative-references"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.1"></a><h3>1.&nbsp;
+Normative references</h3>
+
+<p>The following referenced documents are indispensable for the application of this document. For dated references, only the edition cited applied. For undated references, the latest edition of the referenced document (including any amendments) applies.  
+</p>
+<p>[RFC7230] - Hypertext Transfer Protocol -- HTTP/1.1 [RFC7230]: https://tools.ietf.org/html/rfc7230 
+</p>
+<p>[RFC6749] - The OAuth 2.0 Authorization Framework [RFC6749]: https://tools.ietf.org/html/rfc6749 
+</p>
+<p>[RFC6750] - The OAuth 2.0 Authorization Framework: Bearer Token Usage [RFC6750]: https://tools.ietf.org/html/rfc6750 
+</p>
+<p>[RFC7636] - Proof Key for Code Exchange by OAuth Public Clients [RFC7636]: https://tools.ietf.org/html/rfc7636 
+</p>
+<p>[RFC6819] - OAuth 2.0 Threat Model and Security Considerations [RFC6819]: https://tools.ietf.org/html/rfc6819 
+</p>
+<p>[RFC7515] - JSON Web Signature (JWS) [RFC7515]:https://tools.ietf.org/html/rfc7515 
+</p>
+<p>[RFC7516] - JSON Web Encryption (JWE) [RFC7516]:https://tools.ietf.org/html/rfc7516 
+</p>
+<p>[RFC7517] - JSON Web Key (JWK) [RFC7517]:https://tools.ietf.org/html/rfc7517 
+</p>
+<p>[RFC7518] - JSON Web Algorithms (JWA) [RFC7518]:https://tools.ietf.org/html/rfc7518 
+</p>
+<p>[RFC7519] - JSON Web Token (JWT) [RFC7519]:https://tools.ietf.org/html/rfc7519 
+</p>
+<p>[BCP195] - Recommendations for Secure Use of Transport Layer Security (TLS) and Datagram Transport Layer Security (DTLS) [BCP195]: https://tools.ietf.org/html/bcp195 
+</p>
+<p>[RFC7591] - OAuth 2.0 Dynamic Client Registration Protocol [RFC7591]: https://tools.ietf.org/html/RFC7591 
+</p>
+<p>[RFC8414] - OAuth 2.0 Authorization Server Metadata [RFC8414]: https://tools.ietf.org/html/rfc8414 
+</p>
+<p>[OIDC] - OpenID Connect Core 1.0 incorporating errata set 1 [OIDC]: http://openid.net/specs/openid-connect-core-1_0.html 
+</p>
+<p>[OIDD] - OpenID Connect Discovery 1.0 incorporating errata set 1 [OIDD]: http://openid.net/specs/openid-connect-discovery-1_0.html 
+</p>
+<p>[OIDM] - OAuth 2.0 Multiple Response Type Encoding Practices [OIDM]: http://openid.net/specs/oauth-v2-multiple-response-types-1_0.html 
+</p>
+<p>[OIFP] - OAuth 2.0 Form Post Response Mode [OIFP]: http://openid.net/specs/oauth-v2-form-post-response-mode-1_0.html 
+</p>
+<p>[draft-ietf-oauth-security-topics] - OAuth 2.0 Security Best Current Practice [draft-ietf-oauth-security-topics]: https://tools.ietf.org/html/draft-ietf-oauth-security-topics 
+</p>
+<p>[OISM] - OpenID Connect Session Management 1.0 [OISM]: http://openid.net/specs/openid-connect-session-1_0.html 
+</p>
+<a name="terms-and-definitions"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.2"></a><h3>2.&nbsp;
+Terms and definitions</h3>
+
+<p>For the purpose of this document, the terms defined in [RFC6749], [RFC6750], [RFC7636], [OpenID Connect Core][OIDC] apply.  
+</p>
+<a name="symbols-and-abbreviated-terms"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.3"></a><h3>3.&nbsp;
+Symbols and Abbreviated terms</h3>
+
+<p><strong>API</strong> &#8211; Application Programming Interface 
+</p>
+<p><strong>CSRF</strong> - Cross Site Request Forgery 
+</p>
+<p><strong>FAPI</strong> - Financial-grade API 
+</p>
+<p><strong>HTTP</strong> &#8211; Hyper Text Transfer Protocol 
+</p>
+<p><strong>OIDF</strong> - OpenID Foundation 
+</p>
+<p><strong>REST</strong> &#8211; Representational State Transfer 
+</p>
+<p><strong>TLS</strong> &#8211; Transport Layer Security 
+</p>
+<a name="jwt-based-response-mode"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4"></a><h3>4.&nbsp;
+JWT-based Response Mode</h3>
+
+<p>This document defines a new JWT-based mode to encode authorization responses parameters. All response parameters defined for a given response type are conveyed in a JWT along with additional fields used to further protect the transmission. Since there are different techniques to encode the JWT itself in the response to the client, namely query URI parameter, fragment component and form post, this draft defines a set of response mode values in accordance with [OIDM] corresponding to this techniques.  
+</p>
+<a name="the-jwt-response-document"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.1"></a><h3>4.1.&nbsp;
+The JWT Response Document</h3>
+
+<p>The JWT always contains the following data utilized to secure the transmission: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>iss</tt> - the issuer URL of the authorization server that created the response 
+</li>
+<li><tt>aud</tt> - the client_id of the client the response is intended for 
+</li>
+<li><tt>exp</tt> - expiration of the JWT 
+</li>
+</ul>
+
+<p>The JWT furthermore contains the authorization endpoint response parameters as defined for the particular response types, even in case of an error response. This pattern is applicable to all response types including those defined in [OIDM]. The following subsections illustrate the pattern with the response types "code" and "token".  
+</p>
+<p>Note: Additional authorization endpoint response parameters defined by extensions, e.g. <tt>session_state</tt> as defined in [OISM], will also be added to the JWT.  
+</p>
+<a name="response-type-code"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.1.1"></a><h3>4.1.1.&nbsp;
+Response Type &quot;code&quot;</h3>
+
+<p>For the grant type authorization "code" the JWT contains the response parameters as defined in [RFC6749], sections 4.1.2: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>code</tt> - the authorization code 
+</li>
+<li><tt>state</tt> - the state value as sent by the client in the authorization request 
+</li>
+</ul>
+
+<p>The following example shows the JWT claims for a successful "code" authorization response: 
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+{
+   "iss":"https://accounts.example.com",
+   "aud":"s6BhdRkqt3",
+   "exp":1311281970,
+   "code":"PyyFaux2o7Q0YfXBU32jhw.5FXSQpvr8akv9CeRDSd0QA",
+   "state":"S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw"
+}
+</pre></div>
+<p>In case of an error response, the JWT contains the error response parameters as defined in [RFC6749], sections 4.1.2.1: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>error</tt> - the error code 
+</li>
+<li><tt>error_description</tt> (OPTIONAL) - a human readable description of the error 
+</li>
+<li><tt>error_uri</tt> (OPTIONAL) - a URI identifying a human-readable web page with information about the error 
+</li>
+<li><tt>state</tt> - the state value as sent by the client in the authorization request 
+</li>
+</ul>
+
+<p>The following example shows the JWT payload for such an error response: 
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+{
+   "error":"access_denied",
+   "state":"S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw"
+}
+</pre></div>
+<a name="response-type-token"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.1.2"></a><h3>4.1.2.&nbsp;
+Response Type &quot;token&quot;</h3>
+
+<p>For the grant type "token" the JWT contains the response parameters as defined in [RFC6749], sections 4.2.2: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>access_token</tt> - the access token 
+</li>
+<li><tt>token_type</tt> - the type of the access token 
+</li>
+<li><tt>expires_in</tt> - when the access token expires 
+</li>
+<li><tt>scope</tt> - the scope granted with the access token 
+</li>
+<li><tt>state</tt> - the state value as sent by the client in the authorization request 
+</li>
+</ul>
+
+<p>The following example shows the claims of the JWT for a successful "token" authorization response: 
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+{
+   "iss":"https://accounts.example.com",
+   "aud":"s6BhdRkqt3",
+   "exp":1311281970,
+   "access_token":"2YotnFZFEjr1zCsicMWpAA",
+   "state":"S8NJ7uqk5fY4EjNvP_G_FtyJu6pUsvH9jsYni9dMAJw",
+   "token_type":"bearer",
+   "expires_in":"3600",
+   "scope":"example"
+}
+</pre></div>
+<p>In case of an error response, the JWT contains the error response parameters in the same manner as with the response type "code".  
+</p>
+<a name="signing-and-encryption"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.2"></a><h3>4.2.&nbsp;
+Signing and Encryption</h3>
+
+<p>The JWT is either signed, or signed and encrypted. If the JWT is both signed and encrypted, the JSON document will be signed then encrypted, with the result being a Nested JWT, as defined in [RFC7519].  
+</p>
+<p>The authorization server determines what algorithm to employ to secure the JWT for a particular authorization response. This decision can be based on registered metadata parameters for the client as defined by this draft (see section 5).  
+</p>
+<p>For guidance on key management in general and especially on use of symmetric algorithms for signing and encrypting based on client secrets see sections 10.1 and 10.2 of [OIDC].  
+</p>
+<a name="response-encoding"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.3"></a><h3>4.3.&nbsp;
+Response Encoding</h3>
+
+<p>This draft defines the following response mode values: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>query.jwt</tt> 
+</li>
+<li><tt>fragment.jwt</tt> 
+</li>
+<li><tt>form_post.jwt</tt> 
+</li>
+<li><tt>jwt</tt> 
+</li>
+</ul>
+
+<a name="response-mode-query.jwt"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.3.1"></a><h3>4.3.1.&nbsp;
+Response Mode &quot;query.jwt&quot;</h3>
+
+<p>The response mode "query.jwt" causes the authorization server to send the authorization response as HTTP redirect to the redirect URI of the client. The authorization server adds the parameter <tt>response</tt> containing the JWT as defined in section 4.1. to the query component of the redirect URI using the "application/x-www-form-urlencoded" format.  
+</p>
+<p>This is an example response (line breaks for display purposes only): 
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+HTTP/1.1 302 Found
+Location: https://client.example.com/cb?
+response=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FjY291bnRzLm
+V4YW1wbGUuY29tIiwiYXVkIjoiczZCaGRSa3F0MyIsImV4cCI6MTMxMTI4MTk3MCwiY29kZSI6IlB5eU
+ZhdXgybzdRMFlmWEJVMzJqaHcuNUZYU1FwdnI4YWt2OUNlUkRTZDBRQSIsInN0YXRlIjoiUzhOSjd1cW
+s1Zlk0RWpOdlBfR19GdHlKdTZwVXN2SDlqc1luaTlkTUFKdyJ9.HkdJ_TYgwBBj10C-aWuNUiA062Amq
+2b0_oyuc5P0aMTQphAqC2o9WbGSkpfuHVBowlb-zJ15tBvXDIABL_t83q6ajvjtq_pqsByiRK2dLVdUw
+KhW3P_9wjvI0K20gdoTNbNlP9Z41mhart4BqraIoI8e-L_EfAHfhCG_DDDv7Yg
+</pre></div>
+<p>Note: "query.jwt" MUST NOT be used in conjunction with response types that contain "token" or "id_token" unless the response JWT is encrypted to prevent token leakage in the URL.  
+</p>
+<a name="response-mode-fragment.jwt"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.3.2"></a><h3>4.3.2.&nbsp;
+Response Mode &quot;fragment.jwt&quot;</h3>
+
+<p>The response mode "fragment.jwt" causes the authorization server to send the authorization response as HTTP redirect to the redirect URI of the client. The authorization server adds the parameter <tt>response</tt> containing the JWT as defined in section 4.1. to the fragment component of the redirect URI using the "application/x-www-form-urlencoded" format.  
+</p>
+<p>This is an example response (line breaks for display purposes only): 
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+HTTP/1.1 302 Found
+Location: https://client.example.com/cb#
+response=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2FjY291bnRzLm
+V4YW1wbGUuY29tIiwiYXVkIjoiczZCaGRSa3F0MyIsImV4cCI6MTMxMTI4MTk3MCwiYWNjZXNzX3Rva2
+VuIjoiMllvdG5GWkZFanIxekNzaWNNV3BBQSIsInN0YXRlIjoiUzhOSjd1cWs1Zlk0RWpOdlBfR19GdH
+lKdTZwVXN2SDlqc1luaTlkTUFKdyIsInRva2VuX3R5cGUiOiJiZWFyZXIiLCJleHBpcmVzX2luIjoiMz
+YwMCIsInNjb3BlIjoiZXhhbXBsZSJ9.bgHLOu2dlDjtCnvTLK7hTN_JNwoZXEBnbXQx5vd9z17v1Hyzf
+Mqz00Vi002T-SWf2JEs3IVSvAe1xWLIY0TeuaiegklJx_gvB59SQIhXX2ifzRmqPoDdmJGaWZ3tnRyFW
+NnEogJDqGFCo2RHtk8fXkE5IEiBD0g-tN0GS_XnxlE
+</pre></div>
+<a name="response-mode-form_post.jwt"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.3.3"></a><h3>4.3.3.&nbsp;
+Response Mode &quot;form_post.jwt&quot;</h3>
+
+<p>The response mode "form_post.jwt" uses the technique described in [OIFP] to convey the JWT to the client. The <tt>response</tt> parameter containing the JWT is encoded as HTML form value that is auto-submitted in the User Agent, and thus is transmitted via the HTTP POST method to the Client, with the result parameters being encoded in the body using the "application/x-www-form-urlencoded" format.  
+</p>
+<p>This is an example response from the authorization server to the user agent (line breaks for display purposes only), 
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+HTTP/1.1 200 OK
+Content-Type: text/html;charset=UTF-8
+Cache-Control: no-cache, no-store
+Pragma: no-cache
+
+&lt;html&gt;
+ &lt;head&gt;&lt;title&gt;Submit This Form&lt;/title&gt;&lt;/head&gt;
+ &lt;body onload="javascript:document.forms[0].submit()"&gt;
+  &lt;form method="post" action="https://client.example.com/cb"&gt;
+    &lt;input type="hidden" name="response"
+     value="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2
+      FjY291bnRzLmV4YW1wbGUuY29tIiwiYXVkIjoiczZCaGRSa3F0MyIsImV4cCI6MTM
+      xMTI4MTk3MCwiYWNjZXNzX3Rva2VuIjoiMllvdG5GWkZFanIxekNzaWNNV3BBQSIs
+      InN0YXRlIjoiUzhOSjd1cWs1Zlk0RWpOdlBfR19GdHlKdTZwVXN2SDlqc1luaTlkT
+      UFKdyIsInRva2VuX3R5cGUiOiJiZWFyZXIiLCJleHBpcmVzX2luIjoiMzYwMCIsIn
+      Njb3BlIjoiZXhhbXBsZSJ9.bgHLOu2dlDjtCnvTLK7hTN_JNwoZXEBnbXQx5vd9z1
+      7v1HyzfMqz00Vi002T-SWf2JEs3IVSvAe1xWLIY0TeuaiegklJx_gvB59SQIhXX2i
+      fzRmqPoDdmJGaWZ3tnRyFWNnEogJDqGFCo2RHtk8fXkE5IEiBD0g-tN0GS_XnxlE"/&gt;
+    &lt;/form&gt;
+   &lt;/body&gt;
+  &lt;/html&gt;
+</pre></div>
+<p>which results in the following POST request to the client's redirect URI.  
+</p><div style='display: table; width: 0; margin-left: 3em; margin-right: auto'><pre>
+  POST /cb HTTP/1.1
+  Host: client.example.org
+  Content-Type: application/x-www-form-urlencoded
+
+  response=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2
+      FjY291bnRzLmV4YW1wbGUuY29tIiwiYXVkIjoiczZCaGRSa3F0MyIsImV4cCI6MTM
+      xMTI4MTk3MCwiYWNjZXNzX3Rva2VuIjoiMllvdG5GWkZFanIxekNzaWNNV3BBQSIs
+      InN0YXRlIjoiUzhOSjd1cWs1Zlk0RWpOdlBfR19GdHlKdTZwVXN2SDlqc1luaTlkT
+      UFKdyIsInRva2VuX3R5cGUiOiJiZWFyZXIiLCJleHBpcmVzX2luIjoiMzYwMCIsIn
+      Njb3BlIjoiZXhhbXBsZSJ9.bgHLOu2dlDjtCnvTLK7hTN_JNwoZXEBnbXQx5vd9z1
+      7v1HyzfMqz00Vi002T-SWf2JEs3IVSvAe1xWLIY0TeuaiegklJx_gvB59SQIhXX2i
+      fzRmqPoDdmJGaWZ3tnRyFWNnEogJDqGFCo2RHtk8fXkE5IEiBD0g-tN0GS_XnxlE
+</pre></div>
+<a name="response-mode-jwt"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.3.4"></a><h3>4.3.4.&nbsp;
+Response Mode &quot;jwt&quot;</h3>
+
+<p>The response mode "jwt" is a shortcut and indicates the default redirect encoding (query, fragment) for the requested response type. The default for response type "code" is "query.jwt" whereas the default for "token" and the response types defined in [OIDM], except "none", is "fragment.jwt".  
+</p>
+<a name="processing-rules"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.4.4"></a><h3>4.4.&nbsp;
+Processing rules</h3>
+
+<p>Assumption: the client remembers the authorization server to which it sent the authorization request and binds this information to the user agent.  
+</p>
+<p>The client is obliged to process the JWT secured response as follows: 
+</p>
+<p></p>
+<ol class="text">
+<li>(OPTIONAL) The client decrypts the JWT using the key determined by the <tt>kid</tt> JWT header parameter.  The key might be a private key, where the corresponding public key is registered with the expected issuer of the response ("use":"enc" via the client's metadata <tt>jwks</tt> or <tt>jwks_uri</tt>) or a key derived from its client secret (see section 4.2).  
+</li>
+<li>The client obtains the <tt>state</tt> parameter from the JWT and checks its binding to the user agent. If the check fails, the client MUST abort processing and refuse the response.  
+</li>
+<li>The client obtains the <tt>iss</tt> element from the JWT and checks whether its value is well known and identifies the expected issuer of the authorization process in examination. If the check fails, the client MUST abort processing and refuse the response.  
+</li>
+<li>The client obtains the <tt>aud</tt> element from the JWT and checks whether it matches the client id the client used to identify itself in the corresponding authorization request. If the check fails, the client MUST abort processing and refuse the response.  
+</li>
+<li>The client checks the JWT's <tt>exp</tt> element to determine if the JWT is still valid. If the check fails, the client MUST abort processing and refuse the response.  
+</li>
+<li>The client obtains the key needed to check the signature based on the JWT's <tt>iss</tt> element and the <tt>kid</tt> header element and checks its signature. If the check fails, the client MUST abort processing and refuse the response.  
+</li>
+</ol>
+
+<p>Note: The <tt>state</tt> value is treated as a one-time-use CSRF token. It MUST be invalidated after the check (step 2) was performed. Note: The way the client obtains the keys for verifying the JWT's signature (step 5) is out of scope of this draft. Established mechanism such as [OIDD] or [RFC8414] SHOULD be utilized.  
+</p>
+<p>The client MUST NOT process the grant type specific authorization response parameters before all checks succeed.  
+</p>
+<a name="client-metadata"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.5"></a><h3>5.&nbsp;
+Client Metadata</h3>
+
+<p>The parameter names follow the pattern established by OpenID Connect Dynamic Client Registration [OpenID.Registration] for configuring signing and encryption algorithms for JWT responses at the UserInfo endpoint.  
+</p>
+<p>The following client metadata parameters are introduced by this specification: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>authorization_signed_response_alg</tt> JWS [RFC7515] <tt>alg</tt> algorithm JWA [RFC7518] REQUIRED for signing authorization responses. If this is specified, the response will be signed using JWS and the configured algorithm. The algorithm <tt>none</tt> is not allowed. The default, if omitted, is RS256.  
+</li>
+<li><tt>authorization_encrypted_response_alg</tt> JWE [RFC7516] <tt>alg</tt> algorithm JWA [RFC7518] REQUIRED for encrypting authorization responses. If both signing and encryption are requested, the response will be signed then encrypted, with the result being a Nested JWT, as defined in JWT [RFC7519]. The default, if omitted, is that no encryption is performed.  
+</li>
+<li><tt>authorization_encrypted_response_enc</tt> JWE [RFC7516] <tt>enc</tt> algorithm JWA [RFC7518] REQUIRED for encrypting authorization responses. If <tt>authorization_encrypted_response_alg</tt> is specified, the default for this value is A128CBC-HS256. When <tt>authorization_encrypted_response_enc</tt> is included, <tt>authorization_encrypted_response_alg</tt> MUST also be provided.  
+</li>
+</ul>
+
+<p>Clients may register their public encryption keys using the <tt>jwks_uri</tt> or <tt>jwks</tt> metadata parameters.  
+</p>
+<a name="authorization-server-metadata"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.6"></a><h3>6.&nbsp;
+Authorization Server Metadata</h3>
+
+<p>Authorization servers SHOULD publish the supported algorithms for signing and encrypting the JWT of an authorization response by utilizing OAuth 2.0 Authorization Server Metadata [RFC8414] parameters.  
+</p>
+<p>The following parameters are introduced by this specification: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>authorization_signing_alg_values_supported</tt> OPTIONAL. JSON array containing a list of the JWS [RFC7515] signing algorithms (<tt>alg</tt> values) JWA [RFC7518] supported by the authorization endpoint to sign the response.  
+</li>
+<li><tt>authorization_encryption_alg_values_supported</tt> OPTIONAL. JSON array containing a list of the JWE [RFC7516] encryption algorithms (<tt>alg</tt> values) JWA [RFC7518] supported by the authorization endpoint to encrypt the response.  
+</li>
+<li><tt>authorization_encryption_enc_values_supported</tt> OPTIONAL. JSON array containing a list of the JWE [RFC7516] encryption algorithms (<tt>enc</tt> values) JWA [RFC7518] supported by the authorization endpoint to encrypt the response.  
+</li>
+</ul>
+
+<p>Authorization servers SHOULD publish the supported response mode values utilizing the parameter <tt>response_modes_supported</tt> as defined in [RFC8414].  This draft introduces the following possible values: 
+</p>
+<p></p>
+<ul class="text">
+<li><tt>query.jwt</tt> 
+</li>
+<li><tt>fragment.jwt</tt> 
+</li>
+<li><tt>form_post.jwt</tt> 
+</li>
+<li><tt>jwt</tt> 
+</li>
+</ul>
+
+<a name="security-considerations"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.7"></a><h3>7.&nbsp;
+Security considerations</h3>
+
+<a name="dos-using-specially-crafted-jwts"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.7.1"></a><h3>7.1.&nbsp;
+DoS using specially crafted JWTs</h3>
+
+<p>JWTs could be crafted to have an issuer that resolves to a JWK set URL with huge content, or is delivered very slowly, consuming server networking bandwidth and compute capacity. The resolved JWK set URL could also be used to DDoS targets on the web.  
+</p>
+<p>The client therefore MUST first check that the issuer of the JWT is well-known and expected for the particular authorization response before it uses this data to obtain the key needed to check the JWT's signature.  
+</p>
+<a name="code-replay"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.7.2"></a><h3>7.2.&nbsp;
+Code Replay</h3>
+
+<p>An authorization code (obtained on a different device with the same client) could be injected into an authorization response in order to impersonate the legitimate resource owner (see [draft-ietf-oauth-security-topics]).  
+</p>
+<p>The JWT secured response mode enables clients to detect such an attack. The signature binds the authorization code to the state value sent by the client and therewith transitively to the transaction in the respective user agent.  
+</p>
+<a name="mix-up"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.7.3"></a><h3>7.3.&nbsp;
+Mix-Up</h3>
+
+<p>Mix-up is an attack on scenarios where an OAuth client interacts with multiple authorization servers. The goal of the attack is to obtain an authorization code or an access token by tricking the client into sending those credentials to the attacker instead of using them at the respective endpoint at the authorization/resource server.  
+</p>
+<p>The JWT secured response mode enables clients to detect this attack by providing an identification of the sender (<tt>iss</tt>) and the intended audience of the authorization response (<tt>aud</tt>).  
+</p>
+<a name="code-leakage"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.7.4"></a><h3>7.4.&nbsp;
+Code Leakage</h3>
+
+<p>Authorization servers MAY encrypt the authorization response therewith providing a means to prevent leakage of authorization codes in the user agent (e.g. during transmission, in browser history or via referrer headers).  
+</p>
+<a name="privacy-considerations"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.8"></a><h3>8.&nbsp;
+Privacy considerations</h3>
+
+<p>TBD 
+</p>
+<a name="acknowledgement"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.9"></a><h3>9.&nbsp;
+Acknowledgement</h3>
+
+<p>The following people contributed to this document: 
+</p>
+<p></p>
+<ul class="text">
+<li>Torsten Lodderstedt (YES), Editor 
+</li>
+<li>Brian Campbell (Ping Identity), Co-editor 
+</li>
+<li>Nat Sakimura (Nomura Research Institute) -- Chair 
+</li>
+<li>Dave Tonge (Momentum Financial Technology) -- UK Implementation Entity Liaison 
+</li>
+<li>Joseph Heenan (Authlete) 
+</li>
+<li>Ralph Bragg (Raidiam) 
+</li>
+<li>Vladimir Dzhuvinov (Connect2ID) 
+</li>
+<li>Michael Schwartz (Gluu) 
+</li>
+<li>Filip Skokan 
+</li>
+</ul>
+
+<a name="iana-considerations"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.10"></a><h3>10.&nbsp;
+IANA Considerations</h3>
+
+<a name="oauth-dynamic-client-registration-metadata-registration"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.10.1"></a><h3>10.1.&nbsp;
+OAuth Dynamic Client Registration Metadata Registration</h3>
+
+<p>This specification requests registration of the following client metadata definitions in the IANA "OAuth Dynamic Client Registration Metadata" registry established by [RFC7591]: 
+</p>
+<a name="registry-contents"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.10.1.1"></a><h3>10.1.1.&nbsp;
+Registry Contents</h3>
+
+<p></p>
+<ul class="text">
+<li>Client Metadata Name: <tt>authorization_signed_response_alg</tt> 
+</li>
+<li>Client Metadata Description: String value indicating the client's desired introspection response signing algorithm.  
+</li>
+<li>Change Controller: IESG 
+</li>
+<li>Specification Document(s): Section 5 of [[ this specification ]] 
+</li>
+<li>Client Metadata Name: <tt>authorization_encrypted_response_alg</tt> 
+</li>
+<li>Client Metadata Description: String value specifying the desired introspection response encryption algorithm (alg value).  
+</li>
+<li>Change Controller: IESG 
+</li>
+<li>Specification Document(s): Section 5 of [[ this specification ]] 
+</li>
+<li>Client Metadata Name: <tt>authorization_encrypted_response_enc</tt> 
+</li>
+<li>Client Metadata Description: String value specifying the desired introspection response encryption algorithm (enc value).  
+</li>
+<li>Change Controller: IESG 
+</li>
+<li>Specification Document(s): Section 5 of [[ this specification ]] 
+</li>
+</ul>
+
+<a name="oauth-authorization-server-metadata-registration"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.10.2"></a><h3>10.2.&nbsp;
+OAuth Authorization Server Metadata Registration</h3>
+
+<p>This specification requests registration of the following value in the IANA "OAuth Authorization Server Metadata" registry established by [RFC8414].  
+</p>
+<a name="registry-contents-1"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.10.2.1"></a><h3>10.2.1.&nbsp;
+Registry Contents</h3>
+
+<p></p>
+<ul class="text">
+<li>Metadata Name: <tt>authorization_signing_alg_values_supported</tt> 
+</li>
+<li>Metadata Description: JSON array containing a list of algorithms supported by the authorization server for introspection response signing.  
+</li>
+<li>Change Controller: IESG 
+</li>
+<li>Specification Document(s): Section 5 of [[ this specification ]] 
+</li>
+<li>Metadata Name: <tt>authorization_encryption_alg_values_supported</tt> 
+</li>
+<li>Metadata Description: JSON array containing a list of algorithms supported by the authorization server for introspection response encryption (alg value).  
+</li>
+<li>Change Controller: IESG 
+</li>
+<li>Specification Document(s): Section 5 of [[ this specification ]] 
+</li>
+<li>Metadata Name: <tt>authorization_encryption_enc_values_supported</tt> 
+</li>
+<li>Metadata Description: JSON array containing a list of algorithms supported by the authorization server for introspection response encryption (enc value).  
+</li>
+<li>Change Controller: IESG 
+</li>
+<li>Specification Document(s): Section 5 of [[ this specification ]] 
+</li>
+</ul>
+
+<a name="bibliography"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<a name="rfc.section.11"></a><h3>11.&nbsp;
+Bibliography</h3>
+
+<p>TBD 
+</p>
+<a name="rfc.authors"></a><br /><hr />
+<table summary="layout" cellpadding="0" cellspacing="2" class="TOCbug" align="right"><tr><td class="TOCbug"><a href="#toc">&nbsp;TOC&nbsp;</a></td></tr></table>
+<h3>Authors' Addresses</h3>
+<table width="99%" border="0" cellpadding="0" cellspacing="0">
+<tr><td class="author-text">&nbsp;</td>
+<td class="author-text">Torsten Lodderstedt</td></tr>
+<tr><td class="author-text">&nbsp;</td>
+<td class="author-text">YES</td></tr>
+<tr><td class="author" align="right">Email:&nbsp;</td>
+<td class="author-text"><a href="mailto:torsten@lodderstedt.net">torsten@lodderstedt.net</a></td></tr>
+<tr><td class="author" align="right">URI:&nbsp;</td>
+<td class="author-text"><a href="http://yes.com/">http://yes.com/</a></td></tr>
+<tr cellpadding="3"><td>&nbsp;</td><td>&nbsp;</td></tr>
+<tr><td class="author-text">&nbsp;</td>
+<td class="author-text">Brian Campbell</td></tr>
+<tr><td class="author-text">&nbsp;</td>
+<td class="author-text">Ping Identity</td></tr>
+<tr><td class="author" align="right">Email:&nbsp;</td>
+<td class="author-text"><a href="mailto:bcampbell@pingidentity.com">bcampbell@pingidentity.com</a></td></tr>
+<tr><td class="author" align="right">URI:&nbsp;</td>
+<td class="author-text"><a href="http://www.pingidentity.com/">http://www.pingidentity.com/</a></td></tr>
+</table>
+</body></html>

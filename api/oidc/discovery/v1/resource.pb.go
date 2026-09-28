@@ -24,11 +24,13 @@
 package discoveryv1
 
 import (
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -63,8 +65,8 @@ type ProtectedResourceMetadata struct {
 	// RECOMMENDED. JSON array containing a list of the OAuth 2.0 [RFC6749] scope
 	// values that are used in authorization requests to request access to this
 	// protected resource. Protected resources MAY choose not to advertise some
-	// scope values provided even when this parameter is used.
-	ScopesProvided []string `protobuf:"bytes,4,rep,name=scopes_provided,json=scopesProvided,proto3" json:"scopes_provided,omitempty"`
+	// scope values supported even when this parameter is used.
+	ScopesSupported []string `protobuf:"bytes,4,rep,name=scopes_supported,json=scopesSupported,proto3" json:"scopes_supported,omitempty"`
 	// OPTIONAL. JSON array containing a list of the OAuth 2.0 Bearer Token
 	// [RFC6750] presentation methods that this protected resource supports.
 	// Defined values are ["header", "fragment", "query"], corresponding to
@@ -72,7 +74,7 @@ type ProtectedResourceMetadata struct {
 	BearerMethodsSupported []string `protobuf:"bytes,5,rep,name=bearer_methods_supported,json=bearerMethodsSupported,proto3" json:"bearer_methods_supported,omitempty"`
 	// OPTIONAL. JSON array containing a list of the JWS [JWS] signing algorithms
 	// (alg values) [JWA] supported by the protected resource for signed content.
-	// The value none MAY be included.
+	// The value none MUST NOT be used.
 	ResourceSigningAlgValuesSupported []string `protobuf:"bytes,6,rep,name=resource_signing_alg_values_supported,json=resourceSigningAlgValuesSupported,proto3" json:"resource_signing_alg_values_supported,omitempty"`
 	// OPTIONAL. JSON array containing a list of the JWE [JWE] encryption
 	// algorithms (alg values) [JWA] supported by the protected resource for
@@ -96,8 +98,23 @@ type ProtectedResourceMetadata struct {
 	// claims. This is a string value consisting of the entire signed JWT. A
 	// signed_metadata metadata value SHOULD NOT appear as a claim in the JWT.
 	SignedMetadata *string `protobuf:"bytes,12,opt,name=signed_metadata,json=signedMetadata,proto3,oneof" json:"signed_metadata,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// OPTIONAL. Human-readable name of the protected resource intended for
+	// display to the end user.
+	ResourceName *string `protobuf:"bytes,14,opt,name=resource_name,json=resourceName,proto3,oneof" json:"resource_name,omitempty"`
+	// OPTIONAL. Boolean value indicating protected resource support for
+	// mutual-TLS client certificate-bound access tokens [RFC8705].
+	TlsClientCertificateBoundAccessTokens *bool `protobuf:"varint,15,opt,name=tls_client_certificate_bound_access_tokens,json=tlsClientCertificateBoundAccessTokens,proto3,oneof" json:"tls_client_certificate_bound_access_tokens,omitempty"`
+	// OPTIONAL. JSON array containing a list of the authorization details type
+	// values supported by the resource server [RFC9396].
+	AuthorizationDetailsTypesSupported []string `protobuf:"bytes,16,rep,name=authorization_details_types_supported,json=authorizationDetailsTypesSupported,proto3" json:"authorization_details_types_supported,omitempty"`
+	// OPTIONAL. JSON array containing a list of the JWS alg values supported by
+	// the resource server for validating DPoP proof JWTs [RFC9449].
+	DpopSigningAlgValuesSupported []string `protobuf:"bytes,17,rep,name=dpop_signing_alg_values_supported,json=dpopSigningAlgValuesSupported,proto3" json:"dpop_signing_alg_values_supported,omitempty"`
+	// OPTIONAL. Boolean value specifying whether the protected resource always
+	// requires the use of DPoP-bound access tokens [RFC9449].
+	DpopBoundAccessTokensRequired *bool `protobuf:"varint,18,opt,name=dpop_bound_access_tokens_required,json=dpopBoundAccessTokensRequired,proto3,oneof" json:"dpop_bound_access_tokens_required,omitempty"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *ProtectedResourceMetadata) Reset() {
@@ -151,9 +168,9 @@ func (x *ProtectedResourceMetadata) GetJwksUri() string {
 	return ""
 }
 
-func (x *ProtectedResourceMetadata) GetScopesProvided() []string {
+func (x *ProtectedResourceMetadata) GetScopesSupported() []string {
 	if x != nil {
-		return x.ScopesProvided
+		return x.ScopesSupported
 	}
 	return nil
 }
@@ -214,30 +231,75 @@ func (x *ProtectedResourceMetadata) GetSignedMetadata() string {
 	return ""
 }
 
+func (x *ProtectedResourceMetadata) GetResourceName() string {
+	if x != nil && x.ResourceName != nil {
+		return *x.ResourceName
+	}
+	return ""
+}
+
+func (x *ProtectedResourceMetadata) GetTlsClientCertificateBoundAccessTokens() bool {
+	if x != nil && x.TlsClientCertificateBoundAccessTokens != nil {
+		return *x.TlsClientCertificateBoundAccessTokens
+	}
+	return false
+}
+
+func (x *ProtectedResourceMetadata) GetAuthorizationDetailsTypesSupported() []string {
+	if x != nil {
+		return x.AuthorizationDetailsTypesSupported
+	}
+	return nil
+}
+
+func (x *ProtectedResourceMetadata) GetDpopSigningAlgValuesSupported() []string {
+	if x != nil {
+		return x.DpopSigningAlgValuesSupported
+	}
+	return nil
+}
+
+func (x *ProtectedResourceMetadata) GetDpopBoundAccessTokensRequired() bool {
+	if x != nil && x.DpopBoundAccessTokensRequired != nil {
+		return *x.DpopBoundAccessTokensRequired
+	}
+	return false
+}
+
 var File_oidc_discovery_v1_resource_proto protoreflect.FileDescriptor
 
 const file_oidc_discovery_v1_resource_proto_rawDesc = "" +
 	"\n" +
-	" oidc/discovery/v1/resource.proto\x12\x11oidc.discovery.v1\"\xa8\x06\n" +
-	"\x19ProtectedResourceMetadata\x12\x1a\n" +
-	"\bresource\x18\x01 \x01(\tR\bresource\x123\n" +
-	"\x15authorization_servers\x18\x02 \x03(\tR\x14authorizationServers\x12\x1e\n" +
-	"\bjwks_uri\x18\x03 \x01(\tH\x00R\ajwksUri\x88\x01\x01\x12'\n" +
-	"\x0fscopes_provided\x18\x04 \x03(\tR\x0escopesProvided\x128\n" +
+	" oidc/discovery/v1/resource.proto\x12\x11oidc.discovery.v1\x1a\x1bbuf/validate/validate.proto\"\xc1\n" +
+	"\n" +
+	"\x19ProtectedResourceMetadata\x12)\n" +
+	"\bresource\x18\x01 \x01(\tB\r\xbaH\n" +
+	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\bresource\x123\n" +
+	"\x15authorization_servers\x18\x02 \x03(\tR\x14authorizationServers\x12+\n" +
+	"\bjwks_uri\x18\x03 \x01(\tB\v\xbaH\br\x06\x18\x80\x10\x88\x01\x01H\x00R\ajwksUri\x88\x01\x01\x12)\n" +
+	"\x10scopes_supported\x18\x04 \x03(\tR\x0fscopesSupported\x128\n" +
 	"\x18bearer_methods_supported\x18\x05 \x03(\tR\x16bearerMethodsSupported\x12P\n" +
 	"%resource_signing_alg_values_supported\x18\x06 \x03(\tR!resourceSigningAlgValuesSupported\x12V\n" +
 	"(resource_encryption_alg_values_supported\x18\a \x03(\tR$resourceEncryptionAlgValuesSupported\x12V\n" +
-	"(resource_encryption_enc_values_supported\x18\b \x03(\tR$resourceEncryptionEncValuesSupported\x12:\n" +
-	"\x16resource_documentation\x18\t \x01(\tH\x01R\x15resourceDocumentation\x88\x01\x01\x123\n" +
+	"(resource_encryption_enc_values_supported\x18\b \x03(\tR$resourceEncryptionEncValuesSupported\x12D\n" +
+	"\x16resource_documentation\x18\t \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10H\x01R\x15resourceDocumentation\x88\x01\x01\x12=\n" +
 	"\x13resource_policy_uri\x18\n" +
-	" \x01(\tH\x02R\x11resourcePolicyUri\x88\x01\x01\x12-\n" +
-	"\x10resource_tos_uri\x18\v \x01(\tH\x03R\x0eresourceTosUri\x88\x01\x01\x12,\n" +
-	"\x0fsigned_metadata\x18\f \x01(\tH\x04R\x0esignedMetadata\x88\x01\x01B\v\n" +
+	" \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10H\x02R\x11resourcePolicyUri\x88\x01\x01\x127\n" +
+	"\x10resource_tos_uri\x18\v \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10H\x03R\x0eresourceTosUri\x88\x01\x01\x12,\n" +
+	"\x0fsigned_metadata\x18\f \x01(\tH\x04R\x0esignedMetadata\x88\x01\x01\x12(\n" +
+	"\rresource_name\x18\x0e \x01(\tH\x05R\fresourceName\x88\x01\x01\x12^\n" +
+	"*tls_client_certificate_bound_access_tokens\x18\x0f \x01(\bH\x06R%tlsClientCertificateBoundAccessTokens\x88\x01\x01\x12Q\n" +
+	"%authorization_details_types_supported\x18\x10 \x03(\tR\"authorizationDetailsTypesSupported\x12H\n" +
+	"!dpop_signing_alg_values_supported\x18\x11 \x03(\tR\x1ddpopSigningAlgValuesSupported\x12M\n" +
+	"!dpop_bound_access_tokens_required\x18\x12 \x01(\bH\aR\x1ddpopBoundAccessTokensRequired\x88\x01\x01B\v\n" +
 	"\t_jwks_uriB\x19\n" +
 	"\x17_resource_documentationB\x16\n" +
 	"\x14_resource_policy_uriB\x13\n" +
 	"\x11_resource_tos_uriB\x12\n" +
-	"\x10_signed_metadataB1Z/zntr.io/solid/api/oidc/discovery/v1;discoveryv1b\x06proto3"
+	"\x10_signed_metadataB\x10\n" +
+	"\x0e_resource_nameB-\n" +
+	"+_tls_client_certificate_bound_access_tokensB$\n" +
+	"\"_dpop_bound_access_tokens_requiredB1Z/zntr.io/solid/api/oidc/discovery/v1;discoveryv1b\x06proto3"
 
 var (
 	file_oidc_discovery_v1_resource_proto_rawDescOnce sync.Once

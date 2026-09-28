@@ -89,6 +89,12 @@ func Metadata(issuer string, signer token.Serializer) http.Handler {
 		ClientIdMetadataDocumentSupported:      true,
 		RequestObjectSigningAlgValuesSupported: []string{mldsaAlg},
 		AuthorizationDetailsTypesSupported:     []string{"payment_initiation"},
+		// draft-ietf-oauth-identity-assertion-authz-grant-04 section 7:
+		// advertise the ID-JAG token type this server can issue via token
+		// exchange, and the ID-JAG grant profile it can process as a
+		// Resource Authorization Server.
+		IdentityChainingRequestedTokenTypesSupported: []string{oidc.IDJAGTokenType},
+		AuthorizationGrantProfilesSupported:          []string{oidc.IDJAGGrantProfile},
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

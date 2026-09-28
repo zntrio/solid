@@ -1,0 +1,112 @@
+// Licensed to SolID under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. SolID licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package oidc.token.v1;
+
+import "buf/validate/validate.proto";
+import "oidc/token/v1/authorization_detail.proto";
+
+option go_package = "zntr.io/solid/api/oidc/token/v1;tokenv1";
+
+// Identity Assertion JWT Authorization Grant (ID-JAG).
+// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-3
+//
+// The serialized JWT uses the typ header "oauth-id-jag+jwt" (section 3.1).
+// Deferred to future iterations (modeled, not emitted or processed in v1):
+// tenant, aud_tenant, aud_sub, sub_id, act, email.
+message IdentityAssertionJWTAuthorizationGrant {
+  // REQUIRED. The issuer identifier of the IdP Authorization Server.
+  // https://datatracker.ietf.org/doc/html/rfc8414
+  string iss = 1 [(buf.validate.field).string = {min_len: 1, max_len: 2048, uri: true}];
+
+  // REQUIRED. Subject identifier for the End-User, unique within the
+  // issuer (plus tenant for multi-tenant issuers). Intended to be the
+  // identifier the Resource Authorization Server resolves the subject
+  // with (e.g. pairwise for the target audience).
+  string sub = 2 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // REQUIRED. Issuer identifier of the Resource Authorization Server,
+  // the intended audience of the grant. The serialized aud claim is a
+  // single string (or a one-element array equivalent).
+  string aud = 3 [(buf.validate.field).string = {min_len: 1, max_len: 2048, uri: true}];
+
+  // REQUIRED. The client identifier at the Resource Authorization Server
+  // that will act on behalf of the subject. Distinct from the client
+  // identifier at the IdP.
+  string client_id = 4 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // REQUIRED. Unique identifier of this JWT.
+  string jti = 5 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // REQUIRED. Unix timestamp of the expiration.
+  fixed64 exp = 6;
+
+  // REQUIRED. Unix timestamp of issuance.
+  fixed64 iat = 7;
+
+  // OPTIONAL. Time when the End-User authentication occurred.
+  optional fixed64 auth_time = 8;
+
+  // OPTIONAL. Authentication Context Class Reference satisfied when
+  // authenticating the End-User.
+  optional string acr = 9;
+
+  // OPTIONAL. Identifiers for the authentication methods used when
+  // authenticating the End-User.
+  repeated string amr = 10 [(buf.validate.field).repeated = {
+    items: {string: {min_len: 1, max_len: 512}}
+    max_items: 32
+  }];
+
+  // OPTIONAL. Resource server identifiers (RFC 8707).
+  repeated string resource = 11 [(buf.validate.field).repeated = {
+    items: {string: {min_len: 1, max_len: 2048, uri: true}}
+    max_items: 32
+  }];
+
+  // OPTIONAL. Space-separated list of scopes.
+  optional string scope = 12 [(buf.validate.field).string = {min_len: 1, max_len: 2048}];
+
+  // OPTIONAL. Rich authorization request details (RFC 9396).
+  repeated .oidc.token.v1.AuthorizationDetail authorization_details = 13;
+
+  // OPTIONAL. DPoP key binding: JWK SHA-256 thumbprint (RFC 9449
+  // section 6.1) of the key the grant is sender-constrained to.
+  // Serialized as the cnf claim: {"jkt": ...}.
+  optional string cnf_jkt = 14 [(buf.validate.field).string = {
+    min_len: 43
+    max_len: 43
+    pattern: "^[A-Za-z0-9\\-_]{43}$"
+  }];
+
+  // --- Deferred claims (draft section 3.1); modeled for forward
+  // compatibility, not emitted or processed in v1. ---
+
+  // OPTIONAL. Issuer tenant identifier (multi-tenant issuer).
+  optional string tenant = 15 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // OPTIONAL. Resource Authorization Server tenant identifier.
+  optional string aud_tenant = 16 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // OPTIONAL. Resource Authorization Server's identifier for the End-User.
+  optional string aud_sub = 17 [(buf.validate.field).string = {min_len: 1, max_len: 512}];
+
+  // OPTIONAL. RFC 9493 Subject Identifier (JSON object serialized as-is).
+  optional string sub_id = 18 [(buf.validate.field).string = {min_len: 2, max_len: 2048}];
+}

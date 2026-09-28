@@ -38,7 +38,7 @@ func ResourceMetadata() http.Handler {
 	// Prepare metadata
 	md := &discoveryv1.ProtectedResourceMetadata{
 		Resource: "http://127.0.0.1:8085",
-		ScopesProvided: []string{
+		ScopesSupported: []string{
 			"timestamp:read",
 		},
 	}

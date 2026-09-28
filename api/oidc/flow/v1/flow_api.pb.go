@@ -24,12 +24,14 @@
 package flowv1
 
 import (
-	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
+
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+
 	v1 "zntr.io/solid/api/oidc/client/v1"
 	v12 "zntr.io/solid/api/oidc/core/v1"
 	v11 "zntr.io/solid/api/oidc/token/v1"
@@ -471,6 +473,7 @@ type TokenRequest struct {
 	//	*TokenRequest_DeviceCode
 	//	*TokenRequest_RefreshToken
 	//	*TokenRequest_TokenExchange
+	//	*TokenRequest_JwtBearer
 	Grant         isTokenRequest_Grant `protobuf_oneof:"grant"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -614,6 +617,15 @@ func (x *TokenRequest) GetTokenExchange() *GrantTokenExchange {
 	return nil
 }
 
+func (x *TokenRequest) GetJwtBearer() *GrantJWTBearer {
+	if x != nil {
+		if x, ok := x.Grant.(*TokenRequest_JwtBearer); ok {
+			return x.JwtBearer
+		}
+	}
+	return nil
+}
+
 type isTokenRequest_Grant interface {
 	isTokenRequest_Grant()
 }
@@ -643,6 +655,13 @@ type TokenRequest_TokenExchange struct {
 	TokenExchange *GrantTokenExchange `protobuf:"bytes,14,opt,name=token_exchange,json=tokenExchange,proto3,oneof"`
 }
 
+type TokenRequest_JwtBearer struct {
+	// https://datatracker.ietf.org/doc/html/rfc7523#section-2.1
+	// as profiled by draft-ietf-oauth-identity-assertion-authz-grant-04
+	// section 4.4: the assertion MUST be an ID-JAG.
+	JwtBearer *GrantJWTBearer `protobuf:"bytes,15,opt,name=jwt_bearer,json=jwtBearer,proto3,oneof"`
+}
+
 func (*TokenRequest_AuthorizationCode) isTokenRequest_Grant() {}
 
 func (*TokenRequest_ClientCredentials) isTokenRequest_Grant() {}
@@ -652,6 +671,8 @@ func (*TokenRequest_DeviceCode) isTokenRequest_Grant() {}
 func (*TokenRequest_RefreshToken) isTokenRequest_Grant() {}
 
 func (*TokenRequest_TokenExchange) isTokenRequest_Grant() {}
+
+func (*TokenRequest_JwtBearer) isTokenRequest_Grant() {}
 
 type TokenResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1112,7 +1133,7 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"requestUri\x12\x1d\n" +
 	"\n" +
 	"expires_in\x18\x03 \x01(\x06R\texpiresIn\x12\x16\n" +
-	"\x06issuer\x18\x04 \x01(\tR\x06issuer\"\xe0\x06\n" +
+	"\x06issuer\x18\x04 \x01(\tR\x06issuer\"\x9f\a\n" +
 	"\fTokenRequest\x12%\n" +
 	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
 	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x126\n" +
@@ -1131,7 +1152,9 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\vdevice_code\x18\f \x01(\v2\x1d.oidc.flow.v1.GrantDeviceCodeH\x00R\n" +
 	"deviceCode\x12F\n" +
 	"\rrefresh_token\x18\r \x01(\v2\x1f.oidc.flow.v1.GrantRefreshTokenH\x00R\frefreshToken\x12I\n" +
-	"\x0etoken_exchange\x18\x0e \x01(\v2 .oidc.flow.v1.GrantTokenExchangeH\x00R\rtokenExchangeB\x0e\n" +
+	"\x0etoken_exchange\x18\x0e \x01(\v2 .oidc.flow.v1.GrantTokenExchangeH\x00R\rtokenExchange\x12=\n" +
+	"\n" +
+	"jwt_bearer\x18\x0f \x01(\v2\x1c.oidc.flow.v1.GrantJWTBearerH\x00R\tjwtBearerB\x0e\n" +
 	"\x05grant\x12\x05\xbaH\x02\b\x01B\b\n" +
 	"\x06_scopeB\x15\n" +
 	"\x13_token_confirmationB\v\n" +
@@ -1213,7 +1236,8 @@ var file_oidc_flow_v1_flow_api_proto_goTypes = []any{
 	(*GrantDeviceCode)(nil),              // 17: oidc.flow.v1.GrantDeviceCode
 	(*GrantRefreshToken)(nil),            // 18: oidc.flow.v1.GrantRefreshToken
 	(*GrantTokenExchange)(nil),           // 19: oidc.flow.v1.GrantTokenExchange
-	(*v11.Token)(nil),                    // 20: oidc.token.v1.Token
+	(*GrantJWTBearer)(nil),               // 20: oidc.flow.v1.GrantJWTBearer
+	(*v11.Token)(nil),                    // 21: oidc.token.v1.Token
 }
 var file_oidc_flow_v1_flow_api_proto_depIdxs = []int32{
 	10, // 0: oidc.flow.v1.AuthorizeRequest.client:type_name -> oidc.client.v1.Client
@@ -1232,23 +1256,24 @@ var file_oidc_flow_v1_flow_api_proto_depIdxs = []int32{
 	17, // 13: oidc.flow.v1.TokenRequest.device_code:type_name -> oidc.flow.v1.GrantDeviceCode
 	18, // 14: oidc.flow.v1.TokenRequest.refresh_token:type_name -> oidc.flow.v1.GrantRefreshToken
 	19, // 15: oidc.flow.v1.TokenRequest.token_exchange:type_name -> oidc.flow.v1.GrantTokenExchange
-	13, // 16: oidc.flow.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
-	20, // 17: oidc.flow.v1.TokenResponse.access_token:type_name -> oidc.token.v1.Token
-	20, // 18: oidc.flow.v1.TokenResponse.refresh_token:type_name -> oidc.token.v1.Token
-	20, // 19: oidc.flow.v1.TokenResponse.id_token:type_name -> oidc.token.v1.Token
-	14, // 20: oidc.flow.v1.TokenResponse.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	14, // 21: oidc.flow.v1.DeviceAuthorizationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	13, // 22: oidc.flow.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
-	13, // 23: oidc.flow.v1.DeviceCodeValidationResponse.error:type_name -> oidc.core.v1.Error
-	0,  // 24: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
-	4,  // 25: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
-	1,  // 26: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
-	5,  // 27: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
-	26, // [26:28] is the sub-list for method output_type
-	24, // [24:26] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	20, // 16: oidc.flow.v1.TokenRequest.jwt_bearer:type_name -> oidc.flow.v1.GrantJWTBearer
+	13, // 17: oidc.flow.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
+	21, // 18: oidc.flow.v1.TokenResponse.access_token:type_name -> oidc.token.v1.Token
+	21, // 19: oidc.flow.v1.TokenResponse.refresh_token:type_name -> oidc.token.v1.Token
+	21, // 20: oidc.flow.v1.TokenResponse.id_token:type_name -> oidc.token.v1.Token
+	14, // 21: oidc.flow.v1.TokenResponse.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	14, // 22: oidc.flow.v1.DeviceAuthorizationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	13, // 23: oidc.flow.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
+	13, // 24: oidc.flow.v1.DeviceCodeValidationResponse.error:type_name -> oidc.core.v1.Error
+	0,  // 25: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
+	4,  // 26: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
+	1,  // 27: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
+	5,  // 28: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
+	27, // [27:29] is the sub-list for method output_type
+	25, // [25:27] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_oidc_flow_v1_flow_api_proto_init() }
@@ -1266,6 +1291,7 @@ func file_oidc_flow_v1_flow_api_proto_init() {
 		(*TokenRequest_DeviceCode)(nil),
 		(*TokenRequest_RefreshToken)(nil),
 		(*TokenRequest_TokenExchange)(nil),
+		(*TokenRequest_JwtBearer)(nil),
 	}
 	file_oidc_flow_v1_flow_api_proto_msgTypes[5].OneofWrappers = []any{}
 	file_oidc_flow_v1_flow_api_proto_msgTypes[6].OneofWrappers = []any{}

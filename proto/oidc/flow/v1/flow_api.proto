@@ -231,6 +231,10 @@ message TokenRequest {
     GrantRefreshToken refresh_token = 13;
     // https://tools.ietf.org/html/rfc8693#section-2.1
     GrantTokenExchange token_exchange = 14;
+    // https://datatracker.ietf.org/doc/html/rfc7523#section-2.1
+    // as profiled by draft-ietf-oauth-identity-assertion-authz-grant-04
+    // section 4.4: the assertion MUST be an ID-JAG.
+    GrantJWTBearer jwt_bearer = 15;
   }
 }
 

@@ -26,7 +26,6 @@ import (
 	"testing"
 
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
-
 	"zntr.io/solid/sdk/jwk"
 )
 

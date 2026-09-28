@@ -118,3 +118,15 @@ message GrantTokenExchange {
   // request but MUST NOT be included otherwise.
   optional string actor_token_type = 5;
 }
+
+// https://datatracker.ietf.org/doc/html/rfc7523#section-2.1 as profiled
+// by draft-ietf-oauth-identity-assertion-authz-grant-04 section 4.4: the
+// assertion MUST contain an ID-JAG (typ oauth-id-jag+jwt).
+message GrantJWTBearer {
+  // REQUIRED. The ID-JAG JWT obtained from the IdP Authorization Server
+  // via Token Exchange.
+  string assertion = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 16384
+  }];
+}

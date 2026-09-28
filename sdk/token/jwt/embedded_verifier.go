@@ -142,3 +142,7 @@ func (v *embeddedKeyVerifier) Claims(ctx context.Context, raw string, claims any
 	// No error
 	return nil
 }
+
+func (v *embeddedKeyVerifier) ContentType() string {
+	return contentTypeJWT
+}

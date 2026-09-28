@@ -103,3 +103,10 @@ func (tw *tokenAdapter) Claims(publicKey, claims any) error {
 	// Decode claims into target object
 	return decodeClaims(tw.parts, claims)
 }
+
+// UnverifiedClaims decodes the payload without signature verification:
+// the values are attacker-controlled and only usable to route key
+// resolution before Claims performs the verification.
+func (tw *tokenAdapter) UnverifiedClaims(claims any) error {
+	return decodeClaims(tw.parts, claims)
+}

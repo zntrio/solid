@@ -392,6 +392,20 @@ message ServerMetadata {
   // does not support the authorization_details parameter.
   // https://www.rfc-editor.org/rfc/rfc9396#section-10
   repeated string authorization_details_types_supported = 58;
+
+  // OPTIONAL. JSON array containing a list of Token Types that can be
+  // requested as a requested_token_type in the Token Exchange request
+  // when performing Identity and Authorization Chaining Across Domains.
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-chaining#section-3
+  repeated string identity_chaining_requested_token_types_supported = 59;
+
+  // OPTIONAL. JSON array of supported authorization grant profile
+  // identifiers. Inclusion of a profile identifier indicates only that
+  // this authorization server implements the processing rules for that
+  // profile; it does not indicate acceptance of any particular issuer,
+  // tenant, client, subject, audience, or authorization request.
+  // https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-7.2
+  repeated string authorization_grant_profiles_supported = 60;
 }
 
 // MTLSEndpoints contains endpoints for mTLS Client Authentication

@@ -33,6 +33,10 @@ option go_package = "zntr.io/solid/api/oidc/flow/v1;flowv1";
 
 service AuthorizationService {
   rpc Authorize(AuthorizeRequest) returns (AuthorizeResponse);
+
+  // RFC 9126: pushed authorization request registration (PAR).
+  rpc Register(RegistrationRequest) returns (RegistrationResponse);
+
   rpc Token(TokenRequest) returns (TokenResponse);
 }
 

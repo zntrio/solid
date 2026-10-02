@@ -59,8 +59,6 @@ const (
 const (
 	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
 	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-	// AssertionTypeJWTClientAttestation represents JWT Client Attestation name.
-	AssertionTypeJWTClientAttestation = "urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation"
 	// AssertionTypeJWTSPIFFE represents the JWT-SVID client assertion name
 	// (draft-ietf-oauth-spiffe-client-auth-02, sections 3.1 and 9.1).
 	AssertionTypeJWTSPIFFE = "urn:ietf:params:oauth:client-assertion-type:jwt-spiffe"
@@ -137,6 +135,17 @@ const (
 	// certificate mutual-TLS client authentication mechanism
 	// (RFC 8705, section 2.2).
 	AuthMethodSelfSignedTLSClientAuth = "self_signed_tls_client_auth"
+)
+
+// Client attestation typ header values
+// (draft-ietf-oauth-attestation-based-client-auth-11, sections 4 and 5.1).
+const (
+	// TypClientAttestationJWT is the `typ` header value of the Client
+	// Attestation JWT.
+	TypClientAttestationJWT = "oauth-client-attestation+jwt"
+	// TypClientAttestationPoPJWT is the `typ` header value of the Client
+	// Attestation PoP JWT.
+	TypClientAttestationPoPJWT = "oauth-client-attestation-pop+jwt"
 )
 
 // Application Type ------------------------------------------------------------

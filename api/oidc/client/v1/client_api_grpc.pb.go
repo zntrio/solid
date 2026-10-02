@@ -238,3 +238,183 @@ var ClientRegistrationService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "oidc/client/v1/client_api.proto",
 }
+
+const (
+	ClientRegistrationManagementService_Read_FullMethodName   = "/oidc.client.v1.ClientRegistrationManagementService/Read"
+	ClientRegistrationManagementService_Update_FullMethodName = "/oidc.client.v1.ClientRegistrationManagementService/Update"
+	ClientRegistrationManagementService_Delete_FullMethodName = "/oidc.client.v1.ClientRegistrationManagementService/Delete"
+)
+
+// ClientRegistrationManagementServiceClient is the client API for ClientRegistrationManagementService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// https://tools.ietf.org/html/rfc7592
+type ClientRegistrationManagementServiceClient interface {
+	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error)
+	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error)
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+}
+
+type clientRegistrationManagementServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewClientRegistrationManagementServiceClient(cc grpc.ClientConnInterface) ClientRegistrationManagementServiceClient {
+	return &clientRegistrationManagementServiceClient{cc}
+}
+
+func (c *clientRegistrationManagementServiceClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadResponse)
+	err := c.cc.Invoke(ctx, ClientRegistrationManagementService_Read_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientRegistrationManagementServiceClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*UpdateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateResponse)
+	err := c.cc.Invoke(ctx, ClientRegistrationManagementService_Update_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *clientRegistrationManagementServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, ClientRegistrationManagementService_Delete_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ClientRegistrationManagementServiceServer is the server API for ClientRegistrationManagementService service.
+// All implementations should embed UnimplementedClientRegistrationManagementServiceServer
+// for forward compatibility.
+//
+// https://tools.ietf.org/html/rfc7592
+type ClientRegistrationManagementServiceServer interface {
+	Read(context.Context, *ReadRequest) (*ReadResponse, error)
+	Update(context.Context, *UpdateRequest) (*UpdateResponse, error)
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+}
+
+// UnimplementedClientRegistrationManagementServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedClientRegistrationManagementServiceServer struct{}
+
+func (UnimplementedClientRegistrationManagementServiceServer) Read(context.Context, *ReadRequest) (*ReadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Read not implemented")
+}
+func (UnimplementedClientRegistrationManagementServiceServer) Update(context.Context, *UpdateRequest) (*UpdateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Update not implemented")
+}
+func (UnimplementedClientRegistrationManagementServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedClientRegistrationManagementServiceServer) testEmbeddedByValue() {}
+
+// UnsafeClientRegistrationManagementServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ClientRegistrationManagementServiceServer will
+// result in compilation errors.
+type UnsafeClientRegistrationManagementServiceServer interface {
+	mustEmbedUnimplementedClientRegistrationManagementServiceServer()
+}
+
+func RegisterClientRegistrationManagementServiceServer(s grpc.ServiceRegistrar, srv ClientRegistrationManagementServiceServer) {
+	// If the following call panics, it indicates UnimplementedClientRegistrationManagementServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ClientRegistrationManagementService_ServiceDesc, srv)
+}
+
+func _ClientRegistrationManagementService_Read_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientRegistrationManagementServiceServer).Read(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientRegistrationManagementService_Read_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientRegistrationManagementServiceServer).Read(ctx, req.(*ReadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientRegistrationManagementService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientRegistrationManagementServiceServer).Update(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientRegistrationManagementService_Update_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientRegistrationManagementServiceServer).Update(ctx, req.(*UpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ClientRegistrationManagementService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ClientRegistrationManagementServiceServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ClientRegistrationManagementService_Delete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ClientRegistrationManagementServiceServer).Delete(ctx, req.(*DeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ClientRegistrationManagementService_ServiceDesc is the grpc.ServiceDesc for ClientRegistrationManagementService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ClientRegistrationManagementService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "oidc.client.v1.ClientRegistrationManagementService",
+	HandlerType: (*ClientRegistrationManagementServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Read",
+			Handler:    _ClientRegistrationManagementService_Read_Handler,
+		},
+		{
+			MethodName: "Update",
+			Handler:    _ClientRegistrationManagementService_Update_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _ClientRegistrationManagementService_Delete_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "oidc/client/v1/client_api.proto",
+}

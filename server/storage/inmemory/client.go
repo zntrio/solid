@@ -272,3 +272,29 @@ func (s *clientStorage) Register(ctx context.Context, c *clientv1.Client) (strin
 	// No error
 	return c.ClientId, nil
 }
+
+func (s *clientStorage) Update(ctx context.Context, c *clientv1.Client) error {
+	// Check the client exists
+	if _, ok := s.backend[c.GetClientId()]; !ok {
+		return storage.ErrNotFound
+	}
+
+	// Replace the registration record
+	s.backend[c.GetClientId()] = c
+
+	// No error
+	return nil
+}
+
+func (s *clientStorage) Delete(ctx context.Context, id string) error {
+	// Check the client exists
+	if _, ok := s.backend[id]; !ok {
+		return storage.ErrNotFound
+	}
+
+	// Remove the registration record
+	delete(s.backend, id)
+
+	// No error
+	return nil
+}

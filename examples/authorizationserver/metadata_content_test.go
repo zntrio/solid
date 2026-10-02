@@ -43,3 +43,17 @@ func TestMetadataDocumentAdvertisesAuthorizationDetailsTypes(t *testing.T) {
 	require.Equal(t, []string{"payment_initiation"}, md.AuthorizationDetailsTypesSupported,
 		"authorization_details_types_supported must advertise the example's registered type")
 }
+
+// TestMetadataDocumentAdvertisesClientAttestationAlgorithms asserts the
+// example's discovery document advertises
+// client_attestation_signing_alg_values_supported and
+// client_attestation_pop_signing_alg_values_supported, as REQUIRED by
+// draft-ietf-oauth-attestation-based-client-auth-11 (section 8) when the
+// Client Attestation PoP JWT mechanism is used.
+func TestMetadataDocumentAdvertisesClientAttestationAlgorithms(t *testing.T) {
+	md := metadataDocument("https://as.example.org")
+	require.Equal(t, []string{"ML-DSA-65"}, md.ClientAttestationSigningAlgValuesSupported,
+		"client_attestation_signing_alg_values_supported must advertise ML-DSA-65")
+	require.Equal(t, []string{"ML-DSA-65"}, md.ClientAttestationPopSigningAlgValuesSupported,
+		"client_attestation_pop_signing_alg_values_supported must advertise ML-DSA-65")
+}

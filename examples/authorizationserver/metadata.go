@@ -100,6 +100,11 @@ func metadataDocument(issuer string) *discoveryv1.ServerMetadata {
 		BackchannelTokenDeliveryModesSupported:                    []string{"poll"},
 		BackchannelAuthenticationRequestSigningAlgValuesSupported: []string{"ES256", mldsaAlg},
 		AuthorizationGrantProfilesSupported:                       []string{oidc.IDJAGGrantProfile},
+		// draft-ietf-oauth-attestation-based-client-auth-11 section 8:
+		// the attestation server signs ML-DSA-65 and the example client's
+		// PoP is ML-DSA-65 — advertise exactly that.
+		ClientAttestationSigningAlgValuesSupported:    []string{mldsaAlg},
+		ClientAttestationPopSigningAlgValuesSupported: []string{mldsaAlg},
 	}
 
 	return md

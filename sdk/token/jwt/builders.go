@@ -19,6 +19,7 @@ package jwt
 
 import (
 	"fmt"
+	"sort"
 
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
@@ -108,6 +109,38 @@ func TypedSigner(tokenType, alg string, keyProvider jwk.KeyProviderFunc) token.S
 	}
 	return &defaultSigner{
 		tokenType:   token.HeaderType(tokenType, "JWT"),
+		alg:         alg,
+		keyProvider: keyProvider,
+		embedJWK:    false,
+	}
+}
+
+// SupportedSignAlgorithms returns the sorted JOSE signing algorithm
+// allowlist enforced by this package's signers. Consumers assembling
+// verifiers for dynamically-keyed JWTs (e.g. SD-JWT key binding) pass it
+// as the accepted algorithm set.
+func SupportedSignAlgorithms() []string {
+	algs := make([]string, 0, len(supportedSignAlgorithms))
+	for alg := range supportedSignAlgorithms {
+		algs = append(algs, alg)
+	}
+	sort.Strings(algs)
+	return algs
+}
+
+// RawTypedSigner returns a JWT signer storing the typ header value
+// verbatim, for media types that do not follow the "<base>+jwt"
+// derivation of HeaderType (e.g. the RFC 9901 "vc+sd-jwt" and "kb+jwt").
+// The alg allowlist is enforced at construction time, exactly as with
+// TypedSigner.
+func RawTypedSigner(typ, alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+	// Fail fast on insecure algorithms: a signer built with an
+	// out-of-allowlist alg is a programming error, not a runtime input.
+	if err := enforceSignAlgorithmAllowlist(alg); err != nil {
+		panic(err)
+	}
+	return &defaultSigner{
+		tokenType:   typ,
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,

@@ -29,6 +29,7 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 )
 
@@ -71,13 +72,14 @@ func signHandler(priv *mldsa.PrivateKey) http.Handler {
 		tok := gojwt.NewWithClaims(jwk.SigningMethodMLDSA65, gojwt.MapClaims{
 			"iss": "urn:solid:attestation-server",
 			"sub": data.ClientID,
+			"iat": now,
 			"nbf": now - 1,
 			"exp": now + 3600, // Valid for 1h
 			"cnf": map[string]any{
 				"jwk": data.ClientPublicKey,
 			},
 		})
-		tok.Header["typ"] = "client-attestation+jwt"
+		tok.Header["typ"] = oidc.TypClientAttestationJWT
 		tok.Header["jwk"] = pubJWK
 		response, err := tok.SignedString(priv)
 		if err != nil {

@@ -94,6 +94,22 @@ func (s *tokenStorage) GetByGrantID(ctx context.Context, issuer, grantID string)
 	return result
 }
 
+func (s *tokenStorage) GetByClientID(ctx context.Context, clientID string) []*tokenv1.Token {
+	// Collect every token issued to the client.
+	result := []*tokenv1.Token{}
+	s.idIndex.Range(func(_, v any) bool {
+		t, ok := v.(*tokenv1.Token)
+		if !ok || t.Metadata == nil || t.Metadata.ClientId != clientID {
+			return true
+		}
+		result = append(result, t)
+		return true
+	})
+
+	// No error
+	return result
+}
+
 func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 	// Retrieve token
 	x, ok := s.idIndex.Load(id)

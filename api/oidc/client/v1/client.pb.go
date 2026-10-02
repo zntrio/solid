@@ -234,8 +234,11 @@ type Client struct {
 	// allowed; anyone else receives the no-cause-distinction inactive
 	// envelope.
 	AuthorizedIntrospectionClients []string `protobuf:"bytes,32,rep,name=authorized_introspection_clients,json=authorizedIntrospectionClients,proto3" json:"authorized_introspection_clients,omitempty"`
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	// RFC 7592 section 2: registration access token bound to this client
+	// (server-side record; never returned outside the registration surface).
+	RegistrationAccessToken *string `protobuf:"bytes,33,opt,name=registration_access_token,json=registrationAccessToken,proto3,oneof" json:"registration_access_token,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *Client) Reset() {
@@ -490,6 +493,13 @@ func (x *Client) GetAuthorizedIntrospectionClients() []string {
 		return x.AuthorizedIntrospectionClients
 	}
 	return nil
+}
+
+func (x *Client) GetRegistrationAccessToken() string {
+	if x != nil && x.RegistrationAccessToken != nil {
+		return *x.RegistrationAccessToken
+	}
+	return ""
 }
 
 type ClientMeta struct {
@@ -1183,7 +1193,7 @@ var File_oidc_client_v1_client_proto protoreflect.FileDescriptor
 
 const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"\n" +
-	"\x1boidc/client/v1/client.proto\x12\x0eoidc.client.v1\"\xb3\v\n" +
+	"\x1boidc/client/v1/client.proto\x12\x0eoidc.client.v1\"\x92\f\n" +
 	"\x06Client\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12;\n" +
 	"\vclient_type\x18\x02 \x01(\x0e2\x1a.oidc.client.v1.ClientTypeR\n" +
@@ -1222,7 +1232,9 @@ const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"\tspiffe_id\x18\x1d \x01(\tR\bspiffeId\x124\n" +
 	"\x16spiffe_bundle_endpoint\x18\x1e \x01(\tR\x14spiffeBundleEndpoint\x12#\n" +
 	"\rspiffe_bundle\x18\x1f \x01(\fR\fspiffeBundle\x12H\n" +
-	" authorized_introspection_clients\x18  \x03(\tR\x1eauthorizedIntrospectionClients\"\xf0\x17\n" +
+	" authorized_introspection_clients\x18  \x03(\tR\x1eauthorizedIntrospectionClients\x12?\n" +
+	"\x19registration_access_token\x18! \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01B\x1c\n" +
+	"\x1a_registration_access_token\"\xf0\x17\n" +
 	"\n" +
 	"ClientMeta\x12.\n" +
 	"\x10application_type\x18\x01 \x01(\tH\x00R\x0fapplicationType\x88\x01\x01\x12#\n" +
@@ -1459,6 +1471,7 @@ func file_oidc_client_v1_client_proto_init() {
 	if File_oidc_client_v1_client_proto != nil {
 		return
 	}
+	file_oidc_client_v1_client_proto_msgTypes[0].OneofWrappers = []any{}
 	file_oidc_client_v1_client_proto_msgTypes[1].OneofWrappers = []any{}
 	file_oidc_client_v1_client_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}

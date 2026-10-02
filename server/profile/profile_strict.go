@@ -79,6 +79,9 @@ var strictProfile = &defaultServerProfile{
 				// RFC 8705 section 2.1: PKI mutual-TLS client
 				// authentication; the natural fit for service workloads.
 				oidc.AuthMethodTLSClientAuth,
+				// draft-ietf-oauth-attestation-based-client-auth-11:
+				// attested service workloads.
+				oidc.AuthMethodClientAttestationJWT,
 			},
 		},
 	},

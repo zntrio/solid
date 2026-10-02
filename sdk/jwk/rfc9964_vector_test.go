@@ -2,12 +2,11 @@ package jwk
 
 import (
 	"crypto"
+	"crypto/mldsa"
 	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
-
-	"crypto/mldsa"
 )
 
 // RFC 9964 Appendix A.1 ML-DSA-44 test vector (all-zeros seed).

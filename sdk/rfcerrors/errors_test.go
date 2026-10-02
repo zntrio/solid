@@ -107,6 +107,16 @@ func Test_builders(t *testing.T) {
 			got:  InvalidAuthorizationDetails().Build(),
 			want: &corev1.Error{Error: "invalid_authorization_details", ErrorDescription: "The requested authorization details are invalid, unknown, or malformed."},
 		},
+		{
+			name: "use_fresh_attestation per draft-ietf-oauth-attestation-based-client-auth-11 section 7.4",
+			got:  UseFreshAttestation().Build(),
+			want: &corev1.Error{Error: "use_fresh_attestation", ErrorDescription: "The client attestation JWT is not fresh enough to be acceptable by the server."},
+		},
+		{
+			name: "invalid_client_attestation per draft-ietf-oauth-attestation-based-client-auth-11 section 7.4",
+			got:  InvalidClientAttestation().Build(),
+			want: &corev1.Error{Error: "invalid_client_attestation", ErrorDescription: "The client attestation or its proof of possession could not be verified, or is not supported."},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

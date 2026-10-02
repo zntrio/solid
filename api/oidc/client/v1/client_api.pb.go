@@ -48,11 +48,11 @@ type AuthenticateRequest struct {
 	// draft-ietf-oauth-spiffe-client-auth-02 section 3.2: client certificate
 	// from the mutual TLS presentation layer (X.509-SVID), PEM-encoded.
 	TlsClientCert *string `protobuf:"bytes,5,opt,name=tls_client_cert,json=tlsClientCert,proto3,oneof" json:"tls_client_cert,omitempty"`
-	// draft-ietf-oauth-spiffe-client-auth-02 section 3.3: WIT-SVID carried in
-	// the OAuth-Client-Attestation header.
+	// draft-ietf-oauth-attestation-based-client-auth-11 section 4: Client
+	// Attestation JWT carried in the OAuth-Client-Attestation header.
 	ClientAttestation *string `protobuf:"bytes,6,opt,name=client_attestation,json=clientAttestation,proto3,oneof" json:"client_attestation,omitempty"`
-	// draft-ietf-oauth-spiffe-client-auth-02 section 3.3: attestation PoP JWT
-	// carried in the OAuth-Client-Attestation-PoP header.
+	// draft-ietf-oauth-attestation-based-client-auth-11 section 5.1: Client
+	// Attestation PoP JWT carried in the OAuth-Client-Attestation-PoP header.
 	ClientAttestationPop *string `protobuf:"bytes,7,opt,name=client_attestation_pop,json=clientAttestationPop,proto3,oneof" json:"client_attestation_pop,omitempty"`
 	// draft-ietf-oauth-security-topics-update-03 section 2.1.2.2: the
 	// receiving endpoint URI, used to enforce endpoint-exact client-assertion
@@ -248,11 +248,15 @@ func (x *RegisterRequest) GetMetadata() *ClientMeta {
 }
 
 type RegisterResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         *v1.Error              `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
-	Client        *Client                `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Error  *v1.Error              `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Client *Client                `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
+	// RFC 7592 section 3: bearer token for the client configuration endpoint.
+	RegistrationAccessToken *string `protobuf:"bytes,3,opt,name=registration_access_token,json=registrationAccessToken,proto3,oneof" json:"registration_access_token,omitempty"`
+	// RFC 7592 section 3: fully qualified client configuration endpoint URI.
+	RegistrationClientUri *string `protobuf:"bytes,4,opt,name=registration_client_uri,json=registrationClientUri,proto3,oneof" json:"registration_client_uri,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *RegisterResponse) Reset() {
@@ -299,6 +303,341 @@ func (x *RegisterResponse) GetClient() *Client {
 	return nil
 }
 
+func (x *RegisterResponse) GetRegistrationAccessToken() string {
+	if x != nil && x.RegistrationAccessToken != nil {
+		return *x.RegistrationAccessToken
+	}
+	return ""
+}
+
+func (x *RegisterResponse) GetRegistrationClientUri() string {
+	if x != nil && x.RegistrationClientUri != nil {
+		return *x.RegistrationClientUri
+	}
+	return ""
+}
+
+// https://tools.ietf.org/html/rfc7592#section-2.1
+type ReadRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// RFC 7592 section 2: bearer token authenticating the caller.
+	RegistrationAccessToken *string `protobuf:"bytes,1,opt,name=registration_access_token,json=registrationAccessToken,proto3,oneof" json:"registration_access_token,omitempty"`
+	// RFC 7592 section 2.1: the client whose configuration is read.
+	ClientId      *string `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3,oneof" json:"client_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadRequest) Reset() {
+	*x = ReadRequest{}
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadRequest) ProtoMessage() {}
+
+func (x *ReadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadRequest.ProtoReflect.Descriptor instead.
+func (*ReadRequest) Descriptor() ([]byte, []int) {
+	return file_oidc_client_v1_client_api_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ReadRequest) GetRegistrationAccessToken() string {
+	if x != nil && x.RegistrationAccessToken != nil {
+		return *x.RegistrationAccessToken
+	}
+	return ""
+}
+
+func (x *ReadRequest) GetClientId() string {
+	if x != nil && x.ClientId != nil {
+		return *x.ClientId
+	}
+	return ""
+}
+
+// https://tools.ietf.org/html/rfc7592#section-2.2
+type UpdateRequest struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationAccessToken *string                `protobuf:"bytes,1,opt,name=registration_access_token,json=registrationAccessToken,proto3,oneof" json:"registration_access_token,omitempty"`
+	// RFC 7592 section 2.2: MUST equal the currently issued client_id.
+	ClientId *string `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3,oneof" json:"client_id,omitempty"`
+	// RFC 7592 section 2.2: full replacement metadata; omitted fields are
+	// deleted from the registration (replace-not-augment).
+	Metadata      *ClientMeta `protobuf:"bytes,3,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateRequest) Reset() {
+	*x = UpdateRequest{}
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRequest) ProtoMessage() {}
+
+func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
+func (*UpdateRequest) Descriptor() ([]byte, []int) {
+	return file_oidc_client_v1_client_api_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UpdateRequest) GetRegistrationAccessToken() string {
+	if x != nil && x.RegistrationAccessToken != nil {
+		return *x.RegistrationAccessToken
+	}
+	return ""
+}
+
+func (x *UpdateRequest) GetClientId() string {
+	if x != nil && x.ClientId != nil {
+		return *x.ClientId
+	}
+	return ""
+}
+
+func (x *UpdateRequest) GetMetadata() *ClientMeta {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+// https://tools.ietf.org/html/rfc7592#section-2.3
+type DeleteRequest struct {
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	RegistrationAccessToken *string                `protobuf:"bytes,1,opt,name=registration_access_token,json=registrationAccessToken,proto3,oneof" json:"registration_access_token,omitempty"`
+	ClientId                *string                `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3,oneof" json:"client_id,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRequest) ProtoMessage() {}
+
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_oidc_client_v1_client_api_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DeleteRequest) GetRegistrationAccessToken() string {
+	if x != nil && x.RegistrationAccessToken != nil {
+		return *x.RegistrationAccessToken
+	}
+	return ""
+}
+
+func (x *DeleteRequest) GetClientId() string {
+	if x != nil && x.ClientId != nil {
+		return *x.ClientId
+	}
+	return ""
+}
+
+// RFC 7592 section 3: client information response, shared by read/update.
+type ReadResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *v1.Error              `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Client        *Client                `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReadResponse) Reset() {
+	*x = ReadResponse{}
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReadResponse) ProtoMessage() {}
+
+func (x *ReadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReadResponse.ProtoReflect.Descriptor instead.
+func (*ReadResponse) Descriptor() ([]byte, []int) {
+	return file_oidc_client_v1_client_api_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ReadResponse) GetError() *v1.Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *ReadResponse) GetClient() *Client {
+	if x != nil {
+		return x.Client
+	}
+	return nil
+}
+
+type UpdateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *v1.Error              `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	Client        *Client                `protobuf:"bytes,2,opt,name=client,proto3" json:"client,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateResponse) Reset() {
+	*x = UpdateResponse{}
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateResponse) ProtoMessage() {}
+
+func (x *UpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateResponse.ProtoReflect.Descriptor instead.
+func (*UpdateResponse) Descriptor() ([]byte, []int) {
+	return file_oidc_client_v1_client_api_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *UpdateResponse) GetError() *v1.Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
+func (x *UpdateResponse) GetClient() *Client {
+	if x != nil {
+		return x.Client
+	}
+	return nil
+}
+
+type DeleteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Error         *v1.Error              `protobuf:"bytes,1,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteResponse) Reset() {
+	*x = DeleteResponse{}
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteResponse) ProtoMessage() {}
+
+func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_client_v1_client_api_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteResponse.ProtoReflect.Descriptor instead.
+func (*DeleteResponse) Descriptor() ([]byte, []int) {
+	return file_oidc_client_v1_client_api_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteResponse) GetError() *v1.Error {
+	if x != nil {
+		return x.Error
+	}
+	return nil
+}
+
 var File_oidc_client_v1_client_api_proto protoreflect.FileDescriptor
 
 const file_oidc_client_v1_client_api_proto_rawDesc = "" +
@@ -326,14 +665,49 @@ const file_oidc_client_v1_client_api_proto_rawDesc = "" +
 	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\x12.\n" +
 	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\"I\n" +
 	"\x0fRegisterRequest\x126\n" +
-	"\bmetadata\x18\x01 \x01(\v2\x1a.oidc.client.v1.ClientMetaR\bmetadata\"m\n" +
+	"\bmetadata\x18\x01 \x01(\v2\x1a.oidc.client.v1.ClientMetaR\bmetadata\"\xa5\x02\n" +
 	"\x10RegisterResponse\x12)\n" +
 	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\x12.\n" +
-	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client2z\n" +
+	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12?\n" +
+	"\x19registration_access_token\x18\x03 \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01\x12;\n" +
+	"\x17registration_client_uri\x18\x04 \x01(\tH\x01R\x15registrationClientUri\x88\x01\x01B\x1c\n" +
+	"\x1a_registration_access_tokenB\x1a\n" +
+	"\x18_registration_client_uri\"\x9c\x01\n" +
+	"\vReadRequest\x12?\n" +
+	"\x19registration_access_token\x18\x01 \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01\x12 \n" +
+	"\tclient_id\x18\x02 \x01(\tH\x01R\bclientId\x88\x01\x01B\x1c\n" +
+	"\x1a_registration_access_tokenB\f\n" +
+	"\n" +
+	"_client_id\"\xd6\x01\n" +
+	"\rUpdateRequest\x12?\n" +
+	"\x19registration_access_token\x18\x01 \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01\x12 \n" +
+	"\tclient_id\x18\x02 \x01(\tH\x01R\bclientId\x88\x01\x01\x126\n" +
+	"\bmetadata\x18\x03 \x01(\v2\x1a.oidc.client.v1.ClientMetaR\bmetadataB\x1c\n" +
+	"\x1a_registration_access_tokenB\f\n" +
+	"\n" +
+	"_client_id\"\x9e\x01\n" +
+	"\rDeleteRequest\x12?\n" +
+	"\x19registration_access_token\x18\x01 \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01\x12 \n" +
+	"\tclient_id\x18\x02 \x01(\tH\x01R\bclientId\x88\x01\x01B\x1c\n" +
+	"\x1a_registration_access_tokenB\f\n" +
+	"\n" +
+	"_client_id\"i\n" +
+	"\fReadResponse\x12)\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\x12.\n" +
+	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\"k\n" +
+	"\x0eUpdateResponse\x12)\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\x12.\n" +
+	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\";\n" +
+	"\x0eDeleteResponse\x12)\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error2z\n" +
 	"\x1bClientAuthenticationService\x12[\n" +
 	"\fAuthenticate\x12#.oidc.client.v1.AuthenticateRequest\x1a$.oidc.client.v1.AuthenticateResponse\"\x002l\n" +
 	"\x19ClientRegistrationService\x12O\n" +
-	"\bRegister\x12\x1f.oidc.client.v1.RegisterRequest\x1a .oidc.client.v1.RegisterResponse\"\x00B+Z)zntr.io/solid/api/oidc/client/v1;clientv1b\x06proto3"
+	"\bRegister\x12\x1f.oidc.client.v1.RegisterRequest\x1a .oidc.client.v1.RegisterResponse\"\x002\x80\x02\n" +
+	"#ClientRegistrationManagementService\x12C\n" +
+	"\x04Read\x12\x1b.oidc.client.v1.ReadRequest\x1a\x1c.oidc.client.v1.ReadResponse\"\x00\x12I\n" +
+	"\x06Update\x12\x1d.oidc.client.v1.UpdateRequest\x1a\x1e.oidc.client.v1.UpdateResponse\"\x00\x12I\n" +
+	"\x06Delete\x12\x1d.oidc.client.v1.DeleteRequest\x1a\x1e.oidc.client.v1.DeleteResponse\"\x00B+Z)zntr.io/solid/api/oidc/client/v1;clientv1b\x06proto3"
 
 var (
 	file_oidc_client_v1_client_api_proto_rawDescOnce sync.Once
@@ -347,31 +721,49 @@ func file_oidc_client_v1_client_api_proto_rawDescGZIP() []byte {
 	return file_oidc_client_v1_client_api_proto_rawDescData
 }
 
-var file_oidc_client_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_oidc_client_v1_client_api_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_oidc_client_v1_client_api_proto_goTypes = []any{
 	(*AuthenticateRequest)(nil),  // 0: oidc.client.v1.AuthenticateRequest
 	(*AuthenticateResponse)(nil), // 1: oidc.client.v1.AuthenticateResponse
 	(*RegisterRequest)(nil),      // 2: oidc.client.v1.RegisterRequest
 	(*RegisterResponse)(nil),     // 3: oidc.client.v1.RegisterResponse
-	(*v1.Error)(nil),             // 4: oidc.core.v1.Error
-	(*Client)(nil),               // 5: oidc.client.v1.Client
-	(*ClientMeta)(nil),           // 6: oidc.client.v1.ClientMeta
+	(*ReadRequest)(nil),          // 4: oidc.client.v1.ReadRequest
+	(*UpdateRequest)(nil),        // 5: oidc.client.v1.UpdateRequest
+	(*DeleteRequest)(nil),        // 6: oidc.client.v1.DeleteRequest
+	(*ReadResponse)(nil),         // 7: oidc.client.v1.ReadResponse
+	(*UpdateResponse)(nil),       // 8: oidc.client.v1.UpdateResponse
+	(*DeleteResponse)(nil),       // 9: oidc.client.v1.DeleteResponse
+	(*v1.Error)(nil),             // 10: oidc.core.v1.Error
+	(*Client)(nil),               // 11: oidc.client.v1.Client
+	(*ClientMeta)(nil),           // 12: oidc.client.v1.ClientMeta
 }
 var file_oidc_client_v1_client_api_proto_depIdxs = []int32{
-	4, // 0: oidc.client.v1.AuthenticateResponse.error:type_name -> oidc.core.v1.Error
-	5, // 1: oidc.client.v1.AuthenticateResponse.client:type_name -> oidc.client.v1.Client
-	6, // 2: oidc.client.v1.RegisterRequest.metadata:type_name -> oidc.client.v1.ClientMeta
-	4, // 3: oidc.client.v1.RegisterResponse.error:type_name -> oidc.core.v1.Error
-	5, // 4: oidc.client.v1.RegisterResponse.client:type_name -> oidc.client.v1.Client
-	0, // 5: oidc.client.v1.ClientAuthenticationService.Authenticate:input_type -> oidc.client.v1.AuthenticateRequest
-	2, // 6: oidc.client.v1.ClientRegistrationService.Register:input_type -> oidc.client.v1.RegisterRequest
-	1, // 7: oidc.client.v1.ClientAuthenticationService.Authenticate:output_type -> oidc.client.v1.AuthenticateResponse
-	3, // 8: oidc.client.v1.ClientRegistrationService.Register:output_type -> oidc.client.v1.RegisterResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	10, // 0: oidc.client.v1.AuthenticateResponse.error:type_name -> oidc.core.v1.Error
+	11, // 1: oidc.client.v1.AuthenticateResponse.client:type_name -> oidc.client.v1.Client
+	12, // 2: oidc.client.v1.RegisterRequest.metadata:type_name -> oidc.client.v1.ClientMeta
+	10, // 3: oidc.client.v1.RegisterResponse.error:type_name -> oidc.core.v1.Error
+	11, // 4: oidc.client.v1.RegisterResponse.client:type_name -> oidc.client.v1.Client
+	12, // 5: oidc.client.v1.UpdateRequest.metadata:type_name -> oidc.client.v1.ClientMeta
+	10, // 6: oidc.client.v1.ReadResponse.error:type_name -> oidc.core.v1.Error
+	11, // 7: oidc.client.v1.ReadResponse.client:type_name -> oidc.client.v1.Client
+	10, // 8: oidc.client.v1.UpdateResponse.error:type_name -> oidc.core.v1.Error
+	11, // 9: oidc.client.v1.UpdateResponse.client:type_name -> oidc.client.v1.Client
+	10, // 10: oidc.client.v1.DeleteResponse.error:type_name -> oidc.core.v1.Error
+	0,  // 11: oidc.client.v1.ClientAuthenticationService.Authenticate:input_type -> oidc.client.v1.AuthenticateRequest
+	2,  // 12: oidc.client.v1.ClientRegistrationService.Register:input_type -> oidc.client.v1.RegisterRequest
+	4,  // 13: oidc.client.v1.ClientRegistrationManagementService.Read:input_type -> oidc.client.v1.ReadRequest
+	5,  // 14: oidc.client.v1.ClientRegistrationManagementService.Update:input_type -> oidc.client.v1.UpdateRequest
+	6,  // 15: oidc.client.v1.ClientRegistrationManagementService.Delete:input_type -> oidc.client.v1.DeleteRequest
+	1,  // 16: oidc.client.v1.ClientAuthenticationService.Authenticate:output_type -> oidc.client.v1.AuthenticateResponse
+	3,  // 17: oidc.client.v1.ClientRegistrationService.Register:output_type -> oidc.client.v1.RegisterResponse
+	7,  // 18: oidc.client.v1.ClientRegistrationManagementService.Read:output_type -> oidc.client.v1.ReadResponse
+	8,  // 19: oidc.client.v1.ClientRegistrationManagementService.Update:output_type -> oidc.client.v1.UpdateResponse
+	9,  // 20: oidc.client.v1.ClientRegistrationManagementService.Delete:output_type -> oidc.client.v1.DeleteResponse
+	16, // [16:21] is the sub-list for method output_type
+	11, // [11:16] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_oidc_client_v1_client_api_proto_init() }
@@ -381,15 +773,19 @@ func file_oidc_client_v1_client_api_proto_init() {
 	}
 	file_oidc_client_v1_client_proto_init()
 	file_oidc_client_v1_client_api_proto_msgTypes[0].OneofWrappers = []any{}
+	file_oidc_client_v1_client_api_proto_msgTypes[3].OneofWrappers = []any{}
+	file_oidc_client_v1_client_api_proto_msgTypes[4].OneofWrappers = []any{}
+	file_oidc_client_v1_client_api_proto_msgTypes[5].OneofWrappers = []any{}
+	file_oidc_client_v1_client_api_proto_msgTypes[6].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_oidc_client_v1_client_api_proto_rawDesc), len(file_oidc_client_v1_client_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   10,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_oidc_client_v1_client_api_proto_goTypes,
 		DependencyIndexes: file_oidc_client_v1_client_api_proto_depIdxs,

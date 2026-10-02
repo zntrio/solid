@@ -41,6 +41,20 @@ func (m *MockTokenReader) EXPECT() *MockTokenReaderMockRecorder {
 	return m.recorder
 }
 
+// GetByClientID mocks base method.
+func (m *MockTokenReader) GetByClientID(ctx context.Context, clientID string) []*tokenv1.Token {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByClientID", ctx, clientID)
+	ret0, _ := ret[0].([]*tokenv1.Token)
+	return ret0
+}
+
+// GetByClientID indicates an expected call of GetByClientID.
+func (mr *MockTokenReaderMockRecorder) GetByClientID(ctx, clientID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByClientID", reflect.TypeOf((*MockTokenReader)(nil).GetByClientID), ctx, clientID)
+}
+
 // GetByGrantID mocks base method.
 func (m *MockTokenReader) GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token {
 	m.ctrl.T.Helper()

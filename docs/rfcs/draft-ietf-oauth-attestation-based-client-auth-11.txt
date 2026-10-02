@@ -1,0 +1,2856 @@
+
+
+
+
+Web Authorization Protocol                                     T. Looker
+Internet-Draft                                                     MATTR
+Intended status: Standards Track                              P. Bastian
+Expires: 7 March 2027                                    Bundesdruckerei
+                                                              C. Bormann
+                                                                  SPRIND
+                                                        3 September 2026
+
+
+           OAuth 2.0 Attestation-Based Client Authentication
+           draft-ietf-oauth-attestation-based-client-auth-11
+
+Abstract
+
+   This specification defines an extension to the OAuth 2.0 protocol
+   (RFC 6749) that enables a client instance to include a key-bound
+   attestation when interacting with an Authorization Server or Resource
+   Server.  This mechanism allows a client instance to prove its
+   authenticity verified by a client attester without revealing its
+   target audience to that attester.  It may also serve as a mechanism
+   for client authentication as per OAuth 2.0.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at https://oauth-
+   wg.github.io/draft-ietf-oauth-attestation-based-client-auth/draft-
+   ietf-oauth-attestation-based-client-auth.html.  Status information
+   for this document may be found at https://datatracker.ietf.org/doc/
+   draft-ietf-oauth-attestation-based-client-auth/.
+
+   Discussion of this document takes place on the Web Authorization
+   Protocol Working Group mailing list (mailto:oauth@ietf.org), which is
+   archived at https://mailarchive.ietf.org/arch/browse/oauth/.
+   Subscribe at https://www.ietf.org/mailman/listinfo/oauth/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/oauth-wg/draft-ietf-oauth-attestation-based-
+   client-auth.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 1]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 7 March 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   4
+     1.1.  Data Flow . . . . . . . . . . . . . . . . . . . . . . . .   5
+   2.  Conventions and Definitions . . . . . . . . . . . . . . . . .   7
+   3.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   7
+   4.  Client Attestation JWT  . . . . . . . . . . . . . . . . . . .   7
+   5.  Proof of Possession . . . . . . . . . . . . . . . . . . . . .  10
+     5.1.  Client Attestation PoP JWT  . . . . . . . . . . . . . . .  10
+     5.2.  Using DPoP as the Proof of Possession . . . . . . . . . .  12
+   6.  Challenges  . . . . . . . . . . . . . . . . . . . . . . . . .  14
+     6.1.  Providing Challenges in Errors  . . . . . . . . . . . . .  15
+     6.2.  Providing Challenges in Previous Responses  . . . . . . .  15
+     6.3.  Providing Challenges through the Challenge Endpoint . . .  16
+   7.  Verification and Processing . . . . . . . . . . . . . . . . .  17
+     7.1.  Client Attestation JWT  . . . . . . . . . . . . . . . . .  18
+     7.2.  Client Attestation PoP JWT  . . . . . . . . . . . . . . .  18
+     7.3.  DPoP Combined Mode  . . . . . . . . . . . . . . . . . . .  19
+     7.4.  Errors  . . . . . . . . . . . . . . . . . . . . . . . . .  20
+     7.5.  Client Attestation as an OAuth Client Authentication  . .  21
+     7.6.  Client Attestation as an additional security signal . . .  21
+   8.  Authorization Server and Resource Server Metadata . . . . . .  24
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 2]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   9.  Client Metadata . . . . . . . . . . . . . . . . . . . . . . .  25
+   10. Implementation Considerations . . . . . . . . . . . . . . . .  26
+     10.1.  DPoP Combined Mode Considerations  . . . . . . . . . . .  26
+     10.2.  Reuse of a Client Attestation JWT  . . . . . . . . . . .  27
+     10.3.  Refresh token binding  . . . . . . . . . . . . . . . . .  27
+     10.4.  Binding of OAuth protocol artifacts  . . . . . . . . . .  27
+     10.5.  Web Server Default Maximum HTTP Header Sizes . . . . . .  28
+     10.6.  Rotation of Client Instance Key  . . . . . . . . . . . .  28
+     10.7.  Replay Attack Detection  . . . . . . . . . . . . . . . .  28
+     10.8.  Trust Management and Key Resolution  . . . . . . . . . .  29
+   11. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  30
+     11.1.  Client Instance Tracking Across Authorization Servers or
+            Resource Servers . . . . . . . . . . . . . . . . . . . .  30
+   12. Security Considerations . . . . . . . . . . . . . . . . . . .  30
+     12.1.  Replay Attacks . . . . . . . . . . . . . . . . . . . . .  30
+     12.2.  Client Attestation Protection  . . . . . . . . . . . . .  32
+   13. Considerations for Profiling this specification . . . . . . .  32
+   14. Relation to RATS  . . . . . . . . . . . . . . . . . . . . . .  33
+   15. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  33
+     15.1.  OAuth Extensions Error Registration  . . . . . . . . . .  33
+     15.2.  OAuth Authorization Server Metadata Registration . . . .  34
+     15.3.  OAuth Protected Resource Metadata Registration . . . . .  35
+     15.4.  OAuth Dynamic Client Registration Metadata
+             Registration  . . . . . . . . . . . . . . . . . . . . .  36
+     15.5.  OAuth Client Attestation Proof-of-Possession Methods
+             Registry  . . . . . . . . . . . . . . . . . . . . . . .  37
+       15.5.1.  Registration Template  . . . . . . . . . . . . . . .  39
+       15.5.2.  Initial Registry Content . . . . . . . . . . . . . .  39
+     15.6.  Registration of attest_jwt_client_auth Token Endpoint
+             Authentication Method . . . . . . . . . . . . . . . . .  40
+     15.7.  Registration of attest_jwt_client_auth_dpop Token Endpoint
+             Authentication Method . . . . . . . . . . . . . . . . .  40
+     15.8.  HTTP Field Name Registration . . . . . . . . . . . . . .  40
+     15.9.  Media Type Registration  . . . . . . . . . . . . . . . .  41
+     15.10. JSON Web Token Claims Registration . . . . . . . . . . .  43
+   16. References  . . . . . . . . . . . . . . . . . . . . . . . . .  43
+     16.1.  Normative References . . . . . . . . . . . . . . . . . .  43
+     16.2.  Informative References . . . . . . . . . . . . . . . . .  45
+   Appendix A.  Document History . . . . . . . . . . . . . . . . . .  46
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  51
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  51
+
+
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 3]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+1.  Introduction
+
+   Traditional OAuth client authentication methods, such as
+   private_key_jwt defined in [RFC7523], typically rely on a direct
+   connection between the client's backend and the Authorization Server.
+   In ecosystems such as the Issuer-Holder-Verifier model used in
+   [RFC9901], this direct communication raises privacy concerns, as it
+   would enable the client's backend (i.e. client attester) to correlate
+   which Holder (i.e. client) interacts with which Issuer (i.e.
+   Authorization Server) and potentially observe the credentials or
+   metadata being issued.  This specification establishes a mechanism
+   for a backend-attested client authentication through a front-channel
+   to address these issues.
+
+   Additionally, this approach acknowledges the evolving landscape of
+   OAuth 2 deployments, where the ability for mobile native apps to
+   authenticate securely and reliably has become increasingly important.
+   Leveraging platform mechanisms to validate a client instance, such as
+   mobile native apps, enables secure authentication that would
+   otherwise be difficult with traditional OAuth client authentication
+   methods.  Transforming these platform-specific mechanisms into a
+   common format as described in this specification abstracts this
+   complexity to minimize the efforts for the Authorization Server.
+
+   The primary purpose of this specification is the authentication of a
+   client instance enabled through the client backend attesting to it.
+   The client backend may also attest further technical properties about
+   the hardware and software of the client instance.
+
+   The client is considered a confidential OAuth 2 client type according
+   to Section 2.1 of [RFC6749].  The mechanism described in this
+   document may either serve as a standalone OAuth 2 client
+   authentication mechanism or as an additional, supportive security
+   mechanism beside an existing OAuth 2 client authentication mechanism.
+
+   This specification introduces the concept of client attestations to
+   the OAuth 2 protocol, using two artifacts:
+
+   *  a Client Attestation, a signed statement by the Client Attester
+      that authenticates the Client Instance
+
+   *  a Proof of Possession (PoP), a signed statement by the Client
+      Instance that authenticates the Client Attestation
+
+   This specification does not use the Assertion Framework for OAuth 2.0
+   Client Authentication, as the client attestation is transferred by
+   HTTP headers, which is incompatible with the mechanisms defined by
+   [RFC7521].
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 4]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+1.1.  Data Flow
+
+   The following diagram depicts the overall architecture and protocol
+   flow towards an Authorization Server.
+
+                     (3)
+                   +-----+
+                   |     |
+                   |     v
+              +-----------------+
+              |                 |
+              | Client Attester |
+              |   (backend)     |
+              |                 |
+              +-----------------+
+                  ^       |
+              (2) |       | (4)
+                  |       v
+              +---------------+           +---------------+
+       +----->|               |    (5)    |               |
+   (1) |      |    Client     |<--------->| Authorization |
+       |      |   Instance    |    (7)    |    Server     |
+       +------|               |<--------->|               |
+              +---------------+           +---------------+
+                  ^       |
+                  |       |
+                  +-------+
+                     (6)
+
+   The following steps describe this OAuth flow:
+
+   (1) The Client Instance generates a key (Client Instance Key) and
+   gathers optional evidence to prove its authenticity to the Client
+   Attester.  This could be evidence about the software running on the
+   client, statements about the integrity of the operating system, or
+   hardware the Client Instance is running on.  A Client Instance can
+   provide several such statements or attestations to the Client
+   Attester within a single request, but their content, how they are
+   collected, and how they are transmitted are out of scope of this
+   specification.
+
+   (2) The Client Instance sends this data to the Client Attester in
+   request for a Client Attestation JWT.  Transmission of the evidence
+   may result in one or multiple requests.
+
+   (3) The Client Attester authenticates the Client Instance, validates
+   that the Client Instance is in control of the private key of the
+   Client Instance Key, and evaluates any further provided evidence
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 5]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   according to its policy.  It then generates a signed Client
+   Attestation JWT that is cryptographically bound to the Client
+   Instance Key generated by the Client.  Therefore, the attestation is
+   bound to this particular Client Instance.
+
+   (4) The Client Attester responds to the Client Instance by sending
+   the Client Attestation JWT.
+
+   (5) The Client Instance optionally requests a Challenge from the
+   Authorization Server's Challenge endpoint or receives a challenge
+   from a previous message.
+
+   (6) The Client Instance generates a Proof of Possession (PoP) with
+   the Client Instance Key.
+
+   (7) The Client Instance sends the Client Attestation JWT along with
+   its Proof of Possession to the Authorization Server, e.g. within a
+   token request.  The Proof of Possession is typically a Client
+   Attestation PoP JWT or a DPoP proof (see Section 5).  The
+   Authorization Server validates the Client Attestation and thus
+   authenticates the Client Instance.
+
+   The same flow applies when authenticating to a Resource Server, where
+   step (7) typically occurs when accessing a protected resource.
+
+   Please note that the protocol details for steps (2) and (4),
+   particularly how the Client Instance authenticates to the Client
+   Attester, are beyond the scope of this specification.  Furthermore,
+   this specification is designed to be flexible and can be implemented
+   even in scenarios where the client does not have a backend serving as
+   a Client Attester.  In such cases, each Client Instance is
+   responsible for performing the functions typically handled by the
+   Client Attester on its own.
+
+   While the concrete evidence about the Client Instance collected and
+   transmitted in (1) and (2) is out of scope, a Client Attestation JWT
+   is generally understood to convey that the Client Attester has
+   verified
+
+   *  the authenticity and integrity of the Client Instance (this might
+      encompass statements about its software and hardware environment)
+
+   *  that the Client Instance controls the private key of the Client
+      Instance Key
+
+   *  optionally, properties of that key (e.g., that it was securely
+      generated or resides in hardware-backed storage)
+
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 6]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  Terminology
+
+   Client Attestation JWT:  A JSON Web Token (JWT) generated by the
+      Client Attester that attests to the authenticity of a Client
+      Instance and is cryptographically bound to a key managed by that
+      Client Instance.  A Client Attestation JWT may additionally convey
+      information about the integrity or state of the Client Instance.
+
+   Client Attestation Proof of Possession (PoP) JWT:  A Proof of
+      Possession generated by the Client Instance using the key that the
+      Client Attestation JWT is bound to.
+
+   Client Instance:  A deployed instance of a piece of client software.
+
+   Client Instance Key:  A cryptographic asymmetric key pair that is
+      generated by the Client Instance where the public key of the key
+      pair is provided to the Client Attester.  This public key is then
+      encapsulated within the Client Attestation JWT and is utilized to
+      sign a proof of possession.
+
+   Client Attester:  An entity that authenticates a Client Instance and
+      attests it by issuing a Client Attestation JWT.
+
+   Challenge:  A String that is the input to a cryptographic challenge-
+      response pattern, used to detect replay attacks.  Within OAuth,
+      this is traditionally called a nonce.
+
+4.  Client Attestation JWT
+
+   The Client Attestation MUST be encoded as a "JSON Web Token (JWT)"
+   according to [RFC7519].
+
+   The following content applies to the JWT Header:
+
+   *  typ: REQUIRED.  The typ (JWT type) header MUST be oauth-client-
+      attestation+jwt unless specified otherwise by a profile as
+      described in Section 13.
+
+   *  alg: REQUIRED.  The alg (algorithm) header MUST specify the
+      cryptographic algorithm used to sign the Client Attestation.
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 7]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   The following content applies to the JWT Claims Set:
+
+   *  sub: REQUIRED.  The sub (subject) claim MUST specify the client_id
+      value of the OAuth Client, unless specified otherwise by a profile
+      as described in Section 13.
+
+   *  exp: REQUIRED.  The exp (expiration time) claim MUST specify the
+      time at which the Client Attestation is considered expired by its
+      issuer.  The Authorization Server or Resource Server MUST reject
+      any JWT with an expiration time that has passed, subject to
+      allowable clock skew between systems.
+
+   *  cnf: REQUIRED.  The cnf (confirmation) claim MUST specify a key
+      conforming to [RFC7800] that is used by the Client Instance to
+      generate the Client Attestation PoP JWT for client authentication
+      with an Authorization Server or Resource Server.  The key MUST be
+      expressed using the "jwk" representation.
+
+   *  iat: OPTIONAL.  The iat (issued at) claim MUST specify the time at
+      which the Client Attestation was issued.
+
+   The following additional rules apply:
+
+   1.  The JWT MAY contain other claims.  All claims that are not
+       understood by implementations MUST be ignored.
+
+   2.  The JWT MUST be digitally signed or integrity protected with a
+       Message Authentication Code (MAC).  The Authorization Server or
+       Resource Server MUST reject JWTs if signature or integrity
+       protection validation fails.
+
+   3.  The Authorization Server or Resource Server MUST reject a JWT
+       that is not valid in all other respects per "JSON Web Token
+       (JWT)" [RFC7519].
+
+   The following example is the decoded header and payload of a JWT
+   meeting the processing rules as defined above.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 8]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   {
+     "typ": "oauth-client-attestation+jwt",
+     "alg": "ES256",
+     "kid": "11"
+   }
+   .
+   {
+     "sub": "https://client.example.com",
+     "iat": 1772487595,
+     "exp": 2529866394,
+     "cnf": {
+       "jwk": {
+         "kty": "EC",
+         "use": "sig",
+         "crv": "P-256",
+         "x": "VcKVNBZ4IaBAYW3jxM4w3TJFVA7myeUGQyGt-g_yvpQ",
+         "y": "f-E-hYE3TAWKwhVv9pej9NABs9SX9XsNO80x57jFTyU"
+       }
+     }
+   }
+
+   When using headers to transfer the Client Attestation JWT to an
+   Authorization Server or Resource Server, it MUST be provided in an
+   HTTP request using the HTTP header field OAuth-Client-Attestation.
+
+   The following is an example of the OAuth-Client-Attestation header.
+
+   OAuth-Client-Attestation: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24
+   rand0IiwiYWxnIjoiRVMyNTYiLCJraWQiOiIxMSJ9.eyJzdWIiOiJodHRwczovL2NsaWV
+   udC5leGFtcGxlLmNvbSIsImlhdCI6MTc3MjQ4NzU5NSwiZXhwIjoyNTI5ODY2Mzk0LCJj
+   bmYiOnsiandrIjp7Imt0eSI6IkVDIiwidXNlIjoic2lnIiwiY3J2IjoiUC0yNTYiLCJ4I
+   joiVmNLVk5CWjRJYUJBWVczanhNNHczVEpGVkE3bXllVUdReUd0LWdfeXZwUSIsInkiOi
+   JmLUUtaFlFM1RBV0t3aFZ2OXBlajlOQUJzOVNYOVhzTk84MHg1N2pGVHlVIn19fQ._TS4
+   d-LAnRlwdN97wiVnl4z7C9gvm45IWr-BvGTzeZaHtZtgNZ88gvzroU3LElUPbgF4kWi_D
+   FORnKzsx5yu6A
+
+   Note that per [RFC9110] header field names are case-insensitive; so
+   OAUTH-CLIENT-ATTESTATION, oauth-client-attestation, etc., are all
+   valid and equivalent header field names.  Case is significant in the
+   header field value, however.
+
+   The OAuth-Client-Attestation HTTP header field value uses the token68
+   syntax defined in Section 11.2 of [RFC9110] (repeated below for ease
+   of reference).
+
+   OAuth-Client-Attestation       = token68
+   token68                        = 1*( ALPHA / DIGIT / "-" / "." /
+                                        "_" / "~" / "+" / "/" ) *"="
+
+
+
+Looker, et al.            Expires 7 March 2027                  [Page 9]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+5.  Proof of Possession
+
+   This specification defines two options for the proof of possession:
+
+   *  A Client Attestation PoP JWT, introduced by this specification
+
+   *  Utilizing DPoP as defined in [RFC9449]
+
+   Other specifications or profiles may define additional proof of
+   possession mechanisms for use with the Client Attestation.  Any such
+   mechanism MUST demonstrate possession of the private key
+   corresponding to the key in the cnf claim of the Client Attestation
+   JWT and MUST define how server-provided freshness is achieved, either
+   by incorporating a Challenge (see Section 6) into the proof of
+   possession or by an equivalent mechanism native to that proof of
+   possession mechanism.  Such specifications are also expected to
+   register their own token endpoint authentication method value,
+   analogous to attest_jwt_client_auth and attest_jwt_client_auth_dpop
+   (see Section 8).
+
+5.1.  Client Attestation PoP JWT
+
+   The Client Attestation PoP MUST be encoded as a "JSON Web Token
+   (JWT)" according to [RFC7519].
+
+   The following content applies to the JWT Header:
+
+   *  typ: REQUIRED.  The typ (JWT type) header MUST be oauth-client-
+      attestation-pop+jwt.
+
+   *  alg: REQUIRED.  The alg (algorithm) header MUST specify the
+      cryptographic algorithm used to sign the Client Attestation PoP
+
+   The following content applies to the JWT Claims Set:
+
+   *  aud: REQUIRED.  The aud (audience) claim MUST specify a value that
+      identifies the intended audience of the JWT.  When the JWT is
+      presented to an Authorization Server, the [RFC8414] issuer
+      identifier URL of the Authorization Server MUST be used.  When the
+      JWT is presented to a Resource Server, the [RFC9728] resource
+      identifier URL of the Resource Server MUST be used.  A Client
+      Attestation PoP JWT is intended for a single audience, Clients
+      MUST generate JWTs for each target.
+
+   *  jti: REQUIRED.  The jti (JWT identifier) claim MUST specify a
+      unique identifier for the Client Attestation PoP.  The
+      Authorization Server or Resource Server can utilize the jti value
+      for replay attack detection, see Section 12.1.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 10]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  iat: REQUIRED.  The iat (issued at) claim MUST specify the time at
+      which the Client Attestation PoP was issued.  Note that the
+      Authorization Server or Resource Server may reject JWTs with an
+      "iat" claim value that is unreasonably far in the past.
+
+   *  challenge: OPTIONAL.  The challenge (challenge) claim MUST specify
+      a String value that is provided by the Authorization Server or
+      Resource Server for the client to include in the Client
+      Attestation PoP JWT.
+
+   The following additional rules apply:
+
+   1.  The JWT MAY contain other claims.  All claims that are not
+       understood by implementations MUST be ignored.
+
+   2.  The JWT MUST be digitally signed using an asymmetric
+       cryptographic algorithm.  The Authorization Server or Resource
+       Server MUST reject JWTs with an invalid signature.
+
+   3.  The public key used to verify the JWT MUST be the key located in
+       the "cnf" claim of the corresponding Client Attestation JWT.
+
+   4.  The Authorization Server or Resource Server MUST reject a JWT
+       that is not valid in all other respects per "JSON Web Token
+       (JWT)" [RFC7519].
+
+   The following example is the decoded header and payload of a JWT
+   meeting the processing rules as defined above.
+
+   {
+     "typ": "oauth-client-attestation-pop+jwt",
+     "alg": "ES256"
+   }
+   .
+   {
+     "aud": "https://as.example.com",
+     "jti": "d25d00ab-552b-46fc-ae19-98f440f25064",
+     "iat": 1772487595,
+     "challenge": "5c1a9e10-29ff-4c2b-ae73-57c0957c09c4"
+   }
+
+   When using headers to transfer the Client Attestation PoP JWT to an
+   Authorization Server or Resource Server, it MUST be provided in an
+   HTTP request using the HTTP header field OAuth-Client-Attestation-
+   PoP.
+
+   The following is an example of the OAuth-Client-Attestation-PoP
+   header.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 11]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+  OAuth-Client-Attestation-PoP: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRp
+  b24tcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJhdWQiOiJodHRwczovL2FzLmV4YW1wb
+  GUuY29tIiwianRpIjoiZDI1ZDAwYWItNTUyYi00NmZjLWFlMTktOThmNDQwZjI1MDY0Ii
+  wiaWF0IjoxNzcyNDg3NTk1LCJjaGFsbGVuZ2UiOiI1YzFhOWUxMC0yOWZmLTRjMmItYWU
+  3My01N2MwOTU3YzA5YzQifQ.M4Uc4rWVAqaLlmDDUXQKkKPbAQKj0JrTizLgWhZndmbkv
+  M3VL8y-w_QJr7Z0HZlH94E64cLa8L5fSjJItYv0jg
+
+   Note that per [RFC9110] header field names are case-insensitive; so
+   OAUTH-CLIENT-ATTESTATION-POP, oauth-client-attestation-pop, etc., are
+   all valid and equivalent header field names.  Case is significant in
+   the header field value, however.
+
+   The OAuth-Client-Attestation-PoP HTTP header field value uses the
+   token68 syntax defined in Section 11.2 of [RFC9110] (repeated below
+   for ease of reference).
+
+   OAuth-Client-Attestation-PoP   = token68
+   token68                        = 1*( ALPHA / DIGIT / "-" / "." /
+                                        "_" / "~" / "+" / "/" ) *"="
+
+5.2.  Using DPoP as the Proof of Possession
+
+   This section defines an optimization that allows a single Proof of
+   Possession (PoP) JWT to satisfy the role of both (a) the Client
+   Attestation PoP defined in this specification and (b) the DPoP proof
+   defined in [RFC9449] for sender-constrained access tokens.  In this
+   "combined mode" the Client Instance Key and the DPoP Key are the same
+   asymmetric key pair, and a request using the mechanism carries only
+   one PoP, the DPoP proof, instead of two separate PoP JWTs (the DPoP
+   proof and Client Attestation PoP JWT).
+
+   Note that combined mode requires an actual DPoP proof to be
+   presented, since the DPoP proof also serves as the Client Attestation
+   PoP; the dpop_jkt authorization request parameter defined in
+   Section 10 of [RFC9449] cannot substitute for it.  A Client that
+   binds the authorization code using dpop_jkt without presenting a DPoP
+   proof therefore uses the normal mode.
+
+   Note that DPoP [RFC9449] can also be used alongside the Client
+   Attestation PoP JWT without this combined mode.  In this case, the
+   DPoP proof is validated according to [RFC9449] independently of this
+   specification and its public key is not required to match the key in
+   the cnf claim of the Client Attestation JWT (see Section 7).
+
+   The following rules apply to the DPoP proof as defined in [RFC9449]:
+
+   1.  The DPoP proof MUST adhere to [RFC9449]
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 12]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   2.  The public key located in the DPoP proof MUST match the public
+       key located in the cnf claim of the Client Attestation JWT.
+
+   In combined mode, the Challenge mechanisms defined by this
+   specification (the challenge claim and the OAuth-Client-Attestation-
+   Challenge HTTP header field, see Section 6) are not used for the DPoP
+   proof.  Instead, server-provided freshness and replay protection rely
+   solely on the DPoP nonce mechanism defined in Section 8 of [RFC9449]
+   and Section 9 of [RFC9449]: the server provides a nonce that the
+   Client includes in the nonce claim of the DPoP proof.  In addition to
+   the means defined by [RFC9449], a server that supports DPoP with
+   server-provided nonces provides a fresh DPoP nonce in the response of
+   the challenge endpoint as described in Section 6.3, allowing the
+   Client to obtain a nonce proactively.
+
+   The following non-normative example shows a token request using
+   combined mode (line breaks for display only):
+
+   POST /token HTTP/1.1
+   Host: as.example.com
+   Content-Type: application/x-www-form-urlencoded
+   OAuth-Client-Attestation: <Client-Attestation-JWT>
+   DPoP: <Combined-DPoP-And-Attestation-PoP-JWT>
+
+   grant_type=authorization_code&code=SplxlOBeZQQYbYS6WxSbIA
+
+   Decoded (non-normative) DPoP (combined) proof - Header:
+
+   {
+     "typ": "dpop+jwt",
+     "alg": "ES256",
+     "jwk": {
+       "kty": "EC",
+       "crv": "P-256",
+       "x": "18wHLeIgW9wVN6VD1Txgpqy2LszYkMf6J8njVAibvhM",
+       "y": "-V4dS4UaLMgP_4fY4j8ir7cl1TXlFdAgcx55o7TkcSA"
+     }
+   }
+
+   Payload:
+
+   {
+     "htm": "POST",
+     "htu": "https://as.example.com/token",
+     "iat": 1700000000,
+     "jti": "7c20c3e2-0f52-4f74-81a5-5c7b83a7a1f9",
+     "nonce": "eyJ7S_zG.eyJH0-Z.HX4w-7v"
+   }
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 13]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   Note that additional claims may be present in the DPoP proof
+   depending on the context, as required by [RFC9449].  The nonce claim
+   is present when the server provides DPoP nonces, either through the
+   means defined in [RFC9449] or through the challenge endpoint (see
+   Section 6.3).
+
+6.  Challenges
+
+   Challenges may be used by the Authorization Server or Resource Server
+   to guarantee freshness and can be used to detect replay attacks.
+   Support for Challenges is OPTIONAL for the Authorization Server or
+   Resource Server.  The lifetime of a Challenge, and whether a
+   Challenge may be used in more than one Client Attestation PoP JWT,
+   are determined solely by the local policy of the Authorization Server
+   or Resource Server.  If they are provided, the Client MUST include
+   the Challenge in the proof of possession.  The value of the challenge
+   is opaque to the Client.
+
+   A server that uses Challenges:
+
+   *  MUST provide a Challenge when returning an
+      use_attestation_challenge error defined in Section 7.4
+
+   *  MAY provide a Challenge in any HTTP response as described in
+      Section 6.2
+
+   *  MAY provide a Challenge at the challenge endpoint as described in
+      Section 6.3
+
+   A Client MUST include the most recently received Challenge provided
+   by the Authorization Server or Resource Server in the Client
+   Attestation PoP JWT as defined in Section 5.1, irrespective of
+   whether that Challenge was obtained from the challenge endpoint or
+   from a previous response as described in Section 6.2.  If the
+   Authorization Server or Resource Server provides a challenge endpoint
+   as defined in Section 6.3, a Client that does not hold a Challenge
+   SHOULD obtain a Challenge from that endpoint rather than sending a
+   request without a Challenge and relying on the resulting error
+   response.  A Client MAY use the same Challenge in more than one
+   Client Attestation PoP JWT.  If the Authorization Server or Resource
+   Server accepts a Challenge only once, it rejects the second use with
+   the use_attestation_challenge error as defined in Section 7.4 and
+   provides a fresh Challenge in that response.  Upon receiving a
+   use_attestation_challenge error, a Client SHOULD retry the request
+   once, using a newly created Client Attestation PoP JWT containing the
+   Challenge provided with that error response.  A Client MUST NOT retry
+   indefinitely.
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 14]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   This mechanism applies only to the Client Attestation PoP JWT.  In
+   the DPoP combined mode (see Section 5.2), the use_dpop_nonce error
+   and the DPoP-Nonce HTTP header field defined in [RFC9449] are used
+   instead, see Section 7.4.  The challenge endpoint MAY be utilized to
+   provide DPoP-Nonce HTTP header field.
+
+6.1.  Providing Challenges in Errors
+
+   An Authorization Server that requires a Challenge that the Client did
+   not provide, or that rejects the Challenge contained in the Client
+   Attestation PoP JWT, MUST respond with an HTTP 400 (Bad Request)
+   status code and the error code use_attestation_challenge (see
+   Section 7.4).  The response MUST include a fresh Challenge in the
+   OAuth-Client-Attestation-Challenge HTTP header field.
+
+   A Resource Server that requires a Challenge that the Client did not
+   provide, or that rejects the Challenge contained in the Client
+   Attestation PoP JWT, MUST respond with an HTTP 401 (Unauthorized)
+   status code with the error code use_attestation_challenge in the WWW-
+   Authenticate HTTP header field and a fresh Challenge in the OAuth-
+   Client-Attestation-Challenge HTTP header field.
+
+   The Client uses the Challenge provided with the error response to
+   retry the request.
+
+   The following is a non-normative example of such an error response of
+   an Authorization Server:
+
+   HTTP/1.1 400 Bad Request
+   Content-Type: application/json
+   Cache-Control: no-store
+   OAuth-Client-Attestation-Challenge: AYjcyMzY3ZDhiNmJkNTZ
+
+   {
+     "error": "use_attestation_challenge",
+     "error_description": "Authorization Server requires a fresh challenge"
+   }
+
+6.2.  Providing Challenges in Previous Responses
+
+   The Authorization Server or Resource Server MAY provide a fresh
+   Challenge with any HTTP response using a HTTP header-based syntax.
+   The HTTP header field MUST be named "OAuth-Client-Attestation-
+   Challenge" and contain the value of the Challenge.
+
+   The following is a non-normative example of an Authorization Response
+   containing a fresh Challenge:
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 15]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   HTTP/1.1 200 OK
+   Content-Type: application/json
+   Cache-Control: no-store
+   OAuth-Client-Attestation-Challenge: AYjcyMzY3ZDhiNmJkNTZ
+
+   {
+     "access_token": "2YotnFZFEjr1zCsicMWpAA",
+     "token_type": "Bearer",
+     "expires_in": 3600
+   }
+
+6.3.  Providing Challenges through the Challenge Endpoint
+
+   The Authorization Server or Resource Server MAY provide a challenge
+   endpoint for Clients to fetch Challenges in the context of this
+   specification.  If the Authorization Server supports metadata as
+   defined in [RFC8414] or the Resource Server supports metadata as
+   defined in [RFC9728], it MUST signal support for the challenge
+   endpoint by including the metadata entry challenge_endpoint
+   containing the URL of the endpoint as its value.
+
+   If the challenge endpoint response contains a DPoP-Nonce HTTP header
+   field, a Client using DPoP MUST use its value as the nonce in
+   subsequent DPoP proofs as defined in [RFC9449].
+
+   A request for a Challenge is made by sending an HTTP POST request to
+   the URL provided in the challenge_endpoint parameter of the
+   Authorization Server metadata.  The following is a non-normative
+   example of a request:
+
+   POST /as/challenge HTTP/1.1
+   Host: as.example.com
+   Accept: application/json
+
+   The Authorization Server or Resource Server provides a Challenge in
+   the HTTP response with a 200 status code and the following parameters
+   included in the message body of the HTTP response using the
+   application/json media type:
+
+   *  attestation_challenge: REQUIRED if the Authorization Server or
+      Resource Server supports Client Attestations and server-provided
+      challenges as described in this document.  String containing a
+      Challenge to be used in the Client Attestation PoP JWT as defined
+      in Section 5.1.  The intention of this element not being required
+      in other circumstances is to preserve the ability for the
+      challenge endpoint to be used in other applications unrelated to
+      client attestations.
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 16]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   If the server supports DPoP [RFC9449] with server-provided nonces,
+   the response MUST additionally include a fresh DPoP nonce in the
+   DPoP-Nonce HTTP header field as defined in [RFC9449].  This allows a
+   Client to obtain a DPoP nonce proactively, without the additional
+   round trip caused by a use_dpop_nonce error, both when using the DPoP
+   combined mode (see Section 5.2) and when using DPoP independently of
+   this specification.
+
+   The Authorization Server or Resource Server MUST make the response
+   uncacheable by adding a Cache-Control header field including the
+   value no-store.  The Authorization Server or Resource Server MAY add
+   additional challenges or data.
+
+   The following is a non-normative example of a response:
+
+   HTTP/1.1 200 OK
+   Host: as.example.com
+   Content-Type: application/json
+   Cache-Control: no-store
+   DPoP-Nonce: eyJ7S_zG.eyJH0-Z.HX4w-7v
+
+   {
+     "attestation_challenge": "AYjcyMzY3ZDhiNmJkNTZ"
+   }
+
+   The DPoP-Nonce HTTP header field in this example is only present if
+   the server supports DPoP with server-provided nonces.  The
+   attestation_challenge parameter is only present if the server
+   supports Client Attestations and server-provided challenges (i.e.,
+   this endpoint can also be used to provide only DPoP nonces).
+
+7.  Verification and Processing
+
+   This section defines the verification and processing rules for the
+   proof of possession mechanisms defined by this specification.  Proof
+   of possession mechanisms defined by other specifications define their
+   own verification and processing rules.
+
+   An Authorization Server MAY support both attest_jwt_client_auth and
+   attest_jwt_client_auth_dpop and distinguish them by the following
+   rules:
+
+   *  If the request contains an OAuth-Client-Attestation-PoP HTTP
+      request header field, the receiving server MUST apply the
+      validation rules of Section 7.2 and if present, a DPoP proof
+      present in the request is validated according to [RFC9449]
+      independently of this specification.
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 17]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  If an OAuth-Client-Attestation HTTP request header field and a
+      DPoP proof are present, but no OAuth-Client-Attestation-PoP HTTP
+      request header field, the receiving server MUST apply the
+      validation rules of Section 7.3.
+
+   *  If the request contains an OAuth-Client-Attestation header field
+      and a DPoP proof, but no OAuth-Client-Attestation-PoP header
+      field, and the Authorization Server does not support
+      attest_jwt_client_auth_dpop, it MUST reject the request (see
+      Section 7.4).
+
+7.1.  Client Attestation JWT
+
+   To validate a Client Attestation, the receiving server MUST ensure
+   the following conditions and rules are met:
+
+   1.  There is precisely one OAuth-Client-Attestation HTTP request
+       header field containing a Client Attestation JWT.
+
+   2.  The Client Attestation JWT contains all required claims and
+       header parameters as per Section 4.
+
+   3.  The alg JOSE Header Parameter contains a registered algorithm
+       [IANA.JOSE.ALGS], is not none, is supported by the application,
+       and is acceptable per local policy.
+
+   4.  The signature of the Client Attestation JWT verifies with the
+       public key of a known and trusted Client Attester.
+
+   5.  The key contained in the cnf claim of the Client Attestation JWT
+       is not a private key.
+
+   6.  The Client Attestation JWT is fresh enough per local policy of
+       the Authorization Server or Resource Server by checking the iat
+       or exp claims.
+
+   7.  If a client_id is provided in the request containing the Client
+       Attestation, then this client_id matches the sub claim of the
+       Client Attestation JWT, unless specified otherwise by a profile
+       as described in Section 13.
+
+7.2.  Client Attestation PoP JWT
+
+   This section applies when the Client Attestation PoP JWT is used as
+   the Proof of Possession.  When operating in DPoP combined mode as
+   defined in Section 5.2, this section does not apply; instead, see
+   Section 7.3.
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 18]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   To validate a Client Attestation PoP, the receiving server MUST
+   ensure the following conditions and rules are met:
+
+   1.  There is precisely one OAuth-Client-Attestation-PoP HTTP request
+       header field containing a Client Attestation PoP JWT.
+
+   2.  The Client Attestation PoP JWT contains all required claims and
+       header parameters as per Section 5.1.
+
+   3.  The alg JOSE Header Parameter contains a registered algorithm
+       [IANA.JOSE.ALGS], is not none, is supported by the application,
+       and is acceptable per local policy.
+
+   4.  The signature of the Client Attestation PoP JWT verifies with the
+       public key contained in the cnf claim of the Client Attestation
+       JWT.
+
+   5.  If the server provides challenges through the challenge endpoint
+       or within previous responses as described in Section 6, the
+       challenge claim of the Client Attestation PoP JWT MUST match a
+       provided challenge.
+
+   6.  The creation time of the Client Attestation PoP JWT as determined
+       by either the iat claim or a server managed timestamp via the
+       challenge claim, is within an acceptable window per local policy
+       of the Authorization Server or Resource Server.
+
+   7.  The audience claim in the Client Attestation PoP JWT identifies
+       the receiving server: when validated by an Authorization Server,
+       it MUST be the issuer identifier URL of the Authorization Server
+       as described in [RFC8414]; when validated by a Resource Server,
+       it MUST be the resource identifier URL of the Resource Server as
+       described in [RFC9728].
+
+   8.  Depending on the security requirements of the deployment,
+       additional checks to guarantee replay protection for the Client
+       Attestation PoP JWT might need to be applied (see Section 12.1
+       for more details).
+
+7.3.  DPoP Combined Mode
+
+   This section applies when the DPoP combined mode is used as defined
+   in Section 5.2.  When the Client Attestation PoP JWT is used as the
+   Proof of Possession instead, this section does not apply; see
+   Section 7.2.
+
+   To validate a request using DPoP combined mode, the receiving server
+   MUST perform the following steps:
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 19]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   1.  There is no OAuth-Client-Attestation-PoP HTTP request header
+       field present in the request.
+
+   2.  There is precisely one DPoP HTTP request header field present in
+       the request.
+
+   3.  Validate the DPoP proof in accordance with [RFC9449].  If the
+       server provides DPoP nonces, this includes validating that the
+       nonce claim of the DPoP proof contains a valid nonce provided by
+       the server, whether it was provided via the DPoP-Nonce HTTP
+       header field as defined in [RFC9449] or via the challenge
+       endpoint as described in Section 6.3.
+
+   4.  The public key in the jwk header parameter of the DPoP proof MUST
+       be identical to the public key in the cnf claim of the Client
+       Attestation JWT.  Note that this doesn't mean the comparison of a
+       canonical representation of the JWK, but a check via JWK
+       thumbprint or by comparing the required members per key type
+       (e.g., kty, curve, x, y).
+
+7.4.  Errors
+
+   When validation errors specifically related to the use of client
+   attestations are encountered the following additional error codes are
+   defined for use in either Authorization Server authenticated endpoint
+   error responses (as defined in Section 5.2 of [RFC6749]) or Resource
+   Server error responses (as defined in Section 3 of [RFC6750]).
+
+   *  use_attestation_challenge MUST be used when the Client Attestation
+      PoP JWT is not using an expected server-provided challenge.  When
+      used, this error code MUST be accompanied by a fresh Challenge in
+      the OAuth-Client-Attestation-Challenge HTTP header field (as
+      described in Section 6.2).  If the combined mode as defined in
+      Section 5.2 is used and the DPoP proof does not contain an
+      expected server-provided nonce, the DPoP error use_dpop_nonce MUST
+      be used instead and a fresh nonce provided in the DPoP-Nonce HTTP
+      header field of the response, as defined in [RFC9449].
+
+   *  use_fresh_attestation MUST be used when the Client Attestation JWT
+      is deemed to be not fresh enough to be acceptable by the server.
+
+   *  invalid_client_attestation MAY be used in addition to the more
+      general invalid_client error code as defined in [RFC6749] if the
+      attestation or its proof of possession could not be successfully
+      verified, the public keys of the Client Attestation JWT and the
+      proof of possession don't match, or the proof of possession is not
+      supported.
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 20]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   In the event of errors due to situations not described above,
+   Authorization and Resource Servers MUST follow the guidance of
+   [RFC6749] and [RFC6750] or their respective extensions of when to
+   return suitable Error Responses.
+
+7.5.  Client Attestation as an OAuth Client Authentication
+
+   A Client Attestation may be used as an OAuth 2 Client Authentication
+   mechanism as described in Section 2.3 of [RFC6749] towards an
+   Authorization Server.  If the token request contains a client_id
+   parameter as per [RFC6749] the Authorization Server MUST verify that
+   the value of this parameter is the same as the client_id value in the
+   sub claim of the Client Attestation, unless specified otherwise by a
+   profile as described in Section 13.
+
+   The following example demonstrates usage of the client attestation
+   mechanism in an access token request (with extra line breaks for
+   display purposes only):
+
+   POST /token HTTP/1.1
+   Host: as.example.com
+   Content-Type: application/x-www-form-urlencoded
+   OAuth-Client-Attestation: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24
+   rand0IiwiYWxnIjoiRVMyNTYiLCJraWQiOiIxMSJ9.eyJzdWIiOiJodHRwczovL2NsaWV
+   udC5leGFtcGxlLmNvbSIsImlhdCI6MTc3MjQ4NzU5NSwiZXhwIjoyNTI5ODY2Mzk0LCJj
+   bmYiOnsiandrIjp7Imt0eSI6IkVDIiwidXNlIjoic2lnIiwiY3J2IjoiUC0yNTYiLCJ4I
+   joiVmNLVk5CWjRJYUJBWVczanhNNHczVEpGVkE3bXllVUdReUd0LWdfeXZwUSIsInkiOi
+   JmLUUtaFlFM1RBV0t3aFZ2OXBlajlOQUJzOVNYOVhzTk84MHg1N2pGVHlVIn19fQ._TS4
+   d-LAnRlwdN97wiVnl4z7C9gvm45IWr-BvGTzeZaHtZtgNZ88gvzroU3LElUPbgF4kWi_D
+   FORnKzsx5yu6A
+   OAuth-Client-Attestation-PoP: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRp
+   b24tcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJhdWQiOiJodHRwczovL2FzLmV4YW1wb
+   GUuY29tIiwianRpIjoiZDI1ZDAwYWItNTUyYi00NmZjLWFlMTktOThmNDQwZjI1MDY0Ii
+   wiaWF0IjoxNzcyNDg3NTk1LCJjaGFsbGVuZ2UiOiI1YzFhOWUxMC0yOWZmLTRjMmItYWU
+   3My01N2MwOTU3YzA5YzQifQ.M4Uc4rWVAqaLlmDDUXQKkKPbAQKj0JrTizLgWhZndmbkv
+   M3VL8y-w_QJr7Z0HZlH94E64cLa8L5fSjJItYv0jg
+
+   grant_type=authorization_code&
+   code=n0esc3NRze7LTCu7iYzS6a5acc3f0ogp4
+
+7.6.  Client Attestation as an additional security signal
+
+   A Client Attestation may be used as a (additional) security signal
+   towards an Authorization Server or Resource Server.  This may provide
+   additional assurance about the client's authenticity, integrity,
+   state or other information contained in the Client Attestation.  When
+   used at the Authorization Server, the Client Attestation may appear
+   alongside existing OAuth 2 Client Authentication mechanisms.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 21]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   An Authorization Server or Resource Server MAY signal a requirement
+   to Clients for presenting a Client Attestation and its Proof of
+   Possession as an additional security signal alongside the regular
+   request.  A server signals this demand by including the
+   client_attestation_pop_methods_supported metadata parameter in its
+   published metadata, as defined in [RFC8414] for the Authorization
+   Server and in [RFC9728] for the Resource Server.  The value of
+   client_attestation_pop_methods_supported is a JSON array of case-
+   sensitive strings, each identifying a Proof of Possession method that
+   the server accepts, as registered in the "OAuth Client Attestation
+   Proof-of-Possession Methods" registry established by this
+   specification (see Section 15.5).  A server MUST NOT include a method
+   it does not accept, and the array MUST NOT be empty when the
+   parameter is present.
+
+   When the parameter is omitted, presenting a Client Attestation as an
+   additional security signal is OPTIONAL.  When the parameter includes
+   none, the Client MAY omit the Client Attestation.  If the Client
+   sends a Client Attestation, it MUST use one of the supported Proof of
+   Possession methods.  For example, for
+   "client_attestation_pop_methods_supported": ["dpop_combined",
+   "none"], the server accepts requests without a Client Attestation as
+   well as requests carrying a Client Attestation with a DPoP proof as
+   the Proof of Possession.  When the parameter is present and does not
+   include none, a Client SHOULD include the Client Attestation and its
+   Proof of Possession in its requests to that server, and the Client
+   MUST use one of the listed Proof of Possession methods.
+
+   This specification registers the following Proof of Possession
+   methods:
+
+   *  attestation_pop_jwt: The Proof of Possession is a dedicated Client
+      Attestation PoP JWT as defined in Section 5.1 ("normal mode").
+
+   *  dpop_combined: The Proof of Possession is a DPoP proof serving as
+      the combined Proof of Possession as defined in Section 5.2 ("DPoP
+      combined mode").
+
+   *  none: No Client Attestation is required.  A server includes this
+      value to signal that the Client MAY omit the Client Attestation.
+
+   The following example demonstrates usage of the client attestation
+   mechanism in a PAR request as defined in [RFC9126] alongside
+   client_secret (with extra line breaks for display purposes only):
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 22]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   POST /as/par HTTP/1.1
+   Host: as.example.com
+   Content-Type: application/x-www-form-urlencoded
+   OAuth-Client-Attestation: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24
+   rand0IiwiYWxnIjoiRVMyNTYiLCJraWQiOiIxMSJ9.eyJzdWIiOiJodHRwczovL2NsaWV
+   udC5leGFtcGxlLmNvbSIsImlhdCI6MTc3MjQ4NzU5NSwiZXhwIjoyNTI5ODY2Mzk0LCJj
+   bmYiOnsiandrIjp7Imt0eSI6IkVDIiwidXNlIjoic2lnIiwiY3J2IjoiUC0yNTYiLCJ4I
+   joiVmNLVk5CWjRJYUJBWVczanhNNHczVEpGVkE3bXllVUdReUd0LWdfeXZwUSIsInkiOi
+   JmLUUtaFlFM1RBV0t3aFZ2OXBlajlOQUJzOVNYOVhzTk84MHg1N2pGVHlVIn19fQ._TS4
+   d-LAnRlwdN97wiVnl4z7C9gvm45IWr-BvGTzeZaHtZtgNZ88gvzroU3LElUPbgF4kWi_D
+   FORnKzsx5yu6A
+   OAuth-Client-Attestation-PoP: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRp
+   b24tcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJhdWQiOiJodHRwczovL2FzLmV4YW1wb
+   GUuY29tIiwianRpIjoiZDI1ZDAwYWItNTUyYi00NmZjLWFlMTktOThmNDQwZjI1MDY0Ii
+   wiaWF0IjoxNzcyNDg3NTk1LCJjaGFsbGVuZ2UiOiI1YzFhOWUxMC0yOWZmLTRjMmItYWU
+   3My01N2MwOTU3YzA5YzQifQ.M4Uc4rWVAqaLlmDDUXQKkKPbAQKj0JrTizLgWhZndmbkv
+   M3VL8y-w_QJr7Z0HZlH94E64cLa8L5fSjJItYv0jg
+
+   response_type=code
+   &state=af0ifjsldkj
+   &client_id=s6BhdRkqt3
+   &client_secret=7Fjfp0ZBr1KtDRbnfVdmIw
+   &redirect_uri=https%3A%2F%2Fclient.example.org%2Fcb
+   &code_challenge=K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U
+   &code_challenge_method=S256&scope=account-information
+
+   The following example demonstrates usage of the client attestation
+   mechanism at the Resource Server (with extra line breaks for display
+   purposes only):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 23]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   POST /api/users/list HTTP/1.1
+   Host: rs.example.com
+   Content-Type: application/x-www-form-urlencoded
+   Authorization: Bearer mF_9.B5f-4.1JqM
+   Accept: application/json
+   OAuth-Client-Attestation: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRpb24
+   rand0IiwiYWxnIjoiRVMyNTYiLCJraWQiOiIxMSJ9.eyJzdWIiOiJodHRwczovL2NsaWV
+   udC5leGFtcGxlLmNvbSIsImlhdCI6MTc3MjQ4NzU5NSwiZXhwIjoyNTI5ODY2Mzk0LCJj
+   bmYiOnsiandrIjp7Imt0eSI6IkVDIiwidXNlIjoic2lnIiwiY3J2IjoiUC0yNTYiLCJ4I
+   joiVmNLVk5CWjRJYUJBWVczanhNNHczVEpGVkE3bXllVUdReUd0LWdfeXZwUSIsInkiOi
+   JmLUUtaFlFM1RBV0t3aFZ2OXBlajlOQUJzOVNYOVhzTk84MHg1N2pGVHlVIn19fQ._TS4
+   d-LAnRlwdN97wiVnl4z7C9gvm45IWr-BvGTzeZaHtZtgNZ88gvzroU3LElUPbgF4kWi_D
+   FORnKzsx5yu6A
+   OAuth-Client-Attestation-PoP: eyJ0eXAiOiJvYXV0aC1jbGllbnQtYXR0ZXN0YXRp
+   b24tcG9wK2p3dCIsImFsZyI6IkVTMjU2In0.eyJhdWQiOiJodHRwczovL3JzLmV4YW1wb
+   GUuY29tIiwianRpIjoiZDI1ZDAwYWItNTUyYi00NmZjLWFlMTktOThmNDQwZjI1MDY0Ii
+   wiaWF0IjoxNzcyNDg3NTk1LCJjaGFsbGVuZ2UiOiI1YzFhOWUxMC0yOWZmLTRjMmItYWU
+   3My01N2MwOTU3YzA5YzQifQ.Uh-vRynTGGARZNqijGyovBMm_EsX5qu0fg0VGPVRsp1rJ
+   dF7rElbZcEv0CAtzm5kXhjSXHYGxEVb0I7HIeUFRg
+
+8.  Authorization Server and Resource Server Metadata
+
+   The Authorization Server SHOULD communicate support for
+   authentication with Attestation-Based Client Authentication using a
+   Client Attestation PoP JWT as the PoP by using the value
+   attest_jwt_client_auth in the token_endpoint_auth_methods_supported
+   within its published metadata.  The Authorization Server SHOULD
+   communicate support for authentication with Attestation-Based Client
+   Authentication using a DPoP proof as the PoP by using the value
+   attest_jwt_client_auth_dpop in the
+   token_endpoint_auth_methods_supported within its published metadata.
+   The client SHOULD fetch and parse the Authorization Server metadata
+   and recognize Attestation-Based Client Authentication as a client
+   authentication mechanism if either of the given
+   token_endpoint_auth_methods_supported values are present.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 24]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   The Authorization Server or Resource Server SHOULD communicate
+   supported algorithms for client attestations by using
+   client_attestation_signing_alg_values_supported and
+   client_attestation_pop_signing_alg_values_supported within its
+   published metadata.  This enables the client to validate that its
+   client attestation is understood by the Authorization Server prior to
+   authentication.  The client MAY try to get a new client attestation
+   with different algorithms.  The Authorization Server or Resource
+   Server MUST include client_attestation_signing_alg_values_supported
+   and client_attestation_pop_signing_alg_values_supported in its
+   published metadata if the Client Attestation PoP JWT mechanism is
+   used.  The Authorization Server or Resource Server MUST include
+   dpop_signing_alg_values_supported as defined in [RFC9449], if DPoP is
+   used as the Proof of Possession in combined mode.
+
+   The Authorization Server or Resource Server MAY signal that it
+   requires a Client Attestation as an additional security signal as
+   described in Section 7.6.  The Authorization Server includes the
+   client_attestation_pop_methods_supported metadata parameter,
+   containing a JSON array of the Proof of Possession methods it
+   accepts, in its metadata as defined in [RFC8414].  The Resource
+   Server uses the same client_attestation_pop_methods_supported
+   parameter in its metadata as defined in [RFC9728].  The Proof of
+   Possession method values are registered in the "OAuth Client
+   Attestation Proof-of-Possession Methods" registry established by this
+   specification (see Section 15.5).
+
+9.  Client Metadata
+
+   This section defines client metadata parameters for use with
+   attestation-based client authentication.  As described in [RFC7591],
+   client metadata defines a general data model for Clients that is
+   useful even when the Dynamic Client Registration Protocol is not
+   being used.  A Client MAY use these values to compare its own
+   capabilities against the Authorization Server or Resource Server
+   metadata defined in Section 8 to determine whether it can
+   interoperate with a given server prior to attempting authentication.
+
+   A Client that supports attestation-based client authentication as
+   defined in this specification indicates this by using the value
+   attest_jwt_client_auth or attest_jwt_client_auth_dpop in the
+   token_endpoint_auth_method client metadata parameter defined in
+   [RFC7591].
+
+   In addition, the following client metadata parameters are defined:
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 25]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  client_attestation_signing_alg_values_supported: OPTIONAL.  JSON
+      array containing a list of the JWS alg values (as defined in
+      [IANA.JOSE.ALGS]) supported by the Client for signing the Client
+      Attestation JWT.  The value none MUST NOT be present.
+
+   *  client_attestation_pop_signing_alg_values_supported: OPTIONAL.
+      JSON array containing a list of the JWS alg values (as defined in
+      [IANA.JOSE.ALGS]) supported by the Client for signing the Client
+      Attestation PoP JWT.  The values none and any symmetric algorithms
+      MUST NOT be present.
+
+   *  client_attestation_pop_methods_supported: OPTIONAL.  JSON array of
+      case-sensitive strings, each identifying a Proof of Possession
+      method supported by the Client, as registered in the "OAuth Client
+      Attestation Proof-of-Possession Methods" registry established by
+      this specification (see Section 15.5).
+
+   These client metadata values are advertisements of Client capability.
+   The Authorization Server or Resource Server enforces its own accepted
+   algorithm and Proof of Possession method policies independently, and
+   is not required to consult these values when validating an incoming
+   request.
+
+10.  Implementation Considerations
+
+10.1.  DPoP Combined Mode Considerations
+
+   When using DPoP combined mode, the key used for client authentication
+   and token binding is shared.  This may be undesirable depending on
+   the deployment considerations of the Client.  Conversely, the
+   benefits of this approach are as follows:
+
+   *  It authenticates (attests) the DPoP key used for sender-
+      constraining tokens against the Client deployment.
+
+   *  It reduces implementation complexity for the Client by minimizing
+      the number of JWTs that need to be constructed or validated in a
+      request.
+
+   *  It reduces run-time costs for the Client by minimizing the number
+      of cryptographic operations that need to be constructed in a
+      request, especially if the keys are in a remote and/or hardware-
+      backed key storage.
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 26]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+10.2.  Reuse of a Client Attestation JWT
+
+   Implementers should be aware that the design of this authentication
+   mechanism deliberately allows for a Client Instance to re-use a
+   single Client Attestation JWT in multiple interactions/requests with
+   an Authorization Server or Resource Server, whilst producing a fresh
+   Client Attestation PoP JWT.  Client deployments should consider this
+   when determining the validity period for issued Client Attestation
+   JWTs as this ultimately controls how long a Client Instance can re-
+   use a single Client Attestation JWT.
+
+10.3.  Refresh token binding
+
+   Authorization servers issuing a refresh token in response to a token
+   request using the client attestation mechanism as defined by this
+   specification MUST bind the refresh token to the Client Instance, and
+   NOT just the client as specified in Section 6 of [RFC6749].  To prove
+   this binding, the Client Instance MUST use the client attestation
+   mechanism when refreshing an access token.
+
+   Unless a profile specifies otherwise as described in Section 13, the
+   refresh token MUST be bound to the Client Instance Key, and the
+   Client Instance MUST use the same key that was present in the cnf
+   claim of the Client Attestation that was used when the refresh token
+   was issued.
+
+10.4.  Binding of OAuth protocol artifacts
+
+   Authorization servers using Attestation-Based Client Authentication
+   are RECOMMENDED to bind relevant protocol artifacts to the Client
+   Instance and its associated public key where possible, and NOT just
+   the client as specified in [RFC6749].  Note that this only applies if
+   Attestation-Based Client Authentication is used as Client
+   Authentication.  Examples of these artifacts include but are not
+   limited to:
+
+   *  The authorization_code as specified in Section 4.1 of [RFC6749].
+
+   *  The auth_req_id as specified in section 7.3 [CIBA].
+
+   How this binding is established and then proven is specific to the
+   protocol artifact.  For example establishing binding to an
+   authorization_code involves the client instance using client
+   attestation before the user is redirected to the Authorization
+   Endpoint (for example by using PAR, [RFC9126]), and proving binding
+   of the authorization_code to the Client Instance involves using the
+   client attestation mechanism to authenticate at the token endpoint
+   when performing the authorization code grant.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 27]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+10.5.  Web Server Default Maximum HTTP Header Sizes
+
+   Because the Client Attestation and Client Attestation PoP are
+   communicated using HTTP headers, implementers should consider that
+   web servers may have a default maximum HTTP header size configured
+   which could be too low to allow conveying a Client Attestation and or
+   Client Attestation PoP in an HTTP request.  It should be noted, that
+   this limit is not given by the HTTP [RFC9112], but instead web server
+   implementations commonly set a default maximum size for HTTP headers.
+   As of 2024, typical limits for modern web servers configure maximum
+   HTTP headers as 8 kB or more as a default.
+
+10.6.  Rotation of Client Instance Key
+
+   This specification does not provide a mechanism to rotate the Client
+   Instance Key in the Client Attestation JWT's "cnf" claim.  If the
+   Client Instance needs to use a new Client Instance Key for any
+   reason, then it MUST request a new Client Attestation JWT from its
+   Client Attester.
+
+10.7.  Replay Attack Detection
+
+   Authorization Server or Resource Servers implementing measures to
+   detect replay attacks as described in Section 12.1 require efficient
+   data structures to manage large amounts of challenge or jti values
+   for use cases with high volumes of transactions.  To limit the size
+   of the data structure, the Authorization Server or Resource Server
+   should use a sliding window, allowing Client Attestation PoPs within
+   a certain time window, in which the seen challenge or jti values are
+   stored, but discarded afterwards.  The allowed window is determined
+   by the iat of the Client Attestation PoP and the sliding window time
+   duration chosen by the Authorization Server or Resource Server.  To
+   ensure security, the Authorization Server or Resource Server MUST
+   first evaluate the iat of the Client Attestation PoP and reject any
+   Client Attestation PoP whose iat falls outside this time window.
+   Using such a data structure, the Authorization Server or Resource
+   Server performs the following operations:
+
+   *  search for the challenge or jti value of the Client Attestation
+      PoP to validate whether it has been previously seen, and reject
+      the Client Attestation PoP if it has
+
+   *  insert the challenge or jti value of the Client Attestation PoP
+      once it has passed all other checks
+
+   *  delete challenge or jti values after they have passed the sliding
+      time window
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 28]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   A trie (also called prefix tree), or a patricia trie (also called
+   radix tree) are RECOMMENDED data structures to implement such a
+   mechanism.  Note that this seen-values mechanism is only needed when
+   replay detection relies on a jti value or on a challenge obtained
+   from the challenge endpoint.  When the Authorization Server or
+   Resource Server issues a challenge bound to a specific Client
+   Instance session (see Section 12.1), it can instead validate the
+   Client Attestation PoP against the single challenge value expected
+   for that session, without maintaining a seen-values data structure.
+
+   Note that for the combined mode, the nonce and jti claims of the DPoP
+   proof are used instead of the challenge and jti claims of the Client
+   Attestation PoP.
+
+10.8.  Trust Management and Key Resolution
+
+   The mechanisms by which the Authorization Server establishes trust in
+   the Client Attester, and by which it obtains the public keys used to
+   verify Client Attestation JWTs, are out of scope of this
+   specification.
+
+   Attestation-Based Client Authentication protects the integrity of
+   Client Attestations using either Message Authentication Codes (MACs)
+   or digital signatures.  When digital signatures are used, the
+   Authorization Server needs to be able to obtain the corresponding
+   public key, either through pre-configuration or through dynamic
+   discovery.
+
+   Examples of trust management approaches include:
+
+   *  Public Key Infrastructure (PKI) and trust lists.
+
+   *  Pre-shared or out-of-band negotiated configuration (e.g., keys,
+      URLs).
+
+   Specifications, profiles, and ecosystems built on top of Attestation-
+   Based Client Authentication SHOULD adopt one of the following
+   mechanisms to resolve the public key used to verify a Client
+   Attestation JWT:
+
+   *  The x5c header parameter, as defined in Section 4.1.6 of
+      [RFC7515], conveys an X.509 certificate chain in the JOSE header
+      of each Client Attestation.  Trust is established by validating
+      the chain against a configured trust anchor.
+
+   *  The kid header parameter combined with the jku header parameter,
+      as defined in Section 4.1.2 of [RFC7515] and Section 4.1.3 of
+      [RFC7515].  The Authorization Server retrieves a JWK Set from the
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 29]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+      URL indicated by jku and selects the key identified by kid.  This
+      approach is self-contained but requires an additional HTTP
+      request, and trust must be established in the jku URL.
+
+   *  The kid header parameter combined with Client Metadata or other
+      pre-shared information.  Client Metadata, as defined in [RFC7591],
+      includes a jwks_uri parameter which, together with kid, enables
+      resolution of the verification key.
+
+11.  Privacy Considerations
+
+11.1.  Client Instance Tracking Across Authorization Servers or Resource
+       Servers
+
+   Implementers should be aware that using the same client attestation
+   across multiple Authorization Servers or Resource Servers could
+   result in correlation of the end user using the Client Instance
+   through claim values (including the Client Instance Key in the cnf
+   claim).  Client deployments are therefore RECOMMENDED to use
+   different Client Attestation JWTs with different Client Instance Keys
+   across different Authorization Servers or Resource Servers.
+
+12.  Security Considerations
+
+   The guidance provided by [RFC7519] and [RFC8725] applies.
+
+12.1.  Replay Attacks
+
+   An Authorization/Resource Server SHOULD implement measures to detect
+   replay attacks by the Client Instance.  In the context of this
+   specification, this means to detect that an attacker is resending the
+   same Client Attestation PoP JWT in multiple requests.  The following
+   options are RECOMMENDED for this client authentication method:
+
+   *  The Authorization/Resource Server manages a list of witnessed jti
+      values of the Client Attestation PoP JWT for the time window of
+      which the JWT would be considered valid.  This sliding time window
+      is based on the iat of the Client Attestation PoP and the duration
+      chosen by the Authorization/Resource Server.  If any Client
+      Attestation PoP JWT would be replayed, the Authorization/Resource
+      Server would recognize the jti value in the list and respond with
+      an authentication error.  Details how to implement such a data
+      structure to maintain jti values is given in Section 10.7.
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 30]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  The Authorization/Resource Server provides a challenge as an
+      OAuth-Client-Attestation-Challenge in the challenge endpoint to
+      the Client Instance and the Client uses it as a challenge value in
+      the Client Attestation PoP JWT.  The Authorization/Resource Server
+      may choose to:
+
+      -  manage a list of witnessed challenge values, similar to the
+         previously described jti approach.  Details how to implement
+         such a data structure to maintain challenge values is given in
+         Section 10.7.  This guarantees stronger replay protection with
+         a challenge chosen by the Authorization/Resource Server itself,
+         at the potential cost of an additional round-trip.
+
+      -  use self-contained challenges while not storing the seen
+         challenges.  This approach scales well, while only guaranteeing
+         freshness, but no replay protection within the limited time-
+         window chosen by the Authorization/Resource Server.
+
+   *  The Authorization/Resource Server generates a challenge that is
+      bound to the Client Instance's session, such that a specific
+      challenge in the Client Attestation PoP JWT is expected and
+      validated.  The Authorization/Resource Server sends the challenge
+      as part of another previous response to the Client Instance.
+
+   Note that protocols that provide a challenge as part of a previous
+   response should provide a clear indicator for clients when this
+   feature is used.  This makes it easier for client implementations to
+   deal with proper state handling.  This can be implicit by always
+   mandating support for this feature or via some metadata that allows
+   the client to detect support for this feature for a specific server.
+
+   Because clock skews between servers and clients may be large,
+   Authorization/Resource Servers MAY limit Client Attestation PoP
+   lifetimes by using server-provided challenge values containing the
+   time at the server rather than comparing the client-supplied iat time
+   to the time at the server.  Challenges created in this way yield the
+   same result even in the face of arbitrarily large clock skews.
+
+   In any case the Authorization/Resource Server SHOULD ensure the
+   freshness of the Client Attestation PoP by checking either the iat
+   claim or if present the server provided challenge, is within an
+   acceptable time window.
+
+   The approach using a challenge explicitly provided by the
+   Authorization/Resource Server gives stronger replay attack detection
+   guarantees, however support by the Authorization/Resource Server is
+   OPTIONAL to simplify mandatory implementation requirements.  The jti
+   value is mandatory and hence acts as a default fallback.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 31]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+12.2.  Client Attestation Protection
+
+   This specification allows both, digital signatures using asymmetric
+   cryptography, and Message Authentication Codes (MAC) to be used to
+   protect Client Attestation JWTs.  Implementers should only use MACs
+   to secure the integrity of Client Attestation JWTs if they fully
+   understand the risks of MACs when compared to digital signatures and
+   especially the requirements of their use-case scenarios.  These use-
+   cases typically represent deployments where the Client Attester and
+   Authorization Server have a trust relationship and the possibility to
+   securely exchange keys out of band or are the same entity and no
+   other entity needs to verify the Client Attestations.  We expect most
+   deployments to use digital signatures for the protection of Client
+   Attestations, and implementers SHOULD default to digital signatures
+   if they are unsure.
+
+13.  Considerations for Profiling this specification
+
+   Use cases, ecosystems or other specifications that utilize
+   Attestation-Based Client Authentication may profile this
+   specification.
+
+   A profile MUST define how an Authorization Server or Resource Server
+   determines that the profile applies to a given request (which could
+   also be an out-of-band mechanism).
+
+   A profile MAY deviate on the following points:
+
+   *  The type of the Client Attestation JWT: a profile MAY redefine a
+      typ header parameter value other than oauth-client-attestation+jwt
+      (see Section 4) in order to distinguish profile-specific Client
+      Attestations.  Client Attestations are still unambiguously
+      transferred by the OAuth-Client-Attestation HTTP header.
+
+   *  The subject of the Client Attestation JWT: a profile MAY redefine
+      the meaning of the sub claim (see Section 4) and how a client_id
+      maps to Client Instances.  Such a profile MUST define how the
+      checks that rely on sub matching the client_id are replaced, in
+      particular those in Section 7.1 and Section 7.5.
+
+   *  The binding of refresh tokens: a profile MAY redefine the refresh
+      token binding described in Section 10.3 if its use case does not
+      allow binding refresh tokens to the Client Instance Key. Such a
+      profile MUST define what the refresh token is bound to instead and
+      how that binding is proven when the refresh token is used.
+
+   All other requirements of this specification continue to apply
+   unchanged.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 32]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+14.  Relation to RATS
+
+   The Remote Attestation Procedures (RATS) architecture defined by
+   [RFC9334] has some commonalities to this document.  The flow
+   specified in this specification relates to the "Passport Model" in
+   RATS.  However, while the RATS ecosystem gives explicit methods and
+   values how the RATS Attester proves itself to the Verifier, this is
+   deliberately out of scope for Attestation-Based Client
+   Authentication.  Additionally, the terminology between RATS and OAuth
+   is different:
+
+   *  a RATS "Attester" relates to an OAuth "Client"
+
+   *  a RATS "Relying Party" relates to an OAuth "Authorization Server
+      or Resource Server"
+
+   *  a RATS "Verifier" relates to the "Client Attester" defined in this
+      specification
+
+   *  a RATS "Attestation Result" relates to the "Client Attestation
+      JWT" defined by this specification
+
+   *  a RATS "Endorser", "Reference Value Provider", "Endorsement",
+      "Evidence" and "Policies and Reference Values" are out of scope
+      for this specification
+
+15.  IANA Considerations
+
+15.1.  OAuth Extensions Error Registration
+
+   This specification requests registration of the following values in
+   the IANA "OAuth Extensions Error Registry" registry of
+   [IANA.OAuth.Params] established by [RFC6749].
+
+   *  Error Name: use_attestation_challenge
+
+   *  Error Usage Location: token error response, resource access error
+      response
+
+   *  Related Protocol Extension: OAuth 2.0 Attestation-Based Client
+      Authentication
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 7.4 of this specification
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 33]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Error Name: use_fresh_attestation
+
+   *  Error Usage Location: token error response, resource access error
+      response
+
+   *  Related Protocol Extension: OAuth 2.0 Attestation-Based Client
+      Authentication
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 7.4 of this specification
+
+
+
+   *  Error Name: invalid_client_attestation
+
+   *  Error Usage Location: token error response, resource access error
+      response
+
+   *  Related Protocol Extension: OAuth 2.0 Attestation-Based Client
+      Authentication
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 7.4 of this specification
+
+15.2.  OAuth Authorization Server Metadata Registration
+
+   This specification requests registration of the following values in
+   the IANA "OAuth Authorization Server Metadata" registry of
+   [IANA.OAuth.Params] established by [RFC8414].
+
+   *  Metadata Name: challenge_endpoint
+
+   *  Metadata Description: URL of the authorization server's challenge
+      endpoint which is used to obtain a fresh challenge for usage in
+      client authentication methods such as client attestation.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.3 of this specification
+
+
+
+   *  Metadata Name: client_attestation_signing_alg_values_supported
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 34]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Metadata Description: JSON array containing a list of the JWS
+      signing algorithms supported by the authorization server for the
+      signature on the Client Attestation JWT.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 8 of this specification
+
+
+
+   *  Metadata Name: client_attestation_pop_signing_alg_values_supported
+
+   *  Metadata Description: JSON array containing a list of the JWS
+      signing algorithms supported by the authorization server for the
+      signature on the Client Attestation PoP JWT.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 8 of this specification
+
+
+
+   *  Metadata Name: client_attestation_pop_methods_supported
+
+   *  Metadata Description: JSON array of strings, each identifying a
+      Proof of Possession method the authorization server accepts when
+      requiring Clients to present a Client Attestation as an additional
+      security signal.  If omitted, presenting a Client Attestation is
+      not required.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 7.6 of this specification
+
+15.3.  OAuth Protected Resource Metadata Registration
+
+   This specification requests registration of the following values in
+   the IANA "OAuth Protected Resource Metadata" registry of
+   [IANA.OAuth.Params] established by [RFC9728].
+
+   *  Metadata Name: challenge_endpoint
+
+   *  Metadata Description: URL of the protected resource's challenge
+      endpoint which is used to obtain a fresh challenge for usage in
+      client authentication methods such as client attestation.
+
+   *  Change Controller: IETF
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 35]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Specification Document(s): Section 6.3 of this specification
+
+
+
+   *  Metadata Name: client_attestation_signing_alg_values_supported
+
+   *  Metadata Description: JSON array containing a list of the JWS
+      signing algorithms supported by the protected resource for the
+      signature on the Client Attestation JWT.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 8 of this specification
+
+
+
+   *  Metadata Name: client_attestation_pop_signing_alg_values_supported
+
+   *  Metadata Description: JSON array containing a list of the JWS
+      signing algorithms supported by the protected resource for the
+      signature on the Client Attestation PoP JWT.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 8 of this specification
+
+
+
+   *  Metadata Name: client_attestation_pop_methods_supported
+
+   *  Metadata Description: JSON array of strings, each identifying a
+      Proof of Possession method the protected resource accepts when
+      requiring Clients to present a Client Attestation as an additional
+      security signal.  If omitted, presenting a Client Attestation is
+      not required.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 7.6 of this specification
+
+15.4.  OAuth Dynamic Client Registration Metadata Registration
+
+   This specification requests registration of the following values in
+   the IANA "OAuth Dynamic Client Registration Metadata" registry of
+   [IANA.OAuth.Params] established by [RFC7591].
+
+   *  Client Metadata Name:
+      client_attestation_signing_alg_values_supported
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 36]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Client Metadata Description: JSON array containing a list of the
+      JWS signing algorithms supported by the Client for signing the
+      Client Attestation JWT.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 9 of this specification
+
+
+
+   *  Client Metadata Name:
+      client_attestation_pop_signing_alg_values_supported
+
+   *  Client Metadata Description: JSON array containing a list of the
+      JWS signing algorithms supported by the Client for signing the
+      Client Attestation PoP JWT.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 9 of this specification
+
+
+
+   *  Client Metadata Name: client_attestation_pop_methods_supported
+
+   *  Client Metadata Description: JSON array of strings, each
+      identifying a Proof of Possession method supported by the Client.
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 9 of this specification
+
+15.5.  OAuth Client Attestation Proof-of-Possession Methods Registry
+
+   This specification establishes the IANA "OAuth Client Attestation
+   Proof-of-Possession Methods" registry.  This registry lists the Proof
+   of Possession methods that a Client may use to demonstrate possession
+   of the Client Instance Key, referenced by the
+   client_attestation_pop_methods_supported metadata parameter defined
+   in Section 7.6 and Section 9.
+
+   Client Attestation Proof-of-Possession Methods are registered by
+   Specification Required [RFC8126] after a two-week review period on
+   the oauth-ext-review@ietf.org mailing list, on the advice of one or
+   more Designated Experts.  To allow for the allocation of values prior
+   to publication of the final version of a specification, the
+   designated experts may approve registration once they are satisfied
+   that the specification will be completed and published.  However, if
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 37]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   the specification is not completed and published in a timely manner,
+   as determined by the designated experts, the designated experts may
+   request that IANA withdraw the registration.
+
+   Registration requests sent to the mailing list for review should use
+   an appropriate subject (e.g., "Request to register Client Attestation
+   PoP: example").
+
+   Within the review period, the designated experts will either approve
+   or deny the registration request, communicating this decision to the
+   review list and IANA.  Denials should include an explanation and, if
+   applicable, suggestions as to how to make the request successful.  If
+   the designated experts are not responsive, the registration
+   requesters should contact IANA to escalate the process.
+
+   Designated experts should apply at least the following criteria when
+   reviewing proposed registrations:
+
+   *  the mechanism should not duplicate existing functionality
+
+   *  the mechanism is likely generally applicable, as opposed to being
+      used for a single application
+
+   *  the specification sufficiently describes how the Proof of
+      Possession method works in combination with a Client Attestation
+
+   IANA must only accept registry updates from the designated experts
+   and should direct all requests for registration to the review mailing
+   list.
+
+   In order to enable broadly informed review of registration decisions,
+   there should be multiple designated experts to represent the
+   perspectives of different applications using this specification.  In
+   cases where registration may be perceived as a conflict of interest
+   for a particular expert, that expert should defer to the judgment of
+   the other experts.
+
+   The mailing list is used to enable public review of registration
+   requests, which enables both designated experts and other interested
+   parties to provide feedback on proposed registrations.  Designated
+   experts may allocate values prior to publication of the final
+   specification.  This allows authors to receive guidance from the
+   designated experts early, so any identified issues can be fixed
+   before the final specification is published.
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 38]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+15.5.1.  Registration Template
+
+   *  Method Name: The name of the Proof of Possession method, a case-
+      sensitive ASCII string.
+
+   *  Method Description: A brief description of the mechanism.
+
+   *  Change Controller: For values registered by this specification,
+      IETF.
+
+   *  Specification document(s): A reference to the specification that
+      defines the mechanism.
+
+15.5.2.  Initial Registry Content
+
+   *  Method Name: attestation_pop_jwt
+
+   *  Method Description: The Proof of Possession is a dedicated Client
+      Attestation PoP JWT ("normal mode").
+
+   *  Change Controller: IETF
+
+   *  Specification document(s): Section 5.1 of this specification
+
+
+
+   *  Method Name: dpop_combined
+
+   *  Method Description: The Proof of Possession is a DPoP proof
+      serving as the combined Proof of Possession ("DPoP combined
+      mode").
+
+   *  Change Controller: IETF
+
+   *  Specification document(s): Section 5.2 of this specification
+
+
+
+   *  Method Name: none
+
+   *  Method Description: No Client Attestation is required.  When a
+      server includes this value, the Client MAY omit the Client
+      Attestation.
+
+   *  Change Controller: IETF
+
+   *  Specification document(s): Section 7.6 of this specification
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 39]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+15.6.  Registration of attest_jwt_client_auth Token Endpoint
+       Authentication Method
+
+   This section registers the value "attest_jwt_client_auth" in the IANA
+   "OAuth Token Endpoint Authentication Methods" registry established by
+   OAuth 2.0 Dynamic Client Registration Protocol [RFC7591].
+
+   *  Token Endpoint Authentication Method Name:
+      "attest_jwt_client_auth"
+
+   *  Change Controller: IESG
+
+   *  Specification Document(s): Section 7.5 of this specification
+
+15.7.  Registration of attest_jwt_client_auth_dpop Token Endpoint
+       Authentication Method
+
+   This section registers the value "attest_jwt_client_auth_dpop" in the
+   IANA "OAuth Token Endpoint Authentication Methods" registry
+   established by OAuth 2.0 Dynamic Client Registration Protocol
+   [RFC7591].
+
+   *  Token Endpoint Authentication Method Name:
+      "attest_jwt_client_auth_dpop"
+
+   *  Change Controller: IESG
+
+   *  Specification Document(s): Section 5.2 of this specification
+
+15.8.  HTTP Field Name Registration
+
+   This section requests registration of the following scheme in the
+   "Hypertext Transfer Protocol (HTTP) Field Name Registry"
+   [IANA.HTTP.Fields] described in [RFC9110]:
+
+   *  Field Name: OAuth-Client-Attestation
+
+   *  Status: permanent
+
+   *  Structured Type: Item
+
+   *  Specification document(s): Section 4 of this specification
+
+
+
+   *  Field Name: OAuth-Client-Attestation-PoP
+
+   *  Status: permanent
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 40]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Structured Type: Item
+
+   *  Specification document(s): Section 5.1 of this specification
+
+
+
+   *  Field Name: OAuth-Client-Attestation-Challenge
+
+   *  Status: permanent
+
+   *  Structured Type: Item
+
+   *  Specification document(s): Section 6.2 of this specification
+
+15.9.  Media Type Registration
+
+   This section requests registration of the following media types
+   [RFC2046] in the "Media Types" registry [IANA.MediaTypes] in the
+   manner described in [RFC6838].
+
+   To indicate that the content is a Client Attestation JWT as defined
+   by this specification:
+
+   *  Type name: application
+
+   *  Subtype name: oauth-client-attestation+jwt
+
+   *  Required parameters: n/a
+
+   *  Optional parameters: n/a
+
+   *  Encoding considerations: 8bit; JWT values are encoded as a series
+      of base64url encoded values (some of which may be the empty
+      string) separated by period ('.') characters.
+
+   *  Security considerations: See Section 12 of this specification
+
+   *  Interoperability considerations: n/a
+
+   *  Published specification: this specification
+
+   *  Applications that use this media type: Applications using this
+      specification to convey a Client Attestation
+
+   *  Fragment identifier considerations: n/a
+
+   *  Additional information: n/a
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 41]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Person & email address to contact for further information: OAuth
+      WG mailing list, oauth@ietf.org
+
+   *  Intended usage: COMMON
+
+   *  Restrictions on usage: none
+
+   *  Author: OAuth WG mailing list, oauth@ietf.org
+
+   *  Change controller: IETF
+
+   *  Provisional registration?  No
+
+   To indicate that the content is a Client Attestation PoP JWT as
+   defined by this specification:
+
+   *  Type name: application
+
+   *  Subtype name: oauth-client-attestation-pop+jwt
+
+   *  Required parameters: n/a
+
+   *  Optional parameters: n/a
+
+   *  Encoding considerations: 8bit; JWT values are encoded as a series
+      of base64url encoded values (some of which may be the empty
+      string) separated by period ('.') characters.
+
+   *  Security considerations: See Section 12 of this specification
+
+   *  Interoperability considerations: n/a
+
+   *  Published specification: this specification
+
+   *  Applications that use this media type: Applications using this
+      specification for updated status information of tokens
+
+   *  Fragment identifier considerations: n/a
+
+   *  Additional information: n/a
+
+   *  Person & email address to contact for further information: OAuth
+      WG mailing list, oauth@ietf.org
+
+   *  Intended usage: COMMON
+
+   *  Restrictions on usage: none
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 42]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Author: OAuth WG mailing list, oauth@ietf.org
+
+   *  Change controller: IETF
+
+   *  Provisional registration?  No
+
+15.10.  JSON Web Token Claims Registration
+
+   This specification requests registration of the following value in
+   the IANA "JSON Web Token (JWT) Claims" registry [IANA.JWT.Claims]
+   established by [RFC7519].
+
+   *  Claim Name: challenge
+
+   *  Claim Description: Server-provided challenge for use in a proof of
+      possession
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of this specification
+
+16.  References
+
+16.1.  Normative References
+
+   [IANA.HTTP.Fields]
+              IANA, "Hypertext Transfer Protocol (HTTP) Field Name
+              Registry", n.d., <https://www.iana.org/assignments/http-
+              fields/http-fields.xhtml>.
+
+   [IANA.JOSE.ALGS]
+              IANA, "JSON Web Signature and Encryption Algorithms",
+              n.d., <https://www.iana.org/assignments/jose/
+              jose.xhtml#web-signature-encryption-algorithms>.
+
+   [IANA.JWT.Claims]
+              IANA, "JSON Web Token (JWT) Claims", n.d.,
+              <https://www.iana.org/assignments/jwt/jwt.xhtml#claims>.
+
+   [IANA.MediaTypes]
+              IANA, "Media Types", n.d.,
+              <https://www.iana.org/assignments/media-types/media-
+              types.xhtml>.
+
+   [IANA.OAuth.Params]
+              IANA, "OAuth Parameters", n.d.,
+              <https://www.iana.org/assignments/oauth-parameters/oauth-
+              parameters.xhtml>.
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 43]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   [RFC2046]  Freed, N. and N. Borenstein, "Multipurpose Internet Mail
+              Extensions (MIME) Part Two: Media Types", RFC 2046,
+              DOI 10.17487/RFC2046, November 1996,
+              <https://www.rfc-editor.org/rfc/rfc2046>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
+              RFC 6749, DOI 10.17487/RFC6749, October 2012,
+              <https://www.rfc-editor.org/rfc/rfc6749>.
+
+   [RFC6750]  Jones, M. and D. Hardt, "The OAuth 2.0 Authorization
+              Framework: Bearer Token Usage", RFC 6750,
+              DOI 10.17487/RFC6750, October 2012,
+              <https://www.rfc-editor.org/rfc/rfc6750>.
+
+   [RFC6838]  Freed, N., Klensin, J., and T. Hansen, "Media Type
+              Specifications and Registration Procedures", BCP 13,
+              RFC 6838, DOI 10.17487/RFC6838, January 2013,
+              <https://www.rfc-editor.org/rfc/rfc6838>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <https://www.rfc-editor.org/rfc/rfc7515>.
+
+   [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
+              (JWT)", RFC 7519, DOI 10.17487/RFC7519, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7519>.
+
+   [RFC7591]  Richer, J., Ed., Jones, M., Bradley, J., Machulak, M., and
+              P. Hunt, "OAuth 2.0 Dynamic Client Registration Protocol",
+              RFC 7591, DOI 10.17487/RFC7591, July 2015,
+              <https://www.rfc-editor.org/rfc/rfc7591>.
+
+   [RFC7800]  Jones, M., Bradley, J., and H. Tschofenig, "Proof-of-
+              Possession Key Semantics for JSON Web Tokens (JWTs)",
+              RFC 7800, DOI 10.17487/RFC7800, April 2016,
+              <https://www.rfc-editor.org/rfc/rfc7800>.
+
+   [RFC8126]  Cotton, M., Leiba, B., and T. Narten, "Guidelines for
+              Writing an IANA Considerations Section in RFCs", BCP 26,
+              RFC 8126, DOI 10.17487/RFC8126, June 2017,
+              <https://www.rfc-editor.org/rfc/rfc8126>.
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 44]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+   [RFC8414]  Jones, M., Sakimura, N., and J. Bradley, "OAuth 2.0
+              Authorization Server Metadata", RFC 8414,
+              DOI 10.17487/RFC8414, June 2018,
+              <https://www.rfc-editor.org/rfc/rfc8414>.
+
+   [RFC8725]  Sheffer, Y., Hardt, D., and M. Jones, "JSON Web Token Best
+              Current Practices", BCP 225, RFC 8725,
+              DOI 10.17487/RFC8725, February 2020,
+              <https://www.rfc-editor.org/rfc/rfc8725>.
+
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/rfc/rfc9110>.
+
+   [RFC9112]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP/1.1", STD 99, RFC 9112, DOI 10.17487/RFC9112,
+              June 2022, <https://www.rfc-editor.org/rfc/rfc9112>.
+
+   [RFC9126]  Lodderstedt, T., Campbell, B., Sakimura, N., Tonge, D.,
+              and F. Skokan, "OAuth 2.0 Pushed Authorization Requests",
+              RFC 9126, DOI 10.17487/RFC9126, September 2021,
+              <https://www.rfc-editor.org/rfc/rfc9126>.
+
+   [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
+              Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
+              Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
+              September 2023, <https://www.rfc-editor.org/rfc/rfc9449>.
+
+   [RFC9728]  Jones, M.B., Hunt, P., and A. Parecki, "OAuth 2.0
+              Protected Resource Metadata", RFC 9728,
+              DOI 10.17487/RFC9728, April 2025,
+              <https://www.rfc-editor.org/rfc/rfc9728>.
+
+16.2.  Informative References
+
+   [CIBA]     "OpenID Connect Client-Initiated Backchannel
+              Authentication Flow - Core 1.0", n.d.,
+              <https://openid.net/specs/openid-client-initiated-
+              backchannel-authentication-core-1_0.html>.
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 45]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   [RFC7521]  Campbell, B., Mortimore, C., Jones, M., and Y. Goland,
+              "Assertion Framework for OAuth 2.0 Client Authentication
+              and Authorization Grants", RFC 7521, DOI 10.17487/RFC7521,
+              May 2015, <https://www.rfc-editor.org/rfc/rfc7521>.
+
+   [RFC7523]  Jones, M., Campbell, B., and C. Mortimore, "JSON Web Token
+              (JWT) Profile for OAuth 2.0 Client Authentication and
+              Authorization Grants", RFC 7523, DOI 10.17487/RFC7523, May
+              2015, <https://www.rfc-editor.org/rfc/rfc7523>.
+
+   [RFC9334]  Birkholz, H., Thaler, D., Richardson, M., Smith, N., and
+              W. Pan, "Remote ATtestation procedureS (RATS)
+              Architecture", RFC 9334, DOI 10.17487/RFC9334, January
+              2023, <https://www.rfc-editor.org/rfc/rfc9334>.
+
+   [RFC9901]  Fett, D., Yasuda, K., and B. Campbell, "Selective
+              Disclosure for JSON Web Tokens", RFC 9901,
+              DOI 10.17487/RFC9901, November 2025,
+              <https://www.rfc-editor.org/rfc/rfc9901>.
+
+Appendix A.  Document History
+
+   -11
+
+   *  clarify that challenge support is optional, but that a server
+      using challenges always provides a fresh challenge in the
+      use_attestation_challenge error
+
+   *  combined mode now exclusively uses the DPoP nonce mechanism
+
+   *  allow the challenge endpoint response to convey a DPoP nonce
+
+   *  add clarifications on AS combined mode handling & errors
+
+   *  remove duplication challenge verification in Verifivation of
+      Client Attestation PoP JWT
+
+   *  fix IANA registry entries
+
+   *  remove duplication challenge verification in Verification of
+      Client Attestation PoP JWT
+
+   *  add Client Metadata section defining for use by Clients
+
+   *  register the new client metadata parameters in the IANA registry
+
+   *  add considerations for profiling this draft
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 46]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  mention that RFC7521 is not used
+
+   -10
+
+   *  add client_attestation_pop_methods_supported Authorization Server
+      and Resource Server metadata
+
+   *  establish the "OAuth Client Attestation Proof-of-Possession
+      Methods" registry
+
+   *  allow proof of possession mechanisms defined by other/future
+      specifications
+
+   *  clarify that DPoP can be used alongside attest_jwt_client_auth and
+      which validation rules apply
+
+   *  add short note that dpop_jkt cannot be used with the combined mode
+
+   *  update Client Attestation PoP JWT examples to use challenge
+      instead of nonce and include the required iat claim
+
+   *  clean up references
+
+   *  fix IANA registrations
+
+   *  editorial fixes
+
+   *  add clarification on Client Attester
+
+   *  remove replay attack consideration to reuse existing artifacts as
+      challenge
+
+   *  clarifications around implementation consideration for replay
+      attack detection
+
+   -09
+
+   *  restructure draft
+
+   *  add section how to establish trust and resolve keys
+
+   *  rephrasing of introduction text
+
+   *  adding challenge request/response to graphic
+
+   *  restructure and minor fixes to challenge section
+
+   *  add mentioning or Resource Server, where applicable
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 47]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  clarify that alg is required for Client Attestation JWT and Client
+      Attestation PoP JWT
+
+   -08
+
+   *  remove concatenated Serialization for Client Attestations
+
+   *  update all examples (removal of iss and nbf)
+
+   *  remove iss from Client Attestation JWT and Client Attestation PoP
+      JWT
+
+   *  add small security consideration sub-section for MAC-based
+      deployments
+
+   *  remove public clients reference and clarify this draft targets
+      confidential clients
+
+   *  clarify this may be a client authentication mechanism but also may
+      be not
+
+   *  add examples for RS usage and non client authentication
+
+   *  Add note on protocols providing a challenge on previous responses
+
+   *  add structured-type to iana header field registration requests
+
+   *  moving Authorization Server metadata into it's own top level
+      section
+
+   *  editorial fixes
+
+   -07
+
+   *  remove restrictions to not allow MAC-based algorithms
+
+   *  require iat in Client Attestation PoP JWT
+
+   *  clarify use_attestation_challenge and add
+      invalid_client_attestation
+
+   *  add client_attestation_signing_alg_values_supported and
+      client_attestation_pop_signing_alg_values_supported to IANA
+      registration
+
+   *  add implementation consideration for Authorization Server Metadata
+
+   *  clarify refresh token binding
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 48]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  check client_id at PAR endpoint
+
+   *  added use_fresh_attestation as an error to signal that the
+      attestation was not deemed fresh enough by the server
+
+   *  mandate the defined header fields if the attestation and pop are
+      transferred via header fields
+
+   -06
+
+   *  clarify client_id processing in token request with client
+      attestation
+
+   *  clarify usage of client attestation outside of oauth2 applications
+
+   *  add oauth error response values invalid_client_attestation and
+      use_attestation_challenge
+
+   *  revert the HTTP OPTIONS mechanism to fetch nonces and add a
+      dedicated challenge endpoint
+
+   *  rename nonce to challenge
+
+   *  rewrite security consideration on replay attacks
+
+   *  add implementation consideration on replay attacks
+
+   *  remove exp from Client Attestation PoP JWT
+
+   *  add verification and processing rules
+
+   -05
+
+   *  add nonce endpoint
+
+   *  add metadata entry for nonce
+
+   *  improve introduction
+
+   *  rename client backend to client attester
+
+   *  fix missing typ header in examples
+
+   -04
+
+   *  remove key attestation example
+
+   *  restructured JWT Claims for better readability
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 49]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  added JOSE typ values for Client Attestation and Client
+      Attestation PoP
+
+   *  add RATS relation
+
+   *  add concatenated representation without headers
+
+   *  add PAR endpoint example
+
+   *  fix PoP examples to include jti and nonce
+
+   *  add iana http field name registration
+
+   -03
+
+   *  remove usage of RFC7521 and the usage of client_assertion
+
+   *  add new header-based syntax introducing Oauth-Client-Attestation
+      and OAuth-Client-Attestation-PoP
+
+   *  add Client Instance to the terminology and improve text around
+      this concept
+
+   -02
+
+   *  add text on the inability to rotate the Client Instance Key
+
+   -01
+
+   *  Updated eIDAS example in appendix
+
+   *  Removed text around jti claim in client attestation, refined text
+      for its usage in the client attestation pop
+
+   *  Refined text around cnf claim in client attestation
+
+   *  Clarified how to bind refresh tokens to a Client Instance using
+      this client authentication method
+
+   *  Made it more explicit that the client authentication mechanism is
+      general purpose making it compatible with extensions like PAR
+
+   *  Updated acknowledgments
+
+   *  Simplified the diagram in the introduction
+
+   *  Updated references
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 50]
+
+Internet-Draft  OAuth 2.0 Attestation-Based Client Authe  September 2026
+
+
+   *  Added some guidance around replay attack detection
+
+   -00
+
+   *  Initial draft
+
+Acknowledgments
+
+   We would like to thank Babis Routis, Brian Campbell, Dimitris Zarras,
+   Filip Skokan, Francesco Marino, Frederik Krogsdal Jacobsen, Giuseppe
+   De Marco, Joseph Heenan, Kristina Yasuda, Micha Kraus, Michael B.
+   Jones, Takahiko Kawasaki, Timo Glastra and Torsten Lodderstedt for
+   their valuable contributions to this specification.
+
+Authors' Addresses
+
+   Tobias Looker
+   MATTR
+   Email: tobias.looker@mattr.global
+
+
+   Paul Bastian
+   Bundesdruckerei
+   Email: paul.bastian@posteo.de
+
+
+   Christian Bormann
+   SPRIND
+   Email: chris.bormann@gmx.de
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Looker, et al.            Expires 7 March 2027                 [Page 51]

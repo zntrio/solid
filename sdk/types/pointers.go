@@ -21,13 +21,3 @@ package types
 func StringRef(v string) *string {
 	return new(v)
 }
-
-//go:fix inline
-func UInt64Ref(v uint64) *uint64 {
-	return new(v)
-}
-
-//go:fix inline
-func BoolRef(v bool) *bool {
-	return new(v)
-}

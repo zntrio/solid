@@ -517,9 +517,9 @@ func Test_service_ciba(t *testing.T) {
 					Request: &flowv1.BackchannelAuthenticationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
-					ExpiresAt: 200,
-					Status:    sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
-					Subject:   new("user1"),
+					ExpiresAt:    200,
+					Status:       sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+					Subject:      new("user1"),
 					Confirmation: &tokenv1.TokenConfirmation{Jkt: "bound-jkt"},
 				}, nil)
 			},
@@ -558,9 +558,9 @@ func Test_service_ciba(t *testing.T) {
 					Request: &flowv1.BackchannelAuthenticationRequest{
 						ClientId: "s6BhdRkqt3",
 					},
-					ExpiresAt: 200,
-					Status:    sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
-					Subject:   new("user1"),
+					ExpiresAt:    200,
+					Status:       sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED,
+					Subject:      new("user1"),
 					Confirmation: &tokenv1.TokenConfirmation{Jkt: "bound-jkt"},
 				}
 				sessions.EXPECT().GetByAuthReqID(gomock.Any(), "http://127.0.0.1:8080", "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS").Return(session, nil)

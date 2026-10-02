@@ -60,6 +60,12 @@ func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, re
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
+	// NOTE: sender-binding policy is not gated here: RFC 8693 exchange
+	// requests carry the requester's proof, and the minted token inherits
+	// the subject token's confirmation (certificate bindings propagate,
+	// RFC 8705 section 3; DPoP key swaps are rejected below at the
+	// subject-confirmation comparison).
+
 	// RFC 9396: authorization_details require consent-bound grants; token
 	// exchange delegates an existing grant rather than establishing one.
 	// Fail closed rather than inventing a consent authority.

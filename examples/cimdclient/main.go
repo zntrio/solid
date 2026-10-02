@@ -31,6 +31,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"time"
 
 	"zntr.io/solid/client"
@@ -46,6 +47,9 @@ func main() {
 func run() error {
 	ctx := context.Background()
 
+	// AS issuer identifier, overridable with SOLID_EXAMPLE_ISSUER.
+	issuer := envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
+
 	// Rebuild the client JWK (AKP, ML-DSA-65) from the published fixture
 	// seed: the private seed drives the JWT assertion signature, the
 	// derived public key matches the JWKS published in the document.
@@ -56,7 +60,7 @@ func run() error {
 	jwkDoc := fmt.Sprintf(`{"alg":"ML-DSA-65","d":%q,"kid":%q,"kty":"AKP","pub":%q}`, base64.RawURLEncoding.EncodeToString(seed), cimddemo.ClientIdentifierURL, cimddemo.ClientPubB64)
 
 	// Create the OIDC client instance for the CIMD identifier.
-	oidcClient, err := client.HTTP(ctx, "http://127.0.0.1:8080", &client.Options{
+	oidcClient, err := client.HTTP(ctx, issuer, &client.Options{
 		ClientID: cimddemo.ClientIdentifierURL,
 		JWK:      []byte(jwkDoc),
 		Scopes:   []string{"openid"},
@@ -99,4 +103,13 @@ func run() error {
 	fmt.Printf("Introspection: client_id=%s status=%s\n", it.Metadata.GetClientId(), it.Status)
 
 	return nil
+}
+
+// envOr reads an environment variable, falling back to def when unset or
+// empty.
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

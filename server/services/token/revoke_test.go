@@ -371,7 +371,6 @@ func Test_service_Revoke(t *testing.T) {
 			accessTokens := tokenmock.NewMockGenerator(ctrl)
 			refreshTokens := tokenmock.NewMockGenerator(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
-			authorizationRequests := storagemock.NewMockAuthorizationRequest(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSession(ctrl)
 			deviceCodeSessions := storagemock.NewMockDeviceCodeSession(ctrl)
 
@@ -381,7 +380,7 @@ func Test_service_Revoke(t *testing.T) {
 			}
 
 			// instantiate service
-			underTest := New(accessTokens, refreshTokens, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, nil, tokens, nil)
+			underTest := New(accessTokens, refreshTokens, clients, authorizationCodeSessions, deviceCodeSessions, nil, tokens, nil)
 
 			got, err := underTest.Revoke(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

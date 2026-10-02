@@ -25,7 +25,6 @@ import (
 
 // AuthorizationCode describes authorization code generator contract.
 type AuthorizationCode interface {
-	Validate(ctx context.Context, issuer, in string) error
 	Generate(ctx context.Context, issuer string) (string, error)
 }
 
@@ -36,11 +35,10 @@ type DeviceUserCode interface {
 	Generate(ctx context.Context, issuer string) (string, error)
 }
 
-//go:generate mockgen -destination mock/device_code.gen.go -package mock zntr.io/solid/sdk/generator DeviceCode
-
 // DeviceCode describes device code generator contract.
+//
+//go:generate mockgen -destination mock/device_code.gen.go -package mock zntr.io/solid/sdk/generator DeviceCode
 type DeviceCode interface {
-	Validate(ctx context.Context, issuer, in string) error
 	Generate(ctx context.Context, issuer string) (string, error)
 }
 
@@ -49,13 +47,6 @@ type DeviceCode interface {
 // AuthReqID describes CIBA authentication request identifier generator contract.
 type AuthReqID interface {
 	Generate(ctx context.Context, issuer string) (string, error)
-}
-
-//go:generate mockgen -destination mock/client_id.gen.go -package mock zntr.io/solid/sdk/generator ClientID
-
-// ClientID describes client identified generator contract.
-type ClientID interface {
-	Generate(ctx context.Context) (string, error)
 }
 
 //go:generate mockgen -destination mock/request_uri.gen.go -package mock zntr.io/solid/sdk/generator RequestURI

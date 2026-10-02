@@ -48,6 +48,12 @@ func (s *service) clientCredentials(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
+	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
+	// RFC 8705 section 3 for certificate bindings).
+	if errBind := enforceSenderBinding(res, client, req); errBind != nil {
+		return res, errBind
+	}
+
 	// Check issuer syntax (RFC 6749 section 5.2: malformed client input is
 	// an invalid_request, not a server fault).
 	if req.Issuer == "" {
@@ -90,9 +96,12 @@ func (s *service) clientCredentials(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("client is not authorized to use grant type '%s'", oidc.GrantTypeClientCredentials)
 	}
 
-	// Prepare token
+	// Prepare token: with client_credentials the client is the resource
+	// owner, so it is also the token subject (RFC 9068 section 4; the
+	// client identifier is the subject claim).
 	tokenMeta := &tokenv1.TokenMeta{
 		Issuer:  req.Issuer,
+		Subject: client.ClientId,
 		GrantId: newGrantID(),
 	}
 	if req.Scope != nil {

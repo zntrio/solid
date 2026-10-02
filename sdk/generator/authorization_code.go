@@ -19,8 +19,6 @@ package generator
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	random "zntr.io/solid/sdk/random"
 )
@@ -42,17 +40,4 @@ type authorizationCodeGenerator struct{}
 func (c *authorizationCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
 	code := random.String(DefaultAuthorizationCodeLen)
 	return code, nil
-}
-
-func (c *authorizationCodeGenerator) Validate(_ context.Context, issuer, in string) error {
-	// Normalize
-	in = strings.TrimSpace(in)
-
-	// Check length
-	if len(in) != DefaultAuthorizationCodeLen {
-		return errors.New("invalid authorization code syntax")
-	}
-
-	// No error
-	return nil
 }

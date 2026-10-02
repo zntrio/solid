@@ -134,7 +134,7 @@ func newHarness(t *testing.T) *harness {
 	// Services
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs,
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
-	tokenz := token.New(accessTokens, refreshTokens, clients, authRequests, authSessions, deviceSessions, backchannelSessions, tokens, resources)
+	tokenz := token.New(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources)
 	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(), hintResolver, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
 	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts)
 	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})

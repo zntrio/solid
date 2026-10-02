@@ -97,7 +97,7 @@ func (c *refreshTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) 
 	// Sign the assertion
 	raw, err := c.signer.Serialize(ctx, claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to sign access token: %w", err)
+		return "", fmt.Errorf("unable to sign refresh token: %w", err)
 	}
 
 	// No error
@@ -118,7 +118,7 @@ func (c *refreshTokenGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,
 		validation.Field(&meta.Audience, validation.Required, is.PrintableASCII),
-		validation.Field(&meta.Issuer, validation.Required, is.URL),
+		validation.Field(&meta.Issuer, validation.Required, ValidateURI),
 		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.ClientId, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.Scope, validation.Required, is.PrintableASCII),

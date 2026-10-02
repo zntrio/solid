@@ -409,15 +409,17 @@ var File_oidc_flow_v1_flow_proto protoreflect.FileDescriptor
 
 const file_oidc_flow_v1_flow_proto_rawDesc = "" +
 	"\n" +
-	"\x17oidc/flow/v1/flow.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xda\b\n" +
-	"\x14AuthorizationRequest\x12\x14\n" +
-	"\x05scope\x18\x01 \x01(\tR\x05scope\x12#\n" +
-	"\rresponse_type\x18\x02 \x01(\tR\fresponseType\x12\x1b\n" +
-	"\tclient_id\x18\x03 \x01(\tR\bclientId\x12!\n" +
-	"\fredirect_uri\x18\x04 \x01(\tR\vredirectUri\x12\x14\n" +
-	"\x05state\x18\x05 \x01(\tR\x05state\x12(\n" +
-	"\rresponse_mode\x18\x06 \x01(\tH\x00R\fresponseMode\x88\x01\x01\x12\x14\n" +
-	"\x05nonce\x18\a \x01(\tR\x05nonce\x12\x1d\n" +
+	"\x17oidc/flow/v1/flow.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xda\t\n" +
+	"\x14AuthorizationRequest\x12\x1d\n" +
+	"\x05scope\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05scope\x12,\n" +
+	"\rresponse_type\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fresponseType\x12$\n" +
+	"\tclient_id\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bclientId\x12*\n" +
+	"\fredirect_uri\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\vredirectUri\x12 \n" +
+	"\x05state\x18\x05 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10 \x18\x80\bR\x05state\x12(\n" +
+	"\rresponse_mode\x18\x06 \x01(\tH\x00R\fresponseMode\x88\x01\x01\x12 \n" +
+	"\x05nonce\x18\a \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\b\x18\x80\x04R\x05nonce\x12\x1d\n" +
 	"\adisplay\x18\b \x01(\tH\x01R\adisplay\x88\x01\x01\x12\x1b\n" +
 	"\x06prompt\x18\t \x01(\tH\x02R\x06prompt\x88\x01\x01\x12\x1c\n" +
 	"\amax_age\x18\n" +
@@ -429,10 +431,10 @@ const file_oidc_flow_v1_flow_proto_rawDesc = "" +
 	"acr_values\x18\r \x01(\tH\x06R\tacrValues\x88\x01\x01\x12\x1d\n" +
 	"\arequest\x18\x0e \x01(\tH\aR\arequest\x88\x01\x01\x12$\n" +
 	"\vrequest_uri\x18\x0f \x01(\tH\bR\n" +
-	"requestUri\x88\x01\x01\x12%\n" +
-	"\x0ecode_challenge\x18\x10 \x01(\tR\rcodeChallenge\x122\n" +
-	"\x15code_challenge_method\x18\x11 \x01(\tR\x13codeChallengeMethod\x12\x1a\n" +
-	"\baudience\x18\x12 \x01(\tR\baudience\x12\"\n" +
+	"requestUri\x88\x01\x01\x12M\n" +
+	"\x0ecode_challenge\x18\x10 \x01(\tB&\xbaH#r!\x10+\x18\x80\x012\x1a^[A-Za-z0-9\\-._~]{43,128}$R\rcodeChallenge\x12E\n" +
+	"\x15code_challenge_method\x18\x11 \x01(\tB\x11\xbaH\x0er\f\x10\x04\x18\x042\x06^S256$R\x13codeChallengeMethod\x12#\n" +
+	"\baudience\x18\x12 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\baudience\x12\"\n" +
 	"\n" +
 	"dpop_proof\x18\x13 \x01(\tH\tR\tdpopProof\x88\x01\x01\x12\x1e\n" +
 	"\bdpop_jkt\x18\x18 \x01(\tH\n" +

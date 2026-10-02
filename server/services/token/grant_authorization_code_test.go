@@ -248,96 +248,6 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
-			name: "code_verifier too short",
-			args: args{
-				ctx: context.Background(),
-				client: &clientv1.Client{
-					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-					ResponseTypes: []string{"code"},
-					RedirectUris:  []string{"https://client.example.org/cb"},
-				},
-				req: &flowv1.TokenRequest{
-					Issuer: "http://127.0.0.1:8080",
-					Client: &clientv1.Client{
-						ClientId: "s6BhdRkqt3",
-					},
-					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &flowv1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &flowv1.GrantAuthorizationCode{
-							Code:         "1234567891234567890",
-							CodeVerifier: "foo",
-							RedirectUri:  "https://client.example.org/cb",
-						},
-					},
-				},
-			},
-			wantErr: true,
-			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
-			},
-		},
-		{
-			name: "code_verifier too short",
-			args: args{
-				ctx: context.Background(),
-				client: &clientv1.Client{
-					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-					ResponseTypes: []string{"code"},
-					RedirectUris:  []string{"https://client.example.org/cb"},
-				},
-				req: &flowv1.TokenRequest{
-					Issuer: "http://127.0.0.1:8080",
-					Client: &clientv1.Client{
-						ClientId: "s6BhdRkqt3",
-					},
-					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &flowv1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &flowv1.GrantAuthorizationCode{
-							Code:         "1234567891234567890",
-							CodeVerifier: random.String(129),
-							RedirectUri:  "https://client.example.org/cb",
-						},
-					},
-				},
-			},
-			wantErr: true,
-			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
-			},
-		},
-		{
-			name: "code_verifier contains reserved characters",
-			args: args{
-				ctx: context.Background(),
-				client: &clientv1.Client{
-					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
-					ResponseTypes: []string{"code"},
-					RedirectUris:  []string{"https://client.example.org/cb"},
-				},
-				req: &flowv1.TokenRequest{
-					Issuer: "http://127.0.0.1:8080",
-					Client: &clientv1.Client{
-						ClientId: "s6BhdRkqt3",
-					},
-					GrantType: oidc.GrantTypeAuthorizationCode,
-					Grant: &flowv1.TokenRequest_AuthorizationCode{
-						AuthorizationCode: &flowv1.GrantAuthorizationCode{
-							Code:         "1234567891234567890",
-							CodeVerifier: "bcd$efghijklmnopqrstuvwxyzabcdefghijklmn",
-							RedirectUri:  "https://client.example.org/cb",
-						},
-					},
-				},
-			},
-			wantErr: true,
-			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().Build(),
-			},
-		},
-		{
 			name: "redemption without redirect_uri proceeds (draft-ietf-oauth-v2-1-16 §4.1.3)",
 			args: args{
 				ctx: context.Background(),
@@ -1258,7 +1168,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				ctx: context.Background(),
 				client: &clientv1.Client{
 					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -1306,7 +1216,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				ctx: context.Background(),
 				client: &clientv1.Client{
 					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -1354,7 +1264,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				ctx: context.Background(),
 				client: &clientv1.Client{
 					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},
@@ -1404,7 +1314,7 @@ func Test_service_authorizationCode(t *testing.T) {
 				ctx: context.Background(),
 				client: &clientv1.Client{
 					ClientId:      "s6BhdRkqt3",
-					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken},
 					ResponseTypes: []string{"code"},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				},

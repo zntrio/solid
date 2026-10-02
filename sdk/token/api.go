@@ -56,15 +56,15 @@ const (
 
 // HeaderType derives the typ value of a signed token from its base type
 // and serialization format. Serializers follow the RFC 8725 section 3.11
-// media-type convention: the JWT serializer emits "<base>+jwt" and the
-// CWT serializer "<base>+cwt"; PASETO carries the base type in its
-// footer unchanged.
+// explicit media-type convention: the JWT serializer emits "<base>+jwt"
+// and the CWT serializer "application/<base>+cwt" (COSE header validation
+// requires the type/subtype form).
 func HeaderType(base, contentType string) string {
 	switch contentType {
 	case "JWT":
 		return base + "+jwt"
 	case "CWT":
-		return base + "+cwt"
+		return "application/" + base + "+cwt"
 	default:
 		return base
 	}
@@ -100,7 +100,7 @@ type Verifier interface {
 	Verify(token string) error
 	Claims(ctx context.Context, token string, claims any) error
 	// ContentType returns the serialization format the verifier parses
-	// ("JWT", "CWT", "PASETO"): paired with token.HeaderType it derives
+	// ("JWT", "CWT"): paired with token.HeaderType it derives
 	// the typ value a token of the given base type must carry.
 	ContentType() string
 }

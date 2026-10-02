@@ -20,14 +20,15 @@ package jwt_test
 import (
 	"context"
 	"crypto"
-	"crypto/mldsa"
 	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
 
+	"crypto/mldsa"
 	"github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+
 	"zntr.io/solid/sdk/jwk"
 	solidjwt "zntr.io/solid/sdk/token/jwt"
 )

@@ -23,6 +23,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/stretchr/testify/require"
+
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/oidc"
 )

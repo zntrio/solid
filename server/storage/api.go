@@ -59,8 +59,6 @@ type Client interface {
 
 // AuthorizationRequestReader describes authorization request storage read-only operation contract.
 type AuthorizationRequestReader interface {
-	Get(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error)
-
 	// DeleteAndGet atomically consumes the request registered under
 	// requestURI: it returns the stored request and removes it in one
 	// storage operation, or storage.ErrNotFound when the request_uri was
@@ -75,7 +73,6 @@ type AuthorizationRequestReader interface {
 // AuthorizationRequestWriter describes authorization request storage write-only operation contract.
 type AuthorizationRequestWriter interface {
 	Register(ctx context.Context, issuer, requestURI string, req *flowv1.AuthorizationRequest) (uint64, error)
-	Delete(ctx context.Context, issuer, requestURI string) error
 }
 
 //go:generate mockgen -destination mock/authorization_request.gen.go -package mock zntr.io/solid/server/storage AuthorizationRequest
@@ -90,7 +87,6 @@ type AuthorizationRequest interface {
 
 // TokenReader describes accessToken read-only operation storage contract.
 type TokenReader interface {
-	Get(ctx context.Context, issuer, id string) (*tokenv1.Token, error)
 	GetByValue(ctx context.Context, issuer, value string) (*tokenv1.Token, error)
 	// GetByGrantID returns every token bound to a grant family (RFC 9700 section 4.14.2).
 	GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token
@@ -101,7 +97,6 @@ type TokenReader interface {
 // TokenWriter describes accessToken write-only operation contract.
 type TokenWriter interface {
 	Create(ctx context.Context, issuer string, t *tokenv1.Token) error
-	Delete(ctx context.Context, issuer, id string) error
 	Revoke(ctx context.Context, issuer, id string) error
 }
 
@@ -222,7 +217,6 @@ type UserCodeAttempts interface {
 // DPoP describes dpop proof jti storage to prevent dpop replay attack.
 type DPoP interface {
 	Register(ctx context.Context, id string) error
-	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
 }
 

@@ -55,20 +55,6 @@ func (mr *MockTokenWriterMockRecorder) Create(ctx, issuer, t any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockTokenWriter)(nil).Create), ctx, issuer, t)
 }
 
-// Delete mocks base method.
-func (m *MockTokenWriter) Delete(ctx context.Context, issuer, id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, issuer, id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Delete indicates an expected call of Delete.
-func (mr *MockTokenWriterMockRecorder) Delete(ctx, issuer, id any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTokenWriter)(nil).Delete), ctx, issuer, id)
-}
-
 // Revoke mocks base method.
 func (m *MockTokenWriter) Revoke(ctx context.Context, issuer, id string) error {
 	m.ctrl.T.Helper()

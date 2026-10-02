@@ -106,7 +106,7 @@ func (c *clientAssertionGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,
-		validation.Field(&meta.Audience, validation.Required, is.URL),
+		validation.Field(&meta.Audience, validation.Required, ValidateURI),
 		validation.Field(&meta.Issuer, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.IssuedAt, validation.Required, validation.Min(uint64(0)), validation.Max(now)),

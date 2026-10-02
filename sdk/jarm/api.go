@@ -20,7 +20,6 @@ package jarm
 import (
 	"context"
 
-	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 )
 
@@ -37,14 +36,4 @@ type ResponseDecoder interface {
 // ResponseEncoder describes Authorization Response Encoder contract.
 type ResponseEncoder interface {
 	Encode(ctx context.Context, issuer string, resp *flowv1.AuthorizeResponse) (string, error)
-}
-
-// Response repsents decoded JARM
-type Response struct {
-	Issuer    string
-	Audience  string
-	ExpiresAt uint64
-	Code      string
-	State     string
-	Error     *corev1.Error
 }

@@ -41,20 +41,6 @@ func (m *MockAuthorizationRequestWriter) EXPECT() *MockAuthorizationRequestWrite
 	return m.recorder
 }
 
-// Delete mocks base method.
-func (m *MockAuthorizationRequestWriter) Delete(ctx context.Context, issuer, requestURI string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, issuer, requestURI)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Delete indicates an expected call of Delete.
-func (mr *MockAuthorizationRequestWriterMockRecorder) Delete(ctx, issuer, requestURI any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAuthorizationRequestWriter)(nil).Delete), ctx, issuer, requestURI)
-}
-
 // Register mocks base method.
 func (m *MockAuthorizationRequestWriter) Register(ctx context.Context, issuer, requestURI string, req *flowv1.AuthorizationRequest) (uint64, error) {
 	m.ctrl.T.Helper()

@@ -24,6 +24,7 @@ client-authentication mechanisms.
 | [`spiffeclient`](spiffeclient/README.md) | client | — | `authorizationserver` |
 | [`cibaclient`](cibaclient/README.md) | client | — | `authorizationserver` |
 | [`cimdclient`](cimdclient/README.md) | client | — | `authorizationserver` |
+| [`coapace`](coapace/README.md) | server+client (CoAP/DTLS) | `:5684`, `:5685` | — (self-contained) |
 
 Client demos are one-shot: they run, print the exchanged token (and the
 resource response when applicable), then exit.
@@ -84,6 +85,9 @@ go run ./examples/cimdclient
 
 # CIBA poll-mode client (OpenID Client-Initiated Backchannel Authentication)
 go run ./examples/cibaclient
+
+# ACE-OAuth over mutual DTLS 1.2 (RFC 9200, self-contained triangle)
+go run ./examples/coapace
 ```
 
 What each demo exercises:
@@ -113,10 +117,24 @@ What each demo exercises:
 ## Authorization server configuration
 
 * `SOLID_EXAMPLE_LISTEN_ADDR` — listen address (default `:8080`).
+* `SOLID_EXAMPLE_ISSUER` — authorization server issuer identifier
+  (default `http://127.0.0.1:8080`). Recognized by the authorization server
+  and the client demos (deviceclient, cibaclient, cimdclient, spiffeclient,
+  attestationclient, resourceserver) — set it on both sides when running the
+  AS on a non-default address.
+* `SOLID_EXAMPLE_TOKEN_FORMAT` — (coapace) token serialization format:
+  `opaque` (default, verifiable UUIDv7 reference tokens) or `cwt`
+  (RFC 8392 CBOR Web Tokens signed with an ephemeral ES256 key).
 * `SOLID_EXAMPLE_SIGNING_KEY` — signing key as a JWK JSON document. When
   unset, an ephemeral ML-DSA-65 key is generated at boot **with a loud
   warning**: tokens do not survive a restart. Set it for anything beyond
   local testing.
+* `SOLID_EXAMPLE_ENCRYPTION_KEY` — token encryption key as a JWK JSON
+  document (P-256 EC, `use: enc`). Access and refresh tokens are
+  HPKE-encrypted JWTs (`HPKE-7`, draft-ietf-jose-hpke-encrypt-22):
+  sign-then-encrypt, 5-segment JWE compact serializations. When unset, an
+  ephemeral P-256 key is generated at boot **with a loud warning**: tokens
+  do not survive a restart.
 * `SOLID_EXAMPLE_XAA_CONFIG` — Cross-App Access (ID-JAG) trust configuration
   as JSON (`trusted_issuers`, `audiences`). When unset, ID-JAG issuance and
   redemption are disabled.

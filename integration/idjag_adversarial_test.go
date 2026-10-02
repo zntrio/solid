@@ -28,6 +28,7 @@ import (
 
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/stretchr/testify/require"
+
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -68,7 +69,7 @@ func newXAAStack(t *testing.T, issuer string, opts ...token.Option) (services.To
 	accessTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("xaa-at-key-"+issuer))
 	refreshTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("xaa-rt-key-"+issuer))
 
-	svc := token.NewWithOptions(accessTokens, refreshTokens, clients, nil, nil, nil, nil, tokens, resources, opts...)
+	svc := token.NewWithOptions(accessTokens, refreshTokens, clients, nil, nil, nil, tokens, resources, opts...)
 	return svc, clients, tokens
 }
 

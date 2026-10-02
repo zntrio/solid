@@ -65,16 +65,74 @@ func validateGrantPreamble(client *clientv1.Client, req *flowv1.TokenRequest, gr
 	return nil, nil
 }
 
-// isUnreservedChar reports whether the rune belongs to the unreserved set
-// defined by RFC 3986 section 2.3: ALPHA / DIGIT / "-" / "." / "_" / "~".
-// RFC 7636 section 4.1 restricts code verifiers and challenges to this set.
-func isUnreservedChar(r rune) bool {
-	switch {
-	case r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r >= '0' && r <= '9':
-		return true
-	case r == '-' || r == '.' || r == '_' || r == '~':
-		return true
-	default:
-		return false
+// enforceSenderBinding enforces the client-level token-binding policy
+// shared by grant handlers:
+//
+//   - a client registered with DpopBoundAccessTokens must present a DPoP
+//     confirmation (RFC 9449 / RFC 10027 section 6.1.12 semantics);
+//   - a client registered with TlsClientCertificateBoundAccessTokens must
+//     present a mutual-TLS certificate confirmation (RFC 8705 section 3:
+//     certificates bound at the token endpoint via x5t#S256).
+//
+// Grant handlers call this after validateGrantPreamble; the presentation
+// layer (HTTP, CoAP) extracts the confirmation from the transport, so the
+// mechanism does not depend on any specific presentation.
+func enforceSenderBinding(res *flowv1.TokenResponse, client *clientv1.Client, req *flowv1.TokenRequest) error {
+	if client.DpopBoundAccessTokens && (req.TokenConfirmation == nil || req.TokenConfirmation.Jkt == "") {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("client requires DPoP-bound access tokens")
 	}
+	if client.TlsClientCertificateBoundAccessTokens && (req.TokenConfirmation == nil || req.TokenConfirmation.X5TS256 == "") {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("client requires TLS certificate-bound access tokens")
+	}
+	return nil
+}
+
+// minPollInterval is the default poll interval shared by the asynchronous
+// grants (RFC 8628 section 3.2; OpenID CIBA Core 1.0 section 7.3).
+const minPollInterval = 5
+
+// enforcePollInterval applies the poll-throttling rule shared by the device
+// code (RFC 8628 sections 3.2/3.5) and CIBA (OpenID CIBA Core 1.0 sections
+// 7.3/11) grants. It reads and mutates the session's PollInterval /
+// LastPolledAt pair, persists the mutated session through the persist
+// closure, and returns the protocol error: slow_down when the client polls
+// faster than the current interval (the interval then MUST increase by 5
+// seconds for this and all subsequent requests; LastPolledAt is unchanged so
+// the next admissible poll is LastPolledAt + new interval), authorization
+// pending when the poll is admissible (LastPolledAt then advances to now).
+// A persist failure surfaces as a server_error.
+func enforcePollInterval(session pollTiming, persist func() error) (*corev1.Error, error) {
+	now := timeFunc().Unix()
+
+	interval := session.getInterval()
+	if interval < minPollInterval {
+		interval = minPollInterval // RFC 8628 section 3.2 default
+	}
+	if session.getLast() != 0 && now < session.getLast()+interval {
+		// RFC 8628 section 3.5 / CIBA section 11: interval MUST increase
+		// by 5 seconds for this and all subsequent requests.
+		session.setInterval(interval + minPollInterval)
+		if err := persist(); err != nil {
+			return rfcerrors.ServerError().Build(), fmt.Errorf("unable to persist poll interval: %w", err)
+		}
+		return rfcerrors.Slowdown().Build(), fmt.Errorf("polling too fast")
+	}
+
+	session.setLast(now)
+	if err := persist(); err != nil {
+		return rfcerrors.ServerError().Build(), fmt.Errorf("unable to persist poll timing: %w", err)
+	}
+	return rfcerrors.AuthorizationPending().Build(), nil
+}
+
+// pollTiming is the shared poll-throttle accessor pair used by
+// enforcePollInterval: the device code (RFC 8628) and CIBA sessions expose
+// their PollInterval / LastPolledAt pair through it.
+type pollTiming struct {
+	getInterval func() int64
+	setInterval func(int64)
+	getLast     func() int64
+	setLast     func(int64)
 }

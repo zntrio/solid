@@ -54,22 +54,6 @@ func (s *authorizationRequestStorage) Register(ctx context.Context, issuer, requ
 	return 60, nil
 }
 
-func (s *authorizationRequestStorage) Delete(ctx context.Context, issuer, requestURI string) error {
-	s.backend.Delete(s.deriveKey(issuer, requestURI))
-	// No error
-	return nil
-}
-
-func (s *authorizationRequestStorage) Get(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
-	// Retrieve from cache
-	if x, found := s.backend.Get(s.deriveKey(issuer, requestURI)); found {
-		req := x.(*flowv1.AuthorizationRequest)
-		return req, nil
-	}
-
-	return nil, storage.ErrNotFound
-}
-
 func (s *authorizationRequestStorage) DeleteAndGet(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
 	// Atomic burn-after-read: a concurrent second consume of the same
 	// request_uri observes a missing entry (ttlCache.DeleteAndGet is a

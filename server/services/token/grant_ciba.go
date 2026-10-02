@@ -58,11 +58,12 @@ func (s *service) ciba(ctx context.Context, client *clientv1.Client, req *flowv1
 		return res, fmt.Errorf("authorization_details is not supported for this grant type")
 	}
 
-	// RFC 10027 section 6.1.12: a client requiring DPoP-bound access
-	// tokens must present its proof with every token request.
-	if client.DpopBoundAccessTokens && req.TokenConfirmation == nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("client requires DPoP-bound access tokens")
+	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
+	// RFC 8705 section 3 for certificate bindings): a client requiring
+	// bound access tokens must present its confirmation with every token
+	// request.
+	if errBind := enforceSenderBinding(res, client, req); errBind != nil {
+		return res, errBind
 	}
 
 	// Validate auth_req_id
@@ -133,28 +134,15 @@ func (s *service) ciba(ctx context.Context, client *clientv1.Client, req *flowv1
 
 	// Check if it's pending
 	if session.Status == sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_PENDING {
-		now := timeFunc().Unix()
-		interval := session.PollInterval
-		if interval < 5 {
-			interval = 5 // CIBA section 7.3 default
+		// CIBA sections 7.3/11: throttled pending polls answer
+		// authorization_pending or slow_down; the session keeps polling
+		// state.
+		res.Error, err = enforcePollInterval(backchannelPollTiming(session), func() error {
+			return s.backchannelSessions.UpdateByAuthReqID(ctx, req.Issuer, grant.AuthReqId, session)
+		})
+		if err != nil {
+			return res, fmt.Errorf("auth_req_id '%s' poll throttle: %w", grant.AuthReqId, err)
 		}
-		if session.LastPolledAt != 0 && now < int64(session.LastPolledAt)+int64(interval) { //nolint:gosec // epoch seconds and small poll interval both fit int64
-			// CIBA section 11: interval MUST increase by 5 seconds for
-			// this and all subsequent requests.
-			session.PollInterval = interval + 5
-			if err = s.backchannelSessions.UpdateByAuthReqID(ctx, req.Issuer, grant.AuthReqId, session); err != nil {
-				res.Error = rfcerrors.ServerError().Build()
-				return res, fmt.Errorf("unable to persist poll interval for '%s': %w", grant.AuthReqId, err)
-			}
-			res.Error = rfcerrors.Slowdown().Build()
-			return res, fmt.Errorf("auth_req_id '%s' is polling too fast", grant.AuthReqId)
-		}
-		session.LastPolledAt = uint64(now) //nolint:gosec // unix time is non-negative
-		if err = s.backchannelSessions.UpdateByAuthReqID(ctx, req.Issuer, grant.AuthReqId, session); err != nil {
-			res.Error = rfcerrors.ServerError().Build()
-			return res, fmt.Errorf("unable to persist poll timing for '%s': %w", grant.AuthReqId, err)
-		}
-		res.Error = rfcerrors.AuthorizationPending().Build()
 		return res, fmt.Errorf("auth_req_id '%s' is waiting for end-user approval", grant.AuthReqId)
 	}
 
@@ -202,6 +190,9 @@ func (s *service) ciba(ctx context.Context, client *clientv1.Client, req *flowv1
 		// RFC 9396 section 3: the consented authorization details ride the
 		// session into the minted access token.
 		AuthorizationDetails: session.AuthorizationDetails,
+	}
+	if session.Audience != nil {
+		tm.Audience = *session.Audience
 	}
 	if session.Scope != nil {
 		scopes := types.StringArray(strings.Fields(*session.Scope))

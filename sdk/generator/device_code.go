@@ -19,8 +19,6 @@ package generator
 
 import (
 	"context"
-	"errors"
-	"strings"
 
 	random "zntr.io/solid/sdk/random"
 )
@@ -42,17 +40,4 @@ type deviceCodeGenerator struct{}
 func (c *deviceCodeGenerator) Generate(_ context.Context, _ string) (string, error) {
 	code := random.String(DefaultDeviceCodeLen)
 	return code, nil
-}
-
-func (c *deviceCodeGenerator) Validate(_ context.Context, issuer, in string) error {
-	// Normalize
-	in = strings.TrimSpace(in)
-
-	// Check length
-	if len(in) != DefaultDeviceCodeLen {
-		return errors.New("invalid device code syntax")
-	}
-
-	// No error
-	return nil
 }

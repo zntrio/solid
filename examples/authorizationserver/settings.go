@@ -19,12 +19,18 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/mldsa"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"os"
 
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+
 	"zntr.io/solid/sdk/jwk"
+	"zntr.io/solid/sdk/token/hpke"
 )
 
 // signingKeyEnvVar is the environment variable holding the example server's
@@ -35,67 +41,77 @@ const signingKeyEnvVar = "SOLID_EXAMPLE_SIGNING_KEY"
 // algorithm: post-quantum ML-DSA-65 (FIPS 204).
 const defaultSigningAlgorithm = jwk.MLDSA65
 
-// loadSigningKey returns the example server's signing key. It is loaded from
-// the SOLID_EXAMPLE_SIGNING_KEY environment variable when set; otherwise an
-// ephemeral ML-DSA-65 key is generated at boot with a loud warning, since an
-// ephemeral key invalidates previously issued tokens on every restart.
-func loadSigningKey() (jwk.Key, error) {
-	if raw, ok := os.LookupEnv(signingKeyEnvVar); ok && raw != "" {
+// loadKey returns a key provider reading its key from the given environment
+// variable (a JWK JSON document); when the variable is unset or empty, gen
+// generates an ephemeral key at boot with a loud warning, since an ephemeral
+// key invalidates previously issued tokens on every restart. The generation
+// closure prepares the key (algorithm/usage/kid) before returning it.
+func loadKey(envVar string, gen func() (jwk.Key, error)) jwk.KeyProviderFunc {
+	var key jwk.Key
+
+	if raw, ok := os.LookupEnv(envVar); ok && raw != "" {
 		keySet, err := jwk.Parse([]byte(raw))
 		if err != nil {
-			return nil, fmt.Errorf("unable to decode %s: %w", signingKeyEnvVar, err)
+			panic(fmt.Errorf("unable to decode %s: %w", envVar, err))
 		}
-		key, ok := keySet.Key(0)
+		k, ok := keySet.Key(0)
 		if !ok {
-			return nil, fmt.Errorf("%s does not contain a key", signingKeyEnvVar)
+			panic(fmt.Errorf("%s does not contain a key", envVar))
 		}
-		if err := key.Validate(); err != nil {
-			return nil, fmt.Errorf("%s does not contain a valid JWK", signingKeyEnvVar)
+		if err := k.Validate(); err != nil {
+			panic(fmt.Errorf("%s does not contain a valid JWK", envVar))
 		}
-		return key, nil
-	}
+		key = k
+	} else {
+		log.Printf("WARNING: %s is not set; using an ephemeral key. Tokens will not survive a restart; set the variable with a stable JWK for anything beyond local testing.", envVar)
 
-	log.Printf("WARNING: %s is not set; using an ephemeral ML-DSA-65 signing key. Tokens will not survive a restart; set the variable with a stable JWK for anything beyond local testing.", signingKeyEnvVar)
-
-	// Generate a fresh ephemeral ML-DSA-65 key.
-	priv, err := mldsa.GenerateKey(mldsa.MLDSA65())
-	if err != nil {
-		return nil, fmt.Errorf("unable to generate ephemeral signing key: %w", err)
-	}
-	signingKey, err := jwk.NewMLDSAKey(priv)
-	if err != nil {
-		return nil, fmt.Errorf("unable to import ephemeral signing key: %w", err)
-	}
-	if err := signingKey.Set(jwk.AlgorithmKey, defaultSigningAlgorithm); err != nil {
-		return nil, fmt.Errorf("unable to set signing key algorithm: %w", err)
-	}
-	if err := signingKey.Set(jwk.KeyUsageKey, "sig"); err != nil {
-		return nil, fmt.Errorf("unable to set signing key usage: %w", err)
-	}
-	// Derive a stable kid (RFC 7638 thumbprint) so JWKS lookups and token
-	// headers match.
-	if err := jwk.AssignKeyID(signingKey); err != nil {
-		return nil, fmt.Errorf("unable to assign signing key id: %w", err)
-	}
-	return signingKey, nil
-}
-
-// keyProvider returns the AS signing key provider.
-func keyProvider() jwk.KeyProviderFunc {
-	privateKey, err := loadSigningKey()
-	if err != nil {
-		panic(err)
+		k, err := gen()
+		if err != nil {
+			panic(fmt.Errorf("unable to generate ephemeral key for %s: %w", envVar, err))
+		}
+		key = k
 	}
 
 	return func(_ context.Context) (jwk.Key, error) {
 		// No error
-		return privateKey, nil
+		return key, nil
 	}
 }
 
+// keyProvider returns the AS signing key provider: the key is loaded from
+// SOLID_EXAMPLE_SIGNING_KEY when set, otherwise an ephemeral ML-DSA-65 key
+// is generated at boot (see loadKey).
+func keyProvider() jwk.KeyProviderFunc {
+	return loadKey(signingKeyEnvVar, func() (jwk.Key, error) {
+		// Generate a fresh ephemeral ML-DSA-65 key.
+		priv, err := mldsa.GenerateKey(mldsa.MLDSA65())
+		if err != nil {
+			return nil, fmt.Errorf("unable to generate ephemeral signing key: %w", err)
+		}
+		signingKey, err := jwk.NewMLDSAKey(priv)
+		if err != nil {
+			return nil, fmt.Errorf("unable to import ephemeral signing key: %w", err)
+		}
+		if err := signingKey.Set(jwk.AlgorithmKey, defaultSigningAlgorithm); err != nil {
+			return nil, fmt.Errorf("unable to set signing key algorithm: %w", err)
+		}
+		if err := signingKey.Set(jwk.KeyUsageKey, "sig"); err != nil {
+			return nil, fmt.Errorf("unable to set signing key usage: %w", err)
+		}
+		// Derive a stable kid (RFC 7638 thumbprint) so JWKS lookups and
+		// token headers match.
+		if err := jwk.AssignKeyID(signingKey); err != nil {
+			return nil, fmt.Errorf("unable to assign signing key id: %w", err)
+		}
+		return signingKey, nil
+	})
+}
+
 // keySetProvider returns the AS public key set provider (JWKS endpoint).
+// It derives the public key from the same provider as the signer so both
+// sides see the identical key material and kid.
 func keySetProvider() jwk.KeySetProviderFunc {
-	privateKey, err := loadSigningKey()
+	privateKey, err := keyProvider()(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -113,4 +129,43 @@ func keySetProvider() jwk.KeySetProviderFunc {
 		}
 		return set, nil
 	}
+}
+
+// encryptionKeyEnvVar is the environment variable holding the example
+// server's token encryption key as a JWK JSON document.
+const encryptionKeyEnvVar = "SOLID_EXAMPLE_ENCRYPTION_KEY"
+
+// defaultEncryptionAlgorithm is the example server's token encryption
+// algorithm (draft-ietf-jose-hpke-encrypt-22): HPKE-7, Integrated
+// Encryption with DHKEM(P-256, HKDF-SHA256), HKDF-SHA256, AES-256-GCM.
+const defaultEncryptionAlgorithm = hpke.HPKE7
+
+// encryptionKeyProvider returns the AS token encryption key provider: the
+// key is loaded from SOLID_EXAMPLE_ENCRYPTION_KEY when set, otherwise an
+// ephemeral P-256 key is generated at boot (see loadKey).
+func encryptionKeyProvider() jwk.KeyProviderFunc {
+	return loadKey(encryptionKeyEnvVar, func() (jwk.Key, error) {
+		// Generate a fresh ephemeral P-256 key.
+		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, fmt.Errorf("unable to generate ephemeral encryption key: %w", err)
+		}
+		encryptionKey, err := jwxjwk.Import(priv)
+		if err != nil {
+			return nil, fmt.Errorf("unable to import ephemeral encryption key: %w", err)
+		}
+		// Note: the JWK alg member is deliberately not set — "HPKE-7" is a
+		// draft-ietf-jose-hpke-encrypt suite identifier, not a registered
+		// JOSE key algorithm, and jwx rejects it on Set. The suite is
+		// selected by the hpke.Encrypter constructor argument.
+		if err := encryptionKey.Set(jwk.KeyUsageKey, "enc"); err != nil {
+			return nil, fmt.Errorf("unable to set encryption key usage: %w", err)
+		}
+		// Derive a stable kid (RFC 7638 thumbprint) so token headers and
+		// key lookups match.
+		if err := jwk.AssignKeyID(encryptionKey); err != nil {
+			return nil, fmt.Errorf("unable to assign encryption key id: %w", err)
+		}
+		return encryptionKey, nil
+	})
 }

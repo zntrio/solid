@@ -49,19 +49,21 @@ import (
 	"strings"
 	"time"
 
-	gojwt "github.com/golang-jwt/jwt/v5"
-
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
+	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/client"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/jwk"
+	"zntr.io/solid/sdk/jwsreq"
 	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/token/jwt"
 )
 
+// issuer is the AS issuer identifier, overridable with SOLID_EXAMPLE_ISSUER.
+var issuer = envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
+
 const (
-	issuer       = "http://127.0.0.1:8080"
 	clientID     = "ciba-fixture-client"
 	clientJWK    = `{"kty":"EC","d":"olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use":"sig","crv":"P-256","x":"h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y":"yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg":"ES256"}`
 	bindingMsg   = "W4SCT"
@@ -299,7 +301,9 @@ func pollToken(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, p
 // signedRequest builds the ES256-signed authentication request object
 // (CIBA section 7.1.1): iss = client_id, aud = issuer, exp/iat/nbf/jti
 // mandatory, the authentication request parameters as claims, and the
-// DPoP key thumbprint as dpop_jkt (RFC 9449 section 10 binding).
+// DPoP key thumbprint as dpop_jkt (RFC 9449 section 10 binding). The
+// CIBA-specific binding_message claim has no proto representation and is
+// injected through the encoder envelope.
 func signedRequest(expectedIssuer, jkt string) (string, error) {
 	keySet, err := jwk.Parse([]byte(clientJWK))
 	if err != nil {
@@ -309,28 +313,40 @@ func signedRequest(expectedIssuer, jkt string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("fixture JWK has no key")
 	}
-	rawKey, err := jwt.MaterializeSigningKey(privateKey)
-	if err != nil {
-		return "", err
+	// The JWT signer requires an identifiable key (kid).
+	if kid, ok := privateKey.KeyID(); !ok || kid == "" {
+		if err := jwk.AssignKeyID(privateKey); err != nil {
+			return "", fmt.Errorf("unable to assign fixture key id: %w", err)
+		}
 	}
+	keyProvider := jwk.KeyProviderFunc(func(context.Context) (jwk.Key, error) {
+		return privateKey, nil
+	})
 
 	now := time.Now()
-	claims := map[string]any{
+	envelope := map[string]any{
 		"iss":             clientID,
 		"aud":             expectedIssuer,
 		"exp":             now.Add(5 * time.Minute).Unix(),
 		"iat":             now.Unix(),
 		"nbf":             now.Unix(),
 		"jti":             random.String(16),
-		"scope":           "openid profile",
-		"login_hint":      "hello",
 		"binding_message": bindingMsg,
-		"dpop_jkt":        jkt,
 	}
 
-	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, gojwt.MapClaims(claims))
-	tok.Header["typ"] = "oauth-auth-req+jwt"
-	return tok.SignedString(rawKey)
+	encoder := jwsreq.AuthorizationRequestEncoderWithOptions(
+		jwt.RequestSigner(es256, keyProvider),
+		envelope,
+	)
+	return encoder.Encode(context.Background(), &flowv1.AuthorizationRequest{
+		Scope:     "openid profile",
+		LoginHint: new("hello"),
+		DpopJkt:   new(jkt),
+		// RFC 8707: the target resource identifier becomes the audience of
+		// the minted access token; the demo targets the example resource
+		// server.
+		Audience: "http://localhost:8085",
+	})
 }
 
 // keyThumbprint computes the RFC 7638 thumbprint of the fixture DPoP key,
@@ -350,4 +366,13 @@ func keyThumbprint() (string, error) {
 		return "", fmt.Errorf("unable to compute thumbprint: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(raw), nil
+}
+
+// envOr reads an environment variable, falling back to def when unset or
+// empty.
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

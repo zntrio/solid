@@ -1,0 +1,2800 @@
+
+
+
+
+JOSE                                                            T. Reddy
+Internet-Draft                                                     Nokia
+Updates: 7516 (if approved)                                H. Tschofenig
+Intended status: Standards Track                                UniBw M.
+Expires: 7 January 2027                                      A. Banerjee
+                                                                   Nokia
+                                                               O. Steele
+                                                            Tradeverifyd
+                                                                M. Jones
+                                                  Self-Issued Consulting
+                                                             6 July 2026
+
+
+  Use of Hybrid Public Key Encryption (HPKE) with JSON Web Encryption
+                                 (JWE)
+                    draft-ietf-jose-hpke-encrypt-22
+
+Abstract
+
+   This specification defines how to use Hybrid Public Key Encryption
+   (HPKE) with JSON Web Encryption (JWE).  HPKE enables public key
+   encryption of arbitrary-sized plaintexts to a recipient's public key,
+   and provides security against adaptive chosen ciphertext attacks.
+   This specification chooses a specific subset of the HPKE features to
+   use with JWE.
+
+   This specification updates RFC 7516 (JWE) to enable use of Integrated
+   Encryption as a Key Management Mode.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   The latest revision of this draft can be found at https://ietf-wg-
+   jose.github.io/draft-ietf-jose-hpke-encrypt/draft-ietf-jose-hpke-
+   encrypt.html.  Status information for this document may be found at
+   https://datatracker.ietf.org/doc/draft-ietf-jose-hpke-encrypt/.
+
+   Discussion of this document takes place on the jose Working Group
+   mailing list (mailto:jose@ietf.org), which is archived at
+   https://mailarchive.ietf.org/arch/browse/jose/.  Subscribe at
+   https://www.ietf.org/mailman/listinfo/jose/.
+
+   Source for this draft and an issue tracker can be found at
+   https://github.com/ietf-wg-jose/draft-ietf-jose-hpke-encrypt.
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 1]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 7 January 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   4
+   2.  Notational Conventions  . . . . . . . . . . . . . . . . . . .   4
+   3.  Terminology . . . . . . . . . . . . . . . . . . . . . . . . .   4
+   4.  Overview  . . . . . . . . . . . . . . . . . . . . . . . . . .   5
+     4.1.  Encapsulated Secrets  . . . . . . . . . . . . . . . . . .   6
+   5.  Integrated Encryption . . . . . . . . . . . . . . . . . . . .   7
+     5.1.  Integrated Encryption Algorithms using HPKE . . . . . . .   7
+   6.  Key Encryption  . . . . . . . . . . . . . . . . . . . . . . .   8
+     6.1.  Recipient_structure . . . . . . . . . . . . . . . . . . .   9
+       6.1.1.  Recipient_structure Example . . . . . . . . . . . . .  10
+     6.2.  Key Encryption Algorithms using HPKE  . . . . . . . . . .  10
+   7.  Producing and Consuming JWEs  . . . . . . . . . . . . . . . .  11
+     7.1.  Message Encryption  . . . . . . . . . . . . . . . . . . .  11
+     7.2.  Message Decryption  . . . . . . . . . . . . . . . . . . .  13
+   8.  Distinguishing Between JWS and JWE Objects  . . . . . . . . .  17
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 2]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   9.  JWK Representations for JWE HPKE Keys . . . . . . . . . . . .  17
+   10. Security Considerations . . . . . . . . . . . . . . . . . . .  18
+     10.1.  Key Management . . . . . . . . . . . . . . . . . . . . .  18
+     10.2.  JWT Best Current Practices . . . . . . . . . . . . . . .  19
+   11. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  19
+     11.1.  JSON Web Signature and Encryption Algorithms . . . . . .  19
+       11.1.1.  HPKE-0 . . . . . . . . . . . . . . . . . . . . . . .  19
+       11.1.2.  HPKE-1 . . . . . . . . . . . . . . . . . . . . . . .  20
+       11.1.3.  HPKE-2 . . . . . . . . . . . . . . . . . . . . . . .  20
+       11.1.4.  HPKE-3 . . . . . . . . . . . . . . . . . . . . . . .  20
+       11.1.5.  HPKE-4 . . . . . . . . . . . . . . . . . . . . . . .  21
+       11.1.6.  HPKE-5 . . . . . . . . . . . . . . . . . . . . . . .  21
+       11.1.7.  HPKE-6 . . . . . . . . . . . . . . . . . . . . . . .  22
+       11.1.8.  HPKE-7 . . . . . . . . . . . . . . . . . . . . . . .  22
+       11.1.9.  HPKE-0-KE  . . . . . . . . . . . . . . . . . . . . .  22
+       11.1.10. HPKE-1-KE  . . . . . . . . . . . . . . . . . . . . .  23
+       11.1.11. HPKE-2-KE  . . . . . . . . . . . . . . . . . . . . .  23
+       11.1.12. HPKE-3-KE  . . . . . . . . . . . . . . . . . . . . .  23
+       11.1.13. HPKE-5-KE  . . . . . . . . . . . . . . . . . . . . .  24
+       11.1.14. HPKE-7-KE  . . . . . . . . . . . . . . . . . . . . .  24
+     11.2.  JSON Web Signature and Encryption Header Parameters  . .  24
+       11.2.1.  ek . . . . . . . . . . . . . . . . . . . . . . . . .  25
+       11.2.2.  psk_id . . . . . . . . . . . . . . . . . . . . . . .  25
+   12. Summary of Updates to RFC 7516 (JWE)  . . . . . . . . . . . .  25
+   13. References  . . . . . . . . . . . . . . . . . . . . . . . . .  26
+     13.1.  Normative References . . . . . . . . . . . . . . . . . .  26
+     13.2.  Informative References . . . . . . . . . . . . . . . . .  26
+   Appendix A.  Test Vectors . . . . . . . . . . . . . . . . . . . .  28
+     A.1.  HPKE-0  . . . . . . . . . . . . . . . . . . . . . . . . .  28
+     A.2.  HPKE-0-KE . . . . . . . . . . . . . . . . . . . . . . . .  29
+     A.3.  HPKE-1  . . . . . . . . . . . . . . . . . . . . . . . . .  30
+     A.4.  HPKE-1-KE . . . . . . . . . . . . . . . . . . . . . . . .  31
+     A.5.  HPKE-2  . . . . . . . . . . . . . . . . . . . . . . . . .  33
+     A.6.  HPKE-2-KE . . . . . . . . . . . . . . . . . . . . . . . .  34
+     A.7.  HPKE-3  . . . . . . . . . . . . . . . . . . . . . . . . .  36
+     A.8.  HPKE-3-KE . . . . . . . . . . . . . . . . . . . . . . . .  37
+     A.9.  HPKE-4  . . . . . . . . . . . . . . . . . . . . . . . . .  38
+     A.10. HPKE-5  . . . . . . . . . . . . . . . . . . . . . . . . .  39
+     A.11. HPKE-5-KE . . . . . . . . . . . . . . . . . . . . . . . .  40
+     A.12. HPKE-6  . . . . . . . . . . . . . . . . . . . . . . . . .  41
+     A.13. HPKE-7  . . . . . . . . . . . . . . . . . . . . . . . . .  43
+     A.14. HPKE-7-KE . . . . . . . . . . . . . . . . . . . . . . . .  44
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  45
+   Document History  . . . . . . . . . . . . . . . . . . . . . . . .  45
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  49
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 3]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+1.  Introduction
+
+   Hybrid Public Key Encryption (HPKE) [I-D.ietf-hpke-hpke] is a public
+   key encryption (PKE) scheme that provides encryption of arbitrary-
+   sized plaintexts to a recipient's public key.  This specification
+   enables JSON Web Encryption (JWE) [RFC7516] to leverage HPKE,
+   bringing support for HPKE encryption and KEMs to JWE, and the
+   possibility of utilizing future HPKE algorithms.
+
+2.  Notational Conventions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+3.  Terminology
+
+   This specification uses the following abbreviations and terms:
+
+   *  Content Encryption Key (CEK), Header Parameter, and JOSE Header,
+      as defined in [RFC7516].
+
+   *  Hybrid Public Key Encryption (HPKE), as defined in
+      [I-D.ietf-hpke-hpke].
+
+   *  pkR is the public key of the recipient, as defined in
+      [I-D.ietf-hpke-hpke].
+
+   *  skR is the private key of the recipient, as defined in
+      [I-D.ietf-hpke-hpke].
+
+   *  Key Encapsulation Mechanism (KEM), per [I-D.ietf-hpke-hpke].
+
+   *  Key Derivation Function (KDF), per [I-D.ietf-hpke-hpke].
+
+   *  Authenticated Encryption with Associated Data (AEAD); see
+      [I-D.ietf-hpke-hpke] and [RFC7516].
+
+   *  Additional Authenticated Data (AAD); see [I-D.ietf-hpke-hpke] and
+      [RFC7516].
+
+   This specification defines the following terms:
+
+   Key Management Mode  A method of determining whether a Content
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 4]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+      Encryption Key (CEK) value is used and, if so, what CEK value to
+      use.  Each algorithm used for making these determinations uses a
+      specific Key Management Mode.  Key Management Modes employed by
+      this specification are Key Encryption, Key Wrapping, Direct Key
+      Agreement, Key Agreement with Key Wrapping, Direct Encryption, and
+      Integrated Encryption.  Of these, only Integrated Encryption is
+      defined by this specification; the remaining modes are defined in
+      [RFC7516] and are included here because this specification
+      replaces the Message Encryption and Message Decryption procedures
+      of [RFC7516] in their entirety.
+
+   Integrated Encryption  A Key Management Mode in which the plaintext
+      is directly encrypted without the use of a Content Encryption Key
+      (CEK).  This mode corresponds to the Single-Shot API defined in
+      Section 6.1 of [I-D.ietf-hpke-hpke], which is used in cases where
+      applications encrypt only a single message to a recipient's public
+      key.  This mode is appropriate when there is exactly one recipient
+      and no separate content encryption algorithm is required.
+
+   The definition of Key Management Mode above replaces the one in JWE
+   [RFC7516].
+
+4.  Overview
+
+   This specification defines the use of HPKE in JWE for two Key
+   Management Modes:
+
+   *  Key Encryption, and
+
+   *  Integrated Encryption.
+
+   It specifies the Integrated Encryption Key Management Mode and
+   registers the corresponding JWE algorithm identifiers for both modes.
+   Distinct JWE algorithms are defined for Key Encryption and Integrated
+   Encryption so that they are fully specified, as required by
+   [RFC9864].
+
+   Test vectors for all algorithms defined in this document are provided
+   in Appendix A.
+
+   When the Key Management Mode is Integrated Encryption, HPKE is used
+   to directly encrypt the plaintext, and the "enc" header parameter
+   MUST NOT be included.  This specification updates the definition of
+   the "enc" header parameter in Section 4.1.2 of [RFC7516] to require
+   that it be omitted when Integrated Encryption is used.
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 5]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   When the Key Management Mode is Key Encryption, HPKE is used to
+   encrypt the Content Encryption Key (CEK).  In this mode, the "enc"
+   header parameter is used as specified in JWE [RFC7516].  The HPKE
+   AEAD encryption function used internally by HPKE is distinct from the
+   JWE AEAD algorithm specified in "enc".
+
+   In both Key Management Modes, the HPKE key encapsulation mechanism
+   (KEM), key derivation function (KDF), and authenticated encryption
+   with additional data (AEAD) encryption function utilized depend on
+   the JWE algorithm used.
+
+   HPKE supports two modes, which are described in Table 1 of
+   [I-D.ietf-hpke-hpke].  In this specification, both "mode_base" and
+   "mode_psk" are supported for both Key Management Modes.  When the
+   "psk_id" header parameter is present, the HPKE mode is "mode_psk";
+   otherwise, the HPKE mode is "mode_base".
+
+   JWE supports two kinds of serializations:
+
+   *  the JWE Compact Serialization described in Section 3.1 of
+      [RFC7516], and
+
+   *  the JWE JSON Serialization described in Section 3.2 of [RFC7516].
+
+   Certain JWE features are only supported in specific serializations.
+   For example, the JWE Compact Serialization does not support:
+
+   *  the JWE AAD value conveyed by the "aad" member,
+
+   *  multiple recipients, and
+
+   *  unprotected header parameters.
+
+   Key Encryption can be used with a JWE AAD value when using the JWE
+   JSON Serialization.  Single recipient Key Encryption with no JWE AAD
+   value can be expressed in the JWE Compact Serialization.
+
+4.1.  Encapsulated Secrets
+
+   HPKE encapsulated secret is defined in Section 5 of
+   [I-D.ietf-hpke-hpke].
+
+   When using Integrated Encryption, the JWE Encrypted Key of the sole
+   recipient is the HPKE encapsulated secret.
+
+   When using Key Encryption, each recipient's JWE Encrypted Key is the
+   encrypted content encryption key, and the value of header parameter
+   "ek" is the base64url encoding of the HPKE encapsulated secret.
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 6]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+5.  Integrated Encryption
+
+   When using Integrated Encryption with HPKE:
+
+   *  The protected header MUST contain an "alg" value that is an HPKE
+      JWE algorithm using Integrated Encryption.
+
+   *  The "enc" header parameter MUST NOT be present.  This is because
+      no separate content encryption algorithm is used in this mode.
+
+   *  The protected header parameter "psk_id" MAY be present.
+
+   *  The header parameter "ek" MUST NOT be present.
+
+   *  There MUST be exactly one recipient.
+
+   *  The JWE Encrypted Key MUST be the encapsulated secret, as defined
+      in Section 5 of [I-D.ietf-hpke-hpke].
+
+   *  The JWE Initialization Vector and JWE Authentication Tag MUST be
+      the empty octet sequence.
+
+   *  The JWE AAD MAY be present when using the JWE JSON Serialization.
+
+   *  The HPKE aad parameter MUST be set to the "Additional
+      Authenticated Data encryption parameter" value specified in Step
+      15 of Section 7.1.
+
+   *  The HPKE info parameter defaults to the empty octet sequence;
+      mutually known private information (a concept also utilized in
+      [NIST.SP.800-56Ar3]) MAY be used instead so the application can
+      include it during key derivation.
+
+   *  The JWE Ciphertext is the ciphertext from the HPKE encryption, as
+      defined in Section 5.2 of [I-D.ietf-hpke-hpke].
+
+5.1.  Integrated Encryption Algorithms using HPKE
+
+   The following JWE algorithms using HPKE are defined for use with
+   Integrated Encryption as the Key Management Mode:
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 7]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+        +========+===============+=============+==================+
+        | "alg"  | HPKE KEM      | HPKE KDF    | HPKE AEAD        |
+        +========+===============+=============+==================+
+        | HPKE-0 | DHKEM(P-256,  | HKDF-SHA256 | AES-128-GCM      |
+        |        | HKDF-SHA256)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-1 | DHKEM(P-384,  | HKDF-SHA384 | AES-256-GCM      |
+        |        | HKDF-SHA384)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-2 | DHKEM(P-521,  | HKDF-SHA512 | AES-256-GCM      |
+        |        | HKDF-SHA512)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-3 | DHKEM(X25519, | HKDF-SHA256 | AES-128-GCM      |
+        |        | HKDF-SHA256)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-4 | DHKEM(X25519, | HKDF-SHA256 | ChaCha20Poly1305 |
+        |        | HKDF-SHA256)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-5 | DHKEM(X448,   | HKDF-SHA512 | AES-256-GCM      |
+        |        | HKDF-SHA512)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-6 | DHKEM(X448,   | HKDF-SHA512 | ChaCha20Poly1305 |
+        |        | HKDF-SHA512)  |             |                  |
+        +--------+---------------+-------------+------------------+
+        | HPKE-7 | DHKEM(P-256,  | HKDF-SHA256 | AES-256-GCM      |
+        |        | HKDF-SHA256)  |             |                  |
+        +--------+---------------+-------------+------------------+
+
+          Table 1: Algorithms using HPKE for Integrated Encryption
+
+   The HPKE KEM, KDF, and AEAD values are chosen from the IANA HPKE
+   registry [IANA.HPKE].
+
+6.  Key Encryption
+
+   When using the JWE JSON Serialization, recipients using Key
+   Encryption with HPKE can be added alongside other recipients (e.g.,
+   those using "ECDH-ES+A128KW" or "RSA-OAEP-256"), since HPKE is used
+   to encrypt the Content Encryption Key (CEK).
+
+   When using Key Encryption with HPKE:
+
+   *  The "alg" header parameter MUST be an HPKE JWE algorithm using Key
+      Encryption.
+
+   *  The header parameter "psk_id" MAY be present.
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 8]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  The header parameter "ek" MUST be present and contain the
+      base64url-encoded HPKE encapsulated secret.
+
+   *  The HPKE aad parameter defaults to the empty octet sequence.
+
+   *  The HPKE info parameter is set to the value of the
+      "Recipient_structure" defined below.
+
+   *  The HPKE plaintext MUST be set to the CEK.
+
+   *  The recipient's JWE Encrypted Key is the ciphertext from the HPKE
+      Encryption, as defined in Section 5.2 of [I-D.ietf-hpke-hpke].
+
+6.1.  Recipient_structure
+
+   The "Recipient_structure" used as the value of the HPKE info
+   parameter when performing Key Encryption with HPKE provides context
+   information used in key derivation.  To ensure compactness and
+   interoperability, this structure is encoded in a binary format.  The
+   encoding is as follows:
+
+   Recipient_structure = ASCII("JOSE-HPKE rcpt") ||
+                         BYTE(255) ||
+                         ASCII(content_encryption_alg) ||
+                         BYTE(255) ||
+                         recipient_extra_info
+
+   Where:
+
+   *  ASCII("JOSE-HPKE rcpt"): A fixed ASCII string identifying the
+      context of the structure.
+
+   *  BYTE(255): A separator byte (0xFF) used to delimit fields.
+
+   *  ASCII(content_encryption_alg): Identifies the content encryption
+      algorithm with which the HPKE-encrypted Content Encryption Key
+      (CEK) is used.  Its value MUST be the "enc" (encryption algorithm)
+      header parameter value in the JOSE Header.  This field provides
+      JWE context information to the HPKE key schedule, which ensures
+      that the encapsulated secret is bound to the selected content
+      encryption algorithm.
+
+   *  BYTE(255): A separator byte (0xFF) used to delimit fields.
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                 [Page 9]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  recipient_extra_info: An octet string containing additional
+      context information that the application includes in the key
+      derivation.  Mutually known private information (a concept also
+      utilized in [NIST.SP.800-56Ar3]) MAY be used in this input
+      parameter.  If no additional context information is provided, this
+      field MUST be the empty octet sequence.
+
+   Note that Integrated Encryption does not use the
+   "Recipient_structure" because the JWE Protected Header and JWE AAD
+   are included in the HPKE aad value, which binds these parameters to
+   the ciphertext.
+
+6.1.1.  Recipient_structure Example
+
+   The "Recipient_structure" encoded in binary as specified in
+   Section 6.1, and using the field values (content_encryption_alg =
+   "A128GCM", recipient_extra_info = ""), results in the following byte
+   sequence:
+
+   "JOSE-HPKE rcpt\xffA128GCM\xff"
+
+   The corresponding hexadecimal representation is:
+
+   4a4f53452d48504b452072637074ff4131323847434dff
+
+   This value is used as the HPKE "info" parameter when performing Key
+   Encryption with HPKE.
+
+6.2.  Key Encryption Algorithms using HPKE
+
+   The following JWE algorithms using HPKE are defined for use with Key
+   Encryption as the Key Management Mode:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 10]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   +===========+===========================+=============+=============+
+   | "alg"     | HPKE KEM                  | HPKE KDF    | HPKE AEAD   |
+   +===========+===========================+=============+=============+
+   | HPKE-0-KE | DHKEM(P-256,              | HKDF-SHA256 | AES-128-GCM |
+   |           | HKDF-SHA256)              |             |             |
+   +-----------+---------------------------+-------------+-------------+
+   | HPKE-1-KE | DHKEM(P-384,              | HKDF-SHA384 | AES-256-GCM |
+   |           | HKDF-SHA384)              |             |             |
+   +-----------+---------------------------+-------------+-------------+
+   | HPKE-2-KE | DHKEM(P-521,              | HKDF-SHA512 | AES-256-GCM |
+   |           | HKDF-SHA512)              |             |             |
+   +-----------+---------------------------+-------------+-------------+
+   | HPKE-3-KE | DHKEM(X25519,             | HKDF-SHA256 | AES-128-GCM |
+   |           | HKDF-SHA256)              |             |             |
+   +-----------+---------------------------+-------------+-------------+
+   | HPKE-5-KE | DHKEM(X448,               | HKDF-SHA512 | AES-256-GCM |
+   |           | HKDF-SHA512)              |             |             |
+   +-----------+---------------------------+-------------+-------------+
+   | HPKE-7-KE | DHKEM(P-256,              | HKDF-SHA256 | AES-256-GCM |
+   |           | HKDF-SHA256)              |             |             |
+   +-----------+---------------------------+-------------+-------------+
+
+             Table 2: Algorithms using HPKE for Key Encryption
+
+   The HPKE KEM, KDF, and AEAD values are chosen from the IANA HPKE
+   registry [IANA.HPKE].
+
+7.  Producing and Consuming JWEs
+
+   Sections 5.1 (Message Encryption) and 5.2 (Message Decryption) of
+   [RFC7516] are replaced by the following sections, which add
+   processing rules for using Integrated Encryption as the Key
+   Management Mode.
+
+7.1.  Message Encryption
+
+   The message encryption process is as follows.  The order of the steps
+   is not significant in cases where there are no dependencies between
+   the inputs and outputs of the steps.
+
+   1.   Determine the Key Management Mode employed by the algorithm used
+        to determine the Content Encryption Key value.  (This is the
+        algorithm recorded in the "alg" (algorithm) Header Parameter of
+        the resulting JWE.)
+
+   2.   When Key Wrapping, Key Encryption, or Key Agreement with Key
+        Wrapping is employed, generate a random CEK value to use for
+        subsequent steps unless one was already generated for a
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 11]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+        previously processed recipient, in which case, let that be the
+        one used for subsequent steps.  See [RFC8937] for considerations
+        on generating random values.  The CEK MUST have a length equal
+        to that required for the content encryption algorithm.
+
+   3.   When Direct Key Agreement or Key Agreement with Key Wrapping is
+        employed, use the key agreement algorithm to compute the value
+        of the agreed upon key.  When Direct Key Agreement is employed,
+        let the CEK be the agreed upon key.  When Key Agreement with Key
+        Wrapping is employed, the agreed upon key will be used to wrap
+        the CEK.
+
+   4.   When Key Wrapping, Key Encryption, or Key Agreement with Key
+        Wrapping is employed, encrypt the CEK to the recipient and let
+        the result be the JWE Encrypted Key.
+
+   5.   When Direct Key Agreement or Direct Encryption is employed, let
+        the JWE Encrypted Key be the empty octet sequence.
+
+   6.   When Direct Encryption is employed, let the CEK be the shared
+        symmetric key.
+
+   7.   When Integrated Encryption is employed, let the JWE Encrypted
+        Key be as specified by the Integrated Encryption algorithm.
+
+   8.   Compute the encoded key value BASE64URL(JWE Encrypted Key).
+
+   9.   If the JWE JSON Serialization is being used, and there are
+        multiple recipients, repeat this process (steps 1-8) for each
+        recipient.
+
+   10.  Generate a random JWE Initialization Vector of the correct size
+        for the content encryption algorithm (if required for the
+        algorithm); otherwise, let the JWE Initialization Vector be the
+        empty octet sequence.
+
+   11.  Compute the encoded Initialization Vector value BASE64URL(JWE
+        Initialization Vector).
+
+   12.  If a "zip" parameter was included, compress the plaintext using
+        the specified compression algorithm, and let M be the octet
+        sequence representing the compressed plaintext; otherwise, let M
+        be the octet sequence representing the plaintext.
+
+   13.  Create the JSON object(s) containing the desired set of Header
+        Parameters, which together comprise the JOSE Header: one or more
+        of the JWE Protected Header, the JWE Shared Unprotected Header,
+        and the JWE Per-Recipient Unprotected Header.
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 12]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   14.  Compute the Encoded Protected Header value BASE64URL(UTF8(JWE
+        Protected Header)).  If the JWE Protected Header is not present
+        (which can only happen when using the JWE JSON Serialization and
+        no "protected" member is present), let this value be the empty
+        string.
+
+   15.  Let the Additional Authenticated Data encryption parameter be
+        ASCII(Encoded Protected Header).  However, if a JWE AAD value is
+        present (which can only be the case when using the JWE JSON
+        Serialization), instead let the Additional Authenticated Data
+        encryption parameter be ASCII(Encoded Protected Header || '.' ||
+        BASE64URL(JWE AAD)).
+
+   16.  If Integrated Encryption is not being employed, encrypt M using
+        the CEK, the JWE Initialization Vector, and the Additional
+        Authenticated Data value using the specified content encryption
+        algorithm to create the JWE Ciphertext value and the JWE
+        Authentication Tag (which is the Authentication Tag output from
+        the encryption operation).
+
+   17.  If Integrated Encryption is being employed, encrypt M using the
+        specified Integrated Encryption algorithm to create the JWE
+        Ciphertext value.  Let the JWE Authentication Tag be the empty
+        octet sequence.
+
+   18.  Compute the encoded ciphertext value BASE64URL(JWE Ciphertext).
+
+   19.  Compute the encoded Authentication Tag value BASE64URL(JWE
+        Authentication Tag).
+
+   20.  If a JWE AAD value is present, compute the encoded AAD value
+        BASE64URL(JWE AAD).
+
+   21.  Create the desired serialized output.  The Compact Serialization
+        of this result is the string BASE64URL(UTF8(JWE Protected
+        Header)) || '.' || BASE64URL(JWE Encrypted Key) || '.' ||
+        BASE64URL(JWE Initialization Vector) || '.' || BASE64URL(JWE
+        Ciphertext) || '.' || BASE64URL(JWE Authentication Tag).  The
+        JWE JSON Serialization is described in Section 7.2 of [RFC7516].
+
+7.2.  Message Decryption
+
+   The message decryption process is the reverse of the encryption
+   process.  The order of the steps is not significant in cases where
+   there are no dependencies between the inputs and outputs of the
+   steps.  If any of these steps fail, the encrypted content cannot be
+   validated.
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 13]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   When there are multiple recipients, it is an application decision
+   which of the recipients' encrypted content must successfully validate
+   for the JWE to be accepted.  In some cases, encrypted content for all
+   recipients must successfully validate or the JWE will be considered
+   invalid.  In other cases, only the encrypted content for a single
+   recipient needs to be successfully validated.  However, in all cases,
+   the encrypted content for at least one recipient MUST successfully
+   validate or the JWE MUST be considered invalid.
+
+   1.   Parse the JWE representation to extract the serialized values
+        for the components of the JWE.  When using the JWE Compact
+        Serialization, these components are the base64url-encoded
+        representations of the JWE Protected Header, the JWE Encrypted
+        Key, the JWE Initialization Vector, the JWE Ciphertext, and the
+        JWE Authentication Tag. When using the JWE JSON Serialization,
+        these components also include the base64url-encoded
+        representation of the JWE AAD, along with the unencoded JWE
+        Shared Unprotected Header and JWE Per-Recipient Unprotected
+        Header values.  When using the JWE Compact Serialization, the
+        JWE Protected Header, the JWE Encrypted Key, the JWE
+        Initialization Vector, the JWE Ciphertext, and the JWE
+        Authentication Tag are represented as base64url-encoded values
+        in that order, with each value being separated from the next by
+        a single period ('.') character, resulting in exactly four
+        delimiting period characters being used.  The JWE JSON
+        Serialization is described in Section 7.2 of [RFC7516].
+
+   2.   Base64url decode the encoded representations of the JWE
+        Protected Header, the JWE Encrypted Key, the JWE Initialization
+        Vector, the JWE Ciphertext, the JWE Authentication Tag, and the
+        JWE AAD, following the restriction that no line breaks,
+        whitespace, or other additional characters have been used.
+
+   3.   Verify that the octet sequence resulting from decoding the
+        encoded JWE Protected Header is a UTF-8-encoded representation
+        of a completely valid JSON object conforming to [RFC8259]; let
+        the JWE Protected Header be this JSON object.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 14]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   4.   If using the JWE Compact Serialization, let the JOSE Header be
+        the JWE Protected Header.  Otherwise, when using the JWE JSON
+        Serialization, let the JOSE Header be the union of the members
+        of the JWE Protected Header, the JWE Shared Unprotected Header
+        and the corresponding JWE Per-Recipient Unprotected Header, all
+        of which must be completely valid JSON objects.  During this
+        step, verify that the resulting JOSE Header does not contain
+        duplicate Header Parameter names.  When using the JWE JSON
+        Serialization, this restriction includes that the same Header
+        Parameter name also MUST NOT occur in distinct JSON object
+        values that together comprise the JOSE Header.
+
+   5.   Verify that the implementation understands and can process all
+        fields that it is required to support, whether required by this
+        specification, by the algorithms being used, or by the "crit"
+        Header Parameter value, and that the values of those parameters
+        are also understood and supported.
+
+   6.   Determine the Key Management Mode employed by the algorithm
+        specified by the "alg" (algorithm) Header Parameter.
+
+   7.   If using Integrated Encryption, Direct Encryption, or Direct Key
+        Agreement, verify that there is exactly one recipient.
+
+   8.   Verify that the JWE uses a key known to the recipient.
+
+   9.   When Direct Key Agreement or Key Agreement with Key Wrapping is
+        employed, use the key agreement algorithm to compute the value
+        of the agreed upon key.  When Direct Key Agreement is employed,
+        let the CEK be the agreed upon key.  When Key Agreement with Key
+        Wrapping is employed, the agreed upon key will be used to
+        decrypt the JWE Encrypted Key.
+
+   10.  When Key Wrapping, Key Encryption, or Key Agreement with Key
+        Wrapping is employed, decrypt the JWE Encrypted Key to produce
+        the CEK.  The CEK MUST have a length equal to that required for
+        the content encryption algorithm.  Note that when there are
+        multiple recipients, each recipient will only be able to decrypt
+        JWE Encrypted Key values that were encrypted to a key in that
+        recipient's possession.  It is therefore normal to only be able
+        to decrypt one of the per-recipient JWE Encrypted Key values to
+        obtain the CEK value.  Also, see Section 11.5 of [RFC7516] for
+        security considerations on mitigating timing attacks.
+
+   11.  When Direct Key Agreement or Direct Encryption is employed,
+        verify that the JWE Encrypted Key value is an empty octet
+        sequence.
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 15]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   12.  When Direct Encryption is employed, let the CEK be the shared
+        symmetric key.
+
+   13.  If Integrated Encryption is not being employed, record whether
+        the CEK could be successfully determined for this recipient or
+        not.
+
+   14.  If the JWE JSON Serialization is being used and there are
+        multiple recipients, repeat this process (steps 4-13) for each
+        recipient contained in the representation.
+
+   15.  Compute the Encoded Protected Header value BASE64URL(UTF8(JWE
+        Protected Header)).  If the JWE Protected Header is not present
+        (which can only happen when using the JWE JSON Serialization and
+        no "protected" member is present), let this value be the empty
+        string.
+
+   16.  Let the Additional Authenticated Data encryption parameter be
+        ASCII(Encoded Protected Header).  However, if a JWE AAD value is
+        present (which can only be the case when using the JWE JSON
+        Serialization), instead let the Additional Authenticated Data
+        encryption parameter be ASCII(Encoded Protected Header || '.' ||
+        BASE64URL(JWE AAD)).
+
+   17.  If Integrated Encryption is not being employed, decrypt the JWE
+        Ciphertext using the CEK, the JWE Initialization Vector, the
+        Additional Authenticated Data value, and the JWE Authentication
+        Tag (which is the Authentication Tag input to the calculation)
+        using the content encryption algorithm specified in the "enc"
+        header parameter, returning the decrypted plaintext and
+        validating the JWE Authentication Tag in the manner specified
+        for the algorithm, rejecting the input without emitting any
+        decrypted output if the JWE Authentication Tag is incorrect.
+
+   18.  If Integrated Encryption is being employed, verify that no "enc"
+        header parameter is present.
+
+   19.  If Integrated Encryption is being employed, decrypt the JWE
+        Ciphertext using the specified Integrated Encryption algorithm,
+        returning the decrypted plaintext in the manner specified for
+        the algorithm, rejecting the input without emitting any
+        decrypted output if the decryption fails.
+
+   20.  If a "zip" parameter was included, uncompress the decrypted
+        plaintext using the specified compression algorithm.
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 16]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   21.  If there was no recipient for which all of the decryption steps
+        succeeded, then the JWE MUST be considered invalid.  Otherwise,
+        output the plaintext.  In the JWE JSON Serialization case, also
+        return a result to the application indicating for which of the
+        recipients the decryption succeeded and failed.
+
+   Finally, note that it is an application decision which algorithms may
+   be used in a given context.  Even if a JWE can be successfully
+   decrypted, unless the algorithms used in the JWE are acceptable to
+   the application, it SHOULD consider the JWE to be invalid.
+
+8.  Distinguishing Between JWS and JWE Objects
+
+   Section 9 of [RFC7516] is updated to delete the last bullet, which
+   says:
+
+   *  The JOSE Header for a JWS can also be distinguished from the JOSE
+      Header for a JWE by determining whether an "enc" (encryption
+      algorithm) member exists.  If the "enc" member exists, it is a
+      JWE; otherwise, it is a JWS.
+
+   The deleted test no longer works when Integrated Encryption is used.
+
+   The other methods of distinguishing between JSON Web Signature (JWS)
+   [RFC7515] and JSON Web Encryption (JWE) [RFC7516] objects continue to
+   work.
+
+9.  JWK Representations for JWE HPKE Keys
+
+   The JSON Web Key (JWK) [RFC7517] representations for keys used with
+   the JWE algorithms defined in this specification are as follows.  The
+   valid combinations of the "alg", "kty", and "crv" in the JWK are
+   shown in Table 3.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 17]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+         +======================================+=======+========+
+         | "alg" values                         | "kty" | "crv"  |
+         +======================================+=======+========+
+         | HPKE-0, HPKE-0-KE, HPKE-7, HPKE-7-KE | EC    | P-256  |
+         +--------------------------------------+-------+--------+
+         | HPKE-1, HPKE-1-KE                    | EC    | P-384  |
+         +--------------------------------------+-------+--------+
+         | HPKE-2, HPKE-2-KE                    | EC    | P-521  |
+         +--------------------------------------+-------+--------+
+         | HPKE-3, HPKE-3-KE, HPKE-4            | OKP   | X25519 |
+         +--------------------------------------+-------+--------+
+         | HPKE-5, HPKE-5-KE, HPKE-6            | OKP   | X448   |
+         +--------------------------------------+-------+--------+
+
+          Table 3: JWK Types and Curves for JWE HPKE Ciphersuites
+
+   Examples of JWKs for each algorithm are provided in Appendix A.
+
+10.  Security Considerations
+
+   This specification uses HPKE, and the security considerations of
+   [I-D.ietf-hpke-hpke] are therefore applicable.
+
+   HPKE assumes the sender is in possession of the public key of the
+   recipient and HPKE JOSE makes the same assumption.  Hence, some form
+   of public key distribution mechanism is assumed to exist but is
+   outside the scope of this document.
+
+   HPKE in Base mode does not provide proof of sender origin as part of
+   the HPKE KEM.  PSK mode authenticates the sender as a holder of the
+   pre-shared key (see Section 9.1 of [I-D.ietf-hpke-hpke]).
+
+   This specification relies on a source of randomness being available
+   on the device.  When used, the CEK has to be randomly generated.
+   Likewise, when used, the JWE Initialization Vector has to be randomly
+   generated.  In both cases, the guidance on randomness in [RFC8937]
+   applies.
+
+10.1.  Key Management
+
+   A KEM key pair used with HPKE is intended for use with a specific
+   mode and HPKE algorithm suite.  Using the same KEM key pair with
+   multiple modes or multiple HPKE algorithm suites in parallel is NOT
+   RECOMMENDED.
+
+   In principle, such use could be supported by the HPKE key schedule,
+   since it takes both the suite_id variable, which encodes the full
+   ciphersuite, and the mode byte as inputs, ensuring that
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 18]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   cryptographically distinct keys are derived for each combination of
+   ciphersuite and mode.  However, there is no formal proof of security
+   for this at the time of writing; see Section 9.2.2 of
+   [I-D.ietf-hpke-hpke].
+
+   Likewise,the same key SHOULD NOT be used with both HPKE and non-HPKE
+   algorithms (e.g., "ECDH-ES" or "ECDH-ES+A128KW").
+
+   When using Key Encryption in a multi-recipient scenario, the security
+   of the content is limited by the weakest algorithm used to encrypt
+   the CEK.
+
+10.2.  JWT Best Current Practices
+
+   The guidance in [RFC8725] about encryption is also pertinent to this
+   specification.
+
+   RFC Editor Note: If draft-ietf-oauth-8725bis has been published as an
+   RFC by the time this document is processed, please update the
+   reference from [RFC8725] to the published RFC for draft-ietf-oauth-
+   8725bis.
+
+11.  IANA Considerations
+
+11.1.  JSON Web Signature and Encryption Algorithms
+
+   The following entries are added to the IANA "JSON Web Signature and
+   Encryption Algorithms" registry [IANA.JOSE] established by [RFC7518]:
+
+11.1.1.  HPKE-0
+
+   *  Algorithm Name: HPKE-0
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(P-256, HKDF-SHA256) KEM, HKDF-SHA256 KDF, and AES-128-GCM
+      AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 19]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+11.1.2.  HPKE-1
+
+   *  Algorithm Name: HPKE-1
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(P-384, HKDF-SHA384) KEM, HKDF-SHA384 KDF, and AES-256-GCM
+      AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+11.1.3.  HPKE-2
+
+   *  Algorithm Name: HPKE-2
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(P-521, HKDF-SHA512) KEM, HKDF-SHA512 KDF, and AES-256-GCM
+      AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+11.1.4.  HPKE-3
+
+   *  Algorithm Name: HPKE-3
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(X25519, HKDF-SHA256) KEM, HKDF-SHA256 KDF, and AES-128-GCM
+      AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 20]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+11.1.5.  HPKE-4
+
+   *  Algorithm Name: HPKE-4
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(X25519, HKDF-SHA256) KEM, HKDF-SHA256 KDF, and
+      ChaCha20Poly1305 AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+11.1.6.  HPKE-5
+
+   *  Algorithm Name: HPKE-5
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(X448, HKDF-SHA512) KEM, HKDF-SHA512 KDF, and AES-256-GCM
+      AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 21]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+11.1.7.  HPKE-6
+
+   *  Algorithm Name: HPKE-6
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(X448, HKDF-SHA512) KEM, HKDF-SHA512 KDF, and
+      ChaCha20Poly1305 AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+11.1.8.  HPKE-7
+
+   *  Algorithm Name: HPKE-7
+
+   *  Algorithm Description: Integrated Encryption with HPKE using
+      DHKEM(P-256, HKDF-SHA256) KEM, HKDF-SHA256 KDF, and AES-256-GCM
+      AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 5.1 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 6.1 of
+      [I-D.ietf-hpke-hpke]
+
+11.1.9.  HPKE-0-KE
+
+   *  Algorithm Name: HPKE-0-KE
+
+   *  Algorithm Description: Key Encryption with HPKE using DHKEM(P-256,
+      HKDF-SHA256) KEM, HKDF-SHA256 KDF, and AES-128-GCM AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 22]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.2 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 5 of [I-D.ietf-hpke-hpke]
+
+11.1.10.  HPKE-1-KE
+
+   *  Algorithm Name: HPKE-1-KE
+
+   *  Algorithm Description: Key Encryption with HPKE using DHKEM(P-384,
+      HKDF-SHA384) KEM, HKDF-SHA384 KDF, and AES-256-GCM AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.2 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 5 of [I-D.ietf-hpke-hpke]
+
+11.1.11.  HPKE-2-KE
+
+   *  Algorithm Name: HPKE-2-KE
+
+   *  Algorithm Description: Key Encryption with HPKE using DHKEM(P-521,
+      HKDF-SHA512) KEM, HKDF-SHA512 KDF, and AES-256-GCM AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.2 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 5 of [I-D.ietf-hpke-hpke]
+
+11.1.12.  HPKE-3-KE
+
+   *  Algorithm Name: HPKE-3-KE
+
+   *  Algorithm Description: Key Encryption with HPKE using
+      DHKEM(X25519, HKDF-SHA256) KEM, HKDF-SHA256 KDF, and AES-128-GCM
+      AEAD
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 23]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.2 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 5 of [I-D.ietf-hpke-hpke]
+
+11.1.13.  HPKE-5-KE
+
+   *  Algorithm Name: HPKE-5-KE
+
+   *  Algorithm Description: Key Encryption with HPKE using DHKEM(X448,
+      HKDF-SHA512) KEM, HKDF-SHA512 KDF, and AES-256-GCM AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.2 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 5 of [I-D.ietf-hpke-hpke]
+
+11.1.14.  HPKE-7-KE
+
+   *  Algorithm Name: HPKE-7-KE
+
+   *  Algorithm Description: Key Encryption with HPKE using DHKEM(P-256,
+      HKDF-SHA256) KEM, HKDF-SHA256 KDF, and AES-256-GCM AEAD
+
+   *  Algorithm Usage Location(s): "alg"
+
+   *  JOSE Implementation Requirements: Optional
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 6.2 of [[ this specification ]]
+
+   *  Algorithm Analysis Documents(s): Section 5 of [I-D.ietf-hpke-hpke]
+
+11.2.  JSON Web Signature and Encryption Header Parameters
+
+   The following entries are added to the IANA "JSON Web Signature and
+   Encryption Header Parameters" registry [IANA.JOSE]:
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 24]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+11.2.1.  ek
+
+   *  Header Parameter Name: "ek"
+
+   *  Header Parameter Description: A base64url-encoded encapsulated
+      secret, as defined in Section 5 of [I-D.ietf-hpke-hpke]
+
+   *  Header Parameter Usage Location(s): JWE
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 4.1 of [[ this specification ]]
+
+11.2.2.  psk_id
+
+   *  Header Parameter Name: "psk_id"
+
+   *  Header Parameter Description: A base64url-encoded key identifier
+      (kid) for the pre-shared key, as defined in Section 5.1.2 of
+      [I-D.ietf-hpke-hpke]
+
+   *  Header Parameter Usage Location(s): JWE
+
+   *  Change Controller: IETF
+
+   *  Specification Document(s): Section 4 of [[ this specification ]]
+
+12.  Summary of Updates to RFC 7516 (JWE)
+
+   This specification updates JSON Web Encryption (JWE) [RFC7516] to
+   enable the use of Integrated Encryption.  The specific updates made
+   are as follows:
+
+   *  Adds the Integrated Encryption Key Management Mode and
+      correspondingly updates the Key Management Mode definition
+      (Section 3).
+
+   *  Updates the "enc" header parameter to be absent when Integrated
+      Encryption is used in (Section 4).
+
+   *  Replaces the Message Encryption procedure (Section 7.1), adding
+      Integrated Encryption.
+
+   *  Replaces the Message Decryption procedure (Section 7.2), adding
+      Integrated Encryption.
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 25]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  Updates the methods for distinguishing between JWS and JWE objects
+      (Section 8) because Integrated Encryption does not use the "enc"
+      header parameter.
+
+13.  References
+
+13.1.  Normative References
+
+   [I-D.ietf-hpke-hpke]
+              Barnes, R., Bhargavan, K., Lipp, B., and C. A. Wood,
+              "Hybrid Public Key Encryption", Work in Progress,
+              Internet-Draft, draft-ietf-hpke-hpke-03, 2 March 2026,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-hpke-
+              hpke-03>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/rfc/rfc2119>.
+
+   [RFC7516]  Jones, M. and J. Hildebrand, "JSON Web Encryption (JWE)",
+              RFC 7516, DOI 10.17487/RFC7516, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7516>.
+
+   [RFC7517]  Jones, M., "JSON Web Key (JWK)", RFC 7517,
+              DOI 10.17487/RFC7517, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7517>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
+
+   [RFC8259]  Bray, T., Ed., "The JavaScript Object Notation (JSON) Data
+              Interchange Format", STD 90, RFC 8259,
+              DOI 10.17487/RFC8259, December 2017,
+              <https://www.rfc-editor.org/rfc/rfc8259>.
+
+   [RFC8725]  Sheffer, Y., Hardt, D., and M. Jones, "JSON Web Token Best
+              Current Practices", BCP 225, RFC 8725,
+              DOI 10.17487/RFC8725, February 2020,
+              <https://www.rfc-editor.org/rfc/rfc8725>.
+
+   [RFC8937]  Cremers, C., Garratt, L., Smyshlyaev, S., Sullivan, N.,
+              and C. Wood, "Randomness Improvements for Security
+              Protocols", RFC 8937, DOI 10.17487/RFC8937, October 2020,
+              <https://www.rfc-editor.org/rfc/rfc8937>.
+
+13.2.  Informative References
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 26]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   [I-D.ietf-cose-hpke]
+              Tschofenig, H., Jones, M. B., Steele, O., Daisuke, A., and
+              L. Lundblade, "Use of Hybrid Public-Key Encryption (HPKE)
+              with CBOR Object Signing and Encryption (COSE)", Work in
+              Progress, Internet-Draft, draft-ietf-cose-hpke-26, 4 July
+              2026, <https://datatracker.ietf.org/doc/html/draft-ietf-
+              cose-hpke-26>.
+
+   [IANA.HPKE]
+              IANA, "Hybrid Public Key Encryption (HPKE)", n.d.,
+              <https://www.iana.org/assignments/hpke>.
+
+   [IANA.JOSE]
+              IANA, "JSON Web Signature and Encryption Algorithms",
+              n.d., <https://www.iana.org/assignments/jose>.
+
+   [NIST.SP.800-56Ar3]
+              National Institute of Standards and Technology,
+              "Recommendation for Pair-Wise Key-Establishment Schemes
+              Using Discrete Logarithm Cryptography, NIST Special
+              Publication 800-56A Revision 3", April 2018,
+              <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/
+              NIST.SP.800-56Ar3.pdf>.
+
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, DOI 10.17487/RFC7515, May
+              2015, <https://www.rfc-editor.org/rfc/rfc7515>.
+
+   [RFC7518]  Jones, M., "JSON Web Algorithms (JWA)", RFC 7518,
+              DOI 10.17487/RFC7518, May 2015,
+              <https://www.rfc-editor.org/rfc/rfc7518>.
+
+   [RFC8792]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
+              "Handling Long Lines in Content of Internet-Drafts and
+              RFCs", RFC 8792, DOI 10.17487/RFC8792, June 2020,
+              <https://www.rfc-editor.org/rfc/rfc8792>.
+
+   [RFC9864]  Jones, M.B. and O. Steele, "Fully-Specified Algorithms for
+              JSON Object Signing and Encryption (JOSE) and CBOR Object
+              Signing and Encryption (COSE)", RFC 9864,
+              DOI 10.17487/RFC9864, October 2025,
+              <https://www.rfc-editor.org/rfc/rfc9864>.
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 27]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+Appendix A.  Test Vectors
+
+   This appendix provides test vectors for each algorithm defined in
+   this document.  For each algorithm, a private JWK, a Flattened JWE
+   JSON Serialization example with Additional Authenticated Data, and a
+   JWE Compact Serialization example are provided.  Long lines in the
+   examples are folded using the single backslash strategy from
+   [RFC8792].  Before using a folded example as a test vector, remove
+   the RFC 8792 header and unfold the lines according to that strategy.
+   The complete unfolded vector set is available as examples/jose-
+   vectors.json in the repository (https://github.com/ietf-wg-jose/
+   draft-ietf-jose-hpke-encrypt) for this document.
+
+A.1.  HPKE-0
+
+   {
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "qy-BxXhaelX9Fqe8muRTu8HhseHYgMMGxyfAnIy0MC0",
+     "y": "ctfHN7Y4pkj7vZI-sgJ6BqsYwG-PDnB8j7TsfzHHJOI",
+     "d": "aAKxBMAkNm2AZDGv7LN5yodDwahJ5rKbrgiiz3dUIH4",
+     "alg": "HPKE-0",
+     "use": "enc",
+     "kid": "KfvD-eYaynUKba0ow-v9uoEV-twV6mYDyiAOWO6LoPM"
+   }
+
+                        Figure 1: HPKE-0 Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTAiLCJraWQiOiJLZnZELWVZYXluVUtiYTBv\
+       dy12OXVvRVYtdHdWNm1ZRHlpQU9XTzZMb1BNIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "BNC1LPfAH7I5Fxi7X7lrQLFkdpZcSGoXpBw4FYvCY1wZqAX5\
+       3caa-lyNLPHkzwQMAMFHoOoN_TRGSzb2Gw4aDlA",
+     "ciphertext": "I0sH6mQa6r-mgLHqI23-wzBmsTULQoNtANiHF_incW5y5BIB7qo\
+       0XN3NoOqf1IvH1UEfE1_Tu9Baf6M3z_E9eJK1oDV1Q8A6VnZUnhj0cf2UNQhufoV\
+       JOlpbPolLiecxwitIqYKPKfzJmG1uZ7lA0xUAiNPkUR9OSHpLYr9HWAa1DWDbczW\
+       OMtFnxCJwd-PfyjX5-5-X6kAcdj5z-Kx4losmN2k7r2T1BUnHNnZlSgcz5nSZBxv\
+       KqkXX3xl0Tw9ys--37IJD7UcIFfST6b0PXHzuKSw-attSD_67SRcpcxUTm3nyvtr\
+       oYF8sg0ztQLuNkC-gwe7-uxPNO2iBDIypgImhvlTaAEcuHJDtFgU5geIXFMAlMDA\
+       g7cSk4ssR"
+   }
+
+             Figure 2: HPKE-0 Flattened JWE JSON Serialization
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 28]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTAiLCJraWQiOiJLZnZELWVZYXluVUtiYTBvdy12OXVvRVYtdHdW\
+   Nm1ZRHlpQU9XTzZMb1BNIn0.BKqUaiyoPbH1jnjApcpjGqswg7npGSSXFcFv1nGaL6YY\
+   s3S27c8Yi5V5rsds91bV_UjdqzLlj2zuuAPWetLMab8..fO8VQt1DsdgtijGci90sO8s\
+   Nvws6im8Yko4NnMWXVAM5GaHbHYRSGnjs6M7GnkcaTrEjy8cxDDLZFKTwMdYGOjYBsbT\
+   VVAoIImVd8tXZNjQswaPU8t8OP1jCwo6iw8t4-Hm6hCE61uzhEd_r9XkN4blHjrcAoCI\
+   Ccwqn_5lgJCTPQezJtiTAhrtHpC1quPA3aO2Pyhui5CzOtk967IC8v28jq6K7C3mbu-m\
+   10bo0aWqdybibCiiS5A89PXFWurW83HNnJFdoiqZRTtF4d_OAQ2Jq9FCrahrh43Xqp1z\
+   3HYjf73_rOHYWXzv8jGorDAKjsPgxYN_9TgGUstjiRIMLj9dJXxqrPkRLQ4VSAzVWCNe\
+   5MabAR1sFFB5tx_gA.
+
+                 Figure 3: HPKE-0 JWE Compact Serialization
+
+A.2.  HPKE-0-KE
+
+   {
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "erH26InyPQifTIwmyKs63u4SUzglAHXNm2ZWT2LQ-rM",
+     "y": "GTGOC0_TnYc_Cm4dsgY8qdixil7AObs5-Xtk0QJeoH8",
+     "d": "MzJOwOcw1LDGZ-Ia6Zz5ay9zWUZKIhXkBcfq0dPA5Do",
+     "alg": "HPKE-0-KE",
+     "use": "enc",
+     "kid": "23i_7tQXiLxih47kQtE2yHy7d8q253Kp9R9i6aDyHng"
+   }
+
+                      Figure 4: HPKE-0-KE Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTAtS0UiLCJraWQiOiIyM2lfN3RRWGlMeGlo\
+       NDdrUXRFMnlIeTdkOHEyNTNLcDlSOWk2YUR5SG5nIiwiZW5jIjoiQTEyOEdDTSIs\
+       ImVrIjoiQkNlSmd0RGZGeVdtTDlJek0yT1Vnd1owWm9tWHVhb3BEcW5fR0JYX2V4\
+       N0pENlRyWWpLOUI5R2ZRYWhIamRuTGlsQ2V6WlNSX2NvaUtnVC1IQVhnSlFNIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "iv": "hsc8LLwbgwf33MdT",
+     "ciphertext": "vwkACubXsG6xfuEbeZW24DJWq-ZlRExN1uaTyfwaNoCwDaURkrC\
+       0Vkc5w9B_KntgOMYvOgAVfSkqkztcRFX-AKIaOKGKYvPAY9ujuQtyA7SFMvaOjma\
+       o2XD96LtoeexaYrganCxHvJhjgyRH8xpb_QYVUGdmpjj9r_uNqZVTAuuUlrE87Lb\
+       GkNaQuHpRCpYG7JbYHp8Sovnbepy84ORGXkhg7KamMfQQQ_ob5C5aY0g2BBqRgyu\
+       NErzDCq3RVVo91ddpGbSys25jlvAbqziBW1YOLIoLoGJDdqbykKzjravg1R1g7QC\
+       OpdN0ozcE_oEEHFEyRTilYRkxH_CqV2hxhakqDpGj3Q9qHGigJEk",
+     "tag": "Afab-bCOAfBSYJgIsaxxZQ",
+     "encrypted_key": "-mXiAU7aot-kdZ8KhWDoM_jXHk6_B5g0vH77u6r49os"
+   }
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 29]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+            Figure 5: HPKE-0-KE Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTAtS0UiLCJraWQiOiIyM2lfN3RRWGlMeGloNDdrUXRFMnlIeTdk\
+   OHEyNTNLcDlSOWk2YUR5SG5nIiwiZW5jIjoiQTEyOEdDTSIsImVrIjoiQk4xRWI1bVFC\
+   ZTgyLVRpWTJYc0xjWEhmb3ZjNWFxajRIRW5Ick10aFFoMDhqUDl5Vjd2U3VBZjZuYjNL\
+   Q3pSUWJmbHlGV2k3bDlrR3BtTm1xaTNYaW1RIn0.lnz6tY7OMgEqr2dUBFLhbRV5SV5N\
+   nnE75YoGf8fdCdQ.B01l-CsTkWGSh-8o.n33IRmokhNrqtaG5AL9COw-bVmYiPqCLBgl\
+   udwQF3hyMYuagt4xxbKA2YdLHzgYk4ZCZQRdK5UJJcIKUsBsWNyDYhS0oZVcxq3wXOeG\
+   6jkEqUCzTU3PS0JeLW8uihm9gSjlW42dKUiYjqXL8kIJuWbCxqYs-Dslm5hfx4u_a06h\
+   vIRvJjVVQ4eWZMtUo5nIumyyid9qKwFFo_BLXaSxRZ7sa4TSRpu1Qywl8t3HcnnKThFf\
+   CSc6jIcJ3O9GIFXMDKqzBiciaxjim3xfv6A3qMHmIkF_rTT0dj9qmlolOfZeElX7sseq\
+   0EpOe9MPwcpFR3mZVUCe74FGUJNj4szJTb8pVgaZ9Yo5rXFKKn9s.MCd0fKMDwsgD6MW\
+   2XKzWWg
+
+               Figure 6: HPKE-0-KE JWE Compact Serialization
+
+A.3.  HPKE-1
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "EC",
+     "crv": "P-384",
+     "x": "CTphb4EF35SSZgrk9rYHXkdalQLTGRApFRiAF8eVteQtOIZRbZKV0iEv9eiS\
+       ElLT",
+     "y": "6KddFD8aAVzoJNq1Jr_4oZ3t7SGZm3qgXMHN7sB_KAlxTydxRaVXArFKQyyf\
+       fOj6",
+     "d": "UzFpz5G-_kWkiCKWCWdRXFxVoz9fTY4u9I_XmfPoOI7eEf0glEARLbsx06wb\
+       1EYu",
+     "alg": "HPKE-1",
+     "use": "enc",
+     "kid": "K4P-SJHnqUpz-qTXlYCBV6ITFu8sH_gsx2KGMEcjk9s"
+   }
+
+                        Figure 7: HPKE-1 Private JWK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 30]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTEiLCJraWQiOiJLNFAtU0pIbnFVcHotcVRY\
+       bFlDQlY2SVRGdThzSF9nc3gyS0dNRWNqazlzIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "BFX1YGr3AR4szfTMVMWctHh2LGBPFdGdJCfft3QYR0mL-zCe\
+       JgZkcYzFlD1EID8dFfDv_YNU8DRmm3qzQ8oMsW4ZA3Qs_iQpaEVj3AOsNWFD-yLq\
+       1dt1fF4r6VAufu0unw",
+     "ciphertext": "_AB6I_8GkA-U9Il2XFNJ3kBDAJ9P1erWUzWzBFgRFM1NhlkE6ph\
+       ABLmhTNc517Vk-YJ0P_7WQqbUnMwgRBQYDycPdhh11ZGvRYI6EjbHXRD8ctVDX_W\
+       aWE6RPfY3GxA1Rplh5ZcKYus2Pln1nOseFvC9NEZkuLNLyM8jBVgwq_EQtH1GQlS\
+       ZwK8I1TyBOcBtWcXnYqy-XK8Rbj3eifbQESKZPedVqMXcQ03u4xdikZp5aqLJCLm\
+       wN16pYTgSzXDW0d0IHPc1tqLF4eUFrFfPokckpe92pP5q1DMetRLP7G46oPLXMBQ\
+       8tFd_FxtdVF1mrqV3l2KB-JC6unu9ZWwEBt6s-p1xZ2jjIiqTC0Hy-0pK8YmfOEK\
+       j5SKk_re1"
+   }
+
+             Figure 8: HPKE-1 Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTEiLCJraWQiOiJLNFAtU0pIbnFVcHotcVRYbFlDQlY2SVRGdThz\
+   SF9nc3gyS0dNRWNqazlzIn0.BG5NsNBMLw2aHZgcyEGwC2D5L3NQqWp6TCVneiNrWzK9\
+   OCuIqpZ6mxkTxf-UXtO2BiQjFLSm2GCnPItrjFEjHzTvg_aPUjZVNsSWFhgHseLC40zv\
+   BvBqhqGyRT1btnzhYw..k283DSyVnTKkfQnB0ngaY03st55x1OBqHLvnvp7VM0jA-yxg\
+   C7QgdAiyDCxfnpBgLE680KyJPJcDo0F9K50O2wZOBC5VAPUZlvkOkGucTvEfnVn6HPd1\
+   c-Btpm4eMEHOzEZ69nMQptgOtaA_XTdhiA34CX_bMaPO0MwrXu76HrMlfSXZ1C-298ZP\
+   HDOBHUx4IJROJaXMh4NKq76VLkIsdAdgguT4SXaTYBka5c1vEcLtjQh5zKtQHXHHevHO\
+   6gZmneYsg6sx-PvrXPItQe33bGwYAJ5zxhKTynoOfDa_zfZFSdWz3OX1wMa8WZMbCU1i\
+   bIjiEv0H1pOO0cs8mt7Xs5xjTqKBlW6m8EecD2H9YBqB4DVbMsckNnxkqIEM.
+
+                 Figure 9: HPKE-1 JWE Compact Serialization
+
+A.4.  HPKE-1-KE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 31]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "EC",
+     "crv": "P-384",
+     "x": "D7VTLUkObllwTg8aYvZPdcnNINDy25kvNre97TKptpQSB6-IjvHLCWQJHzlD\
+       iGYA",
+     "y": "njG34YWeObrJ8AUOH4lvqspRcCViqbkn2vUPbcTUUSOub44OkVrFqwznzkdI\
+       EKrT",
+     "d": "DJll4Ommwo21BHxww16GgoGaxXWPKFY6r_ppQ7wRempir7VQ4zr0r8_iqqHf\
+       9hUp",
+     "alg": "HPKE-1-KE",
+     "use": "enc",
+     "kid": "dCxtIy9H8XajATicOvCTQMh4ZPgz6YsOK5ssKHeWWEs"
+   }
+
+                      Figure 10: HPKE-1-KE Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTEtS0UiLCJraWQiOiJkQ3h0SXk5SDhYYWpB\
+       VGljT3ZDVFFNaDRaUGd6NllzT0s1c3NLSGVXV0VzIiwiZW5jIjoiQTI1NkdDTSIs\
+       ImVrIjoiQk10NGNmbG4xbk02SU5uUFF1cVRvUEpWamdySlQ1SVNlS3ZRdE5VX0FH\
+       UnR1YWJTeGFhYndjTi13S3pfQU1OUXYxM1VZa0xvSDhxTGlVMHJSeG4ySWoxQVFC\
+       UDBXSUY4b0Zsc3g1YUhWLXY4WWp2bDVzTkg5UnFuNFpiOWplTmNaUSJ9",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "iv": "Wi1O4jqJpo9trvrT",
+     "ciphertext": "GVGKeyg8z5mBfpS-02_JtaGiif95jyOWTHY6VgNgIgj38noe_Lc\
+       eUOkpsHVrTj_3EBRE_d7U8zsOuSLUVj9PQd-rXy2m8rdUsCkOS9-_0ik4tgH_o2d\
+       1wfLH8MTjzYHpcFeIVCX_1w3yRa2fhN7Rg_98A2Pd_sTH0A2CPtMhvETG-8JRQwl\
+       LZTkFWl6jpEQ6qH07NHBpy1QXLsWdHSXIY3Bnusu9EpORV2W40Z8N2RWmtT4rej3\
+       Ccg7JCr-9pBNlKdA6gX_YTRxCFWop1v_567S-qkTcm2eqpGs67S_97BauEzVUMiK\
+       qa0sMaz1BwbNoA14Ey3orPEL0suJYxTAbj8jEo3EDbL_bz0dIsVw",
+     "tag": "127mPyxGskfRdYmBmbGm9w",
+     "encrypted_key": "-3WGOxsdBssqlYpsWKmSs4rKWbqh4_guvdNyelGiCoSkSNzC\
+       4lRnGxvPOy835mfJ"
+   }
+
+           Figure 11: HPKE-1-KE Flattened JWE JSON Serialization
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 32]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTEtS0UiLCJraWQiOiJkQ3h0SXk5SDhYYWpBVGljT3ZDVFFNaDRa\
+   UGd6NllzT0s1c3NLSGVXV0VzIiwiZW5jIjoiQTI1NkdDTSIsImVrIjoiQkxyVFI4SEpk\
+   cUY4eklnc2h5TmtvaVcyTHplbjdoa2VialhfRDhNMWVtaWg0Y3JlWFVEUnVtRFVRWFlC\
+   ZjN5QXdOVWRaNHoyNUExaF9Bd3hPVTNGUWE3S09UT2ZPNUlYVkItT21IcFNVaEpQcHBH\
+   SXFyTjJkOWxWNWZpS0djUkVjZyJ9.biPJlwnk1MoJKdzAXLS9go5jflQ68qihUJqreC4\
+   hALwF9nXjghFzKY6yj4hyUtRa.schW4QaSX0SNVOqD.5rtsaBNI2luA7gSzaHub-dSBO\
+   OlJkT7FbwtEoJRx8PMiSqtWIDlv21yvUjalft6EYxfQHSjmi0yPVjhjmpCj26Qga2gko\
+   DLxAgOB4tzpIsk-gSgHY3YpgZLkSyxx-ZhtaAdXphQAzPmaeDjM8_DRnvSzyH-Hwg9HH\
+   s7jmIzqJVsoBULQop0Lk7brPXiiB5s08F2Ib6rdercbgDTTZdVXcyiNQhKoGBUOjy50F\
+   xW4GkuyTW2MH0_0VecBSrAWVg248pJSnPwvVcdCocPTYmFiSw6M9MSwl3A8KKlU33qUY\
+   apB75qOUY2zQmh8IYFFUiyMwLX50EKws1YSmNGHYbp4iDCQ1ZAqTCwY7oM2JGM.PhKLq\
+   KcrR4CexYEDXRlEoA
+
+               Figure 12: HPKE-1-KE JWE Compact Serialization
+
+A.5.  HPKE-2
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "EC",
+     "crv": "P-521",
+     "x": "ACDaefJAD-xbCAk4C5QadlEtEinEV9JRqyz7MHzSjK-8V2zn0dvNYRtdQYfy\
+       ddZ1LiN9dzTxuyEaqlJ44-NzoJQc",
+     "y": "AF9ye0Rd9NTTGSTlkBUcpzXttxHOaTfQi5E6QNublPXTyuRX-X54EDzdy1tn\
+       sBECHNmTAx7rNiR42_Y6ZbKauCTE",
+     "d": "APRq4c1AiF5IoYKHKz7TaFknSvSxn-gH5ZurH386OD1dO6I2tcbHlfPPoFUO\
+       8miVUihJuHIpcxDFGIRwe6kgPZ-V",
+     "alg": "HPKE-2",
+     "use": "enc",
+     "kid": "MDVVyxq8x1VX7I1X3oVf3nJY51r55uNlZ9xHpC-7sS0"
+   }
+
+                       Figure 13: HPKE-2 Private JWK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 33]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTIiLCJraWQiOiJNRFZWeXhxOHgxVlg3STFY\
+       M29WZjNuSlk1MXI1NXVObFo5eEhwQy03c1MwIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "BABLi4eakSyaQfL3PjQqiFyDexcKydTcQirDIQRFF2f9uh9e\
+       ZUECuH6Ows0u8YFnjCkg3zJ3yR0IX96ZbvHxfEVwgwC231EE1fQQiaHHYCOLQ8eA\
+       7uv8lyLgSk6Z542ocdJUWWbxMMbnBwkEWKnCxYtynpohK_aSvTo1tVceSeZx9wGf\
+       Og",
+     "ciphertext": "u5D9fUTR78AJtFaJ0u64aF7t9cBTVcfdP6KCl2atfY8F6RfnejV\
+       qeq8kQOGdhwAijGihwWy8-hIVVK0HpT3VZdP1Wblf1FdHdbtgIt9m8Eb530sDFWm\
+       O7hdgz6P_yc134MyA_SXYDpMEP0SEN-q53flL3c-hYpNHVFp6cACAbzZ8Gqg4tom\
+       ZAuxiuODgrj14P4gCuhgas8h_AyxDC0kPctSBime1Tcnekp7TnJjVUpcmyzzpSSU\
+       wmec1J526NCkbDFLiY1dr3Tq7UjZi6cnfsA00d2HPWCW8x6UjEY7aehKTKz06_Io\
+       woDzeryLGntpYwt9DeJp5ZXeaCd9eLlRDXo70Ow9Wy21flTWDv9h7CVUpNE-JP3U\
+       LAF7FGOiA"
+   }
+
+             Figure 14: HPKE-2 Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTIiLCJraWQiOiJNRFZWeXhxOHgxVlg3STFYM29WZjNuSlk1MXI1\
+   NXVObFo5eEhwQy03c1MwIn0.BAAwPUHl_bLWN0BFN3kjTKNBJ5CUlaRVs8MjYuQdjyjV\
+   i4RMZj19-5xAajscJ8zRJhAtkMMQaoI316TSY0KJVSynygAggzz5tz7I9Y_zJVn_1eIM\
+   VKyWZ8Mo0zI7htZSxw0MOcmVfEgxPzSQWDNlsAVrfd06ygq0wOPrV4Rm6mDKEWZNzg..\
+   Vgu7cjxvVby8xIponvp03Zk6sm4mBtu5xYR2fIC_R6WK86ReBTtipkfCOavcLcQKrCeV\
+   PtPjnRizaDPXD41IOzrCCWVfTDLV0Y9OdeDjzLuwBn_5Bj9jO40XvnfPcRCUBINuN-Yf\
+   UgG0mMBmIbmOCUATQHT6M_cRaY9F861Phu15hURAZCxv5QwY1XrvlWceziY1euzMjaQC\
+   aTxfa6nsVyr9zd-U8suti2dknVValb0XJRKiBph8pwJ3Zuc7SY1fGYTSIskDkw5Npojt\
+   HnzFayla3w0L3e2vy9EEnJ0UxgO5Sd9inFqXYwV92ZqzrX7Dy4-LkY1JRx7bPMwkMZuC\
+   Begz0YcXpwzaJO29sr8Osecmn1UUFKkLNC6gqjPA.
+
+                Figure 15: HPKE-2 JWE Compact Serialization
+
+A.6.  HPKE-2-KE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 34]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "EC",
+     "crv": "P-521",
+     "x": "AKA9Ra4-VaZVMoXlIbU2DNQSiKe92-zXuGI73CtGpibQbmyTpuLV4TN3UWcG\
+       HpO8krMaStuxuJOToVLqVUWm0zmF",
+     "y": "Ac-o4fIpIKZqPQKtEi7f04_vXnW-3BH2K14WSUp_tWsgSuHai8CGuWcwGkB5\
+       iKNpwOvh77Br0Vk69orojXETMy7W",
+     "d": "AdeDTmkW31gpYbnoI9V297i0tA28dNYR1VS2lRyn04x9UQItmnUG7fp2Wc9C\
+       QgGd1XCWYjtJsl9IQx8q0ylTKD2T",
+     "alg": "HPKE-2-KE",
+     "use": "enc",
+     "kid": "hsRjjUtVSsbXZr5gfmhzqZ-RSs-K_ofzOV09sHt6x8w"
+   }
+
+                      Figure 16: HPKE-2-KE Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTItS0UiLCJraWQiOiJoc1JqalV0VlNzYlha\
+       cjVnZm1oenFaLVJTcy1LX29mek9WMDlzSHQ2eDh3IiwiZW5jIjoiQTI1NkdDTSIs\
+       ImVrIjoiQkFIbWg0VmVCVEpqTEIwVTJNSG00RG1KMFRGWXFjSC1fRE9xMFExRDRh\
+       YVJpajBfOFR5U2VwMG9TWGNwREtNWVFNejNSN3hFRmVOMmJTcWNoN0U5SThEenR3\
+       QkxwWW1ycmFBSzFNdTdORWhtQmZrM3paYXpmZFlaa2d4ZVVEcV8xOGJLVDRZWjBx\
+       ZmVpQUNMUzJ4SlJfdUIxT3l0eTU0dmdLS3ZpSi1uRXdaSFNDcDNFUSJ9",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "iv": "SYlEtaEkTYevJFBW",
+     "ciphertext": "ZXzPE7tkBWov5kjsQ47b92iXu_t46Et7ndoEe7ZWB6xKz15sC8G\
+       L0XKCYJRTueJLMwJsd9jHzcyFrqMp8sDSJMlFSZfvlnzLJube8bEByDbIMUvCp7B\
+       fyknjwPzkdthDwvU4iaT6ajpgzJ3XeZA44zoEPp8plP7ZSQR8fnuhew1R7XBnpY-\
+       dLOD5DyvPA7D3LRxejD73gooVPsyU_tR3lmpPclXq_KK00XiVnuDjN1w53RmgOPt\
+       Q7Tmb4x1xkNcu4e-wCjjF2cZ82WNLjXhLWFaAlToVrCkyHIy7j_uAWy8w1WyausE\
+       5pOGaUuVX2i2jSG6A-zMU4yUsgsv7CbFD866LvykzvmSXT-6MQ5I",
+     "tag": "3J67UwTJseHhB_oYfWamxA",
+     "encrypted_key": "VKWtVxVx6mS9pBXZzkD8Op8f0BFKXVEmd9svXFgXwkMycMXi\
+       zR1zmQdO0_FozxPF"
+   }
+
+           Figure 17: HPKE-2-KE Flattened JWE JSON Serialization
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 35]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTItS0UiLCJraWQiOiJoc1JqalV0VlNzYlhacjVnZm1oenFaLVJT\
+   cy1LX29mek9WMDlzSHQ2eDh3IiwiZW5jIjoiQTI1NkdDTSIsImVrIjoiQkFFTUlGcWlG\
+   UHVFekhlb1RIVXFHenV0MWlVY0VsX0lUWGRjNlJKUEhfUWM4UzdQVkFfcHROMUttLXVM\
+   ZG9TWWxfRmNlMmdabXpwbjlTRWpiZVRVOXMxOGJ3Q1pxUUpWcXhidF9jVXk2RklFZGsx\
+   UEh6c0F4a1Rfa0NJNjh5R3NJSVZWQ0JBYkROQWhEb1NBOWt3UGVMd29ESXlwUVgwWnBn\
+   bW9rVFhVUlVJM0NrVlJTUSJ9.np-f7Zgo1yJFO4h5HJkPi8EYTsdGFCmnk16aTe4ft5E\
+   VXcZhu4HSGpWyNTjxbSKT.Pe4QDK53sKuyRFcy.brG_KUQoD1h52jWgbDb1zFzbMIfWb\
+   BcK-naIdYJtYW5iJ6qw8-a-9FcXL2x2sIRoMsj2KqylIqNCPE9OYr96GWlsYucz-tRHq\
+   cwGkoG6JaUIq3OMxr0MekOfWtII8epaldQw1SyNWenaTc2jGjyoA9MJ78VV_O4uKORhT\
+   i4lP8bcv6X-d3utnIeUSgTUQQc4AWBUoSfymKHeo7gL9ACAwoGSI-mgIeDeI-7K5m18V\
+   jD_5rLzTFEKVFhrMB_c7mSVd-_nv6bVtncrros3_5a4I5C5V0s17cTljDJOTiR2i4s3i\
+   PyVaki8544bIBU0_t6lHFQtotb5ZL8zUP50iyNeYjbXSdwdn1Es3ain4SA.Os8mE9afh\
+   0oe6UgoNp6-yw
+
+               Figure 18: HPKE-2-KE JWE Compact Serialization
+
+A.7.  HPKE-3
+
+   {
+     "kty": "OKP",
+     "crv": "X25519",
+     "x": "Pyv22rGl5uY-24SOA_wda7PO4bIw6bobrD1_5VgF3H4",
+     "d": "VtBu3AuB4_RKgDCDqj1j-_Kzf12ekvaGxoAGmMDcDks",
+     "alg": "HPKE-3",
+     "use": "enc",
+     "kid": "n9hjOrhXxsQ_lTMu3PqkjHgwJURHZPF3HY5p-LFEgyg"
+   }
+
+                       Figure 19: HPKE-3 Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTMiLCJraWQiOiJuOWhqT3JoWHhzUV9sVE11\
+       M1Bxa2pIZ3dKVVJIWlBGM0hZNXAtTEZFZ3lnIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "Ch0FElgndJcJkvCLEWpRpYJo3gbwn-CzVke-s_XH5Qc",
+     "ciphertext": "9iGWYstawHANKOPNlkohsf0uSr5B1fSsTt5AYJzgI7WckZSyHoo\
+       M2gEGrNf1b8TzPtWAnq7fGXgSTd76-Bg_DsDu-EsdEnb9XE9-7jaLLbP_pJ2JNK6\
+       R1k420ZvpTqlAPk0Zu1tW8ZREYDtbw0K8aM4gIY4P8vqFba2mJxv0OxEXTP5ur2p\
+       TOOcWhZ0E4ICUMDD1xcgzgziEsunxeFdU2X2okwVRr6pQP4XIe81bde7OY1qhaa8\
+       4mxmMBNoOBgkE3vlV58KHR_JFKUkGlt_0FKBsrpt1yq9gZUzF2_8uqD1xHiMrw3z\
+       yLcKH0hdJvLfZv3s_0sYAk98tPF4uZVmkyF-FC0n83vghekRCLR_HJg_QZhfWsSA\
+       hETnydVyJ"
+   }
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 36]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+             Figure 20: HPKE-3 Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTMiLCJraWQiOiJuOWhqT3JoWHhzUV9sVE11M1Bxa2pIZ3dKVVJI\
+   WlBGM0hZNXAtTEZFZ3lnIn0.UkLR0N2IgxHkSZMhcCfxVO_F12kcq32ccJ8x8M4MfBE.\
+   .I8Obflj3vInszfr9sC1tnnhaGPSGAL9L1-mURYJqYWWxTlI0OZrFSKiPY7dAuyrITxT\
+   iaboZTF2yNo0swzp8S5DTil1KdxCzrMUtz5Lb-rMbR5Q5uNO7NXegJceIQkR8p7iMfNX\
+   ETCI8Pv36J45yDQDHrjNc6ZuJ8Xn6pHNFFot67L1GI0ULsrS2TCqztg2p76A1nObMGvA\
+   -1w5zwU6NN7p9WPCrvIKwO6MIl-LR4MV0-jnlmd5dlw3wGP5DDfqms7lZNbZ5X2d5U0s\
+   _7aT4Zar6ixUZrI6bSj4gntrEg8nLz9IlBT6tE6Gic3I2Abxbj1Ewn20WAZetzAQzWNd\
+   Jk7lIZYAJZLeeBip605kw5DuwSEK_3jlXnPsDO3Zs.
+
+                Figure 21: HPKE-3 JWE Compact Serialization
+
+A.8.  HPKE-3-KE
+
+   {
+     "kty": "OKP",
+     "crv": "X25519",
+     "x": "4XxzVQ5b1_2KId4eH7vCgtTMFS-xpFQdlewl7Ldgwmc",
+     "d": "nV8mMuP37Pu7zvd7i-Fqg8HLYpu2wWOZFb1FdkpV6iY",
+     "alg": "HPKE-3-KE",
+     "use": "enc",
+     "kid": "rZvhw8SPuKMGlrnzm-J4DZ-G4niXcJkKvb8tAbz4jJc"
+   }
+
+                      Figure 22: HPKE-3-KE Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTMtS0UiLCJraWQiOiJyWnZodzhTUHVLTUds\
+       cm56bS1KNERaLUc0bmlYY0prS3ZiOHRBYno0akpjIiwiZW5jIjoiQTEyOEdDTSIs\
+       ImVrIjoiYmI2ZTlwaGtPSkstQ0hkaFR2WDFEVnd1MHNidXhoeUJTWXFGSXFSWXYw\
+       VSJ9",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "iv": "p1k2S0Msw_G9W3jh",
+     "ciphertext": "AAmFYE2Bd90ybLZfRKLnyaiCFFBICLQ2857GNggF6XHVwRu1BFB\
+       gG-kSsGNO_XU1F_KCJIjjmphNm7wjRcSon1yKrJfgOGPD7X1Ft3O83qyJ0HNHGE1\
+       lgwELwYVsbNQ3MnbsrQFXfctTPEPFCqMfkvuNcmxPdXyMUI9jw4vZcPgn7EMDYYw\
+       CnVV4AGJXR-wd6bpYPxoz86k_elWnHtobyGLzSJGvcl2MUvpTThrji_Oi3jel0Se\
+       vyJpYrJxzzEbPAYAKURdPDxY6fEGuYPx-eTq12_a5T_buhvKsJnuzUTk1ll4K9Pv\
+       6n1b24Fj5oJ6J5sPzehBvDjuJbV2blEoQFAHxpPP34lS4GPqeUPU",
+     "tag": "EtvUOjRzhh3I03xF5A9TOQ",
+     "encrypted_key": "otTTPK-6HbSKlyuEjdAQVUQisPPIeePcDf9ASl1rzsI"
+   }
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 37]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+           Figure 23: HPKE-3-KE Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTMtS0UiLCJraWQiOiJyWnZodzhTUHVLTUdscm56bS1KNERaLUc0\
+   bmlYY0prS3ZiOHRBYno0akpjIiwiZW5jIjoiQTEyOEdDTSIsImVrIjoiWGJmaDE5cnBi\
+   bHBDTHNjOGVqelhUSE9SY1hFa0IwUDJaNkhpcGpONV9VdyJ9.T5egCQZlUyP8UKtq8Xr\
+   fHgIbEdNLwID1-nupqh_APHw.Q7ejfTauKt1TiYTW.6KHlyH3zHQlDPTrw3R1v8csmoL\
+   s59QY1B2NpWGhD1eoPdHAriRdhz62FY3JbDDykg0u_LfWTs0cMj5xqhAXLYnWFBpWqNl\
+   GSAZAcE_S9EBAg02ymscpqhRygMhu_mPXpLwr8INYCA59utnQN6d4yHcV3LgocTx4OV3\
+   2wPtm9ztydPGVLA2VQhCDx_AytmkRbiv01WjH71WWvBeSElHBlGlNl-6t1sIv8VaTPUp\
+   CO3b_iaoLbiRxhH_zTiLsVjJFiR_GeSo7qBnmvEYOvb_QncKGBi3RPwoOJBuI5cEJfVZ\
+   o2oenqla61H6glWOazG6lwtgA0Yz4y0b7reLaYISQ_e9hRlohzGjSsHd6WLYw.l7VO2L\
+   xXTh-CTI1qDf6FeA
+
+               Figure 24: HPKE-3-KE JWE Compact Serialization
+
+A.9.  HPKE-4
+
+   {
+     "kty": "OKP",
+     "crv": "X25519",
+     "x": "N5icT6hvBDpsc9a2t1mXfsDBGsvi4VNTNoINejK5nCY",
+     "d": "0EeYQgglJkckhiVP5aGzyrQHepapUd39QlbI53HnWOQ",
+     "alg": "HPKE-4",
+     "use": "enc",
+     "kid": "EMf0FmafX1CDECti7cvCWZddOvzvPf3_nmXI39eiO18"
+   }
+
+                       Figure 25: HPKE-4 Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTQiLCJraWQiOiJFTWYwRm1hZlgxQ0RFQ3Rp\
+       N2N2Q1daZGRPdnp2UGYzX25tWEkzOWVpTzE4In0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "WPuUGt62N-ZPXl0IMvwqVI5AuWnkn-ShiF3T5xF2KAQ",
+     "ciphertext": "dKwJ1poXJWUfVzLGr1UbCfJpZ8bx4tLlzFMwlcb-RN4do0umqfR\
+       c_J70pxgWt6MEpFxAFd8ZzDUzGtjZbt4k1c5vcCX8_XLT87JUYEAFLcPzgT6pdqg\
+       EjOJHd3E84HgphLSC-D117RVpHH-lkUp7NKg8hbJ67ZrDnPvT_JwpAw8898diWI-\
+       Gys3K6tSox0RLHFVldHTjJQWE28EPWWJ6ewklqd28rgTMc8zm2lpapa3p5hOSYxU\
+       B2IQ6CkU7U7SaPNrW3VspdVCbpjajOchTWIBokxihbxyIH3IT5xMhYjhcrkFRLbF\
+       1X_adZjTF1nQFXnBSynAnEs5q2RBExeNLYb6Dc9TDDzjV009xEqX7mpsrhJKlkw5\
+       -SlFIsaF4"
+   }
+
+             Figure 26: HPKE-4 Flattened JWE JSON Serialization
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 38]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTQiLCJraWQiOiJFTWYwRm1hZlgxQ0RFQ3RpN2N2Q1daZGRPdnp2\
+   UGYzX25tWEkzOWVpTzE4In0.Y2SoN-pcwe65RNXeomaV8hgkqY5sBn1t9VLp2Y9_1UU.\
+   .qQJ1rsCOLV0Z2sFQh1MjkYP2Lmu2O_4g2JWWxWSJNqgvPVmXoEoW7Ls7WNcW49aSYJi\
+   AmT_J_W3TfhP48qPpsAuaLP1MK4iA-hWF0LLfCAQM5wST86_eO2ewwSfXEwTsJoMeqw2\
+   A4lTifulJmNT8IXHzhU7SmmLuRoni_MUpD5NzCy7_M4yb5v1wQ0CcbjiBJZn14Y9dufP\
+   0v6kFoR50ca95rIflu54TH_i-Z9CReJHZBmlcKcsuejfP7HCpQx60VRCpFZ9IsSIQgGJ\
+   u4QSMzQToDZW6vhnSQBzeqafxC4082Lrh3YlQ21CCJ6AjOEuStYvvtYd6Yem9GxG17Y_\
+   Q-b5yePFrn2gHa0j7avoqKQqTjiuTGjruFejEBjnj.
+
+                Figure 27: HPKE-4 JWE Compact Serialization
+
+A.10.  HPKE-5
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "OKP",
+     "crv": "X448",
+     "x": "fjqBGwWuU4fodrTA1rAnN8x1WykKMo_MXoFDdssKrzo_FAj1v70mJx5dn6Zd\
+       J896Tg0HcLSPjlE",
+     "d": "aw967bbjUbpRJLrL18RI0EfPRQGRHCVC1eUdM7sTODLvnPXYniZ0Sx0wMWi7\
+       gHLFH2GQPPc254g",
+     "alg": "HPKE-5",
+     "use": "enc",
+     "kid": "VlMlFEMhh4sRZdmn0SZIcar1R4xs_g1lj04VbypUALQ"
+   }
+
+                       Figure 28: HPKE-5 Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTUiLCJraWQiOiJWbE1sRkVNaGg0c1JaZG1u\
+       MFNaSWNhcjFSNHhzX2cxbGowNFZieXBVQUxRIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "9iaTop5blWck0Uc_ozrHcl2qWFfKSD6o4c_C941JenqyncVy\
+       hPD6wlzoyAQ9BQdb23DGzgSwkc4",
+     "ciphertext": "On1bbT5LwjcoHTUdnST4CxrHQ-LDr3fnKjX07Tkwpg7ZfdXFYTU\
+       IO636QxV7FwF28rOlVN14RQdDAOGBuDKuPaUlWeCrmv8RBUNk1VxSLjqH9t-_jkq\
+       VZcrDKJId_V8CWu28f8Aj3ZOULDMByyex2yrdO9icyn3zm2DhO6CEQskZywNUiZH\
+       1yDaGSS5WhtchdvhI_GznPws3s5VuQECS7B-Iwlm8vZyKFkmfDgtr4wjSKS4fcTw\
+       tP_F-7OyYvXgzGMBX2CTdbzArBJ4LKXbjEwWf-UEMNaLksc0LLd-nta6pfhGDB44\
+       btYtochVDzA4zcQvW9CfE_9em2h1cpGiQURa2mwmUEatyTE45BpcVZlg_gU5YgJM\
+       xreLHSNb9"
+   }
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 39]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+             Figure 29: HPKE-5 Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTUiLCJraWQiOiJWbE1sRkVNaGg0c1JaZG1uMFNaSWNhcjFSNHhz\
+   X2cxbGowNFZieXBVQUxRIn0.rZnCIn9zB_pE5h9x_yH8i7HEGgE8419BEA9p43tL5J1h\
+   WOzzEtvB8pX4SsdqTDqMheg9wXwG4Zc..TmMhj_n4VL90wOkc8XfHe_PDCopXxf3y9Xf\
+   H-fcrNSCLaaGYsnGr2N2aZ7h9xEN04oz_fdzL5H7s3hXHLj1Pj9gruRCsKSTj7JwLkbP\
+   HUJONxqni6IeJcX76Y6XFpsYWc-JP42bLqTUUpJEnn9tQ1bfsOLphKu5IqqYImrWMhHn\
+   6mKp-zx0MP4MzLDP7ekiV17d0fzA3t3cHji5Y1joGfC7qyLd764I9vyfClCABPTEvWoF\
+   mgs_Gh9P42SCN9SoVhQTo93NgDxUd4mMEUfcd531xHRUt8Ha9AVnjlTHSEhuHojArPQ9\
+   odytAHanhU3-1EBPCCZKInagtCOnpmbQ49UMkts0SqJjoH1kzirqwaE6qN2uFz1pResn\
+   LntUc.
+
+                Figure 30: HPKE-5 JWE Compact Serialization
+
+A.11.  HPKE-5-KE
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "OKP",
+     "crv": "X448",
+     "x": "SCgsstfA1mjLmj64RyHxAjTiNf9X_V4JtsHzFPIL6dDplDoFadwuaM3AEyrP\
+       DLPLWrZeyknvjL4",
+     "d": "oD7GBrxRotc1KI9ji-K0eWrvGXCwA2xCwI4Yb367MJseu7W0IegT9qf8-KIf\
+       maPHPncoo78KzNs",
+     "alg": "HPKE-5-KE",
+     "use": "enc",
+     "kid": "aaWgexNI9cl1t1km3gXz-cWbaK3fSGZrQnF53D9PSaQ"
+   }
+
+                      Figure 31: HPKE-5-KE Private JWK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 40]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTUtS0UiLCJraWQiOiJhYVdnZXhOSTljbDF0\
+       MWttM2dYei1jV2JhSzNmU0daclFuRjUzRDlQU2FRIiwiZW5jIjoiQTI1NkdDTSIs\
+       ImVrIjoiWmRZV0lScTl5THFTY3p6Ny1oX25VWkFIVC1zdVo4d09DcDY1QVVNYUN0\
+       WV9ZdE1iZldoTHJDc2pXcS1mMEZRTVdFN2xQQUxfaG5zIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "iv": "RBEq5h4tlGQUAb0c",
+     "ciphertext": "p_SAPca5Qn_2KtcZhyxY3QMG6_TiiG6uCn8jRl0fSk5_0du2Cqn\
+       mYTQGGpCvit7aFdl_IGXKdqukWjSqsKhEcj33J7sVAc2gyghxW-3GVY-ejKJdUZ2\
+       5g66VYIQzUzq7V8U7MTbGLesozqb61eKkYOliSRmRLuokMD9MioCyGM7kkUzmrhO\
+       M2ScdpC6g9gZjbknMlbUlCs117mXK823LAdxVMsbuArZrgyyh4_hqmjWAqM7PC7H\
+       a35pEcA3ioS-9eZwSgzKNFLsa2lgLqYKzJeJy0GftC9kKVu_srnJV3tyirDvgAHm\
+       OSs0sSnGSlLKVu3Il8i7qRGmIYSx69hVCGX6vihLOqfG1I1VLNkY",
+     "tag": "fwVENoMLLO4cpAvn_vtrxg",
+     "encrypted_key": "ccsTG2EzsVLztP7542Vxe07BIqcA3V3FkFOW58ntY2qx9K8z\
+       xcz8_LWABrUkAmYr"
+   }
+
+           Figure 32: HPKE-5-KE Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTUtS0UiLCJraWQiOiJhYVdnZXhOSTljbDF0MWttM2dYei1jV2Jh\
+   SzNmU0daclFuRjUzRDlQU2FRIiwiZW5jIjoiQTI1NkdDTSIsImVrIjoiTmFYbG9MSXI5\
+   QWJwSnBaY1pFd2d2WVdJcm1EbEJsVDZzdVFmUEp2dHRFeE5kQ2x6QVpTeUhNQVpFVEtH\
+   c25fbzU4RHlvQlRfdG5NIn0.OSbqI3MBLE-Za6f-HbGMMBRTdOlexA66Sc1OHmQ87bcN\
+   mOTu1C-ozuQ3O9bG5n0a.p67n2dVwqFUZ2PtZ.WNFqUPwGfkQyP9RfnGlLaPxmNxPvdM\
+   47XwlnjPHQJr0DZ6DWTWZrB3Y886qUAj34TdAIxlWxX4OJbe9fqywlU57fGBk6Z27KOV\
+   x7ZHg3ILCGcnf7_b9nqJLlKJqg8YGNGX_eUD6IkXttvYMnsyc7uPW5DKTGqmr3RzPxCt\
+   RMxJckt-pDn6rlJCLs_40RdVHBR6KaNnyKP2UNXo-efgdEUHBm03Np5FKk3EPUDjN3e3\
+   YoummCeGWWI9apX1rodGWYa65QhDmXafZaIHJJ2-JIRfYEIJtya6Oi_WX7DrRIGg0dwj\
+   DNCLRo0QGoIod1Twjqcl7kONuEHRtRnLVXrcmiGxcytcIMKS5Kib6nItI.D_0s3aOb2o\
+   hF7fLlxSR7Ew
+
+               Figure 33: HPKE-5-KE JWE Compact Serialization
+
+A.12.  HPKE-6
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 41]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "kty": "OKP",
+     "crv": "X448",
+     "x": "wKnPzBmQ6-0gjEaxhJNY6mG0mDDsVZ_Hvah1mYzPDkUWgPRIQXwr32LDjohW\
+       SDLTGeIq1HQ5K6E",
+     "d": "LMXuTYqcBW6XUwctj79OVmuuj2P26jBJ8Uaz6d0sae3GrbGOEVYrs6FGBwph\
+       zT8ie65RYAz4uNU",
+     "alg": "HPKE-6",
+     "use": "enc",
+     "kid": "bjp4-nQuEki4p5Z7ewD3ScjtBwu3glF6OdfloVMoiew"
+   }
+
+                       Figure 34: HPKE-6 Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTYiLCJraWQiOiJianA0LW5RdUVraTRwNVo3\
+       ZXdEM1NjanRCd3UzZ2xGNk9kZmxvVk1vaWV3In0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "rBiPWmIS81SOhelCXdTXZRuPo3P1bwojxmRJg1pjfzUszzBu\
+       8R1gFRB6ys9q3parvYE9iXG1qvk",
+     "ciphertext": "TbXxj9-BYgLgY1MjODWPGeri42N1sLdCFdjeXqs7J41XSeoEhTk\
+       I5Yi798SEkisrVEj8mbvLjbZIJGj3B5RgqIEf1H966WzEN5v8lzSOcCe30tFINLR\
+       YvapLCf6SZgBq65LNgdh3ESdbWz2lzil4NnRWEvxOTb0hEtWYqNccb2LFZKK3FJ-\
+       cwu3AqlDw9jzW6z_DU0_Jvlm81nhVXQWSBXsYtEx934ILrQP_he-YJeIBWCnmhwp\
+       yNoaO7sd_rx0E8LpOIgz4qghnc3SmEy57bOl-vh9piCv9kG-Uo-Q1Izf5yOmM5j4\
+       u-0uNTTInJPhVoXymUH3CHStxbApPOqqBfYIg6xpBuL3EZWKTzL5MldbsGQojbMz\
+       uz5kUm2Zz"
+   }
+
+             Figure 35: HPKE-6 Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTYiLCJraWQiOiJianA0LW5RdUVraTRwNVo3ZXdEM1NjanRCd3Uz\
+   Z2xGNk9kZmxvVk1vaWV3In0.LC3EuX-_0LRsjWeC3CAWdjn7rCafsXw8L2SOg77NCiiW\
+   iKrzput6yVjqDiNXgwwlUaKrqj8efis..ZGNpmUbZKvTxPDczH_W2nIuUauEn8taTkvl\
+   05XgPteujObbS2CdIkkkRaxsvEumNTGFtc71nWiEt5_U7BzHTDMf7xCfLNlVorM5pRvV\
+   TWziF0jkLA0PUe-PPxgnXVZdpAG-QfCZHl3D2suW88G4MEXH9FReIaHRHXB_RP4fsDYq\
+   RSEK2i0gOziI7iOwk4yGVCkLkMI5g8aIQVjgIcApJL-1Tulz19hlrGKxMM4gEfB7VLQg\
+   O3zpTPD5hhKBc2ofIHffEupwaNlg9fbNk1779wKvLxDbKrBWyxhRMkB-YZt-fgCVqblI\
+   c_Y5xdqaLErGBgUNpNIqlN4wAuuiB5VJafKZ0jzadtMlFoxsnPTh1Xl02sgR9ZsQl6S-\
+   aEdFH.
+
+                Figure 36: HPKE-6 JWE Compact Serialization
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 42]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+A.13.  HPKE-7
+
+   {
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "z860carZ9CSxTjXo7MK65h_TaZX7ipi2iUh_Bh-VP54",
+     "y": "i9X0v8PwcNgbsoMhAz-_W2OPaFU--BQAgWVzJVOfedo",
+     "d": "nklFxo0VoD3POieIKD2I_6O4pyuoX1755y_r8My3kL4",
+     "alg": "HPKE-7",
+     "use": "enc",
+     "kid": "YGdLPiZno0vV3kJKu4kEMQEjK3_upFF2D_lFDf1FFwk"
+   }
+
+                       Figure 37: HPKE-7 Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTciLCJraWQiOiJZR2RMUGlabm8wdlYza0pL\
+       dTRrRU1RRWpLM191cEZGMkRfbEZEZjFGRndrIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "encrypted_key": "BJsgimlSAygpn6mErqMkZcmzVLsX6V9aYArVYAjg2LEi2shW\
+       QopeMMr5n4VNH_kCeuqXRd2LtFjQd2eWsXTAcs8",
+     "ciphertext": "ny4HVMntsCPyijVFtO41pSpN_jusNGtAaYjD_glEgkQlnMlJuDy\
+       iTbL9_IgWjcmaQv-ahcToh6pussscT37Oki95DB56UEK1sgwv23m54UgDFDS3Q2U\
+       I48pRzgsONMJdc46-UjqCXvDgbGZfA7Afn-mCGJZo90Tr2QyDMpevwYv4-Zd6ldw\
+       2QrF7pUXXOLUP8yh2Y8qZB7JkyUvN5gH8QIgIcC11a-2-YWWSO3JgpJ4R51YESAO\
+       J6MbaW2otZU7JY9GW7dKpwd3mym6IxJ4onwSvABkmVaFSqxOEBlStSLirlR0sf1q\
+       9HK_gn8HHNjlaNNja2yE3C42ESTWAoH1uapvfMaQJE1ZWG7ru77nMBQJPRxAb-dX\
+       TUJa3jeVF"
+   }
+
+             Figure 38: HPKE-7 Flattened JWE JSON Serialization
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTciLCJraWQiOiJZR2RMUGlabm8wdlYza0pLdTRrRU1RRWpLM191\
+   cEZGMkRfbEZEZjFGRndrIn0.BL2AEDUZhRslwuzyKdVKVaGwBpFly_SgLlxy2wTg42Vy\
+   fob2tCdv0SgN6OMR16kilUZ17jafK0Gzw0plYKGm08Y..0-DVK3WNJxSSX4hn0KgFlV4\
+   vRS4iJLiNCmjl9J4QKCYiOzmdHmWXvB4MS56wOmpVhDbboVIC0wOBxsUlWIXIg6N9DSl\
+   u-iwlgiqrVj2v61LrX-qjB7MAg0X5DQJSOWg-saAkhf2lEJ4z0meZIdAlY93_vgAUHKo\
+   HsSp_EciL28JtLrBU18WHv34eHONzWsVYdj-ycaBqLUAkcfYrlNZrVpCR6OdNXkuOmkh\
+   qrIZjFEl67VZVY5NfbvyFRAkkqgd42wvATdGk2gw_jDZe1fvzGNuV-e5UCrHQ-5Es2rm\
+   sLe-nfeB_9iUe-2nZswWS2qndvz6ZANF9Kj2QMJXCLN7RRSLLjP58sxoyDZC8nRBdJxs\
+   JKXc8G5eYFLJ1Bc4w.
+
+                Figure 39: HPKE-7 JWE Compact Serialization
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 43]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+A.14.  HPKE-7-KE
+
+   {
+     "kty": "EC",
+     "crv": "P-256",
+     "x": "1nm4Hz__urAJOmnQoT4-Cddab4mIgwNPFpo_mq__Huk",
+     "y": "0zf-qAB9KJP6qgtYNSP6MTdVBxzgBachQ2XdgCsOk8o",
+     "d": "8CpCdkAF51G_YJPb29O3LKLBKTibK4FHWO9lYehzLqE",
+     "alg": "HPKE-7-KE",
+     "use": "enc",
+     "kid": "SMa7O1lSKSi2LJCin1PfZRYA7KGKky5oSfaMO9UOYWA"
+   }
+
+                      Figure 40: HPKE-7-KE Private JWK
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   {
+     "protected": "eyJhbGciOiJIUEtFLTctS0UiLCJraWQiOiJTTWE3TzFsU0tTaTJM\
+       SkNpbjFQZlpSWUE3S0dLa3k1b1NmYU1POVVPWVdBIiwiZW5jIjoiQTI1NkdDTSIs\
+       ImVrIjoiQkFyRmpzNzhKekJ0aTM0a2toZ3NCanRHOGFGSWduSDBSclRtczZ2ck00\
+       QnVFMUVFajY4RGJBallMenVjWmJnSFpZTk50NjJQOFJTaU5mVWsycjFURFZRIn0",
+     "aad": "VGhlIEZlbGxvd3NoaXAgb2YgdGhlIFJpbmc",
+     "iv": "sXE8-PM-BegS6637",
+     "ciphertext": "ge8gDn9qTkGUqH53xmrFgSKAqcmduhDJolm9-sm-tQs5HBc2vgC\
+       WwCZbeHc3P64tRAYUTqqlAHrgqYaMxT7EIawB_WVr5yAOdMu4zPsysaUikKAG6aZ\
+       LywpdEaOGn6TxCdTUczJQ59bza8JxscPGzPdko8z73QUBnuYnr1lUlJWy9pWj29m\
+       wVwGJA0T9AvQucNdgb8lQEEcpPiaajGSPYIXV6XeKUQlblUstGl1S6dScULaCw5R\
+       AX7gAlHmLDMF0QMG8Hpiehok1bfDOE0gRqhlu1ywc69-X_4ESQFc9v4tph7r6nYB\
+       dy9qa-dP_qeVBstgDuvud0kcQH6Xmozg9PTAoS-W7_LA7aIuEmuE",
+     "tag": "I7DBYo_2YzG2JC3mWifjFw",
+     "encrypted_key": "BcEhfoYFVMDky_AjhhCCAm97yYO-JgiClODO0rLqq0k0lIPu\
+       t-RPfaqHKITbK8ng"
+   }
+
+           Figure 41: HPKE-7-KE Flattened JWE JSON Serialization
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 44]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   NOTE: '\' line wrapping per RFC 8792
+
+   eyJhbGciOiJIUEtFLTctS0UiLCJraWQiOiJTTWE3TzFsU0tTaTJMSkNpbjFQZlpSWUE3\
+   S0dLa3k1b1NmYU1POVVPWVdBIiwiZW5jIjoiQTI1NkdDTSIsImVrIjoiQkNreC1vcWRk\
+   MG9yNTYydXVJdy1ESzl3WnZRYlZMaWs0a1cxQWNXLXhrbTFNelgxMm5CWTAyc0J5b252\
+   S3ljTmNRZVp1WXh2dmc3RGEwcEQ5WWdOTDRRIn0.w3y9z4g5rGR6jFE0-4fnEzw8ggQB\
+   -1ECteJLFkG9VOMsD7vUzwjUQocHQpza_rn8._ZHPJxfrMRpRsti3.4-7hvn-TE54CZm\
+   2h71DE4B-4m7-162t1GVG8fLfYpotwL5Cit4bO4EcTTZshXpFoltYHiyXnkUhTtv6h1y\
+   J691-ZMM8tdYXbNe9W_aYs6yeK8s-taWVZo7Lcbo7foXNRHk2h-Rg8l_JBzDoMojW8pV\
+   5SHUekKw4jcc88XRyhIRiL1yoQ_nIOrlY2mkvUCcmYaq2JKTwXFp01kM9eWBA_kYj0Td\
+   VAKnKEsizphFrSiXipoLDSDx0nFq6JiiXnBoqase2U9_zqb1i_76PX7oSUuf_oBJL3PF\
+   92qNb1rWjhGij7lpff4eA6BuyW2NX2baxB5qAZB4KZlFT6w2_LXzytVVEdogi7zmfgmS\
+   R4C-Y.Bdp4d-yiZdsAul1rM2jmAA
+
+               Figure 42: HPKE-7-KE JWE Compact Serialization
+
+Acknowledgments
+
+   This specification leverages text from [I-D.ietf-cose-hpke].  We
+   would like to thank Richard Barnes, Mike Bishop, Brian Campbell, Matt
+   Chanda, Deb Cooley, David Dong, Christopher Inacio, Paul Kyzivat,
+   Ilari Liusvaara, Neil Madden, Aaron Parecki, Filip Skokan, Sebastian
+   Stenzel, �ric Vyncke, and Peter Yee for their contributions to the
+   specification.
+
+Document History
+
+   -22
+
+   *  Removed HPKE-4-KE and HPKE-6-KE at the request of Deb Cooley.
+      They were:
+
+      -  HPKE-4-KE: Key Encryption with HPKE using DHKEM(X25519, HKDF-
+         SHA256) KEM, HKDF-SHA256 KDF, and ChaCha20Poly1305 AEAD
+
+      -  HPKE-6-KE: Key Encryption with HPKE using DHKEM(X448, HKDF-
+         SHA512) KEM, HKDF-SHA512 KDF, and ChaCha20Poly1305 AEAD
+
+   -21
+
+   *  Addressed review comments by Mike Bishop and Christopher Inacio.
+
+   -20
+
+   *  Added a complete set of test vectors.
+
+   *  Cleaned up presentation of tables and examples.
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 45]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  Corrected text referring to the IANA "JSON Web Signature and
+      Encryption Header Parameters" registry.
+
+   *  Corrected text referring to the "aad" JWE parameter.
+
+   -19
+
+   *  Applied editorial improvements suggested by Peter Yee.
+
+   -18
+
+   *  Rewrote Key Management guidance in Security Considerations
+      section.
+
+   -17
+
+   *  Clarified in Section 3 that only Integrated Encryption is newly
+      defined; other Key Management Modes are from [RFC7516].
+
+   *  Added explanation that Integrated Encryption corresponds to the
+      Single-Shot API in Section 6.1 of [I-D.ietf-hpke-hpke].
+
+   *  Renamed "Flattened JWE JSON Serialization Example" to "JWE JSON
+      Serialization Example".
+
+   *  Added note explaining HPKE-7/HPKE-7-KE pairing rationale.
+
+   *  Added qualifying clause to step 9 of Message Encryption and step
+      13 of Message Decryption regarding multiple recipients.
+
+   *  Updated authentication wording in Security Considerations to use
+      HPKE spec terminology "proof of sender origin".
+
+   *  Replaced RFC4086 with [RFC8937].
+
+   *  Upgraded SHOULD NOT to MUST NOT for key reuse across Key
+      Encryption and Integrated Encryption modes.
+
+   *  Added RFC Editor note regarding draft-ietf-oauth-8725bis.
+
+   *  Updated Algorithm Analysis field in IANA registrations to point to
+      specific sections of [I-D.ietf-hpke-hpke].
+
+   *  Moved IANA.JOSE and IANA.HPKE to informative references.
+
+   -16
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 46]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   *  Change uses of Key Establishment Mode to Key Management Mode to
+      align with JWE terminology.
+
+   -15
+
+   *  Defined the Integrated Encryption Key Establishment Mode and
+      updated JWE to enable its use.
+
+   *  Specified distinct algorithms for use with Key Encryption and
+      Integrated Encryption so that they are fully-specified.
+
+   *  Updated the Message Encryption and Message Decryption procedures
+      from JWE.
+
+   *  Said that JWS and JWE objects can no longer be distinguished by
+      the presence of an "enc" header parameter.
+
+   *  Many editorial improvements.
+
+   -14
+
+   *  Added HPKE-7.
+
+   *  Update to Recipient_structure.
+
+   *  Removed text related to apu and apv.
+
+   *  Updated description of mutually known private information.
+
+   -13
+
+   *  Removed orphan text about AKP kty field
+
+   *  Fixed bug in "include-fold" syntax
+
+   *  Switched reference from RFC 9180 to draft-ietf-hpke-hpke
+
+   *  Editorial improvements to abstract and introduction.
+
+   *  Removed Section 8.2 "Static Asymmetric Authentication in HPKE"
+
+   -12
+
+   *  Added the Recipient_structure
+
+   -11
+
+   *  Fix too long lines
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 47]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   -10
+
+   *  Addressed WGLC review comments by Neil Madden and Sebastian
+      Stenzel.
+
+   -09
+
+   *  Corrected examples.
+
+   -08
+
+   *  Use "enc":"int" for integrated encryption.
+
+   *  Described reasons for excluding authenticated HPKE.
+
+   *  Stated that mutually known private information MAY be used as the
+      HPKE info value.
+
+   -07
+
+   *  Clarifications
+
+   -06
+
+   *  Remove auth mode and auth_kid from the specification.
+
+   *  HPKE AAD for JOSE HPKE Key Encryption is now empty.
+
+   -05
+
+   *  Removed incorrect text about HPKE algorithm names.
+
+   *  Fixed #21: Comply with NIST SP 800-227 Recommendations for Key-
+      Encapsulation Mechanisms.
+
+   *  Fixed #19: Binding the Application Context.
+
+   *  Fixed #18: Use of apu and apv in Recipient context.
+
+   *  Added new Section 7.1 (Authentication using an Asymmetric Key).
+
+   *  Updated Section 7.2 (Key Management) to prevent cross-protocol
+      attacks.
+
+   *  Updated HPKE Setup info parameter to be empty.
+
+   *  Added details on HPKE AEAD AAD, compression and decryption for
+      HPKE Integrated Encryption.
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 48]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   -04
+
+   *  Fixed #8: Use short algorithm identifiers, per the JOSE naming
+      conventions.
+
+   -03
+
+   *  Added new section 7.1 to discuss Key Management.
+
+   *  HPKE Setup info parameter is updated to carry JOSE context-
+      specific data for both modes.
+
+   -02
+
+   *  Fixed #4: HPKE Integrated Encryption "enc: dir".
+
+   *  Updated text on the use of HPKE Setup info parameter.
+
+   *  Added Examples in Sections 5.1, 5.2 and 6.1.
+
+   *  Use of registered HPKE "alg" value in the recipient unprotected
+      header for Key Encryption.
+
+   -01
+
+   *  Apply feedback from call for adoption.
+
+   *  Provide examples of auth and psk modes for JSON and Compact
+      Serializations
+
+   *  Simplify description of HPKE modes
+
+   *  Adjust IANA registration requests
+
+   *  Remove HPKE Mode from named algorithms
+
+   *  Fix AEAD named algorithms
+
+   -00
+
+   *  Created initial working group version from draft-rha-jose-hpke-
+      encrypt-07
+
+Authors' Addresses
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 49]
+
+Internet-Draft             Use of HPKE in JWE                  July 2026
+
+
+   Tirumaleswar Reddy
+   Nokia
+   Bangalore
+   Karnataka
+   India
+   Email: kondtir@gmail.com
+
+
+   Hannes Tschofenig
+   University of the Bundeswehr Munich
+   85577 Neubiberg
+   Germany
+   Email: hannes.tschofenig@gmx.net
+
+
+   Aritra Banerjee
+   Nokia
+   London
+   United Kingdom
+   Email: aritra.banerjee@nokia.com
+
+
+   Orie Steele
+   Tradeverifyd
+   United States
+   Email: orie@or13.io
+
+
+   Michael B. Jones
+   Self-Issued Consulting
+   United States
+   Email: michael_b_jones@hotmail.com
+   URI:   https://self-issued.info/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reddy, et al.            Expires 7 January 2027                [Page 50]

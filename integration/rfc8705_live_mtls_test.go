@@ -36,9 +36,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
-	"zntr.io/solid/examples/authorizationserver/middleware"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/spiffe"
+	"zntr.io/solid/server/httpkit"
+	"zntr.io/solid/server/profile"
 	"zntr.io/solid/server/storage/inmemory"
 )
 
@@ -91,11 +92,13 @@ func newLiveMTLSServer(t *testing.T, client *clientv1.Client) (baseURL string, c
 		t.Fatalf("unable to register client: %v", err)
 	}
 
-	srv := httptest.NewUnstartedServer(middleware.ClientAuthentication(
+	srv := httptest.NewUnstartedServer(httpkit.ClientAuthentication(
 		clients,
 		"https://as.example.org",
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
+		inmemory.DPoPProofs(),
+		profile.Strict(),
 	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})))

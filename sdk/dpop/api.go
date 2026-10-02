@@ -36,7 +36,6 @@ const (
 // Registering an already-registered id must fail.
 type ProofStore interface {
 	Register(ctx context.Context, id string) error
-	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
 }
 

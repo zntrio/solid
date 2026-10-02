@@ -19,22 +19,31 @@ package cwt
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
+	_ "crypto/sha256" // ECDSA hash functions required by go-cose verifiers
+	_ "crypto/sha512"
 	"encoding/base64"
 	"errors"
 	"fmt"
 
 	cbor "github.com/fxamacker/cbor/v2"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
-	"go.mozilla.org/cose"
+	"github.com/veraison/go-cose"
 
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/types"
 )
 
-// DefaultSigner declare a default CWT signer.
-func DefaultSigner(tokenType string, alg *cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+// contentTypeCWT is the ContentType of the CWT serializer and verifiers,
+// paired with token.HeaderType to derive typ header values.
+const contentTypeCWT = "CWT"
+
+// DefaultSigner declares a default CWT signer producing COSE_Sign1 (tag 18)
+// objects as defined by RFC 8392 section 7.1, on the algorithm allowlist
+// enforced below (elliptic curves only).
+func DefaultSigner(tokenType string, alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return &defaultSigner{
 		tokenType:   tokenType,
 		alg:         alg,
@@ -46,7 +55,7 @@ func DefaultSigner(tokenType string, alg *cose.Algorithm, keyProvider jwk.KeyPro
 
 type defaultSigner struct {
 	tokenType   string
-	alg         *cose.Algorithm
+	alg         cose.Algorithm
 	keyProvider jwk.KeyProviderFunc
 }
 
@@ -55,57 +64,70 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")
 	}
+	if ds.keyProvider == nil {
+		return "", errors.New("unable to use nil keyProvider")
+	}
 
-	// Retrieve signing key
-	key, err := ds.keyProvider(ctx)
+	// Resolve and materialize the signing key as a crypto.Signer
+	// consumable by go-cose.
+	keySigner, kid, err := resolveSigningKey(ctx, ds.keyProvider)
 	if err != nil {
-		return "", fmt.Errorf("unable to retrieve a signing key: %w", err)
+		return "", err
 	}
 
-	// Check
-	if key == nil {
-		return "", fmt.Errorf("key provider returned a nil key")
-	}
-	kid, ok := key.KeyID()
-	if !ok || kid == "" {
-		return "", fmt.Errorf("key provider returned a unidentifiable key")
+	// Enforce the algorithm allowlist: elliptic curves only, no RSA / HS
+	// families (project security posture).
+	if errAlg := enforceAlgorithmAllowlist(ds.alg); errAlg != nil {
+		return "", errAlg
 	}
 
-	isPrivate, err := jwxjwk.IsPrivateKey(key)
-	if err != nil || !isPrivate {
-		return "", fmt.Errorf("key provider returned a public key which is unusable for signing purpose")
+	// Prepare signer. ML-DSA keys (AKP) are signed through the external
+	// RFC 9964 signer; every other algorithm goes through the go-cose
+	// constructor on the materialized crypto.Signer.
+	var signer cose.Signer
+	if akp, isAKP := keySigner.(*jwk.MLDSAKey); isAKP {
+		signer, err = coseSignerMLDSAForKey(akp)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		cryptoSigner, isCryptoSigner := keySigner.(crypto.Signer)
+		if !isCryptoSigner {
+			return "", fmt.Errorf("unable to materialize signing key: unsupported key type %T", keySigner)
+		}
+		signer, err = cose.NewSigner(ds.alg, cryptoSigner)
+		if err != nil {
+			return "", fmt.Errorf("unable to initialize COSE signer: %w", err)
+		}
 	}
 
-	// Materialize the raw key for COSE
-	var keyRaw any
-	if err = jwxjwk.Export(key, &keyRaw); err != nil {
-		return "", fmt.Errorf("unable to materialize signing key: %w", err)
+	// All header parameters are protected (RFC 8392 follows the COSE
+	// signing defaults): kid as a bstr per RFC 9052 section 3.1, typ in
+	// the RFC 8725 section 3.11 explicit media-type form required by
+	// go-cose header validation.
+	headers := cose.Headers{
+		Protected: cose.ProtectedHeader{
+			cose.HeaderLabelAlgorithm: ds.alg,
+			cose.HeaderLabelKeyID:     []byte(kid),
+			cose.HeaderLabelType:      token.HeaderType(ds.tokenType, contentTypeCWT),
+		},
+		Unprotected: cose.UnprotectedHeader{},
 	}
-
-	// Prepare signer
-	signer, err := cose.NewSignerFromKey(ds.alg, keyRaw)
-	if err != nil {
-		return "", fmt.Errorf("unable to initialize COSE signer: %w", err)
-	}
-
-	sig := cose.NewSignature()
-	sig.Headers.Unprotected["kid"] = kid
-	sig.Headers.Protected["typ"] = fmt.Sprintf("%s+cwt", ds.tokenType)
-	sig.Headers.Protected["alg"] = ds.alg.Name
 
 	// Prepare claims
-	b, err := cbor.Marshal(claims)
+	payload, err := cbor.Marshal(claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to serialize claims as CBOR: %w", err)
 	}
 
 	// Assemble final assertion
-	msg := cose.NewSignMessage()
-	msg.Payload = b
-	msg.AddSignature(sig)
+	msg := cose.Sign1Message{
+		Headers: headers,
+		Payload: payload,
+	}
 
-	// Sign assertion
-	if err = msg.Sign(rand.Reader, []byte("solid"), []cose.Signer{*signer}); err != nil {
+	// Sign assertion (no external AAD)
+	if err = msg.Sign(rand.Reader, nil, signer); err != nil {
 		return "", fmt.Errorf("unable to sign claims: %w", err)
 	}
 
@@ -120,5 +142,76 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 }
 
 func (ds *defaultSigner) ContentType() string {
-	return "CWT"
+	return contentTypeCWT
+}
+
+// supportedSignAlgorithms is the COSE signing algorithm allowlist for the
+// CWT serializer: elliptic curves and ML-DSA only, no RSA / HS families
+// (project security posture), mirroring the JOSE allowlist.
+var supportedSignAlgorithms = []cose.Algorithm{
+	cose.AlgorithmES256,
+	cose.AlgorithmES384,
+	cose.AlgorithmES512,
+	AlgorithmMLDSA44,
+	AlgorithmMLDSA65,
+	AlgorithmMLDSA87,
+}
+
+// enforceAlgorithmAllowlist rejects any signing algorithm outside the
+// supported elliptic-curve / ML-DSA set.
+func enforceAlgorithmAllowlist(alg cose.Algorithm) error {
+	for _, supported := range supportedSignAlgorithms {
+		if alg == supported {
+			return nil
+		}
+	}
+	return fmt.Errorf("unsupported COSE algorithm %q", alg.String())
+}
+
+// resolveSigningKey invokes the key provider and returns the signing key.
+// AKP keys (ML-DSA, RFC 9964) are returned as-is: the caller routes them
+// to the external cose.Signer implementation, since go-cose does not
+// know the algorithm. Every other key type is materialized as a native
+// crypto.Signer consumable by the go-cose constructors.
+func resolveSigningKey(ctx context.Context, keyProvider jwk.KeyProviderFunc) (signingKey any, keyID string, err error) {
+	// Retrieve signing key
+	key, err := keyProvider(ctx)
+	if err != nil {
+		return nil, "", fmt.Errorf("unable to retrieve a signing key: %w", err)
+	}
+
+	// Check
+	if key == nil {
+		return nil, "", fmt.Errorf("key provider returned a nil key")
+	}
+	kid, ok := key.KeyID()
+	if !ok || kid == "" {
+		return nil, "", fmt.Errorf("key provider returned a unidentifiable key")
+	}
+
+	// AKP keys bypass the jwx private-key check (jwx does not know the
+	// key type); their own constructor guarantees private material.
+	if akp, isAKP := key.(*jwk.MLDSAKey); isAKP {
+		if akp.PrivateKey() == nil {
+			return nil, "", fmt.Errorf("key provider returned a public key which is unusable for signing purpose")
+		}
+		return akp, kid, nil
+	}
+
+	isPrivate, err := jwxjwk.IsPrivateKey(key)
+	if err != nil || !isPrivate {
+		return nil, "", fmt.Errorf("key provider returned a public key which is unusable for signing purpose")
+	}
+
+	// Materialize the raw key for COSE.
+	var keyRaw any
+	if err = jwxjwk.Export(key, &keyRaw); err != nil {
+		return nil, "", fmt.Errorf("unable to materialize signing key: %w", err)
+	}
+	keySigner, isCryptoSigner := keyRaw.(crypto.Signer)
+	if !isCryptoSigner {
+		return nil, "", fmt.Errorf("unable to materialize signing key: unsupported key type %T", keyRaw)
+	}
+
+	return keySigner, kid, nil
 }

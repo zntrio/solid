@@ -110,8 +110,12 @@ sequenceDiagram
 
 ## Notes
 
-* Key material: ephemeral ML-DSA-65 at boot unless
-  `SOLID_EXAMPLE_SIGNING_KEY` is set (see [`../README.md`](../README.md)).
+* Key material: ephemeral ML-DSA-65 signing key and ephemeral P-256
+  encryption key at boot unless `SOLID_EXAMPLE_SIGNING_KEY` /
+  `SOLID_EXAMPLE_ENCRYPTION_KEY` are set (see [`../README.md`](../README.md)).
+* Access and refresh tokens are HPKE-encrypted JWTs (`HPKE-7`,
+  draft-ietf-jose-hpke-encrypt-22): sign-then-encrypt, 5-segment JWE
+  compact serializations.
 * Storage is in-memory: all state is lost on restart.
 * The deny paths of the device and CIBA validation services stay
   service-level (exercised by `integration/` tests); the HTML endpoints

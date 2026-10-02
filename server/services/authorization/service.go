@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"unicode/utf8"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -39,12 +38,6 @@ import (
 	"zntr.io/solid/server/storage"
 )
 
-const (
-	desiredMinNonceValueLength         = 8
-	desiredMinStateValueLength         = 32
-	desiredMinCodeChallengeValueLength = 43
-)
-
 type service struct {
 	clients                   storage.ClientReader
 	authorizationRequests     storage.AuthorizationRequest
@@ -52,24 +45,18 @@ type service struct {
 	codeGenerator             generator.AuthorizationCode
 	requestURIGenerator       generator.RequestURI
 	authzDetailsValidator     authzdetails.Validator
-}
-
-// isUnreservedChar reports whether the rune belongs to the unreserved set
-// defined by RFC 3986 section 2.3: ALPHA / DIGIT / "-" / "." / "_" / "~".
-// RFC 7636 section 4.1 restricts code challenges to this set.
-func isUnreservedChar(r rune) bool {
-	switch {
-	case r >= 'A' && r <= 'Z', r >= 'a' && r <= 'z', r >= '0' && r <= '9':
-		return true
-	case r == '-' || r == '.' || r == '_' || r == '~':
-		return true
-	default:
-		return false
-	}
+	messageValidator          *messageValidator
 }
 
 // New build and returns an authorization service implementation.
 func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, codeGenerator generator.AuthorizationCode, requestURIGenerator generator.RequestURI, authzDetailsValidator authzdetails.Validator) services.Authorization {
+	// Initialize the syntactic validation level (protovalidate).
+	mv, err := newMessageValidator()
+	if err != nil {
+		// A misconfigured CEL environment is unrecoverable: surface it loudly.
+		panic(err)
+	}
+
 	return &service{
 		clients:                   clients,
 		authorizationRequests:     authorizationRequests,
@@ -77,6 +64,7 @@ func New(clients storage.ClientReader, authorizationRequests storage.Authorizati
 		codeGenerator:             codeGenerator,
 		requestURIGenerator:       requestURIGenerator,
 		authzDetailsValidator:     authzDetailsValidator,
+		messageValidator:          mv,
 	}
 }
 
@@ -310,31 +298,13 @@ func (s *service) validate(ctx context.Context, req *flowv1.AuthorizationRequest
 		return rfcerrors.InvalidRequest().Build(), fmt.Errorf("unable to process nil request")
 	}
 
-	// Validate request attributes
-	if req.State == "" {
-		return rfcerrors.InvalidRequest().Build(), fmt.Errorf("state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method parameters are mandatory")
-	}
-	if len(req.State) < desiredMinStateValueLength {
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("state too short")
-	}
-
-	if req.Scope == "" || req.ResponseType == "" || req.ClientId == "" || req.RedirectUri == "" || req.CodeChallenge == "" || req.CodeChallengeMethod == "" || req.Audience == "" || req.Nonce == "" {
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("audience, state, scope, response_type, client_id, redirect_uri, code_challenge, code_challenge_method, nonce parameters are mandatory")
-	}
-
-	if len(req.Nonce) < desiredMinNonceValueLength {
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("nonce too short")
-	}
-
-	if req.CodeChallengeMethod != oidc.CodeChallengeMethodSha256 {
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("invalid or unsupported code_challenge_method '%s'", req.CodeChallengeMethod)
-	}
-
-	if utf8.RuneCountInString(req.CodeChallenge) != desiredMinCodeChallengeValueLength {
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("code_challenge length must be exactly %d characters", desiredMinCodeChallengeValueLength)
-	}
-	if strings.IndexFunc(req.CodeChallenge, func(r rune) bool { return !isUnreservedChar(r) }) >= 0 {
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("code_challenge contains characters outside the unreserved set")
+	// Syntactic validation level: the protovalidate rules declared on the
+	// AuthorizationRequest message (required fields, min/max lengths, the
+	// PKCE code_challenge charset and the S256 method of RFC 7636
+	// section 4.2/4.3). The protovalidate error descriptions name the
+	// offending fields.
+	if publicErr := s.messageValidator.ValidateAuthorizationRequest(req); publicErr != nil {
+		return rfcerrors.InvalidRequest().State(req.State).Description(publicErr.ErrorDescription).Build(), fmt.Errorf("syntactically invalid authorization request: %s", publicErr.ErrorDescription)
 	}
 
 	// Prepare redirection uri. url.Parse is used (not ParseRequestURI)

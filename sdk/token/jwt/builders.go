@@ -46,8 +46,11 @@ func JARMSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 
 // DPoPSigner represents JWT DPoP Token signer.
 func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+	if err := enforceSignAlgorithmAllowlist(alg); err != nil {
+		panic(err)
+	}
 	return &defaultSigner{
-		tokenType:   fmt.Sprintf("%s+jwt", token.TypeDPoP),
+		tokenType:   token.HeaderType(token.TypeDPoP, "JWT"),
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    true,
@@ -74,13 +77,37 @@ func IDJAG(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 	return TypedSigner(token.TypeIDJAG, alg, keyProvider)
 }
 
+// supportedSignAlgorithms is the JOSE signing algorithm allowlist for the
+// JWT signer: elliptic curves and ML-DSA only, no RSA / HS families and
+// no "none" (project security posture, RFC 8725 section 3.5).
+var supportedSignAlgorithms = map[string]struct{}{
+	"ES256": {}, "ES384": {}, "ES512": {},
+	"EdDSA":     {},
+	jwk.MLDSA44: {}, jwk.MLDSA65: {}, jwk.MLDSA87: {},
+}
+
+// enforceSignAlgorithmAllowlist rejects any signing algorithm outside the
+// supported elliptic-curve / ML-DSA set.
+func enforceSignAlgorithmAllowlist(alg string) error {
+	if _, ok := supportedSignAlgorithms[alg]; !ok {
+		return fmt.Errorf("unsupported signing algorithm %q", alg)
+	}
+	return nil
+}
+
 // TypedSigner returns a JWT signer with an explicit typ header value, for
 // mechanisms defining their own token type (e.g. the ID-JAG profile
-// "oauth-id-jag+jwt"). The alg allowlist is the caller's responsibility:
-// assemblies must pass an elliptic-curve or ML-DSA identifier.
+// "oauth-id-jag+jwt"). The alg allowlist is enforced at construction
+// time: insecure configurations are not offered as options, no RSA / HS /
+// none signer can be assembled.
 func TypedSigner(tokenType, alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+	// Fail fast on insecure algorithms: a signer built with an
+	// out-of-allowlist alg is a programming error, not a runtime input.
+	if err := enforceSignAlgorithmAllowlist(alg); err != nil {
+		panic(err)
+	}
 	return &defaultSigner{
-		tokenType:   fmt.Sprintf("%s+jwt", tokenType),
+		tokenType:   token.HeaderType(tokenType, "JWT"),
 		alg:         alg,
 		keyProvider: keyProvider,
 		embedJWK:    false,

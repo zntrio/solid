@@ -55,35 +55,6 @@ func (mr *MockTokenMockRecorder) Create(ctx, issuer, t any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockToken)(nil).Create), ctx, issuer, t)
 }
 
-// Delete mocks base method.
-func (m *MockToken) Delete(ctx context.Context, issuer, id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, issuer, id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Delete indicates an expected call of Delete.
-func (mr *MockTokenMockRecorder) Delete(ctx, issuer, id any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockToken)(nil).Delete), ctx, issuer, id)
-}
-
-// Get mocks base method.
-func (m *MockToken) Get(ctx context.Context, issuer, id string) (*tokenv1.Token, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, issuer, id)
-	ret0, _ := ret[0].(*tokenv1.Token)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockTokenMockRecorder) Get(ctx, issuer, id any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockToken)(nil).Get), ctx, issuer, id)
-}
-
 // GetByGrantID mocks base method.
 func (m *MockToken) GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token {
 	m.ctrl.T.Helper()

@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/proto"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -38,8 +39,27 @@ import (
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
+// protoEqMatcher matches protos by semantic equality: protovalidate touches
+// the validated message's internal size caches, which breaks
+// reflect.DeepEqual-based gomock expectations on otherwise identical
+// messages.
+type protoEqMatcher struct {
+	want proto.Message
+}
+
+func (m protoEqMatcher) Matches(x any) bool {
+	got, ok := x.(proto.Message)
+	return ok && proto.Equal(got, m.want)
+}
+
+func (m protoEqMatcher) String() string {
+	return fmt.Sprintf("proto.Equal(%v)", m.want)
+}
+
+// protoEq returns a gomock matcher comparing protos semantically.
+func protoEq(want proto.Message) gomock.Matcher { return protoEqMatcher{want: want} }
+
 // permissiveAuthzDetails accepts any authorization details type; unit tests
-// for the authorization service target other request mechanics.
 var permissiveAuthzDetails authzdetails.Validator = authzdetails.ValidatorFunc(
 	func(context.Context, []*tokenv1.AuthorizationDetail) error { return nil },
 )
@@ -775,7 +795,7 @@ func Test_service_Authorize_Fuzz(t *testing.T) {
 	requestURIGenerator := generatormock.NewMockRequestURI(ctrl)
 
 	requestURIGenerator.EXPECT().Validate(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	authorizationRequests.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
+	authorizationRequests.EXPECT().DeleteAndGet(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
 		return fuzzFillAuthorizationRequest([]byte(requestURI)), nil
 	}).AnyTimes()
 
@@ -1033,7 +1053,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac", nil)
-				ar.EXPECT().Register(gomock.Any(), "https://honest.as.example", gomock.Any(), &flowv1.AuthorizationRequest{
+				ar.EXPECT().Register(gomock.Any(), "https://honest.as.example", gomock.Any(), protoEq(&flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
@@ -1044,7 +1064,7 @@ func Test_service_Register(t *testing.T) {
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 					Prompt:              types.StringRef(oidc.PromptConsent),
-				}).Return(uint64(90), fmt.Errorf("foo"))
+				})).Return(uint64(90), fmt.Errorf("foo"))
 			},
 			wantErr: true,
 			want: &flowv1.RegistrationResponse{
@@ -1082,7 +1102,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac", nil)
-				ar.EXPECT().Register(gomock.Any(), "https://honest.as.example", gomock.Any(), &flowv1.AuthorizationRequest{
+				ar.EXPECT().Register(gomock.Any(), "https://honest.as.example", gomock.Any(), protoEq(&flowv1.AuthorizationRequest{
 					Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
 					ResponseType:        "code",
 					Scope:               "openid profile email offline_access",
@@ -1093,7 +1113,7 @@ func Test_service_Register(t *testing.T) {
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
 					Prompt:              types.StringRef(oidc.PromptConsent),
-				}).Return(uint64(90), nil)
+				})).Return(uint64(90), nil)
 			},
 			wantErr: false,
 			want: &flowv1.RegistrationResponse{

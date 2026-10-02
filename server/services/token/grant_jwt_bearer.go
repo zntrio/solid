@@ -49,6 +49,12 @@ func (s *service) jwtBearer(ctx context.Context, client *clientv1.Client, req *f
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
+	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
+	// RFC 8705 section 3 for certificate bindings).
+	if errBind := enforceSenderBinding(res, client, req); errBind != nil {
+		return res, errBind
+	}
+
 	// The service must be wired with an ID-JAG verifier to honor this
 	// grant; fail closed otherwise.
 	if s.idjagVerifier == nil {

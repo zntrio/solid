@@ -59,6 +59,14 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
+	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
+	// RFC 8705 section 3 for certificate bindings): a client requiring
+	// bound access tokens must present its confirmation with every token
+	// request. Session-level dpop_jkt bindings are verified below.
+	if errBind := enforceSenderBinding(res, client, req); errBind != nil {
+		return res, errBind
+	}
+
 	// Validate request (draft-ietf-oauth-v2-1-16 §4.1.3): the token request
 	// REQUIRES code and code_verifier; redirect_uri is no longer a parameter
 	// of the authorization code grant in OAuth 2.1. When a client does send
@@ -75,21 +83,9 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("invalid authorization request: code is too long")
 	}
 
-	// Validate code verifier: RFC 7636 section 4.1 bounds are expressed in
-	// characters (runes), not bytes; and every character MUST come from the
-	// unreserved set ALPHA / DIGIT / "-" / "." / "_" / "~".
-	if utf8.RuneCountInString(grant.CodeVerifier) < desiredCodeVerifiedMinValueLength {
-		res.Error = rfcerrors.InvalidGrant().Build()
-		return res, fmt.Errorf("invalid authorization request: code_verifier is too short")
-	}
-	if utf8.RuneCountInString(grant.CodeVerifier) > desiredCodeVerifiedMaxValueLength {
-		res.Error = rfcerrors.InvalidGrant().Build()
-		return res, fmt.Errorf("invalid authorization request: code_verifier is too long")
-	}
-	if strings.IndexFunc(grant.CodeVerifier, func(r rune) bool { return !isUnreservedChar(r) }) >= 0 {
-		res.Error = rfcerrors.InvalidGrant().Build()
-		return res, fmt.Errorf("invalid authorization request: code_verifier contains characters outside the unreserved set")
-	}
+	// Code verifier bounds and charset (RFC 7636 section 4.1: 43-128
+	// unreserved characters) are enforced by the protovalidate
+	// annotations on GrantAuthorizationCode.code_verifier.
 
 	// Retrieve authorization request from code
 	// RFC 9700 section 4.5: single-use codes are enforced with an atomic
@@ -260,8 +256,11 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 		return fmt.Errorf("unable to generate access token: %w", err)
 	}
 
-	// Check if request has offline_access to generate refresh_token
-	if scopes.Contains(oidc.ScopeOfflineAccess) {
+	// RFC 9700 section 4.14.2 / draft-ietf-oauth-v2-1-16 section 4.3.1:
+	// refresh tokens are only issued to clients registered for the
+	// refresh_token grant; offline_access consent alone does not entitle
+	// an unregistered client to long-lived credentials.
+	if scopes.Contains(oidc.ScopeOfflineAccess) && types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeRefreshToken) {
 		// Generate refresh token
 		rt, err := s.generateRefreshToken(ctx, client, &tokenv1.TokenMeta{
 			Issuer:               req.Issuer,

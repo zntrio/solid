@@ -32,10 +32,12 @@ import (
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/stretchr/testify/require"
 
+	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	"zntr.io/solid/client"
-	"zntr.io/solid/examples/authorizationserver/handlers"
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token/jwt"
+	"zntr.io/solid/server/httpkit"
 )
 
 // RFC 8414 (OAuth 2.0 Authorization Server Metadata) conformance coverage,
@@ -63,7 +65,24 @@ func metadataTestServer(t *testing.T) (baseURL string, close func()) {
 		return signingKey, nil
 	}))
 
-	srv := httptest.NewServer(handlers.Metadata("https://as.example.org", signer))
+	// Minimal inline document carrying the REQUIRED members asserted
+	// below: issuer, authorization_endpoint, token_endpoint,
+	// response_types_supported, jwks_uri, plus the array members
+	// exercised by the section 3.2 assertions.
+	issuer := "https://as.example.org"
+	md := &discoveryv1.ServerMetadata{
+		Issuer:                            issuer,
+		JwksUri:                           issuer + "/keys",
+		AuthorizationEndpoint:             issuer + "/authorize",
+		TokenEndpoint:                     issuer + "/token",
+		ResponseTypesSupported:            []string{oidc.ResponseTypeCode},
+		ResponseModesSupported:            []string{oidc.ResponseModeQuery},
+		GrantTypesSupported:               []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeClientCredentials},
+		TokenEndpointAuthMethodsSupported: []string{oidc.AuthMethodPrivateKeyJWT},
+		TokenEndpointAuthSigningAlgValuesSupported: []string{"ES384"},
+		CodeChallengeMethodsSupported:              []string{"S256"},
+	}
+	srv := httptest.NewServer(httpkit.Metadata(md, signer))
 	return srv.URL, srv.Close
 }
 

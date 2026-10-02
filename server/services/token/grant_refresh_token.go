@@ -50,6 +50,12 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 		return res, fmt.Errorf("unable to process with nil grant")
 	}
 
+	// NOTE: sender-binding policy is enforced after the stored-confirmation
+	// comparison below: an RFC 8705 certificate-bound refresh token fails
+	// closed with invalid_grant (proof-of-possession failure), which is the
+	// stronger protocol semantics for a stored binding. The policy gate
+	// below line 121 covers clients with no stored binding.
+
 	if grant.RefreshToken == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("refresh_token must not be empty")
@@ -112,6 +118,14 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 			res.Error = rfcerrors.InvalidGrant().Build()
 			return res, fmt.Errorf("refresh token is certificate-bound but no matching x5t#S256 confirmation was presented")
 		}
+	}
+
+	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
+	// RFC 8705 section 3 for certificate bindings): a client requiring
+	// bound access tokens must present its confirmation when no stored
+	// binding applies above.
+	if errBind := enforceSenderBinding(res, client, req); errBind != nil {
+		return res, errBind
 	}
 
 	// draft-ietf-oauth-v2-1-16 §4.3.1 (RFC 6749 §6): when the refresh

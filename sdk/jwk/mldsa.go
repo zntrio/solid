@@ -172,6 +172,12 @@ func (k *MLDSAKey) MLDSPublicKey() *mldsa.PublicKey {
 	return k.pub
 }
 
+// AlgorithmName returns the JOSE alg identifier of the key ("ML-DSA-44",
+// "ML-DSA-65", "ML-DSA-87"), or the empty string when unset.
+func (k *MLDSAKey) AlgorithmName() string {
+	return k.alg
+}
+
 func mldsaAlgName(params mldsa.Parameters) string {
 	switch params.String() {
 	case "ML-DSA-44":

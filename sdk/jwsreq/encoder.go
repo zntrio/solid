@@ -37,8 +37,25 @@ func AuthorizationRequestEncoder(signer token.Serializer) AuthorizationEncoder {
 	}
 }
 
+// AuthorizationRequestEncoderWithOptions returns an authorization request
+// encoder that merges the given envelope claims into every serialized
+// request object. The envelope carries the JOSE claims with no
+// AuthorizationRequest representation (iss, aud, exp, iat, nbf, jti) plus
+// any protocol claims without a proto field (e.g. the CIBA binding_message
+// and requested_expiry of OpenID CIBA Core 1.0 section 7.1.1); injected
+// values win over payload-derived ones. The decoder strips the envelope
+// claims it validates (see stripEnvelopeClaims), so an encode/decode
+// round-trip returns the proto-representable request.
+func AuthorizationRequestEncoderWithOptions(signer token.Serializer, envelope map[string]any) AuthorizationEncoder {
+	return &tokenEncoder{
+		signer:   signer,
+		envelope: envelope,
+	}
+}
+
 type tokenEncoder struct {
-	signer token.Serializer
+	signer   token.Serializer
+	envelope map[string]any
 }
 
 func (enc *tokenEncoder) Encode(ctx context.Context, ar *flowv1.AuthorizationRequest) (string, error) {
@@ -60,6 +77,12 @@ func (enc *tokenEncoder) Encode(ctx context.Context, ar *flowv1.AuthorizationReq
 	var claims map[string]any
 	if err = json.Unmarshal(jsonString, &claims); err != nil {
 		return "", fmt.Errorf("unable to serialize request payload: %w", err)
+	}
+
+	// Merge the envelope claims: injected values win (they are the JOSE
+	// envelope and the claims without a proto representation).
+	for k, v := range enc.envelope {
+		claims[k] = v
 	}
 
 	// Sign request

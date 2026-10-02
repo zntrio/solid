@@ -118,7 +118,22 @@ describing the exact flow its `main.go` implements.
 * `audience` parameter is mandatory for request that need `scope` in order to
   target the corresponding application. This will allow various validations between
   `client` and `application`, and `consent` management;
-* `PAR` must use JWT encoded request payload to due request registration.
+* `PAR` must use JWT encoded request payload to due request registration;
+* Application-type profiles (`server/profile`) constrain clients whose
+  `application_type` maps to a strict profile entry — grant types, response
+  types and token-endpoint authentication methods per profile (`web`, `native`,
+  `device`, `service`; `browser` deliberately excluded). Enforcement lives in
+  the shared HTTP layer (`server/httpkit`) so every assembly inherits it;
+  clients without a profile-known application type fall back to their
+  registration metadata.
+* Token serialization is an assembler decision: the same transport-agnostic
+  services mint opaque verifiable reference tokens (signed UUIDv7), JWTs,
+  HPKE-encrypted JWTs, or RFC 8392 CWTs — see `sdk/token` and the
+  `SOLID_EXAMPLE_TOKEN_FORMAT` switch in `examples/coapace`.
+* Syntactic request validation (required fields, length bounds, charset
+  patterns) is expressed as `buf.validate` annotations on the protobuf domain
+  model (`proto/oidc/**`) and enforced by a protovalidate first level in every
+  service; semantic rules stay in business logic.
 
 ### Framework
 
@@ -178,24 +193,34 @@ describing the exact flow its `main.go` implements.
       * [x] Verifiable token (signed UUID)
     * Authentication by value
       * [x] [RFC7519 - JSON Web Token (JWT)](https://tools.ietf.org/html/rfc7519)
-      * [x] PASETO - [draft-paragon-paseto-rfc-00](https://paseto.io/)
-      * [x] [RFC8392 - CBOR Web Token (CWT)](https://tools.ietf.org/html/rfc8392)
+      * [x] [RFC8392 - CBOR Web Token (CWT)](https://www.rfc-editor.org/rfc/rfc8392) — COSE_Sign1 signers/verifiers (`sdk/token/cwt`, elliptic-curve + ML-DSA algorithms only, RFC 8392 §7.1 claim keyasint map); wired as an alternative token generator in the CoAP/ACE example (`SOLID_EXAMPLE_TOKEN_FORMAT=cwt`) and round-trip tested through the real token service (`integration/cwt_token_test.go`)
+      * [x] [draft-ietf-jose-hpke-encrypt-22 - Use of HPKE with JWE](https://datatracker.ietf.org/doc/draft-ietf-jose-hpke-encrypt/) — token encryption strategy `sdk/token/hpke` (Integrated + Key Encryption modes, stdlib `crypto/hpke`); HPKE-encrypted JWT access/refresh tokens in `examples/authorizationserver`; RFC conformance via draft Appendix A vectors (`sdk/token/hpke/testdata/jose-vectors.json`); adversarially tested (`integration/jose_hpke_test.go`)
+      * [x] [draft-ietf-cose-hpke-27 - Use of HPKE with COSE](https://datatracker.ietf.org/doc/draft-ietf-cose-hpke/) — CWT token encryption strategy `sdk/token/cwt` (`CoseHPKEEncrypter` / `CoseHPKEKeyEncryptionEncrypter` / `CoseHPKEVerifier`, Integrated + Key Encryption modes, stdlib `crypto/hpke`); draft conformance via section 5 examples; both strategies share the wire-agnostic ciphersuite registry and key conversion of `sdk/hpke` (JWE labels + COSE identifiers)
   * Token Management
     * [x] [RFC7662 - OAuth 2.0 Token Introspection](https://tools.ietf.org/html/rfc7662)
     * [x] [RFC7009 - OAuth 2.0 Token Revocation](https://tools.ietf.org/html/rfc7009)
-    * [x] (DRAFT) - JWT Response for OAuth Token Introspection - [draft-ietf-oauth-jwt-introspection-response](https://tools.ietf.org/html/draft-ietf-oauth-jwt-introspection-response-12)
+
+  * Constrained Environments (ACE)
+    * [x] [RFC 9200 - Authentication and Authorization for Constrained Environments (ACE-OAuth)](https://www.rfc-editor.org/rfc/rfc9200) — `application/ace+cbor` wire codec (`sdk/ace`), CBOR-abbreviated token/introspection payloads and AS Request Creation Hints; full CoAP triangle demo (`examples/coapace`, adversarially tested in `integration/ace_adversarial_test.go`)
+    * [x] [RFC 9201 - COSE Profile of ACE](https://www.rfc-editor.org/rfc/rfc9201) — COSE_Key confirmation members (cnf) for PoP keys
+    * [x] [RFC 9202 - DTLS Profile of ACE](https://www.rfc-editor.org/rfc/rfc9202) — `coap_dtls` profile: mutual DTLS 1.2 client authentication and certificate-bound tokens
+    * [x] [RFC 8747 - Proof-of-Possession Key Semantics for CBOR Web Tokens (CWTs)](https://www.rfc-editor.org/rfc/rfc8747) — cnf confirmation members (COSE_Key by value, kid by reference) in the ACE codec
 
 ### Integrations
 
 * HTTP
   * Authorization Server
     * [ ] Standalone
+    * [x] Shared HTTP building blocks (`server/httpkit`: RFC 6749/9126/8414
+      handlers, client-authentication and security-headers middleware,
+      profile enforcement) — assembled by the reference example
+      `examples/authorizationserver`
     * [ ] Caddy plugin
   * Reverse Proxy
     * [ ] Caddy plugin
 * CoAP
   * Authorization Server
-    * [ ] Standalone
+    * [x] Standalone (RFC 9200 ACE-OAuth over mutual DTLS 1.2 — `examples/coapace`, `sdk/ace` CBOR wire codec; coap_dtls profile per RFC 9202)
 * AWS
   * Auhtorization Server
     * [x] AWS Lambda
@@ -205,7 +230,7 @@ describing the exact flow its `main.go` implements.
 * [OAuth 2.0](https://oauth.net/2/)
 * [OAuth 2.0 Client Authentication](https://medium.com/@darutk/oauth-2-0-client-authentication-4b5f929305d4)
 * [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)
-* The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8414, 8693, 8705, 9101, 9126, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-v2-1-16, draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
+* The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8392, 8414, 8693, 8705, 8747, 9101, 9126, 9200, 9201, 9202, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-v2-1-16, draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
 * [OpenID Connect Client-Initiated Backchannel Authentication Flow (CIBA) Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) — vendored as `docs/rfcs/openid-client-initiated-backchannel-authentication-core-1_0.txt`
 * [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — SPIFFE workload identity (SVIDs) as OAuth client credentials
 * [SPIFFE](https://spiffe.io/) — Secure Production Identity Framework For Everyone (SPIFFE IDs, trust domains, SVIDs, bundle endpoints)

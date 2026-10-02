@@ -120,7 +120,7 @@ func (c *accessTokenGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
 	// Validate syntaxically
 	if err := validation.ValidateStruct(meta,
 		validation.Field(&meta.Audience, validation.Required, is.PrintableASCII),
-		validation.Field(&meta.Issuer, validation.Required, is.URL),
+		validation.Field(&meta.Issuer, validation.Required, ValidateURI),
 		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.ClientId, validation.Required, is.PrintableASCII),
 		validation.Field(&meta.Scope, validation.Required, is.PrintableASCII),

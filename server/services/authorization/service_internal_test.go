@@ -37,7 +37,7 @@ import (
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeResponse{}), cmpopts.IgnoreUnexported(flowv1.RegistrationRequest{}), cmpopts.IgnoreUnexported(flowv1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
+var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeRequest{}), cmpopts.IgnoreUnexported(flowv1.AuthorizeResponse{}), cmpopts.IgnoreUnexported(flowv1.RegistrationRequest{}), cmpopts.IgnoreUnexported(flowv1.RegistrationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{}), cmpopts.IgnoreFields(corev1.Error{}, "ErrorDescription")}
 
 func Test_service_validate(t *testing.T) {
 	type args struct {
@@ -661,6 +661,7 @@ func Test_service_validate(t *testing.T) {
 				authorizationRequests:     authorizationRequests,
 				authorizationCodeSessions: sessions,
 				authzDetailsValidator:     tt.validator,
+				messageValidator:          mustTestMessageValidator(t),
 			}
 			got, err := s.validate(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -690,9 +691,22 @@ func Fuzz_service_validate(f *testing.F) {
 			clients:                   clients,
 			authorizationRequests:     authorizationRequests,
 			authorizationCodeSessions: sessions,
+			messageValidator:          mustTestMessageValidator(t),
 		}
 
 		// Making sure the function never panics
 		s.validate(context.Background(), fuzzFillAuthorizationRequest(seed))
 	})
+}
+
+// mustTestMessageValidator builds the protovalidate-backed syntactic
+// validator for directly-constructed services.
+func mustTestMessageValidator(t *testing.T) *messageValidator {
+	t.Helper()
+
+	mv, err := newMessageValidator()
+	if err != nil {
+		t.Fatalf("unable to build message validator: %v", err)
+	}
+	return mv
 }

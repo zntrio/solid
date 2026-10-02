@@ -28,6 +28,7 @@ import (
 	_ "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 	_ "gotest.tools/gotestsum"
+	_ "golang.org/x/vuln/cmd/govulncheck"
 	_ "mvdan.cc/gofumpt"
 )
 
@@ -40,5 +41,5 @@ import (
 //go:generate go build -v -o=./bin/wwhrd github.com/frapposelli/wwhrd
 //go:generate go build -v -o=./bin/mockgen go.uber.org/mock/mockgen
 //go:generate go build -v -o=./bin/golangci-lint github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-//go:generate go build -v -o=./bin/gotestsum gotest.tools/gotestsum
+//go:generate go build -v -o=./bin/govulncheck golang.org/x/vuln/cmd/govulncheck
 //go:generate go build -v -o=./bin/gofumpt mvdan.cc/gofumpt

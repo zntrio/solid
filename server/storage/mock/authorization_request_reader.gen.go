@@ -55,18 +55,3 @@ func (mr *MockAuthorizationRequestReaderMockRecorder) DeleteAndGet(ctx, issuer, 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndGet", reflect.TypeOf((*MockAuthorizationRequestReader)(nil).DeleteAndGet), ctx, issuer, requestURI)
 }
-
-// Get mocks base method.
-func (m *MockAuthorizationRequestReader) Get(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, issuer, requestURI)
-	ret0, _ := ret[0].(*flowv1.AuthorizationRequest)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockAuthorizationRequestReaderMockRecorder) Get(ctx, issuer, requestURI any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockAuthorizationRequestReader)(nil).Get), ctx, issuer, requestURI)
-}

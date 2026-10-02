@@ -41,21 +41,6 @@ func (m *MockTokenReader) EXPECT() *MockTokenReaderMockRecorder {
 	return m.recorder
 }
 
-// Get mocks base method.
-func (m *MockTokenReader) Get(ctx context.Context, issuer, id string) (*tokenv1.Token, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, issuer, id)
-	ret0, _ := ret[0].(*tokenv1.Token)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockTokenReaderMockRecorder) Get(ctx, issuer, id any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenReader)(nil).Get), ctx, issuer, id)
-}
-
 // GetByGrantID mocks base method.
 func (m *MockTokenReader) GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token {
 	m.ctrl.T.Helper()

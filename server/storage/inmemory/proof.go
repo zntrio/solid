@@ -47,12 +47,6 @@ func (s *proofCache) Register(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *proofCache) Delete(ctx context.Context, id string) error {
-	s.backend.Delete(id)
-	// No error
-	return nil
-}
-
 func (s *proofCache) Exists(ctx context.Context, id string) (bool, error) {
 	// Retrieve from cache
 	if _, found := s.backend.Get(id); found {

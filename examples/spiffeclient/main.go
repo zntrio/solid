@@ -44,8 +44,11 @@ import (
 	random "zntr.io/solid/sdk/random"
 )
 
+// tokenEndpoint is the AS token endpoint, overridable with
+// SOLID_EXAMPLE_ISSUER.
+var tokenEndpoint = envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080") + "/token"
+
 const (
-	tokenEndpoint   = "http://127.0.0.1:8080/token"
 	bodyLimiterSize = 5 << 20 // 5 Mb
 )
 
@@ -120,4 +123,13 @@ func run() error {
 	fmt.Printf("Access Token: %s\n", tokenResponse.AccessToken)
 
 	return nil
+}
+
+// envOr reads an environment variable, falling back to def when unset or
+// empty.
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

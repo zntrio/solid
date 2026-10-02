@@ -30,6 +30,7 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	sdkjwk "zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"

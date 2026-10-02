@@ -41,20 +41,6 @@ func (m *MockAuthorizationRequest) EXPECT() *MockAuthorizationRequestMockRecorde
 	return m.recorder
 }
 
-// Delete mocks base method.
-func (m *MockAuthorizationRequest) Delete(ctx context.Context, issuer, requestURI string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, issuer, requestURI)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Delete indicates an expected call of Delete.
-func (mr *MockAuthorizationRequestMockRecorder) Delete(ctx, issuer, requestURI any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockAuthorizationRequest)(nil).Delete), ctx, issuer, requestURI)
-}
-
 // DeleteAndGet mocks base method.
 func (m *MockAuthorizationRequest) DeleteAndGet(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
 	m.ctrl.T.Helper()
@@ -68,21 +54,6 @@ func (m *MockAuthorizationRequest) DeleteAndGet(ctx context.Context, issuer, req
 func (mr *MockAuthorizationRequestMockRecorder) DeleteAndGet(ctx, issuer, requestURI any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAndGet", reflect.TypeOf((*MockAuthorizationRequest)(nil).DeleteAndGet), ctx, issuer, requestURI)
-}
-
-// Get mocks base method.
-func (m *MockAuthorizationRequest) Get(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, issuer, requestURI)
-	ret0, _ := ret[0].(*flowv1.AuthorizationRequest)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockAuthorizationRequestMockRecorder) Get(ctx, issuer, requestURI any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockAuthorizationRequest)(nil).Get), ctx, issuer, requestURI)
 }
 
 // Register mocks base method.

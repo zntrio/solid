@@ -105,7 +105,7 @@ func computeClientPOP(priv *mldsa.PrivateKey) (string, error) {
 	// Build and sign the PoP
 	tok := gojwt.NewWithClaims(jwk.SigningMethodMLDSA65, gojwt.MapClaims{
 		"iss": "attestation-client",
-		"aud": "http://127.0.0.1:8080",
+		"aud": envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080"),
 		"iat": now,
 		"nbf": now - 1,
 		"exp": now + 30, // Valid for 30s
@@ -229,4 +229,13 @@ func run() error {
 	fmt.Println(string(timestampRaw))
 
 	return nil
+}
+
+// envOr reads an environment variable, falling back to def when unset or
+// empty.
+func envOr(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

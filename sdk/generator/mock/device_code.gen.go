@@ -54,17 +54,3 @@ func (mr *MockDeviceCodeMockRecorder) Generate(ctx, issuer any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Generate", reflect.TypeOf((*MockDeviceCode)(nil).Generate), ctx, issuer)
 }
-
-// Validate mocks base method.
-func (m *MockDeviceCode) Validate(ctx context.Context, issuer, in string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Validate", ctx, issuer, in)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Validate indicates an expected call of Validate.
-func (mr *MockDeviceCodeMockRecorder) Validate(ctx, issuer, in any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Validate", reflect.TypeOf((*MockDeviceCode)(nil).Validate), ctx, issuer, in)
-}

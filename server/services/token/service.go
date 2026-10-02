@@ -35,7 +35,6 @@ type service struct {
 	accessTokenGen            token.Generator
 	refreshTokenGen           token.Generator
 	clients                   storage.ClientReader
-	authorizationRequests     storage.AuthorizationRequestReader
 	authorizationCodeSessions storage.AuthorizationCodeSession
 	deviceCodeSessions        storage.DeviceCodeSession
 	backchannelSessions       storage.BackchannelAuthenticationSession
@@ -49,7 +48,7 @@ type service struct {
 }
 
 // New build and returns an authorization service implementation.
-func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
+func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
 	// Initialize the syntactic validation level (protovalidate).
 	mv, err := newMessageValidator()
 	if err != nil {
@@ -61,7 +60,6 @@ func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.Client
 		accessTokenGen:            accessTokenGen,
 		refreshTokenGen:           refreshTokenGen,
 		clients:                   clients,
-		authorizationRequests:     authorizationRequests,
 		authorizationCodeSessions: authorizationCodeSessions,
 		deviceCodeSessions:        deviceCodeSessions,
 		backchannelSessions:       backchannelSessions,
@@ -84,8 +82,8 @@ func WithIDJAGVerifier(v idjag.Verifier) Option {
 }
 
 // NewWithOptions builds a token service with constructor options.
-func NewWithOptions(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationRequests storage.AuthorizationRequestReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader, opts ...Option) services.Token {
-	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationRequests, authorizationCodeSessions, deviceCodeSessions, backchannelSessions, tokens, resources).(*service)
+func NewWithOptions(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader, opts ...Option) services.Token {
+	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationCodeSessions, deviceCodeSessions, backchannelSessions, tokens, resources).(*service)
 	for _, opt := range opts {
 		if opt != nil {
 			opt(svc)

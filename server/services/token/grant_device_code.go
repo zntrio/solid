@@ -58,12 +58,11 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 		return res, fmt.Errorf("authorization_details is not supported for this grant type")
 	}
 
-	// RFC 10027 section 6.1.12: a client requiring DPoP-bound access
-	// tokens must present its proof with every token request; enforced in
-	// the transport-agnostic grant, not only at presentation layers.
-	if client.DpopBoundAccessTokens && req.TokenConfirmation == nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("client requires DPoP-bound access tokens")
+	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
+	// RFC 8705 section 3 for certificate bindings), enforced in the
+	// transport-agnostic grant, not only at presentation layers.
+	if errBind := enforceSenderBinding(res, client, req); errBind != nil {
+		return res, errBind
 	}
 
 	// Validate device_code
@@ -111,29 +110,15 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 
 	// Check if it's pending
 	if session.Status == sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING {
-		now := timeFunc().Unix()
-		interval := session.PollInterval
-		if interval < 5 {
-			interval = 5 // RFC 8628 section 3.2 default
+		// RFC 8628 sections 3.2/3.5: throttled pending polls answer
+		// authorization_pending or slow_down; the session keeps polling
+		// state.
+		res.Error, err = enforcePollInterval(devicePollTiming(session), func() error {
+			return s.deviceCodeSessions.UpdateByDeviceCode(ctx, req.Issuer, grant.DeviceCode, session)
+		})
+		if err != nil {
+			return res, fmt.Errorf("token '%s' poll throttle: %w", grant.DeviceCode, err)
 		}
-		if session.LastPolledAt != 0 && now < int64(session.LastPolledAt)+int64(interval) { //nolint:gosec // epoch seconds and small poll interval both fit int64
-			// RFC 8628 section 3.5: interval MUST increase by 5 seconds for
-			// this and all subsequent requests. LastPolledAt is unchanged, so
-			// the next admissible poll is LastPolledAt + new interval.
-			session.PollInterval = interval + 5
-			if err = s.deviceCodeSessions.UpdateByDeviceCode(ctx, req.Issuer, grant.DeviceCode, session); err != nil {
-				res.Error = rfcerrors.ServerError().Build()
-				return res, fmt.Errorf("unable to persist poll interval for '%s': %w", grant.DeviceCode, err)
-			}
-			res.Error = rfcerrors.Slowdown().Build()
-			return res, fmt.Errorf("token '%s' is polling too fast", grant.DeviceCode)
-		}
-		session.LastPolledAt = uint64(now) //nolint:gosec // unix time is non-negative
-		if err = s.deviceCodeSessions.UpdateByDeviceCode(ctx, req.Issuer, grant.DeviceCode, session); err != nil {
-			res.Error = rfcerrors.ServerError().Build()
-			return res, fmt.Errorf("unable to persist poll timing for '%s': %w", grant.DeviceCode, err)
-		}
-		res.Error = rfcerrors.AuthorizationPending().Build()
 		return res, fmt.Errorf("token '%s' is waiting for authorization", grant.DeviceCode)
 	}
 

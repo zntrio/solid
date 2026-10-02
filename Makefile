@@ -10,6 +10,10 @@ help: Makefile
 buildall:
 	go build ./...
 
+.PHONY: vulncheck
+vulncheck: ## Run govulncheck on the whole module
+	./bin/govulncheck ./...
+
 .PHONY: update-go-bazel-files
 update-go-bazel-files:
 	$(BAZEL) run //:gazelle -- update ./
@@ -41,6 +45,10 @@ install-tools:
 code-format:
 	gofumpt -w -l .
 	gci write --Section Standard --Section Default --Section "Prefix(zntr.io/solid)" .
+
+.PHONY: vulncheck-install
+vulncheck-install:
+	go build -o ./bin/govulncheck golang.org/x/vuln/cmd/govulncheck
 
 .PHONY: regenerate-api
 regenerate-api:

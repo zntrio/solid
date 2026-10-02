@@ -19,6 +19,7 @@ package backchannel
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -529,7 +530,7 @@ func (s *service) applySignedRequest(ctx context.Context, client *clientv1.Clien
 		}
 		details := make([]*tokenv1.AuthorizationDetail, 0, len(entries))
 		for i, entry := range entries {
-			buf, err := jsonMarshal(entry)
+			buf, err := json.Marshal(entry)
 			if err != nil {
 				return fmt.Errorf("unable to decode authorization_details[%d] claim: %w", i, err)
 			}

@@ -26,7 +26,9 @@ import (
 	"testing"
 
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+
 	"zntr.io/solid/sdk/jwk"
+	"zntr.io/solid/sdk/token"
 )
 
 var jwkPrivateKey = []byte(`{
@@ -244,6 +246,44 @@ func Test_defaultSigner_Sign(t *testing.T) {
 				if out["test"] != "example" {
 					t.Errorf("claims round-trip lost value: %v", out)
 				}
+			}
+		})
+	}
+}
+
+func TestSignerConstructorAlgorithmAllowlist(t *testing.T) {
+	// Insecure algorithms are not offered as options: constructing a
+	// signer with any RSA / HS / none algorithm must fail fast.
+	for _, alg := range []string{"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "none", ""} {
+		t.Run("reject:"+alg, func(t *testing.T) {
+			defer func() {
+				r := recover()
+				if r == nil {
+					t.Fatalf("TypedSigner with alg %q must not construct", alg)
+				}
+				if !strings.Contains(r.(error).Error(), "unsupported signing algorithm") {
+					t.Fatalf("unexpected panic for alg %q: %v", alg, r)
+				}
+			}()
+			_ = TypedSigner(token.TypeAccessToken, alg, nil)
+		})
+	}
+	for _, alg := range []string{"HS256", "none"} {
+		t.Run("reject dpop:"+alg, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatalf("DPoPSigner with alg %q must not construct", alg)
+				}
+			}()
+			_ = DPoPSigner(alg, nil)
+		})
+	}
+
+	// Elliptic-curve and ML-DSA identifiers are the supported set.
+	for _, alg := range []string{"ES256", "ES384", "ES512", "EdDSA", jwk.MLDSA44, jwk.MLDSA65, jwk.MLDSA87} {
+		t.Run("accept:"+alg, func(t *testing.T) {
+			if err := enforceSignAlgorithmAllowlist(alg); err != nil {
+				t.Fatalf("algorithm %q must be allowed: %v", alg, err)
 			}
 		})
 	}

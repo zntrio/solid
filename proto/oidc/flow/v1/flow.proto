@@ -33,16 +33,16 @@ message AuthorizationRequest {
   // the openid scope value is not present, the behavior is entirely unspecified.
   // Other scope values MAY be present. Scope values used that are not understood
   // by an implementation SHOULD be ignored.
-  string scope = 1;
+  string scope = 1 [(buf.validate.field).string = {min_len: 1}];
 
   // REQUIRED. OAuth 2.0 Response Type value that determines the authorization
   // processing flow to be used, including what parameters are returned from
   // the endpoints used. When using the Authorization Code Flow, this value is
   // code.
-  string response_type = 2;
+  string response_type = 2 [(buf.validate.field).string = {min_len: 1}];
 
   // REQUIRED. OAuth 2.0 Client Identifier valid at the Authorization Server.
-  string client_id = 3;
+  string client_id = 3 [(buf.validate.field).string = {min_len: 1}];
 
   // REQUIRED. Redirection URI to which the response will be sent. This URI
   // MUST exactly match one of the Redirection URI values for the Client
@@ -54,13 +54,16 @@ message AuthorizationRequest {
   // allows the use of http Redirection URIs in this case. The Redirection URI
   // MAY use an alternate scheme, such as one that is intended to identify a
   // callback into a native application.
-  string redirect_uri = 4;
+  string redirect_uri = 4 [(buf.validate.field).string = {min_len: 1}];
 
   // RECOMMENDED. Opaque value used to maintain state between the request and
   // the callback. Typically, Cross-Site Request Forgery (CSRF, XSRF) mitigation
   // is done by cryptographically binding the value of this parameter with a
   // browser cookie.
-  string state = 5;
+  string state = 5 [(buf.validate.field).string = {
+    min_len: 32
+    max_len: 1024
+  }];
 
   // OPTIONAL. Informs the Authorization Server of the mechanism to be used for
   // returning parameters from the Authorization Endpoint. This use of this
@@ -73,7 +76,10 @@ message AuthorizationRequest {
   // the Authentication Request to the ID Token. Sufficient entropy MUST be
   // present in the nonce values used to prevent attackers from guessing values.
   // https://www.rfc-editor.org/rfc/rfc9700#section-4.5.3
-  string nonce = 7;
+  string nonce = 7 [(buf.validate.field).string = {
+    min_len: 8
+    max_len: 512
+  }];
 
   // OPTIONAL. ASCII string value that specifies how the Authorization Server
   // displays the authentication and consent user interface pages to the End-User.
@@ -143,13 +149,21 @@ message AuthorizationRequest {
   optional string request_uri = 15;
 
   // REQUIRED. This parameter enables PKCE flow.
-  string code_challenge = 16;
+  string code_challenge = 16 [(buf.validate.field).string = {
+    min_len: 43
+    max_len: 128
+    pattern: "^[A-Za-z0-9\\-._~]{43,128}$"
+  }];
 
   // REQUIRED. This parameter enables PKCE flow.
-  string code_challenge_method = 17;
+  string code_challenge_method = 17 [(buf.validate.field).string = {
+    min_len: 4
+    max_len: 4
+    pattern: "^S256$"
+  }];
 
   // REQUIRED. Add targeted audience.
-  string audience = 18;
+  string audience = 18 [(buf.validate.field).string = {min_len: 1}];
 
   // OPTIONAL.
   // https://www.rfc-editor.org/rfc/rfc9449#section-5

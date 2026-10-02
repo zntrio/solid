@@ -67,17 +67,6 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *tokenv1.Tok
 	return nil
 }
 
-func (s *tokenStorage) Get(ctx context.Context, issuer, id string) (*tokenv1.Token, error) {
-	// Check is client exists
-	client, ok := s.idIndex.Load(id)
-	if !ok {
-		return nil, storage.ErrNotFound
-	}
-
-	// No error
-	return client.(*tokenv1.Token), nil
-}
-
 func (s *tokenStorage) GetByValue(ctx context.Context, issuer, value string) (*tokenv1.Token, error) {
 	// Check is client exists
 	client, ok := s.valueIndex.Load(s.deriveValue(issuer, value))
@@ -105,25 +94,15 @@ func (s *tokenStorage) GetByGrantID(ctx context.Context, issuer, grantID string)
 	return result
 }
 
-func (s *tokenStorage) Delete(ctx context.Context, issuer, id string) error {
-	// Retrieve token
-	t, err := s.Get(ctx, issuer, id)
-	if err != nil {
-		return err
-	}
-
-	s.idIndex.Delete(t.TokenId)
-	s.valueIndex.Delete(t.Value)
-
-	// No error
-	return nil
-}
-
 func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 	// Retrieve token
-	t, err := s.Get(ctx, issuer, id)
-	if err != nil {
-		return err
+	x, ok := s.idIndex.Load(id)
+	if !ok {
+		return storage.ErrNotFound
+	}
+	t, ok := x.(*tokenv1.Token)
+	if !ok {
+		return storage.ErrNotFound
 	}
 
 	// Set as revoked

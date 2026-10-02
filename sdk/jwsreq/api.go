@@ -41,11 +41,3 @@ type AuthorizationDecoder interface {
 type AuthorizationEncoder interface {
 	Encode(ctx context.Context, ar *flowv1.AuthorizationRequest) (string, error)
 }
-
-//go:generate mockgen -destination mock/authorization.gen.go -package mock zntr.io/solid/sdk/jwsreq Authorization
-
-// Authorization describes authorization request codec contract.
-type Authorization interface {
-	AuthorizationDecoder
-	AuthorizationEncoder
-}

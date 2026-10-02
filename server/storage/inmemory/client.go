@@ -110,14 +110,13 @@ var defaultClients = map[string]*clientv1.Client{
 	"6779ef20e75817b79602": {
 		ClientId:        "6779ef20e75817b79602",
 		ClientType:      clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
-		ApplicationType: "web",
+		ApplicationType: oidc.ApplicationTypeNative,
 		ClientName:      "foo-test-client",
 		GrantTypes: []string{
+			// Native application profile (server/profile): PKCE
+			// authorization code + refresh.
 			oidc.GrantTypeAuthorizationCode, // User interaction
-			oidc.GrantTypeClientCredentials, // Machine-to-machine
-			oidc.GrantTypeDeviceCode,        // Device-to-service
 			oidc.GrantTypeRefreshToken,      // Act as user
-			oidc.GrantTypeTokenExchange,
 		},
 		ResponseTypes: []string{
 			"code",

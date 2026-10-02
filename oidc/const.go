@@ -59,8 +59,6 @@ const (
 const (
 	// AssertionTypeJWTBearer repesents JWT Bearer assertion name.
 	AssertionTypeJWTBearer = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-	// AssertionTypePasetoBearer represents PASETO Bearer assertion name.
-	AssertionTypePasetoBearer = "urn:solid:params:oauth:client-assertion-type:paseto-bearer"
 	// AssertionTypeJWTClientAttestation represents JWT Client Attestation name.
 	AssertionTypeJWTClientAttestation = "urn:ietf:params:oauth:client-assertion-type:jwt-client-attestation"
 	// AssertionTypeJWTSPIFFE represents the JWT-SVID client assertion name

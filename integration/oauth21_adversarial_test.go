@@ -33,12 +33,13 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
-	"zntr.io/solid/examples/authorizationserver/handlers"
-	"zntr.io/solid/examples/authorizationserver/middleware"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/spiffe"
+	"zntr.io/solid/server/httpkit"
+	"zntr.io/solid/server/profile"
+	"zntr.io/solid/server/storage/inmemory"
 )
 
 // -----------------------------------------------------------------------------
@@ -299,12 +300,14 @@ func TestOAuth21_ErrorRedirectCarriesStateAndIssuer_4_1_2_1(t *testing.T) {
 // oauth21HTTPServer wires the real example Token handler behind the real
 // client-authentication middleware and the harness service stack.
 func oauth21HTTPServer(h *harness, dpopVerifier dpop.Verifier) *httptest.Server {
-	return httptest.NewServer(middleware.ClientAuthentication(
+	return httptest.NewServer(httpkit.ClientAuthentication(
 		h.clients,
 		h.issuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-	)(handlers.Token(h.issuer, h.tokenz, dpopVerifier)))
+		inmemory.DPoPProofs(),
+		profile.Strict(),
+	)(httpkit.Token(h.issuer, h.tokenz, dpopVerifier, profile.Strict())))
 }
 
 // postToken performs a token-endpoint POST with urlencoded form values.

@@ -15,13 +15,14 @@ require (
 	github.com/golangci/golangci-lint/v2 v2.14.0
 	github.com/google/go-cmp v0.7.0
 	github.com/lestrrat-go/jwx/v3 v3.3.0
-	github.com/pion/dtls/v3 v3.1.2
+	github.com/pion/dtls/v3 v3.1.4
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 	github.com/plgd-dev/go-coap/v3 v3.5.4
 	github.com/stretchr/testify v1.12.1
 	github.com/veraison/go-cose v1.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.57.0
+	golang.org/x/vuln v1.8.0
 	google.golang.org/grpc v1.84.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2
 	google.golang.org/protobuf v1.36.12
@@ -253,6 +254,7 @@ require (
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260908163034-4bcc4b2ee518 // indirect
 	golang.org/x/term v0.46.0 // indirect
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect

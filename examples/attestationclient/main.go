@@ -90,29 +90,17 @@ func getAttestation(ctx context.Context, pub *mldsa.PublicKey) (string, error) {
 }
 
 func computeClientPOP(priv *mldsa.PrivateKey) (string, error) {
-	// Derive the public JWK to embed in the proof header
-	key, err := jwk.NewMLDSAKey(priv)
-	if err != nil {
-		return "", fmt.Errorf("unable to import client key: %w", err)
-	}
-	pubJWK, err := key.PublicKey()
-	if err != nil {
-		return "", fmt.Errorf("unable to derive client public key: %w", err)
-	}
-
 	now := time.Now().Unix()
 
 	// Build and sign the PoP
+	// (draft-ietf-oauth-attestation-based-client-auth-11 section 5.1:
+	// aud, jti and iat only; the key is bound via the attestation cnf claim).
 	tok := gojwt.NewWithClaims(jwk.SigningMethodMLDSA65, gojwt.MapClaims{
-		"iss": "attestation-client",
 		"aud": envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080"),
 		"iat": now,
-		"nbf": now - 1,
-		"exp": now + 30, // Valid for 30s
 		"jti": random.String(8),
 	})
-	tok.Header["typ"] = "client-attestation-pop+jwt"
-	tok.Header["jwk"] = pubJWK
+	tok.Header["typ"] = oidc.TypClientAttestationPoPJWT
 	raw, err := tok.SignedString(priv)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign client attestation PoP: %w", err)
@@ -121,13 +109,17 @@ func computeClientPOP(priv *mldsa.PrivateKey) (string, error) {
 	return raw, nil
 }
 
-func getToken(ctx context.Context, assertion string) (*client.Token, error) {
+func getToken(ctx context.Context, attestation, pop string) (*client.Token, error) {
 	// Prepare parameters
+	// (draft-ietf-oauth-attestation-based-client-auth-11 section 7.5:
+	// client_id MUST match the attestation sub).
 	params := url.Values{}
 	params.Add("grant_type", "client_credentials")
 	params.Add("client_id", "attestation-client")
-	params.Add("client_assertion", assertion)
-	params.Add("client_assertion_type", oidc.AssertionTypeJWTClientAttestation)
+	// RFC 8707 resource indicator + the timestamp service scope, mirroring
+	// the deviceclient example (the token meta requires both).
+	params.Add("resource", "http://localhost:8085")
+	params.Add("scope", "timestamp:read")
 
 	// Query token endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost:8080/token", strings.NewReader(params.Encode()))
@@ -135,8 +127,11 @@ func getToken(ctx context.Context, assertion string) (*client.Token, error) {
 		return nil, fmt.Errorf("unable to prepare token request: %w", err)
 	}
 
-	// Set approppriate header value
+	// Set appropriate header values
+	// (draft-ietf-oauth-attestation-based-client-auth-11 sections 4 and 5.1).
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("OAuth-Client-Attestation", attestation)
+	req.Header.Set("OAuth-Client-Attestation-PoP", pop)
 
 	// Do the query
 	response, err := http.DefaultClient.Do(req)
@@ -195,7 +190,7 @@ func run() error {
 
 	fmt.Printf("Client Attestation PoP: %s\n", pop)
 
-	t, err := getToken(ctx, attestation+"~"+pop)
+	t, err := getToken(ctx, attestation, pop)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve OAuth2 token: %w", err)
 	}

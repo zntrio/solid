@@ -45,6 +45,10 @@ type ClientReader interface {
 // ClientWriter describes client storage write-only operation contract.
 type ClientWriter interface {
 	Register(ctx context.Context, c *clientv1.Client) (string, error)
+	// Update persists modified registration metadata (RFC 7592 section 2.2).
+	Update(ctx context.Context, c *clientv1.Client) error
+	// Delete removes a client registration (RFC 7592 section 2.3).
+	Delete(ctx context.Context, id string) error
 }
 
 //go:generate mockgen -destination mock/client.gen.go -package mock zntr.io/solid/server/storage Client
@@ -90,6 +94,9 @@ type TokenReader interface {
 	GetByValue(ctx context.Context, issuer, value string) (*tokenv1.Token, error)
 	// GetByGrantID returns every token bound to a grant family (RFC 9700 section 4.14.2).
 	GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token
+	// GetByClientID returns every token issued to the client (RFC 7592
+	// section 2.3 token invalidation on deprovision).
+	GetByClientID(ctx context.Context, clientID string) []*tokenv1.Token
 }
 
 //go:generate mockgen -destination mock/token_writer.gen.go -package mock zntr.io/solid/server/storage TokenWriter

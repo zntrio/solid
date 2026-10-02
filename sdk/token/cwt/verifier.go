@@ -170,7 +170,7 @@ func verifyWithAnyKey(msg *cose.Sign1Message, keys []jwk.Key, alg cose.Algorithm
 	for _, k := range keys {
 		var verifier cose.Verifier
 		if akp, isAKP := k.(*jwk.MLDSAKey); isAKP {
-			v, errVerifier := coseVerifierMLDSAForKey(akp)
+			v, errVerifier := CoseVerifierMLDSAForKey(akp)
 			if errVerifier != nil {
 				continue
 			}

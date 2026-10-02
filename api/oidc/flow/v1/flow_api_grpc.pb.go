@@ -37,6 +37,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	AuthorizationService_Authorize_FullMethodName = "/oidc.flow.v1.AuthorizationService/Authorize"
+	AuthorizationService_Register_FullMethodName  = "/oidc.flow.v1.AuthorizationService/Register"
 	AuthorizationService_Token_FullMethodName     = "/oidc.flow.v1.AuthorizationService/Token"
 )
 
@@ -45,6 +46,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthorizationServiceClient interface {
 	Authorize(ctx context.Context, in *AuthorizeRequest, opts ...grpc.CallOption) (*AuthorizeResponse, error)
+	// RFC 9126: pushed authorization request registration (PAR).
+	Register(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*RegistrationResponse, error)
 	Token(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*TokenResponse, error)
 }
 
@@ -66,6 +69,16 @@ func (c *authorizationServiceClient) Authorize(ctx context.Context, in *Authoriz
 	return out, nil
 }
 
+func (c *authorizationServiceClient) Register(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*RegistrationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegistrationResponse)
+	err := c.cc.Invoke(ctx, AuthorizationService_Register_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authorizationServiceClient) Token(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*TokenResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TokenResponse)
@@ -81,6 +94,8 @@ func (c *authorizationServiceClient) Token(ctx context.Context, in *TokenRequest
 // for forward compatibility.
 type AuthorizationServiceServer interface {
 	Authorize(context.Context, *AuthorizeRequest) (*AuthorizeResponse, error)
+	// RFC 9126: pushed authorization request registration (PAR).
+	Register(context.Context, *RegistrationRequest) (*RegistrationResponse, error)
 	Token(context.Context, *TokenRequest) (*TokenResponse, error)
 }
 
@@ -93,6 +108,9 @@ type UnimplementedAuthorizationServiceServer struct{}
 
 func (UnimplementedAuthorizationServiceServer) Authorize(context.Context, *AuthorizeRequest) (*AuthorizeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Authorize not implemented")
+}
+func (UnimplementedAuthorizationServiceServer) Register(context.Context, *RegistrationRequest) (*RegistrationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Register not implemented")
 }
 func (UnimplementedAuthorizationServiceServer) Token(context.Context, *TokenRequest) (*TokenResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Token not implemented")
@@ -135,6 +153,24 @@ func _AuthorizationService_Authorize_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthorizationService_Register_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegistrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthorizationServiceServer).Register(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthorizationService_Register_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthorizationServiceServer).Register(ctx, req.(*RegistrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthorizationService_Token_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TokenRequest)
 	if err := dec(in); err != nil {
@@ -163,6 +199,10 @@ var AuthorizationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Authorize",
 			Handler:    _AuthorizationService_Authorize_Handler,
+		},
+		{
+			MethodName: "Register",
+			Handler:    _AuthorizationService_Register_Handler,
 		},
 		{
 			MethodName: "Token",

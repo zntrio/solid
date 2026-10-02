@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
 
@@ -53,6 +54,20 @@ func (m *MockToken) Create(ctx context.Context, issuer string, t *tokenv1.Token)
 func (mr *MockTokenMockRecorder) Create(ctx, issuer, t any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockToken)(nil).Create), ctx, issuer, t)
+}
+
+// GetByClientID mocks base method.
+func (m *MockToken) GetByClientID(ctx context.Context, clientID string) []*tokenv1.Token {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetByClientID", ctx, clientID)
+	ret0, _ := ret[0].([]*tokenv1.Token)
+	return ret0
+}
+
+// GetByClientID indicates an expected call of GetByClientID.
+func (mr *MockTokenMockRecorder) GetByClientID(ctx, clientID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByClientID", reflect.TypeOf((*MockToken)(nil).GetByClientID), ctx, clientID)
 }
 
 // GetByGrantID mocks base method.

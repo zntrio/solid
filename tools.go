@@ -25,10 +25,10 @@ import (
 	_ "github.com/frapposelli/wwhrd"
 	_ "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
 	_ "go.uber.org/mock/mockgen"
+	_ "golang.org/x/vuln/cmd/govulncheck"
 	_ "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
 	_ "google.golang.org/protobuf/cmd/protoc-gen-go"
 	_ "gotest.tools/gotestsum"
-	_ "golang.org/x/vuln/cmd/govulncheck"
 	_ "mvdan.cc/gofumpt"
 )
 

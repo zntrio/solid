@@ -41,6 +41,20 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// Delete mocks base method.
+func (m *MockClient) Delete(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockClientMockRecorder) Delete(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClient)(nil).Delete), ctx, id)
+}
+
 // Get mocks base method.
 func (m *MockClient) Get(ctx context.Context, id string) (*clientv1.Client, error) {
 	m.ctrl.T.Helper()
@@ -84,4 +98,18 @@ func (m *MockClient) Register(ctx context.Context, c *clientv1.Client) (string, 
 func (mr *MockClientMockRecorder) Register(ctx, c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockClient)(nil).Register), ctx, c)
+}
+
+// Update mocks base method.
+func (m *MockClient) Update(ctx context.Context, c *clientv1.Client) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockClientMockRecorder) Update(ctx, c any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockClient)(nil).Update), ctx, c)
 }

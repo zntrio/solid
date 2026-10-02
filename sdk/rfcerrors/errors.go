@@ -223,3 +223,21 @@ func InvalidBindingMessage() ErrorBuilder {
 		errorDescription: "The binding_message is missing or invalid.",
 	}
 }
+
+// UseFreshAttestation returns a compliant `use_fresh_attestation` error.
+// https://datatracker.ietf.org/doc/draft-ietf-oauth-attestation-based-client-auth-11 (section 7.4)
+func UseFreshAttestation() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "use_fresh_attestation",
+		errorDescription: "The client attestation JWT is not fresh enough to be acceptable by the server.",
+	}
+}
+
+// InvalidClientAttestation returns a compliant `invalid_client_attestation` error.
+// https://datatracker.ietf.org/doc/draft-ietf-oauth-attestation-based-client-auth-11 (section 7.4)
+func InvalidClientAttestation() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "invalid_client_attestation",
+		errorDescription: "The client attestation or its proof of possession could not be verified, or is not supported.",
+	}
+}

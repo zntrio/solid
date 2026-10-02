@@ -19,11 +19,11 @@ package jwk
 
 import (
 	"crypto"
+	"crypto/mldsa"
 	"encoding/base64"
 	"encoding/json"
 	"testing"
 
-	"crypto/mldsa"
 	golangjwt "github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 )

@@ -369,8 +369,18 @@ type ServerMetadata struct {
 	// OPTIONAL. JWS algs the OP accepts for signed authentication requests
 	// (CIBA section 7.1.1). Omitted means unsupported.
 	BackchannelAuthenticationRequestSigningAlgValuesSupported []string `protobuf:"bytes,63,rep,name=backchannel_authentication_request_signing_alg_values_supported,json=backchannelAuthenticationRequestSigningAlgValuesSupported,proto3" json:"backchannel_authentication_request_signing_alg_values_supported,omitempty"`
-	unknownFields                                             protoimpl.UnknownFields
-	sizeCache                                                 protoimpl.SizeCache
+	// OPTIONAL. JSON array containing a list of the JWS alg values supported by
+	// the authorization server for signing the Client Attestation JWT
+	// (draft-ietf-oauth-attestation-based-client-auth-11, section 8). The value
+	// "none" MUST NOT be present.
+	ClientAttestationSigningAlgValuesSupported []string `protobuf:"bytes,64,rep,name=client_attestation_signing_alg_values_supported,json=clientAttestationSigningAlgValuesSupported,proto3" json:"client_attestation_signing_alg_values_supported,omitempty"`
+	// OPTIONAL. JSON array containing a list of the JWS alg values supported by
+	// the authorization server for signing the Client Attestation PoP JWT
+	// (draft-ietf-oauth-attestation-based-client-auth-11, section 8). The values
+	// "none" and any symmetric algorithms MUST NOT be present.
+	ClientAttestationPopSigningAlgValuesSupported []string `protobuf:"bytes,65,rep,name=client_attestation_pop_signing_alg_values_supported,json=clientAttestationPopSigningAlgValuesSupported,proto3" json:"client_attestation_pop_signing_alg_values_supported,omitempty"`
+	unknownFields                                 protoimpl.UnknownFields
+	sizeCache                                     protoimpl.SizeCache
 }
 
 func (x *ServerMetadata) Reset() {
@@ -844,6 +854,20 @@ func (x *ServerMetadata) GetBackchannelAuthenticationRequestSigningAlgValuesSupp
 	return nil
 }
 
+func (x *ServerMetadata) GetClientAttestationSigningAlgValuesSupported() []string {
+	if x != nil {
+		return x.ClientAttestationSigningAlgValuesSupported
+	}
+	return nil
+}
+
+func (x *ServerMetadata) GetClientAttestationPopSigningAlgValuesSupported() []string {
+	if x != nil {
+		return x.ClientAttestationPopSigningAlgValuesSupported
+	}
+	return nil
+}
+
 // MTLSEndpoints contains endpoints for mTLS Client Authentication
 // https://www.rfc-editor.org/rfc/rfc8705.html
 type MTLSEndpoints struct {
@@ -926,7 +950,7 @@ var File_oidc_discovery_v1_server_proto protoreflect.FileDescriptor
 
 const file_oidc_discovery_v1_server_proto_rawDesc = "" +
 	"\n" +
-	"\x1eoidc/discovery/v1/server.proto\x12\x11oidc.discovery.v1\"\xec$\n" +
+	"\x1eoidc/discovery/v1/server.proto\x12\x11oidc.discovery.v1\"\xbd&\n" +
 	"\x0eServerMetadata\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x125\n" +
 	"\x16authorization_endpoint\x18\x02 \x01(\tR\x15authorizationEndpoint\x12%\n" +
@@ -992,7 +1016,9 @@ const file_oidc_discovery_v1_server_proto_rawDesc = "" +
 	"&authorization_grant_profiles_supported\x18< \x03(\tR#authorizationGrantProfilesSupported\x12N\n" +
 	"#backchannel_authentication_endpoint\x18= \x01(\tR!backchannelAuthenticationEndpoint\x12Z\n" +
 	"*backchannel_token_delivery_modes_supported\x18> \x03(\tR&backchannelTokenDeliveryModesSupported\x12\x82\x01\n" +
-	"?backchannel_authentication_request_signing_alg_values_supported\x18? \x03(\tR9backchannelAuthenticationRequestSigningAlgValuesSupported\"\xb5\x02\n" +
+	"?backchannel_authentication_request_signing_alg_values_supported\x18? \x03(\tR9backchannelAuthenticationRequestSigningAlgValuesSupported\x12c\n" +
+	"/client_attestation_signing_alg_values_supported\x18@ \x03(\tR*clientAttestationSigningAlgValuesSupported\x12j\n" +
+	"3client_attestation_pop_signing_alg_values_supported\x18A \x03(\tR-clientAttestationPopSigningAlgValuesSupported\"\xb5\x02\n" +
 	"\rMTLSEndpoints\x12%\n" +
 	"\x0etoken_endpoint\x18\x01 \x01(\tR\rtokenEndpoint\x12/\n" +
 	"\x13revocation_endpoint\x18\x02 \x01(\tR\x12revocationEndpoint\x125\n" +

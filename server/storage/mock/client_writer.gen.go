@@ -41,6 +41,20 @@ func (m *MockClientWriter) EXPECT() *MockClientWriterMockRecorder {
 	return m.recorder
 }
 
+// Delete mocks base method.
+func (m *MockClientWriter) Delete(ctx context.Context, id string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockClientWriterMockRecorder) Delete(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClientWriter)(nil).Delete), ctx, id)
+}
+
 // Register mocks base method.
 func (m *MockClientWriter) Register(ctx context.Context, c *clientv1.Client) (string, error) {
 	m.ctrl.T.Helper()
@@ -54,4 +68,18 @@ func (m *MockClientWriter) Register(ctx context.Context, c *clientv1.Client) (st
 func (mr *MockClientWriterMockRecorder) Register(ctx, c any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockClientWriter)(nil).Register), ctx, c)
+}
+
+// Update mocks base method.
+func (m *MockClientWriter) Update(ctx context.Context, c *clientv1.Client) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Update", ctx, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Update indicates an expected call of Update.
+func (mr *MockClientWriterMockRecorder) Update(ctx, c any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockClientWriter)(nil).Update), ctx, c)
 }

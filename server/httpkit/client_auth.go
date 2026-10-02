@@ -18,13 +18,11 @@
 package httpkit
 
 import (
-	"context"
 	"encoding/pem"
 	"log"
 	"net/http"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
-	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/spiffe"
 	"zntr.io/solid/server/clientauthentication"
@@ -37,17 +35,15 @@ import (
 // SPIFFE client authentication methods (draft-ietf-oauth-spiffe-client-auth-02).
 // dpopProofs is the shared DPoP proof (jti) store used by the proof-of-
 // possession client authentication processors.
+//
+//nolint:gocyclo // linear presentation-layer dispatch; each branch selects one authentication processor
 func ClientAuthentication(clients storage.ClientReader, issuer string, supportedAlgorithms []string, spiffeBundles spiffe.BundleSource, dpopProofs storage.DPoP, profiles profile.Server) Adapter {
-	// Prepare client authentication. The audience surface is the AS issuer
-	// identifier (draft-ietf-oauth-security-topics-update-03 section 2.1.2.1)
-	// plus the exact receiving endpoint, resolved per-request below (section
-	// 2.1.2.2).
-	clientAuth := clientauthentication.PrivateKeyJWT(clients, dpopProofs, issuer, supportedAlgorithms)
-	clientAttestationAuth := clientauthentication.ClientAttestation(clients, dpopProofs, issuer, supportedAlgorithms)
-	spiffeJWTAuth := clientauthentication.SPIFFEJWT(clients, spiffeBundles, dpopProofs, issuer, supportedAlgorithms)
-	spiffeWITAuth := clientauthentication.SPIFFEWIT(clients, spiffeBundles, dpopProofs, issuer, supportedAlgorithms)
-	spiffeX509Auth := clientauthentication.SPIFFEX509(clients, spiffeBundles)
-	tlsClientAuth := clientauthentication.TLSClientAuth(clients)
+	// Prepare the client authentication processors, shared with the other
+	// presentation layers (gRPC backend). The audience surface is the AS
+	// issuer identifier (draft-ietf-oauth-security-topics-update-03 section
+	// 2.1.2.1) plus the exact receiving endpoint, resolved per-request
+	// below (section 2.1.2.2).
+	procs := clientauthentication.NewProcessorSet(clients, issuer, supportedAlgorithms, spiffeBundles, dpopProofs)
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var (
@@ -81,9 +77,8 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				}
 
 				var (
-					authMethod    = r.PostFormValue("client_assertion_type")
-					assertion     = r.PostFormValue("client_assertion")
-					authenticator clientauthentication.AuthenticationProcessor
+					authMethod = r.PostFormValue("client_assertion_type")
+					assertion  = r.PostFormValue("client_assertion")
 					// draft-ietf-oauth-spiffe-client-auth-02 section 3.3:
 					// WIT-SVID carriage via the attestation headers.
 					attestation    = r.Header.Get("OAuth-Client-Attestation")
@@ -102,7 +97,7 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				// PKI tls_client_auth method receive it as tls_client_cert.
 				tlsClientCertPEM := pemClientCertificate(r)
 
-				authenticator, okAuth := selectAuthenticator(ctx, clients, authMethod, attestation, attestationPop, tlsClientCertPEM, clientIDParam, clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth)
+				authenticator, authMethodID, okAuth := procs.Select(ctx, clients, authMethod, attestation, attestationPop, tlsClientCertPEM, clientIDParam)
 				if !okAuth {
 					WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidRequest().Build())
 					return
@@ -120,7 +115,7 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 					// draft section 3.2: when the x509 leaf SAN carries the
 					// SPIFFE ID and no client_id parameter was given, the
 					// middleware resolves it for the client binding.
-					if authenticator == spiffeX509Auth && clientIDParam == "" {
+					if authenticator == procs.SPIFFEX509 && clientIDParam == "" {
 						leaf := r.TLS.PeerCertificates[0]
 						if spiffeID, ok := spiffe.TrustDomainFromX509SVID(leaf); ok {
 							req.ClientId = new(spiffeID)
@@ -128,8 +123,11 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 					}
 				}
 
-				// draft section 3.3: WIT-SVID + PoP from the attestation headers.
-				if authenticator == spiffeWITAuth {
+				// draft-ietf-oauth-spiffe-client-auth-02 section 3.3 and
+				// draft-ietf-oauth-attestation-based-client-auth-11 sections
+				// 4/5.1: both header-transport mechanisms ride the
+				// OAuth-Client-Attestation header pair.
+				if authenticator == procs.SPIFFEWIT || authenticator == procs.ClientAttestation {
 					req.ClientAttestation = new(attestation)
 					req.ClientAttestationPop = new(attestationPop)
 				}
@@ -142,7 +140,18 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				resAuth, err := authenticator.Authenticate(ctx, req)
 				if err != nil {
 					log.Println("unable to authenticate client:", err)
-					WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
+					status := http.StatusUnauthorized
+					e := rfcerrors.InvalidClient().Build()
+					if resAuth != nil && resAuth.GetError() != nil {
+						e = resAuth.GetError()
+						if e.GetError() == "use_fresh_attestation" {
+							// draft-ietf-oauth-attestation-based-client-auth-11
+							// section 7.4 / RFC 6749 section 5.2: freshness
+							// errors are request errors, not 401 challenges.
+							status = http.StatusBadRequest
+						}
+					}
+					WithError(w, r, status, e)
 					return
 				}
 
@@ -151,7 +160,7 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				// authentication method must be part of the profile's
 				// token-endpoint auth methods.
 				if prof, okProfile := profiles.ApplicationType(resAuth.Client.ApplicationType); okProfile {
-					if !prof.TokenEndpointAuthMethodsSupported().Contains(resolvedAuthMethod(authenticator, clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth)) {
+					if !prof.TokenEndpointAuthMethodsSupported().Contains(authMethodID) {
 						WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 						return
 					}
@@ -181,57 +190,4 @@ func pemClientCertificate(r *http.Request) string {
 	})
 
 	return string(pemCert)
-}
-
-// selectAuthenticator resolves the client authentication method from the
-// request inputs (SPIFFE draft sections 3.2/3.3, RFC 8705 section 2.1).
-func selectAuthenticator(ctx context.Context, clients storage.ClientReader, authMethod, attestation, attestationPop, tlsClientCertPEM, clientIDParam string,
-	clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth clientauthentication.AuthenticationProcessor,
-) (clientauthentication.AuthenticationProcessor, bool) {
-	switch {
-	case authMethod == oidc.AssertionTypeJWTSPIFFE:
-		return spiffeJWTAuth, true
-	case authMethod == "" && attestation != "" && attestationPop != "":
-		return spiffeWITAuth, true
-	case authMethod == "" && tlsClientCertPEM != "":
-		// RFC 8705 section 2.1 takes precedence when the resolved
-		// client is registered for tls_client_auth; otherwise the
-		// certificate is an X.509-SVID candidate (SPIFFE draft
-		// section 3.2).
-		if clientIDParam != "" {
-			if registered, err := clients.Get(ctx, clientIDParam); err == nil &&
-				registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth {
-				return tlsClientAuth, true
-			}
-		}
-		return spiffeX509Auth, true
-	case authMethod == oidc.AssertionTypeJWTBearer:
-		return clientAuth, true
-	case authMethod == oidc.AssertionTypeJWTClientAttestation:
-		return clientAttestationAuth, true
-	default:
-		return nil, false
-	}
-}
-
-// resolvedAuthMethod maps the selected authentication processor back to its
-// token-endpoint authentication method identifier (RFC 8705 section 2.1,
-// draft-ietf-oauth-spiffe-client-auth-02 sections 3.2/3.3).
-func resolvedAuthMethod(authenticator, clientAuth, clientAttestationAuth, spiffeJWTAuth, spiffeWITAuth, spiffeX509Auth, tlsClientAuth clientauthentication.AuthenticationProcessor) string {
-	switch authenticator {
-	case clientAuth:
-		return oidc.AuthMethodPrivateKeyJWT
-	case clientAttestationAuth:
-		return oidc.AuthMethodClientAttestationJWT
-	case spiffeJWTAuth:
-		return oidc.AuthMethodSPIFFEJWT
-	case spiffeWITAuth:
-		return oidc.AuthMethodSPIFFEWIT
-	case spiffeX509Auth:
-		return oidc.AuthMethodSPIFFEX509
-	case tlsClientAuth:
-		return oidc.AuthMethodTLSClientAuth
-	default:
-		return ""
-	}
 }

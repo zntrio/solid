@@ -24,7 +24,7 @@ client-authentication mechanisms.
 | [`spiffeclient`](spiffeclient/README.md) | client | — | `authorizationserver` |
 | [`cibaclient`](cibaclient/README.md) | client | — | `authorizationserver` |
 | [`cimdclient`](cimdclient/README.md) | client | — | `authorizationserver` |
-| [`coapace`](coapace/README.md) | server+client (CoAP/DTLS) | `:5684`, `:5685` | — (self-contained) |
+| [`grpcbackend`](grpcbackend/README.md) | server (gRPC) | `:9090` | — |
 
 Client demos are one-shot: they run, print the exchanged token (and the
 resource response when applicable), then exit.
@@ -65,6 +65,15 @@ and the resource server serves:
 
 The attestation server serves `http://127.0.0.1:8087/attestations/sign` and
 `/attestations/jwks`.
+
+Running the gRPC backend instead: it exposes the authorization protocol
+core (client authentication, PAR, token, introspection, revocation, gated
+RFC 7591 registration) as proto-defined gRPC services for a presentation
+layer to consume — see `grpcbackend/README.md`:
+
+```sh
+go run ./examples/grpcbackend
+```
 
 ## Running the client demos
 

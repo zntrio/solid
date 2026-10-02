@@ -48,6 +48,15 @@ func (m *Client) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
 	}
+	if m.RegistrationAccessToken != nil {
+		i -= len(*m.RegistrationAccessToken)
+		copy(dAtA[i:], *m.RegistrationAccessToken)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.RegistrationAccessToken)))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0x8a
+	}
 	if len(m.AuthorizedIntrospectionClients) > 0 {
 		for iNdEx := len(m.AuthorizedIntrospectionClients) - 1; iNdEx >= 0; iNdEx-- {
 			i -= len(m.AuthorizedIntrospectionClients[iNdEx])
@@ -1273,6 +1282,10 @@ func (m *Client) SizeVT() (n int) {
 			l = len(s)
 			n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 		}
+	}
+	if m.RegistrationAccessToken != nil {
+		l = len(*m.RegistrationAccessToken)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
 	return n
@@ -2629,6 +2642,39 @@ func (m *Client) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.AuthorizedIntrospectionClients = append(m.AuthorizedIntrospectionClients, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 33:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegistrationAccessToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.RegistrationAccessToken = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

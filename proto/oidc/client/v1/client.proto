@@ -126,6 +126,9 @@ message Client {
   // allowed; anyone else receives the no-cause-distinction inactive
   // envelope.
   repeated string authorized_introspection_clients = 32;
+  // RFC 7592 section 2: registration access token bound to this client
+  // (server-side record; never returned outside the registration surface).
+  optional string registration_access_token = 33;
 }
 
 message ClientMeta {

@@ -114,7 +114,7 @@ func (v *coseVerifierMLDSA) Verify(content, signature []byte) error {
 // coseSignerMLDSAForKey resolves the external ML-DSA go-cose signer for a
 // solid ML-DSA key, mapping the key parameters to the RFC 9964 COSE
 // algorithm values.
-func coseSignerMLDSAForKey(key *jwk.MLDSAKey) (cose.Signer, error) {
+func CoseSignerMLDSAForKey(key *jwk.MLDSAKey) (cose.Signer, error) {
 	priv := key.PrivateKey()
 	if priv == nil {
 		return nil, errors.New("ML-DSA key has no private key material")
@@ -134,7 +134,7 @@ func coseSignerMLDSAForKey(key *jwk.MLDSAKey) (cose.Signer, error) {
 // coseVerifierMLDSAForKey resolves the external ML-DSA go-cose verifier for
 // a solid ML-DSA key, mapping the key parameters to the RFC 9964 COSE
 // algorithm values.
-func coseVerifierMLDSAForKey(key *jwk.MLDSAKey) (cose.Verifier, error) {
+func CoseVerifierMLDSAForKey(key *jwk.MLDSAKey) (cose.Verifier, error) {
 	pub := key.MLDSPublicKey()
 	if pub == nil {
 		return nil, errors.New("ML-DSA key has no public key material")

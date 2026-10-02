@@ -35,6 +35,13 @@ service ClientRegistrationService {
   rpc Register(RegisterRequest) returns (RegisterResponse) {}
 }
 
+// https://tools.ietf.org/html/rfc7592
+service ClientRegistrationManagementService {
+  rpc Read(ReadRequest) returns (ReadResponse) {}
+  rpc Update(UpdateRequest) returns (UpdateResponse) {}
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+}
+
 // -----------------------------------------------------------------------------
 
 message AuthenticateRequest {
@@ -45,11 +52,11 @@ message AuthenticateRequest {
   // draft-ietf-oauth-spiffe-client-auth-02 section 3.2: client certificate
   // from the mutual TLS presentation layer (X.509-SVID), PEM-encoded.
   optional string tls_client_cert = 5;
-  // draft-ietf-oauth-spiffe-client-auth-02 section 3.3: WIT-SVID carried in
-  // the OAuth-Client-Attestation header.
+  // draft-ietf-oauth-attestation-based-client-auth-11 section 4: Client
+  // Attestation JWT carried in the OAuth-Client-Attestation header.
   optional string client_attestation = 6;
-  // draft-ietf-oauth-spiffe-client-auth-02 section 3.3: attestation PoP JWT
-  // carried in the OAuth-Client-Attestation-PoP header.
+  // draft-ietf-oauth-attestation-based-client-auth-11 section 5.1: Client
+  // Attestation PoP JWT carried in the OAuth-Client-Attestation-PoP header.
   optional string client_attestation_pop = 7;
   // draft-ietf-oauth-security-topics-update-03 section 2.1.2.2: the
   // receiving endpoint URI, used to enforce endpoint-exact client-assertion
@@ -74,4 +81,47 @@ message RegisterRequest {
 message RegisterResponse {
   .oidc.core.v1.Error error = 1;
   Client client = 2;
+  // RFC 7592 section 3: bearer token for the client configuration endpoint.
+  optional string registration_access_token = 3;
+  // RFC 7592 section 3: fully qualified client configuration endpoint URI.
+  optional string registration_client_uri = 4;
+}
+
+// https://tools.ietf.org/html/rfc7592#section-2.1
+message ReadRequest {
+  // RFC 7592 section 2: bearer token authenticating the caller.
+  optional string registration_access_token = 1;
+  // RFC 7592 section 2.1: the client whose configuration is read.
+  optional string client_id = 2;
+}
+
+// https://tools.ietf.org/html/rfc7592#section-2.2
+message UpdateRequest {
+  optional string registration_access_token = 1;
+  // RFC 7592 section 2.2: MUST equal the currently issued client_id.
+  optional string client_id = 2;
+  // RFC 7592 section 2.2: full replacement metadata; omitted fields are
+  // deleted from the registration (replace-not-augment).
+  ClientMeta metadata = 3;
+}
+
+// https://tools.ietf.org/html/rfc7592#section-2.3
+message DeleteRequest {
+  optional string registration_access_token = 1;
+  optional string client_id = 2;
+}
+
+// RFC 7592 section 3: client information response, shared by read/update.
+message ReadResponse {
+  .oidc.core.v1.Error error = 1;
+  Client client = 2;
+}
+
+message UpdateResponse {
+  .oidc.core.v1.Error error = 1;
+  Client client = 2;
+}
+
+message DeleteResponse {
+  .oidc.core.v1.Error error = 1;
 }

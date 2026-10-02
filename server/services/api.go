@@ -20,6 +20,7 @@ package services
 import (
 	"context"
 
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 )
@@ -60,4 +61,17 @@ type BackchannelAuthentication interface {
 	Validate(ctx context.Context, req *flowv1.BackchannelAuthenticationValidationRequest) (*flowv1.BackchannelAuthenticationValidationResponse, error)
 	// Deny refuses a backchannel authentication request (CIBA section 11: access_denied).
 	Deny(ctx context.Context, req *flowv1.BackchannelAuthenticationValidationRequest) (*flowv1.BackchannelAuthenticationValidationResponse, error)
+}
+
+// ClientRegistration describes dynamic client registration processor
+// (RFC 7591) and the RFC 7592 management protocol.
+type ClientRegistration interface {
+	// Register a client (RFC 7591 section 3.2.1).
+	Register(ctx context.Context, req *clientv1.RegisterRequest) (*clientv1.RegisterResponse, error)
+	// Read the current registration (RFC 7592 section 2.1).
+	Read(ctx context.Context, req *clientv1.ReadRequest) (*clientv1.ReadResponse, error)
+	// Update the registration (RFC 7592 section 2.2).
+	Update(ctx context.Context, req *clientv1.UpdateRequest) (*clientv1.UpdateResponse, error)
+	// Delete the registration (RFC 7592 section 2.3).
+	Delete(ctx context.Context, req *clientv1.DeleteRequest) (*clientv1.DeleteResponse, error)
 }

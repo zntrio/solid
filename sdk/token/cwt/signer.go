@@ -70,14 +70,14 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 
 	// Resolve and materialize the signing key as a crypto.Signer
 	// consumable by go-cose.
-	keySigner, kid, err := resolveSigningKey(ctx, ds.keyProvider)
+	keySigner, kid, err := ResolveSigningKey(ctx, ds.keyProvider)
 	if err != nil {
 		return "", err
 	}
 
 	// Enforce the algorithm allowlist: elliptic curves only, no RSA / HS
 	// families (project security posture).
-	if errAlg := enforceAlgorithmAllowlist(ds.alg); errAlg != nil {
+	if errAlg := EnforceAlgorithmAllowlist(ds.alg); errAlg != nil {
 		return "", errAlg
 	}
 
@@ -86,7 +86,7 @@ func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, err
 	// constructor on the materialized crypto.Signer.
 	var signer cose.Signer
 	if akp, isAKP := keySigner.(*jwk.MLDSAKey); isAKP {
-		signer, err = coseSignerMLDSAForKey(akp)
+		signer, err = CoseSignerMLDSAForKey(akp)
 		if err != nil {
 			return "", err
 		}
@@ -157,9 +157,9 @@ var supportedSignAlgorithms = []cose.Algorithm{
 	AlgorithmMLDSA87,
 }
 
-// enforceAlgorithmAllowlist rejects any signing algorithm outside the
+// EnforceAlgorithmAllowlist rejects any signing algorithm outside the
 // supported elliptic-curve / ML-DSA set.
-func enforceAlgorithmAllowlist(alg cose.Algorithm) error {
+func EnforceAlgorithmAllowlist(alg cose.Algorithm) error {
 	for _, supported := range supportedSignAlgorithms {
 		if alg == supported {
 			return nil
@@ -168,12 +168,12 @@ func enforceAlgorithmAllowlist(alg cose.Algorithm) error {
 	return fmt.Errorf("unsupported COSE algorithm %q", alg.String())
 }
 
-// resolveSigningKey invokes the key provider and returns the signing key.
+// ResolveSigningKey invokes the key provider and returns the signing key.
 // AKP keys (ML-DSA, RFC 9964) are returned as-is: the caller routes them
 // to the external cose.Signer implementation, since go-cose does not
 // know the algorithm. Every other key type is materialized as a native
 // crypto.Signer consumable by the go-cose constructors.
-func resolveSigningKey(ctx context.Context, keyProvider jwk.KeyProviderFunc) (signingKey any, keyID string, err error) {
+func ResolveSigningKey(ctx context.Context, keyProvider jwk.KeyProviderFunc) (signingKey any, keyID string, err error) {
 	// Retrieve signing key
 	key, err := keyProvider(ctx)
 	if err != nil {

@@ -3,10 +3,10 @@ package cwt
 import (
 	"bytes"
 	"context"
+	"crypto/mldsa"
 	"encoding/hex"
 	"testing"
 
-	"crypto/mldsa"
 	"github.com/veraison/go-cose"
 
 	"zntr.io/solid/sdk/jwk"
@@ -50,7 +50,7 @@ func TestRFC9964_COSERoundTrip(t *testing.T) {
 	}
 
 	// Verify the vector signature through the external RFC 9964 verifier.
-	verifier, err := coseVerifierMLDSAForKey(akp)
+	verifier, err := CoseVerifierMLDSAForKey(akp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,12 +150,12 @@ func TestRFC9964_MLDSASignVerifyRoundTrip(t *testing.T) {
 // ML-DSA alongside elliptic curves, mirroring the JOSE allowlist.
 func TestRFC9964_AllowlistExtension(t *testing.T) {
 	for _, alg := range []cose.Algorithm{cose.AlgorithmES256, cose.AlgorithmES384, cose.AlgorithmES512, AlgorithmMLDSA44, AlgorithmMLDSA65, AlgorithmMLDSA87} {
-		if err := enforceAlgorithmAllowlist(alg); err != nil {
+		if err := EnforceAlgorithmAllowlist(alg); err != nil {
 			t.Errorf("algorithm %v must be allowed: %v", alg, err)
 		}
 	}
 	for _, alg := range []cose.Algorithm{-257, -37, 0} {
-		if err := enforceAlgorithmAllowlist(alg); err == nil {
+		if err := EnforceAlgorithmAllowlist(alg); err == nil {
 			t.Errorf("algorithm %v must be rejected", alg)
 		}
 	}

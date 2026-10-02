@@ -71,4 +71,27 @@ func Test_tokenStorage(t *testing.T) {
 			t.Errorf("GetByValue() err = %v, want ErrNotFound", err)
 		}
 	})
+
+	t.Run("GetByClientID returns every token issued to the client", func(t *testing.T) {
+		s := Tokens([]byte("0123456789abcdef0123456789abcdef"))
+		for _, tok := range []*tokenv1.Token{
+			{TokenId: "a-1", Value: "v-a-1", Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE, Issuer: "https://honest.as.example", Metadata: &tokenv1.TokenMeta{ClientId: "client-a"}},
+			{TokenId: "a-2", Value: "v-a-2", Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE, Issuer: "https://honest.as.example", Metadata: &tokenv1.TokenMeta{ClientId: "client-a"}},
+			{TokenId: "b-1", Value: "v-b-1", Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE, Issuer: "https://honest.as.example", Metadata: &tokenv1.TokenMeta{ClientId: "client-b"}},
+		} {
+			if err := s.Create(ctx, "https://honest.as.example", tok); err != nil {
+				t.Fatalf("Create() error = %v", err)
+			}
+		}
+
+		got := s.GetByClientID(ctx, "client-a")
+		if len(got) != 2 {
+			t.Fatalf("GetByClientID(client-a) returned %d tokens, want 2", len(got))
+		}
+		for _, tok := range got {
+			if tok.GetMetadata().GetClientId() != "client-a" {
+				t.Errorf("GetByClientID(client-a) returned token of client %s", tok.GetMetadata().GetClientId())
+			}
+		}
+	})
 }

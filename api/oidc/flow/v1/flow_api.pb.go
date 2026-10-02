@@ -1610,9 +1610,10 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\vauth_req_id\x18\x02 \x01(\tR\tauthReqId\x12\x18\n" +
 	"\asubject\x18\x03 \x01(\tR\asubject\"X\n" +
 	"+BackchannelAuthenticationValidationResponse\x12)\n" +
-	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error2\xa6\x01\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error2\xf9\x01\n" +
 	"\x14AuthorizationService\x12L\n" +
-	"\tAuthorize\x12\x1e.oidc.flow.v1.AuthorizeRequest\x1a\x1f.oidc.flow.v1.AuthorizeResponse\x12@\n" +
+	"\tAuthorize\x12\x1e.oidc.flow.v1.AuthorizeRequest\x1a\x1f.oidc.flow.v1.AuthorizeResponse\x12Q\n" +
+	"\bRegister\x12!.oidc.flow.v1.RegistrationRequest\x1a\".oidc.flow.v1.RegistrationResponse\x12@\n" +
 	"\x05Token\x12\x1a.oidc.flow.v1.TokenRequest\x1a\x1b.oidc.flow.v1.TokenResponseB'Z%zntr.io/solid/api/oidc/flow/v1;flowv1b\x06proto3"
 
 var (
@@ -1688,11 +1689,13 @@ var file_oidc_flow_v1_flow_api_proto_depIdxs = []int32{
 	17, // 27: oidc.flow.v1.BackchannelAuthenticationResponse.error:type_name -> oidc.core.v1.Error
 	17, // 28: oidc.flow.v1.BackchannelAuthenticationValidationResponse.error:type_name -> oidc.core.v1.Error
 	0,  // 29: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
-	4,  // 30: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
-	1,  // 31: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
-	5,  // 32: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
-	31, // [31:33] is the sub-list for method output_type
-	29, // [29:31] is the sub-list for method input_type
+	2,  // 30: oidc.flow.v1.AuthorizationService.Register:input_type -> oidc.flow.v1.RegistrationRequest
+	4,  // 31: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
+	1,  // 32: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
+	3,  // 33: oidc.flow.v1.AuthorizationService.Register:output_type -> oidc.flow.v1.RegistrationResponse
+	5,  // 34: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
+	32, // [32:35] is the sub-list for method output_type
+	29, // [29:32] is the sub-list for method input_type
 	29, // [29:29] is the sub-list for extension type_name
 	29, // [29:29] is the sub-list for extension extendee
 	0,  // [0:29] is the sub-list for field type_name

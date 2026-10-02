@@ -12,6 +12,14 @@ profile (PAR → authorize → code → redeem → refresh → revoke).
 - `xaa.qnt` — the Cross-App Access / ID-JAG model (XAA protocol).
 - `xaa_test.qnt` — XAA deterministic scenario tests (run: `quint test
   xaa_test.qnt --main xaaTest`).
+- `clientcredentials.qnt` / `clientcredentials_test.qnt` — machine-to-machine
+  grant (run: `quint test clientcredentials_test.qnt --main clientcredentialsTest`).
+- `devicecode.qnt` / `devicecode_test.qnt` — device_code grant, RFC 8628/10027
+  (run: `quint test devicecode_test.qnt --main devicecodeTest`).
+- `tokenexchange.qnt` / `tokenexchange_test.qnt` — token_exchange access-token
+  path, RFC 8693 (run: `quint test tokenexchange_test.qnt --main tokenexchangeTest`).
+- `ciba.qnt` / `ciba_test.qnt` — CIBA flow, OpenID CIBA Core 1.0 + RFC 9700
+  §4.12 (run: `quint test ciba_test.qnt --main cibaTest`).
 
 ## Source correspondence map
 
@@ -92,6 +100,108 @@ no-openid mint-nothing path, and the DPoP code binding (bound-code redeem
 with matching key, key-swap rejected, no-proof rejected, key continuity
 through refresh).
 
+
+### client_credentials ( `clientcredentials.qnt` )
+
+Source: `server/services/token/grant_client_credentials.go` (+ shared
+preamble `grants.go`).
+
+| ID | Property | RFC | Status |
+|---|---|---|---|
+| CC1 | no `authorization_details` ever minted; scope ⊆ registered scope (fail-closed consent authority) | 9396 | ✔ |
+| CC2 | no refresh token can ever exist (structural) | v2.1 §4.4.3 | ✔ |
+| CC3 | token subject == authenticated client id (impersonation impossible) | 6749 §4.4.2 | ✔ |
+| CC4 | tokens mint only for CONFIDENTIAL/CREDENTIALED clients with the client_credentials capability | 6749 §2.1 | ✔ |
+| CC5 | sender-binding policy: DPoP-bound client ⇒ token jkt ≠ 0; unbound client ⇒ jkt == 0 | 9449 | ✔ |
+| CC6 | each mint gets a fresh GrantId (distinct families) | 9700 §4.14.2 | ✔ |
+
+Verification: `quint run` (1000 + 5000-trace sweeps, no violations; witnesses
+100%/99.2%/98.4%) and exhaustive bounded model checking (`quint verify`
+/ Apalache, depth 5 — `The outcome is: NoError`). Deterministic tests: 12/12
+passing (happy paths, public/unknown/non-capable client rejection, details
+smuggling fail-closed, DPoP missing-proof and unbound-with-proof rejection,
+scope smuggling, fresh grant family, structural no-RT).
+
+### device_code ( `devicecode.qnt` )
+
+Source: `server/services/device/service.go` (authorization + approval),
+`server/services/token/grant_device_code.go` (poll), `grants.go`
+`enforcePollInterval`.
+
+| ID | Property | RFC | Status |
+|---|---|---|---|
+| D1 | a device session mints at most one token (atomic consume; second poll ⇒ invalid_grant) | 8628 §3.5 | ✔ |
+| D2 | no refresh token ever; `offline_access` stripped at issue | 10027 §6.1.9/6.1.10 | ✔ |
+| D3 | token subject == the subject set at VALIDATE time (approver binding) | 8628 §3.3 | ✔ |
+| D4 | token client == the session's requesting client | 8628 §3.4 | ✔ |
+| D5 | poll throttle: interval monotone (+5 per slow_down); slow_down never advances lastPolledAt | 8628 §3.5 | ✔ |
+| D6 | authorization_details fixed at device-auth time (no token-endpoint narrowing) | 9396 | ✔ |
+| D7 | user-code brute-force latch: ≥5 failures by a subject block further approvals | — | ✔ |
+
+Verification: `quint run` (1000 + 5000-trace sweeps at 30/60 steps, full-length
+traces, no violations; witnesses 34–100%) and exhaustive bounded model
+checking (`quint verify` / Apalache, depth 5 — `The outcome is: NoError`).
+Deterministic tests: 21/21 passing (happy path, single-use, pending/slow_down
+throttle cycles, deny, expiry as no-op, wrong client, unknown code,
+capability gating, details fail-closed and frozen, DPoP swap/continuity,
+brute-force latch and reset, DENIED terminal, session independence).
+
+### token_exchange ( `tokenexchange.qnt` )
+
+Source: `server/services/token/grant_token_exchange.go` (access-token
+subject path; the ID-JAG sub-path is covered by `xaa.qnt`).
+
+| ID | Property | RFC | Status |
+|---|---|---|---|
+| T1 | subject preservation: minted subject == subject token's subject (never the exchanging client or actor) | 8693 §4.1.3.4 | ✔ |
+| T2 | client attribution: minted exchanging-client == authenticated requester | 8693 §4.1.3.3 | ✔ |
+| T3 | scope narrowing: minted scope ⊆ subject token scope; never widens | 8693 §4.1.3.3 | ✔ |
+| T4 | may_act gate: gated tokens exchange only via a listed actor | 8693 §5 | ✔ |
+| T5 | act chain == [actor.subject] ++ actor chain, depth ≤ 3 fail-closed | 8693 §4.4 | ✔ |
+| T6 | cnf continuity: exchange cannot strip or swap the subject token's DPoP binding | 9449 §8 | ✔ |
+| T7 | audience only ever a registry-resolved URN, never a verbatim request value | 8707 §2 | ✔ |
+| T8 | no RT, no authorization_details from exchange (fail-closed) | 9396 | ✔ |
+
+Verification: `quint run` (500-trace sweep at 30 steps, no violations; witnesses
+39–100%) and exhaustive bounded model checking (`quint verify` / Apalache,
+depth 5 — `The outcome is: NoError`). Deterministic tests: 20/20 passing
+(plain/actor exchanges, may_act listed vs non-listed vs required, jkt
+carried/swapped/stripped, scope narrowing vs escalation, unknown audience,
+chain depth 3-OK / 4-rejected, details smuggling, capability, requested
+type, RT never).
+
+### CIBA ( `ciba.qnt` )
+
+Source: `server/services/backchannel/service.go` (bc-authorize + approval),
+`server/services/token/grant_ciba.go` (poll), `grants.go`
+`enforcePollInterval`.
+
+| ID | Property | RFC | Status |
+|---|---|---|---|
+| B1 | session single-use: one token per auth_req_id; replay indistinguishable from unknown (invalid_grant) | CIBA §10.2 | ✔ |
+| B2 | no refresh token ever; offline_access never on a minted token | 9700 §4.12.2 | ✔ |
+| B3 | subject binding: minted subject == Validate-time subject; mints only from VALIDATED | CIBA §10.3 | ✔ |
+| B4 | client binding: wrong-client poll mints nothing; token client == session client | CIBA §10.2 | ✔ |
+| B5 | DPoP continuity: session-bound jkt ⇒ matching proof required and carried into the token | 9449 §10 | ✔ |
+| B6 | details fixed at bc-authorize time | 9396 | ✔ |
+| B7 | poll throttle: interval monotone (+5 per slow_down); slow_down never advances lastPolledAt | CIBA §8.4.1 | ✔ |
+| B8 | no token from PENDING/DENIED/expired sessions (structural guard chain) | CIBA §10 | ✔ |
+
+Verification: `quint run` (1000-trace sweep at 30 steps, no violations;
+witnesses 60.9–100%) and exhaustive bounded model checking (`quint verify`
+/ Apalache, depth 5 — `The outcome is: NoError`). Deterministic tests: 35/35
+passing (happy path, single-use, pending/slow_down cycles and enforcement,
+deny, expiry boundary, wrong client, unknown auth_req_id, binding-message/
+hint-cardinality/openid/subject-resolution rejections, signed-request
+structural rules, DPoP match/mismatch/no-proof/unbound, offline stripping,
+details fixed, no RT).
+
+Modeling findings pinned by the CIBA model: (1) a minting poll bypasses
+`enforcePollInterval` — the interval check lives only in the PENDING branch of
+the Go guard chain, so a VALIDATED session mints immediately even inside a
+slow_down window; (2) expiry is strict (`now < expiresAt`). Both are encoded
+faithfully and pinned by tests.
+
 ## Deliberate abstractions
 
 - **Cryptography**: PKCE S256 is an injective abstract function
@@ -132,5 +242,23 @@ Re-verify the XAA model (`xaa.qnt`) before changing:
 - `server/services/token/grant_token_exchange_idjag.go`
 - `server/services/token/grant_jwt_bearer.go`
 - `sdk/idjag/verifier.go`
+
+Re-verify the client_credentials model (`clientcredentials.qnt`) before changing:
+- `server/services/token/grant_client_credentials.go`
+- `server/services/token/grants.go` (preamble, sender-binding policy)
+
+Re-verify the device_code model (`devicecode.qnt`) before changing:
+- `server/services/device/service.go`
+- `server/services/token/grant_device_code.go`
+- `server/services/token/poll_timing.go`
+
+Re-verify the token_exchange model (`tokenexchange.qnt`) before changing:
+- `server/services/token/grant_token_exchange.go`
+- `server/services/token/authorization_details.go`
+
+Re-verify the CIBA model (`ciba.qnt`) before changing:
+- `server/services/backchannel/service.go`
+- `server/services/token/grant_ciba.go`
+- `server/services/token/poll_timing.go`
 
 The spec is the ground truth. Never edit the spec to match broken code.

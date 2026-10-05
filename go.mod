@@ -15,7 +15,7 @@ require (
 	github.com/golangci/golangci-lint/v2 v2.14.0
 	github.com/google/go-cmp v0.7.0
 	github.com/lestrrat-go/jwx/v3 v3.3.0
-	github.com/pion/dtls/v3 v3.1.4
+	github.com/pion/dtls/v3 v3.1.10
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 	github.com/plgd-dev/go-coap/v3 v3.5.4
 	github.com/stretchr/testify v1.12.1
@@ -187,7 +187,7 @@ require (
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/pion/logging v0.2.4 // indirect
-	github.com/pion/transport/v4 v4.0.1 // indirect
+	github.com/pion/transport/v5 v5.0.0 // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect

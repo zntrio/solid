@@ -70,7 +70,7 @@ func Test_defaultSigner_Serialize(t *testing.T) {
 		Exp: 2000000000,
 	}
 
-	raw, err := AccessTokenSigner(cose.AlgorithmES256, keyProvider).Serialize(context.Background(), claims)
+	raw, err := AccessTokenSigner(cose.AlgorithmES256, keyProvider).Sign(context.Background(), claims)
 	if err != nil {
 		t.Fatalf("unable to serialize claims: %v", err)
 	}
@@ -170,7 +170,7 @@ func Test_defaultSigner_Serialize_errors(t *testing.T) {
 			if tt.name == "nil claims" {
 				claims = nil
 			}
-			raw, err := AccessTokenSigner(tt.alg, provider).Serialize(ctx, claims)
+			raw, err := AccessTokenSigner(tt.alg, provider).Sign(ctx, claims)
 			if err == nil || raw != "" {
 				t.Errorf("Serialize() = %q, %v; want error", raw, err)
 			}

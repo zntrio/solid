@@ -135,7 +135,7 @@ func BenchmarkSDCWTPresent(b *testing.B) {
 	}
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := hold.Present(issued, disclosures); err != nil {
+		if _, err := hold.Present(context.Background(), issued, disclosures); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -154,11 +154,11 @@ func BenchmarkSDCWTVerify(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	presentation, err := hold.Present(issued, disclosures)
+	presentation, err := hold.Present(context.Background(), issued, disclosures)
 	if err != nil {
 		b.Fatal(err)
 	}
-	kbt, err := hold.KeyBind(presentation, "verifier.example.com", []byte("bench-cnonce"), WithIssuedAt(1750000500))
+	kbt, err := hold.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("bench-cnonce"), WithIssuedAt(1750000500))
 	if err != nil {
 		b.Fatal(err)
 	}

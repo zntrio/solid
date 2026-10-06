@@ -37,9 +37,31 @@ func Subject(ctx context.Context) (string, bool) {
 	return client, ok
 }
 
+var contextKeyAuthEvent = contextKey("auth_event")
+
+// AuthenticationEvent describes the end-user authentication event observed
+// by the presentation layer (RFC 9470 section 2: the login's acr and
+// auth_time).
+type AuthenticationEvent struct {
+	// ACR is the authentication context class reference achieved by the
+	// login (RFC 9470 section 6.2 / OIDC Core acr).
+	ACR string
+	// AuthTime is the unix timestamp of the authentication event
+	// (RFC 9470 section 6.2 auth_time, seconds since epoch).
+	AuthTime uint64
+}
+
+// AuthenticationEventFromContext returns the authentication event bound to
+// the context, when the login surface recorded one.
+func AuthenticationEventFromContext(ctx context.Context) (AuthenticationEvent, bool) {
+	ev, ok := ctx.Value(contextKeyAuthEvent).(AuthenticationEvent)
+	return ev, ok
+}
+
 // CredentialsChecker validates a username/password pair and returns the
-// authenticated subject.
-type CredentialsChecker func(username, password string) (subject string, ok bool)
+// authenticated subject along with the observed authentication event, if any
+// (a checker may authenticate a subject without asserting an ACR).
+type CredentialsChecker func(username, password string) (subject string, event *AuthenticationEvent, ok bool)
 
 // BasicAuthentication is a middleware to handle basic authentication.
 // The credentials checker is supplied by the assembler; returning ok=false
@@ -62,7 +84,7 @@ func BasicAuthentication(credentials CredentialsChecker) Adapter {
 			}
 
 			// Delegate the credential decision to the assembler.
-			subject, ok := credentials(u, p)
+			subject, event, ok := credentials(u, p)
 			if !ok {
 				unauthorized(w)
 				return
@@ -70,6 +92,12 @@ func BasicAuthentication(credentials CredentialsChecker) Adapter {
 
 			// Inject subject in context
 			ctx = context.WithValue(ctx, contextKeySubject, subject)
+
+			// RFC 9470 section 2: bind the login authentication event, when
+			// the credentials checker observed one.
+			if event != nil {
+				ctx = context.WithValue(ctx, contextKeyAuthEvent, *event)
+			}
 
 			// Delegate to next handler
 			h.ServeHTTP(w, r.WithContext(ctx))

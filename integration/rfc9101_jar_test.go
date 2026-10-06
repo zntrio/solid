@@ -48,6 +48,8 @@ func jarClaims(overrides map[string]any) map[string]any {
 		"code_challenge":        "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 		"code_challenge_method": "S256",
 		"prompt":                "consent",
+		// JARM enforcement: the code flow requires a JWT response mode.
+		"response_mode": oidc.ResponseModeQueryJWT,
 	}
 	for k, v := range overrides {
 		claims[k] = v

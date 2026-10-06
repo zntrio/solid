@@ -43,6 +43,7 @@ func (h *harness) registerCIBAClient(t *testing.T) *clientv1.Client {
 		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		GrantTypes:              []string{oidc.GrantTypeCIBA},
 		ResponseTypes:           []string{oidc.ResponseTypeCode},
+		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
 		Jwks:                    clientJWKSWithSIG,
 	}
@@ -499,7 +500,7 @@ func TestCIBA_DPoPKeyBinding(t *testing.T) {
 		"scope":           "openid profile",
 		"login_hint":      "hello",
 		"binding_message": "W4SCT",
-		"dpop_jkt":        "ciba-dpop-jkt",
+		"dpop_jkt":        "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8",
 	})
 	res, err := h.backchannelz.Authorize(context.Background(), &flowv1.BackchannelAuthenticationRequest{
 		Issuer:   h.issuer,
@@ -520,17 +521,17 @@ func TestCIBA_DPoPKeyBinding(t *testing.T) {
 	require.Nil(t, res2.AccessToken)
 
 	// Poll with the wrong key: proof-key swap, rejected.
-	res3, err := h.pollCIBATokenWithConfirmation(t, client.ClientId, authReqID, &tokenv1.TokenConfirmation{Jkt: "attacker-jkt"})
+	res3, err := h.pollCIBATokenWithConfirmation(t, client.ClientId, authReqID, &tokenv1.TokenConfirmation{Jkt: "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"})
 	require.Error(t, err, "mismatched DPoP key must be rejected")
 	require.NotNil(t, res3.Error)
 	require.Equal(t, "invalid_grant", res3.Error.Error)
 
 	// The rejections happened before the consume: the session survives, a
 	// poll with the bound key mints the sender-constrained token.
-	res4, err := h.pollCIBATokenWithConfirmation(t, client.ClientId, authReqID, &tokenv1.TokenConfirmation{Jkt: "ciba-dpop-jkt"})
+	res4, err := h.pollCIBATokenWithConfirmation(t, client.ClientId, authReqID, &tokenv1.TokenConfirmation{Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8"})
 	require.NoError(t, err)
 	require.Nil(t, res4.Error)
 	require.NotNil(t, res4.AccessToken)
 	require.NotNil(t, res4.AccessToken.Confirmation, "minted token must carry the DPoP confirmation")
-	require.Equal(t, "ciba-dpop-jkt", res4.AccessToken.Confirmation.Jkt)
+	require.Equal(t, "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8", res4.AccessToken.Confirmation.Jkt)
 }

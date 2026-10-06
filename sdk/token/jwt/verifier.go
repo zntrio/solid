@@ -107,8 +107,16 @@ func decodeClaims(parts []string, claims any) error {
 	return nil
 }
 
-// DefaultVerifier declare a default JWT verifier.
+// DefaultVerifier declares a default JWT verifier. The algorithm allowlist
+// is validated at construction time, mirroring the signer side: assembling
+// a verifier that accepts an out-of-allowlist algorithm is a programming
+// error, not a runtime input.
 func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms []string) token.Verifier {
+	for _, alg := range supportedAlgorithms {
+		if err := enforceSignAlgorithmAllowlist(alg); err != nil {
+			panic(err)
+		}
+	}
 	return &defaultVerifier{
 		keySetProvider:      keySetProvider,
 		supportedAlgorithms: supportedAlgorithms,

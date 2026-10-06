@@ -145,6 +145,7 @@ func TestRFC8705_LiveMTLSHandshakeToAuthentication(t *testing.T) {
 		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		GrantTypes:              []string{oidc.GrantTypeClientCredentials},
 		ResponseTypes:           []string{oidc.ResponseTypeCode},
+		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 		RedirectUris:            []string{testRedirectURI},
 		TokenEndpointAuthMethod: oidc.AuthMethodTLSClientAuth,
 		TlsClientAuthSubjectDn:  parsed.Subject.String(),

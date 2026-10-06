@@ -41,16 +41,6 @@ func newGrantID() string {
 	return random.String(16)
 }
 
-// containsString reports whether list contains the value.
-func containsString(list []string, value string) bool {
-	for _, v := range list {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
 func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Client, meta *tokenv1.TokenMeta, cnf *tokenv1.TokenConfirmation) (*tokenv1.Token, error) {
 	var err error
 
@@ -73,6 +63,10 @@ func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Clie
 			// the token metadata into access-token claims and
 			// introspection responses.
 			AuthorizationDetails: meta.AuthorizationDetails,
+			// RFC 9470 section 6: the authentication event of the login rides the
+			// token metadata into access-token claims and introspection responses.
+			Acr:      meta.Acr,
+			AuthTime: meta.AuthTime,
 		},
 		Confirmation: cnf,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -119,6 +113,10 @@ func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Cli
 			// RFC 9396 section 9: authorization details survive refresh
 			// token rotation so narrowed families stay narrowed.
 			AuthorizationDetails: meta.AuthorizationDetails,
+			// RFC 9470 section 6: the authentication event of the login rides the
+			// token metadata into access-token claims and introspection responses.
+			Acr:      meta.Acr,
+			AuthTime: meta.AuthTime,
 		},
 		Confirmation: cnf,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,

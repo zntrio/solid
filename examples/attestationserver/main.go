@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"crypto/mldsa"
 	"encoding/base64"
 	"encoding/json"
@@ -27,10 +28,10 @@ import (
 	"net/http"
 	"time"
 
-	gojwt "github.com/golang-jwt/jwt/v5"
+	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
-	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
+	"zntr.io/solid/sdk/token/jwt"
 )
 
 type attestationData struct {
@@ -60,16 +61,21 @@ func signHandler(priv *mldsa.PrivateKey) http.Handler {
 			http.Error(w, "Unable to import signing key", http.StatusInternalServerError)
 			return
 		}
-		pubJWK, err := privJWK.PublicKey()
+		// The JWT signer requires an identifiable key (kid).
+		err = jwk.AssignKeyID(privJWK)
 		if err != nil {
-			http.Error(w, "Unable to derive signing public key", http.StatusInternalServerError)
+			http.Error(w, "Unable to assign signing key id", http.StatusInternalServerError)
 			return
 		}
+		// The public JWK of the signing key is embedded in the header by
+		// the SDK signer (ClientAttestationSigner).
 
 		// The attested client public key is echoed verbatim in cnf.jwk.
 
-		// Build and sign the attestation
-		tok := gojwt.NewWithClaims(jwk.SigningMethodMLDSA65, gojwt.MapClaims{
+		// Build and sign the attestation with the shared SDK signer
+		// (typ oauth-client-attestation+jwt, signing jwk header, cnf.jwk
+		// binding the attested client key — draft sections 4 and 5).
+		claims := map[string]any{
 			"iss": "urn:solid:attestation-server",
 			"sub": data.ClientID,
 			"iat": now,
@@ -78,10 +84,10 @@ func signHandler(priv *mldsa.PrivateKey) http.Handler {
 			"cnf": map[string]any{
 				"jwk": data.ClientPublicKey,
 			},
-		})
-		tok.Header["typ"] = oidc.TypClientAttestationJWT
-		tok.Header["jwk"] = pubJWK
-		response, err := tok.SignedString(priv)
+		}
+		response, err := jwt.ClientAttestationSigner(string(jwk.MLDSA65), func(context.Context) (jwxjwk.Key, error) { //nolint:revive // key provider takes no input
+			return privJWK, nil
+		}).Sign(r.Context(), claims)
 		if err != nil {
 			http.Error(w, "Unable to sign attestation", http.StatusInternalServerError)
 			return

@@ -23,7 +23,7 @@
  *   - DPoP proof validation & jti replay store (separate mechanism).
  *   - Client authentication ( private_key_jwt / attestation ) — modeled as a
  *     closed client registry.
- *   - The PAR Get+Delete non-atomicity (see README: known finding F1).
+ *   - (PAR consumption is atomic via DeleteAndGet; no known gap.)
  *
  * WHEN TO UPDATE: re-verify this spec before changing
  *   server/services/token/grant_authorization_code.go,

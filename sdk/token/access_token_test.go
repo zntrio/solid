@@ -41,7 +41,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*tokenmock.MockSerializer)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -94,8 +94,8 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -117,8 +117,8 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -143,8 +143,8 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -156,7 +156,7 @@ func Test_accessTokenGenerator_Generate(t *testing.T) {
 			defer ctrl.Finish()
 
 			// Arm mocks
-			serializer := tokenmock.NewMockSerializer(ctrl)
+			serializer := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -205,9 +205,9 @@ func Test_accessTokenGenerator_Generate_AuthorizationDetails(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	serializer := tokenmock.NewMockSerializer(ctrl)
+	serializer := tokenmock.NewMockSigner(ctrl)
 	var captured any
-	serializer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+	serializer.EXPECT().Sign(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
 		captured = claims
 	}).Return("fake-token", nil)
 
@@ -249,9 +249,9 @@ func Test_accessTokenGenerator_Generate_Confirmation(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	serializer := tokenmock.NewMockSerializer(ctrl)
+	serializer := tokenmock.NewMockSigner(ctrl)
 	var captured any
-	serializer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+	serializer.EXPECT().Sign(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
 		captured = claims
 	}).Return("fake-token", nil)
 
@@ -265,4 +265,78 @@ func Test_accessTokenGenerator_Generate_Confirmation(t *testing.T) {
 	require.Contains(t, string(raw), `"x5t#S256":"A4DtL2JmUMhAsvJj5tKyn64SqzmuXbMrJa0n761y5v0"`)
 	require.Contains(t, string(raw), `"jkt":"test-jkt"`)
 	require.NotContains(t, string(raw), `"x5t_s256"`)
+}
+
+// Test_accessTokenGenerator_Generate_StepUpClaims asserts the RFC 9470
+// section 6.1 acr and auth_time claims are carried from token metadata
+// into the serialized access token claims — and omitted when the metadata
+// does not carry them.
+func Test_accessTokenGenerator_Generate_StepUpClaims(t *testing.T) {
+	acr := "urn:solid:loa:1fa:any"
+	authTime := uint64(1_700_000_000)
+
+	tok := &tokenv1.Token{
+		TokenId: "tid-1",
+		Metadata: &tokenv1.TokenMeta{
+			ClientId:  "client-1",
+			Issuer:    "https://as.example.org",
+			Subject:   "user-1",
+			Audience:  "aud",
+			ExpiresAt: uint64(time.Now().Add(time.Hour).Unix()),
+			NotBefore: uint64(time.Now().Unix()),
+			IssuedAt:  uint64(time.Now().Unix()),
+			Scope:     "openid",
+			Acr:       &acr,
+			AuthTime:  &authTime,
+		},
+	}
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	serializer := tokenmock.NewMockSigner(ctrl)
+	var captured any
+	serializer.EXPECT().Sign(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+		captured = claims
+	}).Return("fake-token", nil)
+
+	c := token.AccessToken(serializer)
+	_, err := c.Generate(context.Background(), tok)
+	require.NoError(t, err)
+
+	// Claims carried when the metadata carries them.
+	raw, err := json.Marshal(captured)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"acr":"urn:solid:loa:1fa:any"`)
+	require.Contains(t, string(raw), `"auth_time":1700000000`)
+
+	// Omitted when the metadata omits them.
+	without := &tokenv1.Token{
+		TokenId: "tid-1",
+		Metadata: &tokenv1.TokenMeta{
+			ClientId:  "client-1",
+			Issuer:    "https://as.example.org",
+			Subject:   "user-1",
+			Audience:  "aud",
+			ExpiresAt: uint64(time.Now().Add(time.Hour).Unix()),
+			NotBefore: uint64(time.Now().Unix()),
+			IssuedAt:  uint64(time.Now().Unix()),
+			Scope:     "openid",
+		},
+	}
+
+	serializer2 := tokenmock.NewMockSigner(ctrl)
+	var captured2 any
+	serializer2.EXPECT().Sign(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+		captured2 = claims
+	}).Return("fake-token", nil)
+
+	c2 := token.AccessToken(serializer2)
+	_, err = c2.Generate(context.Background(), without)
+	require.NoError(t, err)
+
+	raw2, err := json.Marshal(captured2)
+	require.NoError(t, err)
+	require.NotContains(t, string(raw2), `"acr"`)
+	require.NotContains(t, string(raw2), `"auth_time"`)
 }

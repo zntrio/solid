@@ -317,6 +317,41 @@ func Test_service_Introspect(t *testing.T) {
 			},
 		},
 		{
+			name: "active SD token strips disclosures (draft-forten 5.3)",
+			args: args{
+				ctx: context.Background(),
+				req: &tokenv1.IntrospectRequest{
+					Issuer: "https://honest.as.example.com",
+					Client: &clientv1.Client{
+						ClientId: "s6BhdRkqt3",
+					},
+					Token: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+				},
+			},
+			prepare: func(clients *storagemock.MockClientReader, tokens *storagemock.MockToken) {
+				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{}, nil)
+				tokens.EXPECT().GetByValue(gomock.Any(), "https://honest.as.example.com", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(&tokenv1.Token{
+					Issuer:  "https://honest.as.example.com",
+					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					TokenId: "123456789",
+					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					// draft-forten: the disclosures carry the actual
+					// selectively disclosable values — they MUST NOT
+					// surface in any introspection response, whatever
+					// the transport.
+					Disclosures: []string{"WyIxMjM0NTY3ODkwIiwiZW1haWwiLCJ1c2VyQGV4YW1wbGUuY29tIl0"},
+				}, nil)
+			},
+			wantErr: false,
+			want: &tokenv1.IntrospectResponse{
+				Token: &tokenv1.Token{
+					Issuer: "https://honest.as.example.com",
+					Value:  "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+				},
+			},
+		},
+		{
 			name: "token issued to another client without authorization is UNKNOWN",
 			args: args{
 				ctx: context.Background(),

@@ -25,7 +25,6 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
-	"zntr.io/solid/server/storage"
 )
 
 // stubFetcher is a hand-rolled Fetcher fake for resolver tests.
@@ -85,7 +84,7 @@ func TestResolver(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected error for non-URL client id")
 		}
-		if !errors.Is(err, storage.ErrNotFound) {
+		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("expected storage.ErrNotFound in chain, got %v", err)
 		}
 	})
@@ -93,7 +92,7 @@ func TestResolver(t *testing.T) {
 	t.Run("EmptyClientID", func(t *testing.T) {
 		r := NewResolver(&stubFetcher{})
 		_, err := r.Resolve(context.Background(), "")
-		if !errors.Is(err, storage.ErrNotFound) {
+		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("expected storage.ErrNotFound, got %v", err)
 		}
 	})
@@ -161,7 +160,7 @@ func TestAllowlistFilter(t *testing.T) {
 	demoBody := `{"client_id":"https://client.example.org/cimd.json","token_endpoint_auth_method":"private_key_jwt","jwks":{"keys":[{"kty":"EC","crv":"P-256","alg":"ES256","use":"sig","x":"x","y":"y"}]}}`
 	fetcher := fetcherFunc(func(_ context.Context, url string) ([]byte, error) {
 		if url != "https://client.example.org/cimd.json" {
-			return nil, storage.ErrNotFound
+			return nil, ErrNotFound
 		}
 		return []byte(demoBody), nil
 	})
@@ -189,7 +188,7 @@ func TestAllowlistFilter(t *testing.T) {
 		if err == nil {
 			t.Fatal("expected refusal for non allow-listed identifier")
 		}
-		if !errors.Is(err, storage.ErrNotFound) {
+		if !errors.Is(err, ErrNotFound) {
 			t.Errorf("error should surface as ErrNotFound, got %v", err)
 		}
 	})
@@ -201,7 +200,7 @@ func TestAllowlistFilter(t *testing.T) {
 	})
 	t.Run("empty identifier is not found", func(t *testing.T) {
 		r := NewAllowlistFilter(base, "https://client.example.org/cimd.json")
-		if _, err := r.Resolve(context.Background(), ""); !errors.Is(err, storage.ErrNotFound) {
+		if _, err := r.Resolve(context.Background(), ""); !errors.Is(err, ErrNotFound) {
 			t.Fatalf("expected ErrNotFound, got %v", err)
 		}
 	})

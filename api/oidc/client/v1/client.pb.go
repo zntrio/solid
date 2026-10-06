@@ -520,7 +520,7 @@ type ClientMeta struct {
 	TosUriI18N                            map[string]string      `protobuf:"bytes,14,rep,name=tos_uri_i18n,json=tosUriI18n,proto3" json:"tos_uri_i18n,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	PolicyUri                             *string                `protobuf:"bytes,15,opt,name=policy_uri,json=policyUri,proto3,oneof" json:"policy_uri,omitempty"`
 	PolicyUriI18N                         map[string]string      `protobuf:"bytes,16,rep,name=policy_uri_i18n,json=policyUriI18n,proto3" json:"policy_uri_i18n,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	JwkUri                                *string                `protobuf:"bytes,17,opt,name=jwk_uri,json=jwkUri,proto3,oneof" json:"jwk_uri,omitempty"`
+	JwksUri                               *string                `protobuf:"bytes,17,opt,name=jwks_uri,json=jwksUri,proto3,oneof" json:"jwks_uri,omitempty"`
 	Jwks                                  []byte                 `protobuf:"bytes,18,opt,name=jwks,proto3,oneof" json:"jwks,omitempty"`
 	SoftwareId                            *string                `protobuf:"bytes,19,opt,name=software_id,json=softwareId,proto3,oneof" json:"software_id,omitempty"`
 	SoftwareVersion                       *string                `protobuf:"bytes,20,opt,name=software_version,json=softwareVersion,proto3,oneof" json:"software_version,omitempty"`
@@ -694,9 +694,9 @@ func (x *ClientMeta) GetPolicyUriI18N() map[string]string {
 	return nil
 }
 
-func (x *ClientMeta) GetJwkUri() string {
-	if x != nil && x.JwkUri != nil {
-		return *x.JwkUri
+func (x *ClientMeta) GetJwksUri() string {
+	if x != nil && x.JwksUri != nil {
+		return *x.JwksUri
 	}
 	return ""
 }
@@ -1234,7 +1234,7 @@ const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"\rspiffe_bundle\x18\x1f \x01(\fR\fspiffeBundle\x12H\n" +
 	" authorized_introspection_clients\x18  \x03(\tR\x1eauthorizedIntrospectionClients\x12?\n" +
 	"\x19registration_access_token\x18! \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01B\x1c\n" +
-	"\x1a_registration_access_token\"\xf0\x17\n" +
+	"\x1a_registration_access_token\"\xf3\x17\n" +
 	"\n" +
 	"ClientMeta\x12.\n" +
 	"\x10application_type\x18\x01 \x01(\tH\x00R\x0fapplicationType\x88\x01\x01\x12#\n" +
@@ -1258,8 +1258,8 @@ const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"tosUriI18n\x12\"\n" +
 	"\n" +
 	"policy_uri\x18\x0f \x01(\tH\aR\tpolicyUri\x88\x01\x01\x12U\n" +
-	"\x0fpolicy_uri_i18n\x18\x10 \x03(\v2-.oidc.client.v1.ClientMeta.PolicyUriI18nEntryR\rpolicyUriI18n\x12\x1c\n" +
-	"\ajwk_uri\x18\x11 \x01(\tH\bR\x06jwkUri\x88\x01\x01\x12\x17\n" +
+	"\x0fpolicy_uri_i18n\x18\x10 \x03(\v2-.oidc.client.v1.ClientMeta.PolicyUriI18nEntryR\rpolicyUriI18n\x12\x1e\n" +
+	"\bjwks_uri\x18\x11 \x01(\tH\bR\ajwksUri\x88\x01\x01\x12\x17\n" +
 	"\x04jwks\x18\x12 \x01(\fH\tR\x04jwks\x88\x01\x01\x12$\n" +
 	"\vsoftware_id\x18\x13 \x01(\tH\n" +
 	"R\n" +
@@ -1303,9 +1303,8 @@ const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"\x06_scopeB\n" +
 	"\n" +
 	"\b_tos_uriB\r\n" +
-	"\v_policy_uriB\n" +
-	"\n" +
-	"\b_jwk_uriB\a\n" +
+	"\v_policy_uriB\v\n" +
+	"\t_jwks_uriB\a\n" +
 	"\x05_jwksB\x0e\n" +
 	"\f_software_idB\x13\n" +
 	"\x11_software_versionB\x15\n" +

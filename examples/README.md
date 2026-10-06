@@ -6,7 +6,9 @@ server, a resource server, and several client demos exercising different
 client-authentication mechanisms.
 
 > These are **local demo assemblies**, not production services. Key material
-> is published fixtures or generated at boot; do not reuse any of it.
+> is published fixtures or generated at boot; do not reuse any of it. The
+> pairwise subject salt default is a fixture too — set
+> `SOLID_EXAMPLE_PAIRWISE_SALT` for anything beyond the local demo.
 
 ## Prerequisites
 
@@ -28,6 +30,12 @@ client-authentication mechanisms.
 
 Client demos are one-shot: they run, print the exchanged token (and the
 resource response when applicable), then exit.
+
+Every client demo prints its **protocol flow** as it runs: each HTTP request
+(method, URL, headers, form parameters) and each response (status, headers,
+body) is echoed to stdout, with token, proof, and assertion values truncated
+for readability — the output shows the shape of every exchange without
+dumping full cryptographic material.
 
 Each example directory carries a `README.md` with a mermaid sequence
 diagram describing the exact flow its `main.go` implements.

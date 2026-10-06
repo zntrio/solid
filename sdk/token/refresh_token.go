@@ -32,7 +32,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // RefreshToken instantiate an refresh token generator.
-func RefreshToken(signer Serializer) Generator {
+func RefreshToken(signer Signer) Generator {
 	return &refreshTokenGenerator{
 		signer: signer,
 	}
@@ -41,7 +41,7 @@ func RefreshToken(signer Serializer) Generator {
 // -----------------------------------------------------------------------------
 
 type refreshTokenGenerator struct {
-	signer Serializer
+	signer Signer
 }
 
 func (c *refreshTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
@@ -95,7 +95,7 @@ func (c *refreshTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) 
 	}
 
 	// Sign the assertion
-	raw, err := c.signer.Serialize(ctx, claims)
+	raw, err := c.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign refresh token: %w", err)
 	}

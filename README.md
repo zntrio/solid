@@ -173,7 +173,7 @@ describing the exact flow its `main.go` implements.
     * [x] `urn:openid:params:grant-type:ciba` grant type — [OpenID Connect Client Initiated Backchannel Authentication Flow](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) (poll delivery mode; `binding_message` promoted to required; signed request objects verified against client JWKS; optional `dpop_jkt` session binding with enforced proof-of-possession at the token endpoint — RFC 9449 §10; `authorization_details` fixed at bc-authorize time; no refresh tokens, `offline_access` stripped — RFC 9700 §4.12.2) — adversarial tests in `integration/ciba_adversarial_test.go`
   * Resource
     * [x] [RFC8707 - Resource Indicators for OAuth 2.0](https://tools.ietf.org/html/rfc8707)
-    * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470)
+    * [x] [RFC9470 - OAuth 2.0 Step Up Authentication Challenge Protocol](https://tools.ietf.org/html/rfc9470) (authorization `acr_values`/`max_age` enforcement, TokenMeta `acr`/`auth_time` claims, `sdk/rfcerrors` `unmet_authentication_requirements`, integration tests in `integration/rfc9470_stepup_test.go`)
     * [x] [RFC9728 - OAuth 2.0 Protected Resource Metadata](https://www.rfc-editor.org/rfc/rfc9728)
   * Client
     * [x] [RFC7591 - OAuth 2.0 Dynamic Client Registration](https://tools.ietf.org/html/rfc7591) — minimal defensive dynamic client registration via the gRPC `ClientRegistrationService` (`server/services/clientregistration`): asymmetric auth methods only (no client secrets issued), `code` response type only, implemented-grant allowlist, loopback-redirect exception, operator-gated
@@ -232,7 +232,7 @@ describing the exact flow its `main.go` implements.
 * [OAuth 2.0](https://oauth.net/2/)
 * [OAuth 2.0 Client Authentication](https://medium.com/@darutk/oauth-2-0-client-authentication-4b5f929305d4)
 * [RFC 9700 - OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700.html)
-* The standard texts of the implemented RFCs (6749, 7009, 7521, 7523, 7636, 7662, 8392, 8414, 8693, 8705, 8747, 9101, 9126, 9200, 9201, 9202, 9207, 9396, 9449, 9700, 9728, 10027) and drafts (draft-ietf-oauth-v2-1-16, draft-ietf-oauth-client-id-metadata-document-02, draft-ietf-oauth-identity-assertion-authz-grant-04, draft-ietf-oauth-identity-chaining-17, draft-ietf-oauth-security-topics-update-03, draft-ietf-oauth-spiffe-client-auth-02) are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing.
+* The standard texts of all implemented RFCs and drafts are vendored under `docs/rfcs/` as the source of truth for conformance and adversarial testing — see `docs/rfcs/index.jsonl` for the complete, checksummed list.
 * [OpenID Connect Client-Initiated Backchannel Authentication Flow (CIBA) Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) — vendored as `docs/rfcs/openid-client-initiated-backchannel-authentication-core-1_0.txt`
 * [OAuth SPIFFE Client Authentication](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — SPIFFE workload identity (SVIDs) as OAuth client credentials
 * [SPIFFE](https://spiffe.io/) — Secure Production Identity Framework For Everyone (SPIFFE IDs, trust domains, SVIDs, bundle endpoints)

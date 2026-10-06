@@ -30,6 +30,10 @@ const (
 	TypeAccessToken = "at"
 	// TypeRefreshToken describes RefreshToken header type.
 	TypeRefreshToken = "rt"
+	// TypeIDToken describes ID Token header type (OIDC Core section 2;
+	// no typ is mandated there — the value follows the RFC 8725
+	// section 3.11 explicit-typ convention "id+jwt").
+	TypeIDToken = "id"
 	// TypeAuthzRequest describes Authorization Request header type.
 	TypeAuthzRequest = "oauth-authz-req"
 	// TypeAuthzResponseMode describes Authorization Response Mode header
@@ -79,11 +83,11 @@ type Generator interface {
 	Generate(ctx context.Context, t *tokenv1.Token) (string, error)
 }
 
-//go:generate mockgen -destination mock/serializer.gen.go -package mock zntr.io/solid/sdk/token Serializer
+//go:generate mockgen -destination mock/signer.gen.go -package mock zntr.io/solid/sdk/token Signer
 
-// Serializer describes Token claims serializer contract.
-type Serializer interface {
-	Serialize(ctx context.Context, claims any) (string, error)
+// Signer signs a claims set into a token string (format-agnostic).
+type Signer interface {
+	Sign(ctx context.Context, claims any) (string, error)
 	ContentType() string
 }
 

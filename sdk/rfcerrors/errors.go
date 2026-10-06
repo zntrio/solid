@@ -84,7 +84,7 @@ func InvalidToken() ErrorBuilder {
 	}
 }
 
-// AuthorizationPending returns a compliant `auhtorization_pending` error.
+// AuthorizationPending returns a compliant `authorization_pending` error.
 func AuthorizationPending() ErrorBuilder {
 	return &defaultErrorBuilder{
 		err:              "authorization_pending",
@@ -188,12 +188,24 @@ func InvalidAuthorizationDetails() ErrorBuilder {
 	}
 }
 
-// InsufficientUserAuthentication returns a compliant `invalid_target` error.
+// InsufficientUserAuthentication returns a compliant
+// `insufficient_user_authentication` error.
 // https://datatracker.ietf.org/doc/html/rfc9470#name-authentication-requirements
 func InsufficientUserAuthentication() ErrorBuilder {
 	return &defaultErrorBuilder{
 		err:              "insufficient_user_authentication",
 		errorDescription: "The authentication event associated with the access token presented with the request does not meet the authentication requirements of the protected resource.",
+	}
+}
+
+// UnmetAuthenticationRequirements returns a compliant
+// `unmet_authentication_requirements` error.
+// https://datatracker.ietf.org/doc/html/rfc9470#section-5
+// (error code defined by the OpenID Connect unmet_authentication_requirements spec)
+func UnmetAuthenticationRequirements() ErrorBuilder {
+	return &defaultErrorBuilder{
+		err:              "unmet_authentication_requirements",
+		errorDescription: "The requested authentication requirements could not be met.",
 	}
 }
 

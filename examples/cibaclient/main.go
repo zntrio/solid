@@ -52,6 +52,8 @@ import (
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/client"
+	exampleenv "zntr.io/solid/examples/internal/exampleenv"
+	"zntr.io/solid/examples/internal/flowlog"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/jwk"
@@ -60,8 +62,12 @@ import (
 	"zntr.io/solid/sdk/token/jwt"
 )
 
+// flowlogClient prints the protocol flow (request and response) for every
+// exchange in the demo.
+var flowlogClient = flowlog.New()
+
 // issuer is the AS issuer identifier, overridable with SOLID_EXAMPLE_ISSUER.
-var issuer = envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
+var issuer = exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
 
 const (
 	clientID     = "ciba-fixture-client"
@@ -90,7 +96,9 @@ func run() error {
 	oidcClient, err := client.HTTP(ctx, issuer, &client.Options{
 		ClientID: clientID,
 		JWK:      []byte(clientJWK),
-		Scopes:   []string{"openid", "profile"},
+
+		// Print the protocol flow (metadata, bc-authorize, token polls).
+		HTTPClient: flowlogClient,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to initialize client: %w", err)
@@ -216,7 +224,7 @@ func backchannelAuthorize(ctx context.Context, md *discoveryv1.ServerMetadata, a
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := flowlogClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to reach the backchannel authentication endpoint: %w", err)
 	}
@@ -246,7 +254,7 @@ func approve(ctx context.Context, authReqID string) error {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth("hello", "world")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := flowlogClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to reach the authentication device endpoint: %w", err)
 	}
@@ -285,7 +293,7 @@ func pollToken(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, p
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("DPoP", proof)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := flowlogClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to reach the token endpoint: %w", err)
 	}
@@ -366,13 +374,4 @@ func keyThumbprint() (string, error) {
 		return "", fmt.Errorf("unable to compute thumbprint: %w", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(raw), nil
-}
-
-// envOr reads an environment variable, falling back to def when unset or
-// empty.
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }

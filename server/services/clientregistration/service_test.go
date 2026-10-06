@@ -267,9 +267,8 @@ func TestRegister(t *testing.T) {
 				stored := proto.Clone(tt.wantClient).(*clientv1.Client)
 				stored.ClientId = "generated-id"
 				tt.wantClient = stored
-				// The registration access token is persisted on the
-				// stored record after Register.
-				clients.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1)
+				// The registration access token is set on the client
+				// BEFORE the single Register write.
 			}
 
 			svc := New(clients, tokens, tt.authorizer)

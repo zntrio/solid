@@ -48,6 +48,41 @@ func NewIssuer(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) Issuer {
 	}
 }
 
+// forgeSDCWTClaims runs the credential issuance internals over a
+// marker tree: deterministic walk, per-site disclosure encoding with
+// marker-to-digest replacement, and decoy digests (draft sections 3
+// and 10). Shared by the credential Issuer and the draft-forten
+// access-token adapter (which skips the sd_claims embedding).
+func forgeSDCWTClaims(tree map[any]any, cfg *issueConfig) ([][]byte, error) {
+	// Step 1: deterministic walk of the marker tree.
+	sites, err := sdtoken.Walk(tree)
+	if err != nil {
+		return nil, err
+	}
+
+	// redactedKeys tracks the per-map redacted_claim_keys digest arrays
+	// (raw digest bytes for the CBOR wire), keyed by map pointer
+	// identity; mapsByPtr remembers the owning maps for write-backs.
+	redactedKeys := map[uintptr][][]byte{}
+	mapsByPtr := map[uintptr]map[any]any{}
+	var elementArrays []elementArrayAddress
+	// Step 2: per site (children before parents), encode the disclosure
+	// and replace the marker with its digest.
+	disclosures, errDisclosures := encodeCWTWalkSites(sites, cfg, redactedKeys, mapsByPtr, &elementArrays)
+	if errDisclosures != nil {
+		return nil, errDisclosures
+	}
+
+	// Step 3: decoy digests (draft section 10): each decoy adds a
+	// digest AND a 1-element decoy disclosure the holder must hold.
+	if cfg.decoys > 0 {
+		if errDecoys := addCBORDecoys(cfg, redactedKeys, mapsByPtr, elementArrays, &disclosures); errDecoys != nil {
+			return nil, errDecoys
+		}
+	}
+	return disclosures, nil
+}
+
 // Issue implements the SD-CWT issuance algorithm: deterministic walk,
 // per-level redacted_claim_keys arrays (simple 59) with decoy
 // disclosures, tag-60 redacted elements, all protected/typ/sd_alg
@@ -68,31 +103,11 @@ func (i *issuer) Issue(ctx context.Context, claims map[any]any, opts ...IssueOpt
 		return nil, nil, errAlg
 	}
 
-	// Step 1: deterministic walk of the marker tree.
-	sites, err := sdtoken.Walk(claims)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// redactedKeys tracks the per-map redacted_claim_keys digest arrays
-	// (raw digest bytes for the CBOR wire), keyed by map pointer
-	// identity; mapsByPtr remembers the owning maps for write-backs.
-	redactedKeys := map[uintptr][][]byte{}
-	mapsByPtr := map[uintptr]map[any]any{}
-	var elementArrays []elementArrayAddress
-	// Step 2: per site (children before parents), encode the disclosure
-	// and replace the marker with its digest.
-	disclosures, errDisclosures := encodeCWTWalkSites(sites, cfg, redactedKeys, mapsByPtr, &elementArrays)
+	// Steps 1-3: walk, encode disclosures, replace markers with
+	// digests, add decoys.
+	disclosures, errDisclosures := forgeSDCWTClaims(claims, cfg)
 	if errDisclosures != nil {
 		return nil, nil, errDisclosures
-	}
-
-	// Step 3: decoy digests (draft section 10): each decoy adds a
-	// digest AND a 1-element decoy disclosure the holder must hold.
-	if cfg.decoys > 0 {
-		if errDecoys := addCBORDecoys(cfg, redactedKeys, mapsByPtr, elementArrays, &disclosures); errDecoys != nil {
-			return nil, nil, errDecoys
-		}
 	}
 
 	// Step 4-5: resolve the signing key and build the COSE signer
@@ -138,11 +153,11 @@ func (i *issuer) Issue(ctx context.Context, claims map[any]any, opts ...IssueOpt
 	return assertion, disclosures, nil
 }
 
-// coseSigner resolves the signing key (AKP/ML-DSA aware, mirroring
-// sdk/token/cwt/signer.go) and builds the COSE signer for the
-// configured algorithm.
-func (i *issuer) coseSigner(ctx context.Context) (cose.Signer, string, error) {
-	keySigner, kid, err := cwt.ResolveSigningKey(ctx, i.keyProvider)
+// coseSignerFor resolves the signing key (AKP/ML-DSA aware, mirroring
+// sdk/token/cwt/signer.go) and builds the COSE signer for the given
+// algorithm.
+func coseSignerFor(ctx context.Context, alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) (cose.Signer, string, error) {
+	keySigner, kid, err := cwt.ResolveSigningKey(ctx, keyProvider)
 	if err != nil {
 		return nil, "", err
 	}
@@ -156,11 +171,17 @@ func (i *issuer) coseSigner(ctx context.Context) (cose.Signer, string, error) {
 	if !isCryptoSigner {
 		return nil, "", fmt.Errorf("unable to materialize signing key: unsupported key type %T", keySigner)
 	}
-	signer, err := cose.NewSigner(i.alg, cryptoSigner)
+	signer, err := cose.NewSigner(alg, cryptoSigner)
 	if err != nil {
 		return nil, "", fmt.Errorf("unable to initialize COSE signer: %w", err)
 	}
 	return signer, kid, nil
+}
+
+// coseSigner builds the COSE signer for the issuer's configured
+// algorithm.
+func (i *issuer) coseSigner(ctx context.Context) (cose.Signer, string, error) {
+	return coseSignerFor(ctx, i.alg, i.keyProvider)
 }
 
 // encodeCWTWalkSites encodes one disclosure per walk site (children

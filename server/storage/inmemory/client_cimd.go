@@ -27,6 +27,7 @@ package inmemory
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
@@ -70,18 +71,19 @@ func (r *ClientReader) Get(ctx context.Context, id string) (*clientv1.Client, er
 	if rerr != nil {
 		// Unfetchable or invalid CIMD documents are unknown clients to the
 		// caller; the wrapped cause remains available for logging.
-		return nil, fmt.Errorf("cimd: unable to resolve client %q: %w", id, storage.ErrNotFound)
+		return nil, fmt.Errorf("cimd: unable to resolve client %q: %w (%w)", id, storage.ErrNotFound, rerr)
 	}
 	return resolved, nil
+}
+
+// isNotFound reports whether err matches storage.ErrNotFound, including
+// wrapped causes.
+func isNotFound(err error) bool {
+	return errors.Is(err, storage.ErrNotFound)
 }
 
 // GetByName implements storage.ClientReader. CIMD clients are not known by
 // name; delegation only.
 func (r *ClientReader) GetByName(ctx context.Context, name string) (*clientv1.Client, error) {
 	return r.primary.GetByName(ctx, name)
-}
-
-// isNotFound reports whether err matches storage.ErrNotFound.
-func isNotFound(err error) bool {
-	return err == storage.ErrNotFound //nolint:errorlint // storage errors are compared by identity
 }

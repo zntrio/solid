@@ -62,8 +62,8 @@ Package map:
 |---|---|
 | `proto/` | Protobuf domain model + `buf` generation config (source of truth for model objects) |
 | `api/` | Generated protobuf Go code (do not edit; `make regenerate-api`) |
-| `sdk/` | Reusable protocol building blocks: `jwsreq`, `jarm`, `pkce`, `dpop`, `token` (verifiable / jwt / cwt / paseto), `pairwise`, `generator`, `jwk`, `rfcerrors`, `types` |
-| `server/` | Server-side SDK: `services` (authorization, token, device contracts), `clientauthentication`, `storage`, `profile` |
+| `sdk/` | Reusable protocol building blocks: `ace`, `authzdetails`, `cimd`, `dpop`, `generator`, `hpke`, `httpfetch`, `idjag`, `jarm`, `jwk`, `jwsreq`, `pairwise`, `pkce`, `random`, `resourcemetadata`, `rfcerrors`, `sdtoken`, `session`, `spiffe`, `token` (verifiable / jwt / cwt), `types` |
+| `server/` | Server-side SDK: `services` (authorization, token, device contracts), `clientauthentication`, `storage`, `profile`, `httpkit` (HTTP presentation), `grpckit` (gRPC presentation) |
 | `oidc/` | OIDC constants |
 | `client/` | HTTP client helpers |
 | `examples/` | Reference assemblies: `authorizationserver`, `deviceclient`, `resourceserver`, `attestationclient`, `attestationserver` |

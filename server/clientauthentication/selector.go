@@ -19,6 +19,7 @@ package clientauthentication
 
 import (
 	"context"
+	"errors"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 
@@ -87,11 +88,17 @@ func (p *ProcessorSet) Select(ctx context.Context, clients storage.ClientReader,
 		// RFC 8705 section 2.1 takes precedence when the resolved
 		// client is registered for tls_client_auth; otherwise the
 		// certificate is an X.509-SVID candidate (SPIFFE draft
-		// section 3.2).
+		// section 3.2). A storage failure fails closed: the request is
+		// not silently re-routed to a different authentication method.
 		if clientIDParam != "" {
-			if registered, err := clients.Get(ctx, clientIDParam); err == nil &&
-				registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth {
+			registered, err := clients.Get(ctx, clientIDParam)
+			switch {
+			case err == nil && registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth:
 				return p.TLSClientAuth, oidc.AuthMethodTLSClientAuth, true
+			case err != nil && !errors.Is(err, storage.ErrNotFound):
+				// Infrastructure failure: refuse to authenticate rather
+				// than degrading to the SPIFFE X.509-SVID path.
+				return nil, "", false
 			}
 		}
 		return p.SPIFFEX509, oidc.AuthMethodSPIFFEX509, true

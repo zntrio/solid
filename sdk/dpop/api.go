@@ -39,14 +39,12 @@ type ProofStore interface {
 	Exists(ctx context.Context, id string) (bool, error)
 }
 
-//go:generate mockgen -destination mock/prover.gen.go -package mock zntr.io/solid/sdk/dpop Prover
+//go:generate mockgen -destination mock/proof_store.gen.go -package mock zntr.io/solid/sdk/dpop ProofStore
 
 // Prover describes prover contract
 type Prover interface {
 	Prove(htm string, htu string, opts ...Option) (string, error)
 }
-
-//go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/sdk/dpop Verifier
 
 // Verifier describes proof verifier contract.
 type Verifier interface {

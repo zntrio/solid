@@ -168,6 +168,7 @@ func (h *harness) registerConfidentialClient(t *testing.T, redirectURIs, grantTy
 		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		GrantTypes:              grantTypes,
 		ResponseTypes:           []string{oidc.ResponseTypeCode},
+		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 		RedirectUris:            redirectURIs,
 		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
 		Jwks:                    clientJWKSWithSIG,
@@ -215,6 +216,8 @@ func validAuthorizationRequest(clientID, verifier, redirectURI string) *flowv1.A
 		Audience:            "urn:example:cooperation-context",
 		CodeChallenge:       s256Challenge(verifier),
 		CodeChallengeMethod: oidc.CodeChallengeMethodSha256,
+		// JARM enforcement: the code flow requires a JWT response mode.
+		ResponseMode: new(oidc.ResponseModeQueryJWT),
 	}
 }
 
@@ -287,8 +290,15 @@ func codeGrantRequest(issuer, clientID, code, verifier, redirectURI string) *flo
 				RedirectUri:  redirectURI,
 			},
 		},
+		// DPoP enforcement: code redemption always presents a confirmation
+		// (RFC 9449 section 10).
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: integrationDPoPJkt},
 	}
 }
+
+// integrationDPoPJkt is the fixture DPoP key thumbprint used by harness
+// redemptions: a syntactically valid 43-char base64url value.
+const integrationDPoPJkt = "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8"
 
 // refreshGrantRequest builds a TokenRequest for the refresh_token grant.
 func refreshGrantRequest(issuer, clientID, refreshToken string) *flowv1.TokenRequest {
@@ -744,7 +754,8 @@ func signedRequestObject(t *testing.T, claims map[string]any) string {
 	}
 
 	tok := gojwt.NewWithClaims(gojwt.SigningMethodES384, gojwt.MapClaims(claims))
-	tok.Header["typ"] = "JWT"
+	// RFC 9101 section 5: the request object typ is 'oauth-authz-req+jwt'.
+	tok.Header["typ"] = "oauth-authz-req+jwt"
 	raw, err := tok.SignedString(rawKey)
 	if err != nil {
 		t.Fatalf("unable to serialize request object: %v", err)

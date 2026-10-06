@@ -38,6 +38,7 @@ import (
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
 	"zntr.io/solid/server/storage"
 )
@@ -89,18 +90,14 @@ func (s *clientRegistration) Register(ctx context.Context, req *clientv1.Registe
 		return res, err
 	}
 
-	if _, err := s.clients.Register(ctx, client); err != nil {
-		res := &clientv1.RegisterResponse{
-			Error: rfcerrors.ServerError().Build(),
-		}
-		return res, err
-	}
-
 	// RFC 7592 section 3: issue the per-client registration access token
-	// used as sole credential on the management surface.
+	// used as sole credential on the management surface. The token is
+	// generated BEFORE persistence so the client is written exactly once:
+	// no window exists where the stored record lacks its management
+	// credential.
 	registrationAccessToken := random.String(32)
 	client.RegistrationAccessToken = &registrationAccessToken
-	if err := s.clients.Update(ctx, client); err != nil {
+	if _, err := s.clients.Register(ctx, client); err != nil {
 		res := &clientv1.RegisterResponse{
 			Error: rfcerrors.ServerError().Build(),
 		}
@@ -109,8 +106,7 @@ func (s *clientRegistration) Register(ctx context.Context, req *clientv1.Registe
 
 	// The bearer token never rides the Client payload returned to any
 	// other surface; only the registration response carries it.
-	public := proto.Clone(client).(*clientv1.Client)
-	public.RegistrationAccessToken = nil
+	public := withoutRegistrationToken(client)
 
 	return &clientv1.RegisterResponse{
 		Client:                  public,
@@ -279,7 +275,7 @@ func (s *clientRegistration) validatedClient(metadata *clientv1.ClientMeta) (*cl
 
 	// Redirect URIs are REQUIRED when the authorization code grant is
 	// requested (RFC 7591 section 2).
-	if contains(grantTypes, oidc.GrantTypeAuthorizationCode) && len(metadata.GetRedirectUris()) == 0 {
+	if types.Contains(grantTypes, oidc.GrantTypeAuthorizationCode) && len(metadata.GetRedirectUris()) == 0 {
 		return nil, fmt.Errorf("invalid_client_metadata: RFC 7591 section 2.3 metadata rejected")
 	}
 	for _, redirect := range metadata.GetRedirectUris() {
@@ -316,7 +312,7 @@ func (s *clientRegistration) validatedClient(metadata *clientv1.ClientMeta) (*cl
 		PolicyUri:                             metadata.GetPolicyUri(),
 		TosUri:                                metadata.GetTosUri(),
 		Jwks:                                  metadata.Jwks,
-		JwksUri:                               metadata.GetJwkUri(),
+		JwksUri:                               metadata.GetJwksUri(),
 		SubjectType:                           metadata.GetSubjectType(),
 		SectorIdentifier:                      metadata.GetSectorIdentifier(),
 		TokenEndpointAuthMethod:               authMethod,
@@ -349,8 +345,9 @@ func (s *clientRegistration) authorizeRegistrationToken(ctx context.Context, cli
 	}
 
 	// Empty or mismatching token: invalid_token, and the stored token is
-	// revoked so a guessing attempt burns the credential.
-	if token == "" || stored.GetRegistrationAccessToken() == "" || token != stored.GetRegistrationAccessToken() {
+	// revoked so a guessing attempt burns the credential. The comparison
+	// itself is constant-time.
+	if token == "" || stored.GetRegistrationAccessToken() == "" || !types.SecureCompareString(token, stored.GetRegistrationAccessToken()) {
 		if stored.GetRegistrationAccessToken() != "" {
 			cleared := proto.Clone(stored).(*clientv1.Client)
 			cleared.RegistrationAccessToken = nil
@@ -433,15 +430,6 @@ func isLoopbackHost(host string) bool {
 	switch h {
 	case "localhost", "127.0.0.1", "::1":
 		return true
-	}
-	return false
-}
-
-func contains(values []string, want string) bool {
-	for _, v := range values {
-		if v == want {
-			return true
-		}
 	}
 	return false
 }

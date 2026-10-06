@@ -79,7 +79,13 @@ func Device(issuer string, devicez services.Device) http.Handler {
 		})
 		if err != nil {
 			log.Println("unable to process authorization request:", err)
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			// res may be nil on infrastructure failure; WithError is
+			// nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+			} else {
+				WithError(w, r, http.StatusBadRequest, nil)
+			}
 			return
 		}
 	}

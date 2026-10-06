@@ -24,24 +24,24 @@ import (
 	"zntr.io/solid/sdk/types"
 )
 
-// Encryption decorration for token serializer.
-func Encryption(serializer Serializer, encrypter Encrypter) Serializer {
+// Encryption decoration for token signer.
+func Encryption(signer Signer, encrypter Encrypter) Signer {
 	return &tokenEncrypter{
-		serializer: serializer,
-		encrypter:  encrypter,
+		signer:    signer,
+		encrypter: encrypter,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type tokenEncrypter struct {
-	serializer Serializer
-	encrypter  Encrypter
+	signer    Signer
+	encrypter Encrypter
 }
 
-func (tw *tokenEncrypter) Serialize(ctx context.Context, claims any) (string, error) {
+func (tw *tokenEncrypter) Sign(ctx context.Context, claims any) (string, error) {
 	// Check arguments
-	if types.IsNil(tw.serializer) {
+	if types.IsNil(tw.signer) {
 		return "", fmt.Errorf("unable to proceed with nil signer")
 	}
 	if types.IsNil(tw.encrypter) {
@@ -49,13 +49,13 @@ func (tw *tokenEncrypter) Serialize(ctx context.Context, claims any) (string, er
 	}
 
 	// Sign token first
-	signed, err := tw.serializer.Serialize(ctx, claims)
+	signed, err := tw.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to prepare signed token for encryption: %w", err)
 	}
 
 	// Encrypt token
-	encrypted, err := tw.encrypter.Encrypt(ctx, tw.serializer.ContentType(), signed, []byte(`urn:solid:token:sign-and-encrypt`))
+	encrypted, err := tw.encrypter.Encrypt(ctx, tw.signer.ContentType(), signed, []byte(`urn:solid:token:sign-and-encrypt`))
 	if err != nil {
 		return "", fmt.Errorf("unable to encrypt signed token: %w", err)
 	}

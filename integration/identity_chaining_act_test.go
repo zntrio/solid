@@ -55,6 +55,9 @@ func exchangeWithActor(t *testing.T, h *harness, client *clientv1.Client, subjec
 				ActorTokenType:   &actorType,
 			},
 		},
+		// The subject token is DPoP-bound (minted through the enforced code
+		// flow); the exchange must present the matching confirmation.
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: integrationDPoPJkt},
 	})
 }
 

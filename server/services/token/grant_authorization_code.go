@@ -243,6 +243,13 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 // offline_access scope was granted with a consent prompt, the refresh
 // token — for a redeemed authorization code session.
 func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest, ar *sessionv1.AuthorizationCodeSession, scopes types.StringArray, grantedDetails []*tokenv1.AuthorizationDetail, res *flowv1.TokenResponse) error {
+	// RFC 9470 section 6: capture the login authentication event (nil-safe
+	// when the session carries none).
+	var loginACR *string
+	var loginAuthTime *uint64
+	if ar.AuthEvent != nil {
+		loginACR, loginAuthTime = ar.AuthEvent.Acr, ar.AuthEvent.AuthTime
+	}
 	// Generate access token
 	at, err := s.generateAccessToken(ctx, client, &tokenv1.TokenMeta{
 		Issuer:               req.Issuer,
@@ -251,6 +258,10 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 		Scope:                ar.Request.Scope,
 		GrantId:              ar.GrantId,
 		AuthorizationDetails: grantedDetails,
+		// RFC 9470 section 6: propagate the login authentication event captured
+		// at code issuance.
+		Acr:      loginACR,
+		AuthTime: loginAuthTime,
 	}, req.TokenConfirmation)
 	if err != nil {
 		return fmt.Errorf("unable to generate access token: %w", err)
@@ -269,6 +280,10 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 			Scope:                ar.Request.Scope,
 			GrantId:              ar.GrantId,
 			AuthorizationDetails: grantedDetails,
+			// RFC 9470 section 6: propagate the login authentication event captured
+			// at code issuance.
+			Acr:      loginACR,
+			AuthTime: loginAuthTime,
 		}, at.Confirmation)
 		if err != nil {
 			return fmt.Errorf("unable to generate refresh token: %w", err)

@@ -322,7 +322,7 @@ func TestIssue_Present_Verify_RoundTrip(t *testing.T) {
 		t.Fatalf("unable to locate disclosures: street=%d given=%d address=%d", streetIdx, givenIdx, addressIdx)
 	}
 
-	presentation, err := hold.Present(issued, disclosures[streetIdx], disclosures[addressIdx], disclosures[givenIdx])
+	presentation, err := hold.Present(context.Background(), issued, disclosures[streetIdx], disclosures[addressIdx], disclosures[givenIdx])
 	if err != nil {
 		t.Fatalf("unable to present: %v", err)
 	}
@@ -341,7 +341,7 @@ func TestIssue_Present_Verify_RoundTrip(t *testing.T) {
 	)
 
 	presented := "verifier-nonce-1"
-	kb, err := hold.KeyBind(presentation, presented, "verifier.example.com", nowUnix(t))
+	kb, err := hold.KeyBind(context.Background(), presentation, presented, "verifier.example.com", nowUnix(t))
 	if err != nil {
 		t.Fatalf("unable to key bind: %v", err)
 	}
@@ -373,11 +373,11 @@ func TestIssue_Present_Verify_RoundTrip(t *testing.T) {
 	}
 
 	// KB replay: same nonce twice must fail.
-	presentation2, err := hold.Present(issued, disclosures[givenIdx])
+	presentation2, err := hold.Present(context.Background(), issued, disclosures[givenIdx])
 	if err != nil {
 		t.Fatal(err)
 	}
-	kb2, err := hold.KeyBind(presentation2, presented, "verifier.example.com", nowUnix(t))
+	kb2, err := hold.KeyBind(context.Background(), presentation2, presented, "verifier.example.com", nowUnix(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -391,7 +391,7 @@ func TestIssue_Present_Verify_RoundTrip(t *testing.T) {
 	}
 
 	// A selected disclosure not part of the issuance must be rejected.
-	if _, err := hold.Present(issued, "bm90LXZhbGlk"); err == nil {
+	if _, err := hold.Present(context.Background(), issued, "bm90LXZhbGlk"); err == nil {
 		t.Error("unknown disclosure must be rejected")
 	}
 }
@@ -435,7 +435,7 @@ func TestRawTypedSigner_TypHeader(t *testing.T) {
 	// follow the HeaderType derivation.
 	issuerKP, _ := newIssuerKeyPair(t)
 	s := jwt.RawTypedSigner("vc+sd-jwt", "ES256", issuerKP)
-	raw, err := s.Serialize(context.Background(), map[string]any{"test": "example"})
+	raw, err := s.Sign(context.Background(), map[string]any{"test": "example"})
 	if err != nil {
 		t.Fatalf("unable to serialize: %v", err)
 	}
@@ -488,8 +488,8 @@ func splitDot(s string) []string {
 
 // compile-time interface guards.
 var (
-	_ token.Serializer = jwt.RawTypedSigner("vc+sd-jwt", "ES256", nil)
-	_ Issuer           = (*issuer)(nil)
-	_ Holder           = (*holder)(nil)
-	_ Verifier         = (*verifier)(nil)
+	_ token.Signer = jwt.RawTypedSigner("vc+sd-jwt", "ES256", nil)
+	_ Issuer       = (*issuer)(nil)
+	_ Holder       = (*holder)(nil)
+	_ Verifier     = (*verifier)(nil)
 )

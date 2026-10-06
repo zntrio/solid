@@ -57,7 +57,11 @@ type AuthorizeRequest struct {
 	// consumed through request_uri). When set, it is stored with the issued
 	// authorization code session and enforced at redemption (RFC 9449
 	// section 10).
-	Confirmation  *v11.TokenConfirmation `protobuf:"bytes,5,opt,name=confirmation,proto3,oneof" json:"confirmation,omitempty"`
+	Confirmation *v11.TokenConfirmation `protobuf:"bytes,5,opt,name=confirmation,proto3,oneof" json:"confirmation,omitempty"`
+	// OPTIONAL. Authentication event of the end-user login as observed by the
+	// presentation layer (RFC 9470 section 6: the achieved acr and auth_time
+	// conveyed into the issued tokens).
+	AuthEvent     *v11.AuthEvent `protobuf:"bytes,6,opt,name=auth_event,json=authEvent,proto3" json:"auth_event,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -123,6 +127,13 @@ func (x *AuthorizeRequest) GetRequest() *AuthorizationRequest {
 func (x *AuthorizeRequest) GetConfirmation() *v11.TokenConfirmation {
 	if x != nil {
 		return x.Confirmation
+	}
+	return nil
+}
+
+func (x *AuthorizeRequest) GetAuthEvent() *v11.AuthEvent {
+	if x != nil {
+		return x.AuthEvent
 	}
 	return nil
 }
@@ -810,13 +821,13 @@ type DeviceAuthorizationRequest struct {
 	// authorization server as described in Section 3.2.1. of [RFC6749].
 	// The client identifier as described in Section 2.2 of [RFC6749].
 	ClientId string `protobuf:"bytes,2,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	// OPTIONAL.  The scope of the access request as defined by
+	// OPTIONAL.  The scope of the access request as defined in
 	// Section 3.3 of [RFC6749].
 	Scope *string `protobuf:"bytes,3,opt,name=scope,proto3,oneof" json:"scope,omitempty"`
 	// OPTIONAL.  The target audience.
 	Audience *string `protobuf:"bytes,4,opt,name=audience,proto3,oneof" json:"audience,omitempty"`
-	// OPTIONAL. JSON array of objects specifying the requested authorization
-	// details, carried with the device authorization request. The AS shows
+	// OPTIONAL. JSON array of objects specifying the requested
+	// authorization details, carried with the device authorization request. The AS shows
 	// them at consent time; the consented set then lives on the device
 	// session and is fixed for the tokens minted from it.
 	// https://www.rfc-editor.org/rfc/rfc9396#section-3
@@ -1135,8 +1146,10 @@ type BackchannelAuthenticationRequest struct {
 	// by the deployment-provided hint resolver.
 	IdTokenHint *string `protobuf:"bytes,8,opt,name=id_token_hint,json=idTokenHint,proto3,oneof" json:"id_token_hint,omitempty"`
 	// REQUIRED (solid promotion). Human-readable interlock between the
-	// consumption and authentication devices; enforced semantically
-	// (4-64 chars, charset [A-Za-z0-9._-]).
+	// consumption and authentication devices; enforced semantically by the
+	// service with the dedicated invalid_binding_message error code
+	// (4-64 chars, charset [A-Za-z0-9._-]) — deliberately not a
+	// protovalidate annotation so the CIBA-specific code mapping holds.
 	BindingMessage *string `protobuf:"bytes,9,opt,name=binding_message,json=bindingMessage,proto3,oneof" json:"binding_message,omitempty"`
 	// OPTIONAL. Requested auth_req_id lifetime in seconds (CIBA section 7.1);
 	// honored when within (0, 3600], clamped otherwise by the service.
@@ -1472,7 +1485,7 @@ var File_oidc_flow_v1_flow_api_proto protoreflect.FileDescriptor
 
 const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1boidc/flow/v1/flow_api.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1boidc/client/v1/client.proto\x1a\x18oidc/core/v1/error.proto\x1a\x17oidc/flow/v1/flow.proto\x1a\x1eoidc/flow/v1/token_grant.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x19oidc/token/v1/token.proto\"\xb9\x02\n" +
+	"\x1boidc/flow/v1/flow_api.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1boidc/client/v1/client.proto\x1a\x18oidc/core/v1/error.proto\x1a\x17oidc/flow/v1/flow.proto\x1a\x1eoidc/flow/v1/token_grant.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x19oidc/token/v1/token.proto\"\xf2\x02\n" +
 	"\x10AuthorizeRequest\x12%\n" +
 	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
 	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x126\n" +
@@ -1480,7 +1493,9 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\asubject\x18\x03 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\asubject\x12D\n" +
 	"\arequest\x18\x04 \x01(\v2\".oidc.flow.v1.AuthorizationRequestB\x06\xbaH\x03\xc8\x01\x01R\arequest\x12I\n" +
-	"\fconfirmation\x18\x05 \x01(\v2 .oidc.token.v1.TokenConfirmationH\x00R\fconfirmation\x88\x01\x01B\x0f\n" +
+	"\fconfirmation\x18\x05 \x01(\v2 .oidc.token.v1.TokenConfirmationH\x00R\fconfirmation\x88\x01\x01\x127\n" +
+	"\n" +
+	"auth_event\x18\x06 \x01(\v2\x18.oidc.token.v1.AuthEventR\tauthEventB\x0f\n" +
 	"\r_confirmation\"\x84\x02\n" +
 	"\x11AuthorizeResponse\x12)\n" +
 	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\x12\x12\n" +
@@ -1491,11 +1506,12 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\n" +
 	"expires_in\x18\x06 \x01(\x06R\texpiresIn\x12\x16\n" +
 	"\x06issuer\x18\a \x01(\tR\x06issuer\x12#\n" +
-	"\rresponse_mode\x18\b \x01(\tR\fresponseMode\"\xf7\x01\n" +
-	"\x13RegistrationRequest\x12\x16\n" +
-	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12.\n" +
-	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12<\n" +
-	"\arequest\x18\x03 \x01(\v2\".oidc.flow.v1.AuthorizationRequestR\arequest\x12I\n" +
+	"\rresponse_mode\x18\b \x01(\tR\fresponseMode\"\x96\x02\n" +
+	"\x13RegistrationRequest\x12%\n" +
+	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
+	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x126\n" +
+	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientB\x06\xbaH\x03\xc8\x01\x01R\x06client\x12D\n" +
+	"\arequest\x18\x03 \x01(\v2\".oidc.flow.v1.AuthorizationRequestB\x06\xbaH\x03\xc8\x01\x01R\arequest\x12I\n" +
 	"\fconfirmation\x18\x04 \x01(\v2 .oidc.token.v1.TokenConfirmationH\x00R\fconfirmation\x88\x01\x01B\x0f\n" +
 	"\r_confirmation\"\x99\x01\n" +
 	"\x14RegistrationResponse\x12)\n" +
@@ -1543,10 +1559,12 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\x0e_refresh_tokenB\v\n" +
 	"\t_id_tokenB\x14\n" +
 	"\x12_issued_token_typeB\b\n" +
-	"\x06_scope\"\xfd\x01\n" +
-	"\x1aDeviceAuthorizationRequest\x12\x16\n" +
-	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1b\n" +
-	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x19\n" +
+	"\x06_scope\"\x98\x02\n" +
+	"\x1aDeviceAuthorizationRequest\x12%\n" +
+	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
+	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x12'\n" +
+	"\tclient_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\bclientId\x12\x19\n" +
 	"\x05scope\x18\x03 \x01(\tH\x00R\x05scope\x88\x01\x01\x12\x1f\n" +
 	"\baudience\x18\x04 \x01(\tH\x01R\baudience\x88\x01\x01\x12W\n" +
 	"\x15authorization_details\x18\x05 \x03(\v2\".oidc.token.v1.AuthorizationDetailR\x14authorizationDetailsB\b\n" +
@@ -1569,10 +1587,12 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\tuser_code\x18\x02 \x01(\tR\buserCode\x12\x18\n" +
 	"\asubject\x18\x03 \x01(\tR\asubject\"I\n" +
 	"\x1cDeviceCodeValidationResponse\x12)\n" +
-	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\"\xc7\x05\n" +
-	" BackchannelAuthenticationRequest\x12\x16\n" +
-	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x1b\n" +
-	"\tclient_id\x18\x02 \x01(\tR\bclientId\x12\x19\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error\"\xfe\x05\n" +
+	" BackchannelAuthenticationRequest\x12%\n" +
+	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
+	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x12'\n" +
+	"\tclient_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\bclientId\x12\x19\n" +
 	"\x05scope\x18\x03 \x01(\tH\x00R\x05scope\x88\x01\x01\x12\x1f\n" +
 	"\baudience\x18\x04 \x01(\tH\x01R\baudience\x88\x01\x01\x12\"\n" +
 	"\n" +
@@ -1585,8 +1605,8 @@ const file_oidc_flow_v1_flow_api_proto_rawDesc = "" +
 	"\x10requested_expiry\x18\n" +
 	" \x01(\x06H\aR\x0frequestedExpiry\x88\x01\x01\x12W\n" +
 	"\x15authorization_details\x18\v \x03(\v2\".oidc.token.v1.AuthorizationDetailR\x14authorizationDetails\x12\x1d\n" +
-	"\arequest\x18\f \x01(\tH\bR\arequest\x88\x01\x01\x12\x1e\n" +
-	"\bdpop_jkt\x18\r \x01(\tH\tR\adpopJkt\x88\x01\x01B\b\n" +
+	"\arequest\x18\f \x01(\tH\bR\arequest\x88\x01\x01\x12:\n" +
+	"\bdpop_jkt\x18\r \x01(\tB\x1a\xbaH\x17r\x152\x13^[A-Za-z0-9_-]{43}$H\tR\adpopJkt\x88\x01\x01B\b\n" +
 	"\x06_scopeB\v\n" +
 	"\t_audienceB\r\n" +
 	"\v_acr_valuesB\r\n" +
@@ -1647,58 +1667,60 @@ var file_oidc_flow_v1_flow_api_proto_goTypes = []any{
 	(*v1.Client)(nil),                                   // 14: oidc.client.v1.Client
 	(*AuthorizationRequest)(nil),                        // 15: oidc.flow.v1.AuthorizationRequest
 	(*v11.TokenConfirmation)(nil),                       // 16: oidc.token.v1.TokenConfirmation
-	(*v12.Error)(nil),                                   // 17: oidc.core.v1.Error
-	(*v11.AuthorizationDetail)(nil),                     // 18: oidc.token.v1.AuthorizationDetail
-	(*GrantAuthorizationCode)(nil),                      // 19: oidc.flow.v1.GrantAuthorizationCode
-	(*GrantClientCredentials)(nil),                      // 20: oidc.flow.v1.GrantClientCredentials
-	(*GrantDeviceCode)(nil),                             // 21: oidc.flow.v1.GrantDeviceCode
-	(*GrantRefreshToken)(nil),                           // 22: oidc.flow.v1.GrantRefreshToken
-	(*GrantTokenExchange)(nil),                          // 23: oidc.flow.v1.GrantTokenExchange
-	(*GrantJWTBearer)(nil),                              // 24: oidc.flow.v1.GrantJWTBearer
-	(*GrantCIBA)(nil),                                   // 25: oidc.flow.v1.GrantCIBA
-	(*v11.Token)(nil),                                   // 26: oidc.token.v1.Token
+	(*v11.AuthEvent)(nil),                               // 17: oidc.token.v1.AuthEvent
+	(*v12.Error)(nil),                                   // 18: oidc.core.v1.Error
+	(*v11.AuthorizationDetail)(nil),                     // 19: oidc.token.v1.AuthorizationDetail
+	(*GrantAuthorizationCode)(nil),                      // 20: oidc.flow.v1.GrantAuthorizationCode
+	(*GrantClientCredentials)(nil),                      // 21: oidc.flow.v1.GrantClientCredentials
+	(*GrantDeviceCode)(nil),                             // 22: oidc.flow.v1.GrantDeviceCode
+	(*GrantRefreshToken)(nil),                           // 23: oidc.flow.v1.GrantRefreshToken
+	(*GrantTokenExchange)(nil),                          // 24: oidc.flow.v1.GrantTokenExchange
+	(*GrantJWTBearer)(nil),                              // 25: oidc.flow.v1.GrantJWTBearer
+	(*GrantCIBA)(nil),                                   // 26: oidc.flow.v1.GrantCIBA
+	(*v11.Token)(nil),                                   // 27: oidc.token.v1.Token
 }
 var file_oidc_flow_v1_flow_api_proto_depIdxs = []int32{
 	14, // 0: oidc.flow.v1.AuthorizeRequest.client:type_name -> oidc.client.v1.Client
 	15, // 1: oidc.flow.v1.AuthorizeRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
 	16, // 2: oidc.flow.v1.AuthorizeRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	17, // 3: oidc.flow.v1.AuthorizeResponse.error:type_name -> oidc.core.v1.Error
-	14, // 4: oidc.flow.v1.RegistrationRequest.client:type_name -> oidc.client.v1.Client
-	15, // 5: oidc.flow.v1.RegistrationRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
-	16, // 6: oidc.flow.v1.RegistrationRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	17, // 7: oidc.flow.v1.RegistrationResponse.error:type_name -> oidc.core.v1.Error
-	14, // 8: oidc.flow.v1.TokenRequest.client:type_name -> oidc.client.v1.Client
-	16, // 9: oidc.flow.v1.TokenRequest.token_confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	18, // 10: oidc.flow.v1.TokenRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	19, // 11: oidc.flow.v1.TokenRequest.authorization_code:type_name -> oidc.flow.v1.GrantAuthorizationCode
-	20, // 12: oidc.flow.v1.TokenRequest.client_credentials:type_name -> oidc.flow.v1.GrantClientCredentials
-	21, // 13: oidc.flow.v1.TokenRequest.device_code:type_name -> oidc.flow.v1.GrantDeviceCode
-	22, // 14: oidc.flow.v1.TokenRequest.refresh_token:type_name -> oidc.flow.v1.GrantRefreshToken
-	23, // 15: oidc.flow.v1.TokenRequest.token_exchange:type_name -> oidc.flow.v1.GrantTokenExchange
-	24, // 16: oidc.flow.v1.TokenRequest.jwt_bearer:type_name -> oidc.flow.v1.GrantJWTBearer
-	25, // 17: oidc.flow.v1.TokenRequest.ciba:type_name -> oidc.flow.v1.GrantCIBA
-	17, // 18: oidc.flow.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
-	26, // 19: oidc.flow.v1.TokenResponse.access_token:type_name -> oidc.token.v1.Token
-	26, // 20: oidc.flow.v1.TokenResponse.refresh_token:type_name -> oidc.token.v1.Token
-	26, // 21: oidc.flow.v1.TokenResponse.id_token:type_name -> oidc.token.v1.Token
-	18, // 22: oidc.flow.v1.TokenResponse.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	18, // 23: oidc.flow.v1.DeviceAuthorizationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	17, // 24: oidc.flow.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
-	17, // 25: oidc.flow.v1.DeviceCodeValidationResponse.error:type_name -> oidc.core.v1.Error
-	18, // 26: oidc.flow.v1.BackchannelAuthenticationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	17, // 27: oidc.flow.v1.BackchannelAuthenticationResponse.error:type_name -> oidc.core.v1.Error
-	17, // 28: oidc.flow.v1.BackchannelAuthenticationValidationResponse.error:type_name -> oidc.core.v1.Error
-	0,  // 29: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
-	2,  // 30: oidc.flow.v1.AuthorizationService.Register:input_type -> oidc.flow.v1.RegistrationRequest
-	4,  // 31: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
-	1,  // 32: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
-	3,  // 33: oidc.flow.v1.AuthorizationService.Register:output_type -> oidc.flow.v1.RegistrationResponse
-	5,  // 34: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
-	32, // [32:35] is the sub-list for method output_type
-	29, // [29:32] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	17, // 3: oidc.flow.v1.AuthorizeRequest.auth_event:type_name -> oidc.token.v1.AuthEvent
+	18, // 4: oidc.flow.v1.AuthorizeResponse.error:type_name -> oidc.core.v1.Error
+	14, // 5: oidc.flow.v1.RegistrationRequest.client:type_name -> oidc.client.v1.Client
+	15, // 6: oidc.flow.v1.RegistrationRequest.request:type_name -> oidc.flow.v1.AuthorizationRequest
+	16, // 7: oidc.flow.v1.RegistrationRequest.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	18, // 8: oidc.flow.v1.RegistrationResponse.error:type_name -> oidc.core.v1.Error
+	14, // 9: oidc.flow.v1.TokenRequest.client:type_name -> oidc.client.v1.Client
+	16, // 10: oidc.flow.v1.TokenRequest.token_confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	19, // 11: oidc.flow.v1.TokenRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	20, // 12: oidc.flow.v1.TokenRequest.authorization_code:type_name -> oidc.flow.v1.GrantAuthorizationCode
+	21, // 13: oidc.flow.v1.TokenRequest.client_credentials:type_name -> oidc.flow.v1.GrantClientCredentials
+	22, // 14: oidc.flow.v1.TokenRequest.device_code:type_name -> oidc.flow.v1.GrantDeviceCode
+	23, // 15: oidc.flow.v1.TokenRequest.refresh_token:type_name -> oidc.flow.v1.GrantRefreshToken
+	24, // 16: oidc.flow.v1.TokenRequest.token_exchange:type_name -> oidc.flow.v1.GrantTokenExchange
+	25, // 17: oidc.flow.v1.TokenRequest.jwt_bearer:type_name -> oidc.flow.v1.GrantJWTBearer
+	26, // 18: oidc.flow.v1.TokenRequest.ciba:type_name -> oidc.flow.v1.GrantCIBA
+	18, // 19: oidc.flow.v1.TokenResponse.error:type_name -> oidc.core.v1.Error
+	27, // 20: oidc.flow.v1.TokenResponse.access_token:type_name -> oidc.token.v1.Token
+	27, // 21: oidc.flow.v1.TokenResponse.refresh_token:type_name -> oidc.token.v1.Token
+	27, // 22: oidc.flow.v1.TokenResponse.id_token:type_name -> oidc.token.v1.Token
+	19, // 23: oidc.flow.v1.TokenResponse.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	19, // 24: oidc.flow.v1.DeviceAuthorizationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	18, // 25: oidc.flow.v1.DeviceAuthorizationResponse.error:type_name -> oidc.core.v1.Error
+	18, // 26: oidc.flow.v1.DeviceCodeValidationResponse.error:type_name -> oidc.core.v1.Error
+	19, // 27: oidc.flow.v1.BackchannelAuthenticationRequest.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	18, // 28: oidc.flow.v1.BackchannelAuthenticationResponse.error:type_name -> oidc.core.v1.Error
+	18, // 29: oidc.flow.v1.BackchannelAuthenticationValidationResponse.error:type_name -> oidc.core.v1.Error
+	0,  // 30: oidc.flow.v1.AuthorizationService.Authorize:input_type -> oidc.flow.v1.AuthorizeRequest
+	2,  // 31: oidc.flow.v1.AuthorizationService.Register:input_type -> oidc.flow.v1.RegistrationRequest
+	4,  // 32: oidc.flow.v1.AuthorizationService.Token:input_type -> oidc.flow.v1.TokenRequest
+	1,  // 33: oidc.flow.v1.AuthorizationService.Authorize:output_type -> oidc.flow.v1.AuthorizeResponse
+	3,  // 34: oidc.flow.v1.AuthorizationService.Register:output_type -> oidc.flow.v1.RegistrationResponse
+	5,  // 35: oidc.flow.v1.AuthorizationService.Token:output_type -> oidc.flow.v1.TokenResponse
+	33, // [33:36] is the sub-list for method output_type
+	30, // [30:33] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_oidc_flow_v1_flow_api_proto_init() }

@@ -129,7 +129,7 @@ func mintIDJAG(t *testing.T, key sdkjwk.Key, mutate func(*tokenv1.IdentityAssert
 func mintCustom(t *testing.T, key sdkjwk.Key, tokenType, algID string, claims any) string {
 	t.Helper()
 	serializer := sdkjwt.TypedSigner(tokenType, algID, func(context.Context) (sdkjwk.Key, error) { return key, nil })
-	raw, err := serializer.Serialize(context.Background(), claims)
+	raw, err := serializer.Sign(context.Background(), claims)
 	if err != nil {
 		t.Fatalf("unable to sign: %v", err)
 	}

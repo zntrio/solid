@@ -24,7 +24,7 @@
 // Authorization Server and redeemed by a Resource Authorization Server
 // via the JWT Bearer grant. The mechanism is serialization-format
 // agnostic: minting and verification delegate to the assembly-provided
-// token.Serializer / token.Verifier (JWT, CWT or PASETO); token-endpoint
+// token.Signer / token.Verifier (JWT, CWT or PASETO); token-endpoint
 // handling, subject resolution and trust configuration live in
 // server/services/token and in assemblies.
 package idjag

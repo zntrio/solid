@@ -19,12 +19,18 @@ package cimd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
-	"zntr.io/solid/server/storage"
 )
+
+// ErrNotFound reports that a client identifier did not resolve to a client
+// (empty or unknown identifier, or not a Client Identifier URL). The
+// server-side storage layer maps it onto its own storage.ErrNotFound at the
+// adapter boundary; sdk/cimd must not depend on server packages.
+var ErrNotFound = errors.New("cimd: client not found")
 
 // -----------------------------------------------------------------------------
 
@@ -65,12 +71,12 @@ func NewResolver(f Fetcher) Resolver {
 // before mapping it to an internal Client.
 func (r *resolver) Resolve(ctx context.Context, clientID string) (*clientv1.Client, error) {
 	if clientID == "" {
-		return nil, storage.ErrNotFound
+		return nil, ErrNotFound
 	}
 
 	// Non-CIMD identifiers are out of scope (draft section 3).
 	if !IsClientIdentifierURL(clientID) {
-		return nil, fmt.Errorf("cimd: %q is not a client identifier url: %w", clientID, storage.ErrNotFound)
+		return nil, fmt.Errorf("cimd: %q is not a client identifier url: %w", clientID, ErrNotFound)
 	}
 
 	// Fetch the raw document.
@@ -122,10 +128,10 @@ func NewAllowlistFilter(next Resolver, allowed ...string) *AllowlistFilter {
 // explicitly allowed before delegating.
 func (f *AllowlistFilter) Resolve(ctx context.Context, clientID string) (*clientv1.Client, error) {
 	if clientID == "" {
-		return nil, storage.ErrNotFound
+		return nil, ErrNotFound
 	}
 	if !cimdAllowed(f.allowed, clientID) {
-		return nil, fmt.Errorf("cimd: %q is not an authorized client identifier url: %w", clientID, storage.ErrNotFound)
+		return nil, fmt.Errorf("cimd: %q is not an authorized client identifier url: %w", clientID, ErrNotFound)
 	}
 	return f.next.Resolve(ctx, clientID)
 }

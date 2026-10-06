@@ -21,32 +21,33 @@ import (
 	"fmt"
 	"sort"
 
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 )
 
 // AccessTokenSigner represents JWT Access Token signer.
-func AccessTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func AccessTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeAccessToken, alg, keyProvider)
 }
 
 // RefreshTokenSigner represents JWT Refresh Token signer.
-func RefreshTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RefreshTokenSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeRefreshToken, alg, keyProvider)
 }
 
 // RequestSigner represents JWT Request Token signer.
-func RequestSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RequestSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeAuthzRequest, alg, keyProvider)
 }
 
 // JARMSigner represents JWT JARM Token signer.
-func JARMSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func JARMSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeAuthzResponseMode, alg, keyProvider)
 }
 
 // DPoPSigner represents JWT DPoP Token signer.
-func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	if err := enforceSignAlgorithmAllowlist(alg); err != nil {
 		panic(err)
 	}
@@ -59,22 +60,38 @@ func DPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
 }
 
 // ClientAssertionSigner represents JWT Client Assertion signer.
-func ClientAssertionSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func ClientAssertionSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeClientAssertion, alg, keyProvider)
 }
 
+// ClientAttestationSigner represents the JWT Client Attestation signer
+// (draft-ietf-oauth-attestation-based-client-auth-11 section 4). The public
+// signing key is embedded in the JOSE header (jwk), letting the verifier
+// resolve the attested key without a prior key distribution.
+func ClientAttestationSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return rawTypedSigner(oidc.TypClientAttestationJWT, alg, keyProvider, true)
+}
+
+// ClientAttestationPoPSigner represents the JWT Client Attestation PoP
+// signer (draft-ietf-oauth-attestation-based-client-auth-11 section 5.1).
+// The binding key is referenced by the cnf claim in the attestation, so the
+// PoP JWT itself carries no embedded jwk header.
+func ClientAttestationPoPSigner(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return rawTypedSigner(oidc.TypClientAttestationPoPJWT, alg, keyProvider, false)
+}
+
 // TokenIntrospection represents JWT Token Introspection Assertion signer.
-func TokenIntrospection(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func TokenIntrospection(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeTokenIntrospection, alg, keyProvider)
 }
 
 // ServerMetadata represents JWT Server Metadata Assertion signer.
-func ServerMetadata(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func ServerMetadata(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeServerMetadata, alg, keyProvider)
 }
 
 // IDJAG represents JWT ID-JAG.
-func IDJAG(alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func IDJAG(alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return TypedSigner(token.TypeIDJAG, alg, keyProvider)
 }
 
@@ -101,7 +118,7 @@ func enforceSignAlgorithmAllowlist(alg string) error {
 // "oauth-id-jag+jwt"). The alg allowlist is enforced at construction
 // time: insecure configurations are not offered as options, no RSA / HS /
 // none signer can be assembled.
-func TypedSigner(tokenType, alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func TypedSigner(tokenType, alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
 	// Fail fast on insecure algorithms: a signer built with an
 	// out-of-allowlist alg is a programming error, not a runtime input.
 	if err := enforceSignAlgorithmAllowlist(alg); err != nil {
@@ -133,7 +150,11 @@ func SupportedSignAlgorithms() []string {
 // derivation of HeaderType (e.g. the RFC 9901 "vc+sd-jwt" and "kb+jwt").
 // The alg allowlist is enforced at construction time, exactly as with
 // TypedSigner.
-func RawTypedSigner(typ, alg string, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RawTypedSigner(typ, alg string, keyProvider jwk.KeyProviderFunc) token.Signer {
+	return rawTypedSigner(typ, alg, keyProvider, false)
+}
+
+func rawTypedSigner(typ, alg string, keyProvider jwk.KeyProviderFunc, embedJWK bool) token.Signer {
 	// Fail fast on insecure algorithms: a signer built with an
 	// out-of-allowlist alg is a programming error, not a runtime input.
 	if err := enforceSignAlgorithmAllowlist(alg); err != nil {
@@ -143,6 +164,6 @@ func RawTypedSigner(typ, alg string, keyProvider jwk.KeyProviderFunc) token.Seri
 		tokenType:   typ,
 		alg:         alg,
 		keyProvider: keyProvider,
-		embedJWK:    false,
+		embedJWK:    embedJWK,
 	}
 }

@@ -29,14 +29,14 @@ import (
 // Metadata handles RFC 8414 authorization server metadata requests: it
 // serves the supplied metadata document, augmented with a signed_metadata
 // value produced by the signer.
-func Metadata(md *discoveryv1.ServerMetadata, signer token.Serializer) http.Handler {
+func Metadata(md *discoveryv1.ServerMetadata, signer token.Signer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Never mutate the assembler-supplied document: clone it before
 		// attaching the per-request signed_metadata value.
 		mdCopy := proto.Clone(md).(*discoveryv1.ServerMetadata)
 
 		// Create signed metadata
-		signedMeta, err := signer.Serialize(r.Context(), mdCopy)
+		signedMeta, err := signer.Sign(r.Context(), mdCopy)
 		if err != nil {
 			http.Error(w, "unable to sign metadata", http.StatusInternalServerError)
 			return

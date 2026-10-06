@@ -67,7 +67,7 @@ type defaultSigner struct {
 	embedJWK    bool
 }
 
-func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, error) {
+func (ds *defaultSigner) Sign(ctx context.Context, claims any) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")

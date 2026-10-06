@@ -38,7 +38,12 @@ import (
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
-var cmpOpts = []cmp.Option{cmpopts.IgnoreUnexported(flowv1.DeviceAuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.DeviceAuthorizationResponse{}), cmpopts.IgnoreUnexported(flowv1.DeviceCodeValidationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{})}
+var cmpOpts = []cmp.Option{
+	cmpopts.IgnoreUnexported(flowv1.DeviceAuthorizationRequest{}), cmpopts.IgnoreUnexported(flowv1.DeviceAuthorizationResponse{}), cmpopts.IgnoreUnexported(flowv1.DeviceCodeValidationResponse{}), cmpopts.IgnoreUnexported(corev1.Error{}),
+	// protovalidate generates the syntactic-level descriptions; their exact
+	// wording is not the protocol contract, the error code is.
+	cmpopts.IgnoreFields(corev1.Error{}, "ErrorDescription"),
+}
 
 func Test_service_Device(t *testing.T) {
 	type args struct {
@@ -115,7 +120,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest().Build(),
+				Error: rfcerrors.InvalidClient().Build(),
 			},
 		},
 		{
@@ -132,7 +137,7 @@ func Test_service_Device(t *testing.T) {
 			},
 			wantErr: true,
 			want: &flowv1.DeviceAuthorizationResponse{
-				Error: rfcerrors.InvalidRequest().Build(),
+				Error: rfcerrors.ServerError().Build(),
 			},
 		},
 		{

@@ -187,9 +187,9 @@ func TestRFC10027_DPoPBoundClientRequiresProof(t *testing.T) {
 
 	// The rejection happened before the consume: the session survives,
 	// a poll WITH the proof still mints the sender-constrained token.
-	res2, err2 := h.pollDeviceTokenWithConfirmation(t, client.ClientId, deviceCode, &tokenv1.TokenConfirmation{Jkt: "test-jkt"})
+	res2, err2 := h.pollDeviceTokenWithConfirmation(t, client.ClientId, deviceCode, &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"})
 	require.NoError(t, err2)
 	require.Nil(t, res2.Error)
 	require.NotNil(t, res2.AccessToken)
-	require.Equal(t, "test-jkt", res2.AccessToken.Confirmation.Jkt)
+	require.Equal(t, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", res2.AccessToken.Confirmation.Jkt)
 }

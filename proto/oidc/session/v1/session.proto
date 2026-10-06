@@ -48,6 +48,10 @@ message AuthorizationCodeSession {
   // MUST prove possession of the same key (RFC 9449 section 10
   // authorization code binding).
   optional .oidc.token.v1.TokenConfirmation confirmation = 7;
+  // OPTIONAL. Authentication event of the end-user login captured at code
+  // issuance (RFC 9470 section 6); propagated into the tokens minted from
+  // this session.
+  optional .oidc.token.v1.AuthEvent auth_event = 8;
 }
 
 enum DeviceCodeStatus {

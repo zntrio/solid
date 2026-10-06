@@ -117,6 +117,11 @@ func Test_builders(t *testing.T) {
 			got:  InvalidClientAttestation().Build(),
 			want: &corev1.Error{Error: "invalid_client_attestation", ErrorDescription: "The client attestation or its proof of possession could not be verified, or is not supported."},
 		},
+		{
+			name: "unmet_authentication_requirements per RFC 9470 section 5",
+			got:  UnmetAuthenticationRequirements().Build(),
+			want: &corev1.Error{Error: "unmet_authentication_requirements", ErrorDescription: "The requested authentication requirements could not be met."},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

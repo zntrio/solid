@@ -112,7 +112,7 @@ func TestRFC9964_MLDSASignVerifyRoundTrip(t *testing.T) {
 	signer := DefaultSigner("at", AlgorithmMLDSA65, func(ctx context.Context) (jwk.Key, error) {
 		return akp, nil
 	})
-	raw, err := signer.Serialize(context.Background(), claims)
+	raw, err := signer.Sign(context.Background(), claims)
 	if err != nil {
 		t.Fatalf("ML-DSA CWT signing failed: %v", err)
 	}

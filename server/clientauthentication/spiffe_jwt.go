@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	blake2b "golang.org/x/crypto/blake2b"
@@ -33,6 +32,7 @@ import (
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/spiffe"
+	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 )
 
@@ -62,6 +62,14 @@ type spiffeJWTClaims struct {
 	IssuedAt uint64   `json:"iat"`
 	JTI      string   `json:"jti"`
 }
+
+// spiffeJWTTemporal adapts spiffeJWTClaims to the shared temporal
+// validation of assertionclaims.go. JWT-SVIDs carry no nbf claim.
+type spiffeJWTTemporal struct{ claims spiffeJWTClaims }
+
+func (a spiffeJWTTemporal) issuedAt() uint64  { return a.claims.IssuedAt }
+func (a spiffeJWTTemporal) expiresAt() uint64 { return a.claims.Expires }
+func (a spiffeJWTTemporal) notBefore() uint64 { return 0 }
 
 type spiffeJWTAuthentication struct {
 	clients             storage.ClientReader
@@ -106,7 +114,7 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 
 	// Enforce the algorithm allowlist before processing claims (draft
 	// section 8.1: no alg confusion, no issuer-derived key discovery).
-	if !containsString(p.supportedAlgorithms, t.Method.Alg()) {
+	if !types.Contains(p.supportedAlgorithms, t.Method.Alg()) {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("jwt-svid algorithm %q is not supported", t.Method.Alg())
 	}
@@ -131,17 +139,9 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 	}
 
 	// Temporal validation.
-	if claims.IssuedAt > uint64(time.Now().Add(5*time.Minute).Unix()) { //nolint:gosec // unix time is non-negative
+	if errTmp := validateAssertionTemporal(spiffeJWTTemporal{claims}); errTmp != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("iat is in the future")
-	}
-	if claims.Expires > claims.IssuedAt+uint64(maxAssertionLifetime.Seconds()) {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("exp is too far in the future, svid lifetime must not exceed %s", maxAssertionLifetime)
-	}
-	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("expired token")
+		return res, errTmp
 	}
 
 	// Audience (draft section 3.1, rule 3): the aud claim MUST contain only
@@ -153,10 +153,9 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("aud must contain exactly one value")
 	}
-	receivingEndpoint := req.GetEndpoint()
-	if claims.Audience[0] != p.expectedAudience && (receivingEndpoint == "" || claims.Audience[0] != receivingEndpoint) {
+	if errAud := validateAudience(claims.Audience[0], p.expectedAudience, req.GetEndpoint()); errAud != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience[0], p.expectedAudience, receivingEndpoint)
+		return res, fmt.Errorf("aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience[0], p.expectedAudience, req.GetEndpoint())
 	}
 
 	// Trust domain resolution (draft section 3.1, rule 4): the SVID's sub

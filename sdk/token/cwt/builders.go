@@ -25,7 +25,7 @@ import (
 )
 
 // AccessTokenSigner represents CWT Access Token signer.
-func AccessTokenSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func AccessTokenSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeAccessToken,
 		alg:         alg,
@@ -34,7 +34,7 @@ func AccessTokenSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) toke
 }
 
 // RefreshTokenSigner represents CWT Refresh Token signer.
-func RefreshTokenSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RefreshTokenSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeRefreshToken,
 		alg:         alg,
@@ -43,7 +43,7 @@ func RefreshTokenSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) tok
 }
 
 // RequestSigner represents CWT Request Token signer.
-func RequestSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func RequestSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeAuthzRequest,
 		alg:         alg,
@@ -52,7 +52,7 @@ func RequestSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Se
 }
 
 // JARMSigner represents CWT JARM Token signer.
-func JARMSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func JARMSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeAuthzResponseMode,
 		alg:         alg,
@@ -61,7 +61,7 @@ func JARMSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Seria
 }
 
 // DPoPSigner represents CWT DPoP Token signer.
-func DPoPSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func DPoPSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeDPoP,
 		alg:         alg,
@@ -70,7 +70,7 @@ func DPoPSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Seria
 }
 
 // ClientAssertionSigner represents CWT Client Assertion signer.
-func ClientAssertionSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func ClientAssertionSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeClientAssertion,
 		alg:         alg,
@@ -79,7 +79,7 @@ func ClientAssertionSigner(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) 
 }
 
 // TokenIntrospection represents CWT Token Introspection Assertion signer.
-func TokenIntrospection(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func TokenIntrospection(alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   token.TypeTokenIntrospection,
 		alg:         alg,

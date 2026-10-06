@@ -311,7 +311,7 @@ func xaaClientFor(clientID string, grantTypes []string) *clientv1.Client {
 func mintTypedJWT(t *testing.T, key jwk.Key, tokenType string, claims map[string]any) string {
 	t.Helper()
 	signer := jwt.TypedSigner(tokenType, xaaIDJAGAlg, func(context.Context) (jwk.Key, error) { return key, nil })
-	raw, err := signer.Serialize(context.Background(), claims)
+	raw, err := signer.Sign(context.Background(), claims)
 	require.NoError(t, err)
 	return raw
 }

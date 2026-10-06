@@ -36,7 +36,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // DefaultProver uses the given signer to generate a DPoP Proof.
-func DefaultProver(signer token.Serializer) Prover {
+func DefaultProver(signer token.Signer) Prover {
 	// Build instance
 	return &defaultProver{
 		signer: signer,
@@ -46,7 +46,7 @@ func DefaultProver(signer token.Serializer) Prover {
 // -----------------------------------------------------------------------------
 
 type defaultProver struct {
-	signer token.Serializer
+	signer token.Signer
 }
 
 func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
@@ -105,7 +105,7 @@ func (p *defaultProver) Prove(htm, htu string, opts ...Option) (string, error) {
 	}
 
 	// Sign claims
-	proof, err := p.signer.Serialize(context.Background(), claims)
+	proof, err := p.signer.Sign(context.Background(), claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to generate DPoP proof: %w", err)
 	}

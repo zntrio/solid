@@ -31,7 +31,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // AuthorizationRequestEncoder returns an authorization request encoder instance.
-func AuthorizationRequestEncoder(signer token.Serializer) AuthorizationEncoder {
+func AuthorizationRequestEncoder(signer token.Signer) AuthorizationEncoder {
 	return &tokenEncoder{
 		signer: signer,
 	}
@@ -46,7 +46,7 @@ func AuthorizationRequestEncoder(signer token.Serializer) AuthorizationEncoder {
 // values win over payload-derived ones. The decoder strips the envelope
 // claims it validates (see stripEnvelopeClaims), so an encode/decode
 // round-trip returns the proto-representable request.
-func AuthorizationRequestEncoderWithOptions(signer token.Serializer, envelope map[string]any) AuthorizationEncoder {
+func AuthorizationRequestEncoderWithOptions(signer token.Signer, envelope map[string]any) AuthorizationEncoder {
 	return &tokenEncoder{
 		signer:   signer,
 		envelope: envelope,
@@ -54,7 +54,7 @@ func AuthorizationRequestEncoderWithOptions(signer token.Serializer, envelope ma
 }
 
 type tokenEncoder struct {
-	signer   token.Serializer
+	signer   token.Signer
 	envelope map[string]any
 }
 
@@ -86,7 +86,7 @@ func (enc *tokenEncoder) Encode(ctx context.Context, ar *flowv1.AuthorizationReq
 	}
 
 	// Sign request
-	req, err := enc.signer.Serialize(ctx, claims)
+	req, err := enc.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign request: %w", err)
 	}

@@ -18,18 +18,13 @@
 package httpkit
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"net/http"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/dpop"
-	"zntr.io/solid/sdk/jwk"
-	"zntr.io/solid/sdk/jwsreq"
 	"zntr.io/solid/sdk/rfcerrors"
-	"zntr.io/solid/sdk/token/jwt"
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/profile"
 	"zntr.io/solid/server/services"
@@ -75,15 +70,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
-			parsed, parseErr := jwk.Parse(client.Jwks)
-			if parseErr != nil {
-				return nil, fmt.Errorf("unable to decode client JWKS")
-			}
-
-			// No error
-			return parsed, nil
-		}, requestObjectAlgorithms), issuer)
+		clientRequestDecoder := clientRequestDecoder(client, issuer, requestObjectAlgorithms)
 
 		// Decode request
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
@@ -97,7 +84,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		// known application type: response types outside the profile are
 		// rejected with 400 invalid_request (RFC 9126 flow: the request
 		// is never registered).
-		if !profileAllowsResponseType(profiles, client.ApplicationType, ar.ResponseType) {
+		if !profile.AllowsResponseType(profiles, client.ApplicationType, ar.ResponseType) {
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
@@ -113,7 +100,13 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		})
 		if err != nil {
 			log.Println("unable to register authorization request:", err)
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			// res may be nil on infrastructure failure; WithError is
+			// nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+			} else {
+				WithError(w, r, http.StatusBadRequest, nil)
+			}
 			return
 		}
 

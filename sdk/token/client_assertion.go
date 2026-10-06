@@ -33,22 +33,22 @@ import (
 // -----------------------------------------------------------------------------
 
 // ClientAssertion instantiate a client assertion generator.
-func ClientAssertion(serializer Serializer) Generator {
+func ClientAssertion(signer Signer) Generator {
 	return &clientAssertionGenerator{
-		serializer: serializer,
+		signer: signer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type clientAssertionGenerator struct {
-	serializer Serializer
+	signer Signer
 }
 
 func (c *clientAssertionGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
 	// Check arguments
-	if types.IsNil(c.serializer) {
-		return "", fmt.Errorf("unable to use nil serializer")
+	if types.IsNil(c.signer) {
+		return "", fmt.Errorf("unable to use nil signer")
 	}
 	if t == nil {
 		return "", fmt.Errorf("unable to generate claims from nil token")
@@ -84,9 +84,9 @@ func (c *clientAssertionGenerator) Generate(ctx context.Context, t *tokenv1.Toke
 	}
 
 	// Sign the assertion
-	raw, err := c.serializer.Serialize(ctx, claims)
+	raw, err := c.signer.Sign(ctx, claims)
 	if err != nil {
-		return "", fmt.Errorf("unable to serialize client assertion: %w", err)
+		return "", fmt.Errorf("unable to sign client assertion: %w", err)
 	}
 
 	// No error

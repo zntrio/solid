@@ -27,6 +27,7 @@ import (
 
 	"zntr.io/solid/examples/authorizationserver/cimddemo"
 	"zntr.io/solid/examples/authorizationserver/spiffedemo"
+	exampleenv "zntr.io/solid/examples/internal/exampleenv"
 	"zntr.io/solid/sdk/authzdetails"
 	"zntr.io/solid/sdk/cimd"
 	"zntr.io/solid/sdk/dpop"
@@ -127,7 +128,7 @@ func main() {
 
 	// Cross-App Access (ID-JAG) roles: static trust configuration from
 	// SOLID_EXAMPLE_XAA_CONFIG; absent configuration disables both roles.
-	issuer := envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
+	issuer := exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
 	xaaOpts := mustXAAOptions(issuer)
 	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources, xaaOpts...)
 	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts())
@@ -155,12 +156,17 @@ func main() {
 	// registration metadata.
 	profiles := profile.Strict()
 	secHeaders := httpkit.SecurityHeaders()
-	basicAuth := httpkit.BasicAuthentication(func(u, p string) (string, bool) {
+	basicAuth := httpkit.BasicAuthentication(func(u, p string) (string, *httpkit.AuthenticationEvent, bool) {
 		// Demo credentials for the resource-owner login surface.
 		if u == "hello" && p == "world" {
-			return u, true
+			// RFC 9470: the demo Basic login achieves this authentication
+			// context class reference.
+			return u, &httpkit.AuthenticationEvent{
+				ACR:      "urn:solid:loa:1fa:any",
+				AuthTime: uint64(time.Now().Unix()), //nolint:gosec // unix time is non-negative
+			}, true
 		}
-		return "", false
+		return "", nil, false
 	})
 	clientAuth := httpkit.ClientAuthentication(clients, issuer, clientAssertionAlgorithms, spiffeBundles, proofs, profiles)
 
@@ -169,7 +175,7 @@ func main() {
 	keySet := keySetProvider()
 	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, clientAssertionAlgorithms))
 	jarmEncoder := jarm.Encoder(jwt.JARMSigner(jwk.MLDSA65, keys))
-	pairwiseEncoder := pairwise.Hash([]byte("U|(vBPu45_Vkvv*Tr*8Y[^s?,$ka@bQziM5]9.+[{.n47]'zokA7-j8ypJ=W]WS"))
+	pairwiseEncoder := pairwise.Hash([]byte(exampleenv.Or("SOLID_EXAMPLE_PAIRWISE_SALT", "U|(vBPu45_Vkvv*Tr*8Y[^s?,$ka@bQziM5]9.+[{.n47]'zokA7-j8ypJ=W]WS")))
 
 	// Create router
 	md := metadataDocument(issuer)
@@ -196,13 +202,4 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	log.Fatal(server.ListenAndServe())
-}
-
-// envOr reads an environment variable, falling back to def when unset or
-// empty.
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }

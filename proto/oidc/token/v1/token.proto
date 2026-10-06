@@ -21,6 +21,7 @@ package oidc.token.v1;
 
 option go_package = "zntr.io/solid/api/oidc/token/v1;tokenv1";
 
+import "buf/validate/validate.proto";
 import "oidc/token/v1/authorization_detail.proto";
 
 enum TokenType {
@@ -38,6 +39,18 @@ enum TokenStatus {
   TOKEN_STATUS_ACTIVE = 2;
   TOKEN_STATUS_EXPIRED = 3;
   TOKEN_STATUS_REVOKED = 4;
+}
+
+// Authentication event performed by the end-user during the authorization
+// request (RFC 9470 section 6: the achieved authentication context class
+// reference and its time).
+message AuthEvent {
+  // OPTIONAL. Authentication context class reference achieved by the
+  // end-user authentication (RFC 9470 section 6.2 acr).
+  optional string acr = 1;
+  // OPTIONAL. Time of the end-user authentication event, seconds since
+  // epoch (RFC 9470 section 6.2 auth_time).
+  optional fixed64 auth_time = 2;
 }
 
 message TokenMeta {
@@ -111,19 +124,21 @@ message Token {
   repeated Actor actor = 9;
   // OPTIONAL. Authorized Actor.
   repeated Actor may_act = 10;
+  // OPTIONAL. Selectively disclosable claim Disclosures of this token
+  // (draft-forten-oauth-sd-jwt-access-token-00 section 3-4): the token
+  // carries digests only, the values travel in these disclosures. For
+  // the access token they surface in the token response `disclosures`
+  // parameter; introspection responses MUST NOT carry them.
+  repeated string disclosures = 11;
 }
 
 message TokenConfirmation {
-  string jkt = 1;
+  string jkt = 1 [(buf.validate.field).string = {
+    pattern: "^([A-Za-z0-9_-]{43})?$"
+  }];
   // RFC 8705 section 3.1: base64url SHA-256 thumbprint of the DER
   // encoding of the X.509 client certificate (no trailing '=').
-  string x5t_s256 = 2 [json_name = "x5t#S256"];
-}
-
-message OAuthTokenResponse {
-  string access_token = 1;
-  string token_type = 2;
-  fixed64 expires_in = 3;
-  optional string refresh_token = 4;
-  optional string id_token = 5;
+  string x5t_s256 = 2 [(buf.validate.field).string = {
+    pattern: "^([A-Za-z0-9_-]{43})?$"
+  }, json_name = "x5t#S256"];
 }

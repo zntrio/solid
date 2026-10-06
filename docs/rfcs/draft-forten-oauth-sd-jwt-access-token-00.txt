@@ -1,0 +1,560 @@
+
+
+
+
+Web Authorization Protocol                                     S. F. Lee
+Internet-Draft                                            3 October 2026
+Intended status: Experimental                                           
+Expires: 6 April 2027
+
+
+ Selective Disclosure for JWT Access Tokens Without Changing the Token
+               draft-forten-oauth-sd-jwt-access-token-00
+
+Abstract
+
+   This document adds selective disclosure to JWT access tokens without
+   changing the form of the Authorization header or how the token is
+   validated.  The RFC 9068 token is sent as today, with some of its
+   claims selectively disclosable as defined by SD-JWT (RFC 9901); the
+   Disclosures and the optional Key Binding JWT travel in two new HTTP
+   fields.  A recipient that does not implement this profile ignores the
+   fields and processes the token as an ordinary JWT access token.  The
+   token itself then carries no selectively disclosable value, and the
+   holder chooses per request which values to reveal.
+
+About This Document
+
+   This note is to be removed before publishing as an RFC.
+
+   Discussion of this document takes place on the Web Authorization
+   Protocol Working Group mailing list (mailto:oauth@ietf.org), which is
+   archived at https://mailarchive.ietf.org/arch/browse/oauth/.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 6 April 2027.
+
+
+
+
+
+
+Lee                       Expires 6 April 2027                  [Page 1]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Conventions and Definitions . . . . . . . . . . . . . . . . .   3
+   3.  Token Format  . . . . . . . . . . . . . . . . . . . . . . . .   3
+   4.  Token Response  . . . . . . . . . . . . . . . . . . . . . . .   4
+   5.  Presentation  . . . . . . . . . . . . . . . . . . . . . . . .   4
+     5.1.  HTTP Fields . . . . . . . . . . . . . . . . . . . . . . .   4
+     5.2.  Sending . . . . . . . . . . . . . . . . . . . . . . . . .   5
+     5.3.  Receiving . . . . . . . . . . . . . . . . . . . . . . . .   5
+   6.  Security Considerations . . . . . . . . . . . . . . . . . . .   6
+   7.  Privacy Considerations  . . . . . . . . . . . . . . . . . . .   7
+   8.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   7
+   9.  References  . . . . . . . . . . . . . . . . . . . . . . . . .   7
+     9.1.  Normative References  . . . . . . . . . . . . . . . . . .   7
+     9.2.  Informative References  . . . . . . . . . . . . . . . . .   8
+   Appendix A.  Example  . . . . . . . . . . . . . . . . . . . . . .   9
+   Appendix B.  Open Issues  . . . . . . . . . . . . . . . . . . . .  10
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  10
+
+1.  Introduction
+
+   Section 2.2.2 of [RFC9068] notes that authorization servers commonly
+   put resource owner attributes in JWT access tokens.  A token that
+   carries such attributes by value exposes them wherever the token
+   goes: in token stores and logs, in every resource server it names,
+   and in any place it is forwarded.  Encrypting the token [RFC7516]
+   hides the values but also stops any party without the key from
+   validating it.
+
+   Issuing a separate minimal token per resource server [RFC8707], or an
+   opaque token that a gateway exchanges for an internal JWT, both
+   answer this by multiplying tokens or by adding an exchange.
+   Selective disclosure [RFC9901] instead separates the two inside one
+
+
+
+Lee                       Expires 6 April 2027                  [Page 2]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+   token: the token carries only digests, and the holder presents the
+   values it chooses, per request and per resource server, as an agent
+   calling several resource servers on a user's behalf does.  The
+   holder, here the client, does receive every value; where the client
+   itself must not see them, encryption remains the only answer.  This
+   document applies it to the [RFC9068] token with the token in the
+   Authorization header unchanged, so that existing infrastructure
+   processes it as before.  The Disclosures and the Key Binding JWT
+   travel in separate HTTP fields, as the DPoP proof does in [RFC9449];
+   those fields are visible to intermediaries, and what the profile
+   protects is the token, not the request (Section 6).
+
+   This profile covers access tokens presented to a resource server over
+   HTTP.  It defines no credential format; [I-D.ietf-oauth-sd-jwt-vc]
+   covers that case.
+
+2.  Conventions and Definitions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in
+   BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   "Issuer-signed JWT", "Disclosure", "Key Binding JWT" (KB-JWT), "SD-
+   JWT" and "SD-JWT+KB" are as defined in [RFC9901].  "Token" means an
+   Issuer-signed JWT that satisfies Section 3.
+
+3.  Token Format
+
+   A Token is a JWT access token [RFC9068] whose payload MAY contain, at
+   the top level only, the _sd and _sd_alg claims of Section 4 of
+   [RFC9901]; the ... array elements, nested _sd claims and the
+   recursive Disclosures of Section 4.2.6 of [RFC9901] MUST NOT be used.
+   Every Disclosure then names a top-level claim and stands on its own.
+   The header is that of Section 2.1 of [RFC9068], including typ at+jwt.
+   Section 9.11 of [RFC9901] recommends a distinct typ for SD-JWT
+   profiles; this profile keeps the [RFC9068] value because Section 4 of
+   [RFC9068] requires resource servers to reject any other, and because
+   keeping it is what leaves existing infrastructure unchanged.  What
+   Section 9.11 of [RFC9901] guards against is a JWT being taken for
+   another kind; a recipient unaware of this profile taking a Token for
+   an access token is the intended behavior.  A recipient recognizes a
+   selectively disclosable Token by the presence of _sd in its payload,
+   which it sees once it has validated the Token as any JWT access
+   token.
+
+
+
+
+
+Lee                       Expires 6 April 2027                  [Page 3]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+   The following claims, with their contents, MUST be in the clear and
+   MUST NOT be selectively disclosable: iss, exp, aud, sub, client_id,
+   iat, jti, cnf, and scope and nbf when present.  These are the claims
+   that the processing defined by [RFC9068], [RFC9449] and this profile
+   depends on, and the set satisfies Section 9.7 of [RFC9901].  The same
+   applies to any claim whose absence would widen what the Token
+   permits, such as act [RFC8693] with everything nested in it; a
+   resource server MUST NOT read an undisclosed claim as permission.
+   Any other top-level claim MAY be selectively disclosable.  A Token
+   with no selectively disclosable claim is an ordinary [RFC9068] token.
+
+4.  Token Response
+
+   Whenever a token response [RFC6749] delivers a Token that has
+   selectively disclosable claims, the authorization server MUST include
+   a disclosures parameter whose value is a JSON array of the Disclosure
+   strings issued with, and committed to by digest in, that Token.  This
+   holds for a refresh as for the initial issuance, and Disclosures are
+   used only with the Token they were returned with.  They are returned
+   apart from access_token so that its value stays a JWT that recipients
+   unaware of this profile can parse.
+
+   A client that does not implement this profile ignores the parameter,
+   as Section 5.1 of [RFC6749] provides for parameters it does not
+   understand, and presents the Token alone; the resource server then
+   sees only the cleartext claims.  An authorization server therefore
+   issues a selectively disclosable Token only to a client it knows to
+   implement this profile; how it knows is outside this document.
+
+   This associates the Disclosures with the Token on the client side;
+   the cryptographic binding remains the digests in the Token.  The
+   client MUST NOT inspect the Token (Section 6 of [RFC9068]) and need
+   not: each Disclosure carries its claim name and value (Section 4.2 of
+   [RFC9901]), so the client selects by claim name among those it
+   received with the Token.  It does not perform the Holder processing
+   of Section 7.2 of [RFC9901]; the Token is its own authorization
+   server's, presented opaquely as any access token is.
+
+5.  Presentation
+
+5.1.  HTTP Fields
+
+   Two Structured Fields [RFC9651] are defined.
+
+   SD-JWT-Disclosures  A List of Strings, each one Disclosure in its
+
+
+
+
+
+
+Lee                       Expires 6 April 2027                  [Page 4]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+      base64url form.  Order is significant.  The field MAY be split
+      across several field lines, which recipients combine in order as
+      Section 5.3 of [RFC9110] specifies; a field with no members is
+      omitted rather than sent empty.
+
+   SD-JWT-Key-Binding  An Item that is a String, one KB-JWT in compact
+      serialization.
+
+   The _reassembled SD-JWT_ of a request is the Token, a tilde, and each
+   member of SD-JWT-Disclosures in order, each followed by a tilde: the
+   serialization of Section 4 of [RFC9901] and the input to sd_hash
+   (Section 4.3.1 of [RFC9901]).  An absent SD-JWT-Disclosures field
+   means zero Disclosures, and the reassembled SD-JWT is then the Token
+   followed by a tilde.  Appending the KB-JWT gives the SD-JWT+KB.
+
+5.2.  Sending
+
+   The client sends the Token in the Authorization header with the DPoP
+   scheme and a DPoP proof, as [RFC9449] specifies, with nothing
+   attached.  In SD-JWT-Disclosures it sends any subset of the
+   Disclosures received with that Token (Section 4), each at most once.
+   Which Disclosures a resource server needs, and whether it implements
+   this profile at all, is something the client knows about that
+   resource server, as it knows which scope to request; this profile
+   defines no way to ask, and a client SHOULD NOT send Disclosures to a
+   resource server it does not know to implement it.  How it knows is
+   outside this document; the resource server's metadata or the client's
+   registration with the authorization server are natural places.
+
+   A KB-JWT, if sent, satisfies Section 4.3 of [RFC9901]: sd_hash is
+   computed over the reassembled SD-JWT, aud identifies the resource
+   server by the identifier it expects in the Token's aud, and nonce is
+   the DPoP nonce the resource server provided (Section 9 of [RFC9449]).
+   A resource server that requires a KB-JWT therefore provides DPoP
+   nonces.
+
+5.3.  Receiving
+
+   A resource server that implements this profile:
+
+   1.  Validates the Token and the DPoP proof as [RFC9068] and [RFC9449]
+       specify.  This step is unchanged from any DPoP-bound JWT access
+       token and MUST succeed first.  The DPoP ath covers the Token
+       alone (Section 4.3 of [RFC9449]), not the Disclosures.
+
+   2.  Verifies the reassembled SD-JWT, with the KB-JWT appended if
+       present, as Section 7.3 of [RFC9901] specifies, and uses the
+       Processed SD-JWT Payload.  This holds with zero Disclosures too,
+
+
+
+Lee                       Expires 6 April 2027                  [Page 5]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+       where a KB-JWT alone forms the SD-JWT+KB of Section 4 of
+       [RFC9901], though it then adds nothing beyond the DPoP proof.  A
+       failure yields invalid_token (Section 4 of [RFC9068]).
+
+   Whether a KB-JWT is required is resource server policy and, as
+   Section 7.3 of [RFC9901] requires, MUST NOT depend on whether one was
+   received; a resource server that requires one rejects a request
+   without it.  The key that verifies the KB-JWT is the jwk in the
+   header of the DPoP proof, whose thumbprint [RFC7638] MUST equal the
+   Token's cnf.jkt (Section 6.1 of [RFC9449]).
+
+   A resource server that does not implement this profile ignores both
+   fields, as [RFC9110] permits, and sees only the cleartext claims.  So
+   does one that relies on token introspection [RFC7662] instead of
+   validating the Token itself, since the introspection response carries
+   no Disclosure and an authorization server MUST NOT put selectively
+   disclosable values in one, so such a resource server gains nothing
+   from this profile.
+
+6.  Security Considerations
+
+   This profile invites Tokens to be stored and logged as less sensitive
+   than before.  A bearer Token would turn every such place into a
+   credential leak, which is why Tokens under this profile MUST be DPoP-
+   bound [RFC9449]: only the holder of the key can use one.  The KB-JWT
+   does not replace DPoP here, because intermediaries do not verify it.
+   [RFC8725] applies to the Token, the KB-JWT and the DPoP proof.
+
+   This profile protects the Token, not the request.  An intermediary
+   that can read the request can read SD-JWT-Disclosures;
+   confidentiality from such a party is provided by the transport, as
+   Section 10.3 of [RFC9901] notes, and not by this profile.  A
+   deployment that needs it beyond the transport could carry each
+   Disclosure as a JWE [RFC7516] for the resource server, which decrypts
+   it before reassembly; this is left to future work.  What the profile
+   ensures is that the Token itself, when stored, logged, introspected
+   or forwarded, does not contain the selectively disclosable values;
+   those travel only in the Disclosures.
+
+   An intermediary can also remove SD-JWT-Disclosures or members of it.
+   Only a KB-JWT protects the set of Disclosures (Section 9.10 of
+   [RFC9901]); without one, the resource server cannot distinguish a
+   client that disclosed nothing from a field that was removed, so a
+   resource server behind intermediaries SHOULD require a KB-JWT.
+   Disclosures cannot be forged or substituted, since each is committed
+   to by a digest in the Token and Section 7.1 of [RFC9901] rejects any
+   that is not.
+
+
+
+
+Lee                       Expires 6 April 2027                  [Page 6]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+   The two fields carry the values this profile keeps out of the Token.
+   They MUST be handled like the Authorization field: excluded from
+   access logs, traces, request dumps, monitoring and CDN logs, and from
+   any shared cache (Section 10.2 of [RFC9901]).  Infrastructure unaware
+   of this profile will not do so, since logging configurations
+   typically redact fields by name; this is the reason for the rule in
+   Section 5.2 that Disclosures go only to resource servers known to
+   implement the profile.
+
+7.  Privacy Considerations
+
+   This profile hides values from the Token, not from the client, which
+   receives every Disclosure and SHOULD store them no longer than the
+   Token (Section 10.2 of [RFC9901]).  It offers none of the
+   unlinkability discussed in Section 10.1 of [RFC9901]: the Token's
+   jti, sub and digests are the same in every request.  Where a pairwise
+   sub is used (Section 6 of [RFC9068]), it and decoy digests
+   (Section 4.2.5 of [RFC9901]) limit what a resource server learns
+   beyond what is disclosed to it.
+
+8.  IANA Considerations
+
+   This document requests registration of SD-JWT-Disclosures and SD-JWT-
+   Key-Binding as permanent entries in the "Hypertext Transfer Protocol
+   (HTTP) Field Name Registry" [RFC9110], with Section 5.1 of this
+   document as the reference, and of disclosures in the "OAuth
+   Parameters" registry [RFC6749] for use in token responses, described
+   as "JSON array of the SD-JWT Disclosures issued with the access token
+   in the same response", with Section 4 as the reference.  No JWT
+   claims or header parameters are registered.
+
+9.  References
+
+9.1.  Normative References
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119,
+              DOI 10.17487/RFC2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
+              RFC 6749, DOI 10.17487/RFC6749, October 2012,
+              <https://www.rfc-editor.org/info/rfc6749>.
+
+   [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
+              Thumbprint", RFC 7638, DOI 10.17487/RFC7638, September
+              2015, <https://www.rfc-editor.org/info/rfc7638>.
+
+
+
+
+Lee                       Expires 6 April 2027                  [Page 7]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
+              May 2017, <https://www.rfc-editor.org/info/rfc8174>.
+
+   [RFC9068]  Bertocci, V., "JSON Web Token (JWT) Profile for OAuth 2.0
+              Access Tokens", RFC 9068, DOI 10.17487/RFC9068, October
+              2021, <https://www.rfc-editor.org/info/rfc9068>.
+
+   [RFC9110]  Fielding, R., Ed., Nottingham, M., Ed., and J. Reschke,
+              Ed., "HTTP Semantics", STD 97, RFC 9110,
+              DOI 10.17487/RFC9110, June 2022,
+              <https://www.rfc-editor.org/info/rfc9110>.
+
+   [RFC9449]  Fett, D., Campbell, B., Bradley, J., Lodderstedt, T.,
+              Jones, M., and D. Waite, "OAuth 2.0 Demonstrating Proof of
+              Possession (DPoP)", RFC 9449, DOI 10.17487/RFC9449,
+              September 2023, <https://www.rfc-editor.org/info/rfc9449>.
+
+   [RFC9651]  Nottingham, M. and P. Kamp, "Structured Field Values for
+              HTTP", RFC 9651, DOI 10.17487/RFC9651, September 2024,
+              <https://www.rfc-editor.org/info/rfc9651>.
+
+   [RFC9901]  Fett, D., Yasuda, K., and B. Campbell, "Selective
+              Disclosure for JSON Web Tokens", RFC 9901,
+              DOI 10.17487/RFC9901, November 2025,
+              <https://www.rfc-editor.org/info/rfc9901>.
+
+9.2.  Informative References
+
+   [I-D.ietf-oauth-sd-jwt-vc]
+              Terbu, O., Fett, D., and B. Campbell, "SD-JWT-based
+              Verifiable Digital Credentials (SD-JWT VC)", Work in
+              Progress, Internet-Draft, draft-ietf-oauth-sd-jwt-vc-19,
+              31 August 2026, <https://datatracker.ietf.org/doc/html/
+              draft-ietf-oauth-sd-jwt-vc-19>.
+
+   [RFC7516]  Jones, M. and J. Hildebrand, "JSON Web Encryption (JWE)",
+              RFC 7516, DOI 10.17487/RFC7516, May 2015,
+              <https://www.rfc-editor.org/info/rfc7516>.
+
+   [RFC7662]  Richer, J., Ed., "OAuth 2.0 Token Introspection",
+              RFC 7662, DOI 10.17487/RFC7662, October 2015,
+              <https://www.rfc-editor.org/info/rfc7662>.
+
+   [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Ed., Bradley, J.,
+              and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
+              DOI 10.17487/RFC8693, January 2020,
+              <https://www.rfc-editor.org/info/rfc8693>.
+
+
+
+Lee                       Expires 6 April 2027                  [Page 8]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+   [RFC8707]  Campbell, B., Bradley, J., and H. Tschofenig, "Resource
+              Indicators for OAuth 2.0", RFC 8707, DOI 10.17487/RFC8707,
+              February 2020, <https://www.rfc-editor.org/info/rfc8707>.
+
+   [RFC8725]  Sheffer, Y., Hardt, D., and M. Jones, "JSON Web Token Best
+              Current Practices", BCP 225, RFC 8725,
+              DOI 10.17487/RFC8725, February 2020,
+              <https://www.rfc-editor.org/info/rfc8725>.
+
+Appendix A.  Example
+
+   Token payload with email and name selectively disclosable (digests
+   and Disclosures below are placeholders):
+
+   {
+     "iss": "https://as.example.com",
+     "sub": "https://as.example.com/users/9f1c2d",
+     "aud": "https://api.example.com",
+     "client_id": "agent-7f3a",
+     "scope": "files:read",
+     "iat": 1790640000,
+     "exp": 1790643600,
+     "jti": "urn:uuid:3b1c9f2e-7a41-4d0e-9c55-1f0a2b6d8e71",
+     "cnf": { "jkt": "0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I" },
+     "_sd": [
+       "CrQe7S5kqBAHt-nMYXgc6bdt2SH5aTY1sU_M-PgkjPI",
+       "JzYjH4svliH0R3PyEMfeZu6Jt69u5qehZo7F7EPYlSE"
+     ],
+     "_sd_alg": "sha-256"
+   }
+
+   Token response delivering it:
+
+   {
+     "access_token": "eyJhbGciOiJFUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZ...",
+     "token_type": "DPoP",
+     "expires_in": 3600,
+     "disclosures": [
+       "WyI2SWo3dE0tYTVpVlBHYm9TNXRtdlZBIiwgImVtYWls...",
+       "WyJlbHVWNU9nM2dTTklJOEVZbnN4QV9BIiwgIm5hbWUi..."
+     ]
+   }
+
+   Request disclosing email and withholding name:
+
+
+
+
+
+
+
+Lee                       Expires 6 April 2027                  [Page 9]
+
+Internet-Draft          SD for JWT Access Tokens            October 2026
+
+
+   GET /files HTTP/1.1
+   Host: api.example.com
+   Authorization: DPoP eyJhbGciOiJFUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZ...
+   DPoP: eyJhbGciOiJFUzI1NiIsInR5cCI6ImRwb3Arand0IiwiandrIjp7Imt0...
+   SD-JWT-Disclosures: "WyI2SWo3dE0tYTVpVlBHYm9TNXRtdlZBIiwgImVtYWls..."
+   SD-JWT-Key-Binding: "eyJhbGciOiJFUzI1NiIsInR5cCI6ImtiK2p3dCJ9.eyJu..."
+
+   A gateway in front of api.example.com validates the first two headers
+   as for any DPoP-bound access token.  The Token it validates, stores
+   or logs as a token carries the digest of the email address, not the
+   address; the address is in the SD-JWT-Disclosures field, which the
+   gateway forwards without processing.
+
+Appendix B.  Open Issues
+
+   This section is to be removed before publishing as an RFC.
+
+   *  Whether the KB-JWT is redundant beside DPoP.  An alternative is a
+      claim in the DPoP proof carrying the hash of the reassembled SD-
+      JWT, which binds the disclosed set to the request with one
+      signature and no nonce.  Whether Section 4.2 of [RFC9449] permits
+      additional claims has to be settled first.
+
+   *  Whether keeping typ at+jwt is acceptable against Section 9.11 of
+      [RFC9901].
+
+   *  How a resource server states that it implements this profile and
+      which Disclosures it needs (its metadata, or a WWW-Authenticate
+      challenge; no existing error code fits "valid Token, required
+      claim not disclosed"), and how a client states to the
+      authorization server that it implements it (see Section 5.2).
+
+Author's Address
+
+   Su-hyeon Forten Lee
+   Email: nine01223@naver.com
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Lee                       Expires 6 April 2027                 [Page 10]

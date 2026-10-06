@@ -46,3 +46,11 @@ sequenceDiagram
   `OAuth-Client-Attestation` / `OAuth-Client-Attestation-PoP` headers
   (draft-ietf-oauth-attestation-based-client-auth-11, sections 4 and 5.1).
 
+
+## Environment overrides
+
+* `SOLID_EXAMPLE_ISSUER` — the authorization server issuer (default
+  `http://127.0.0.1:8080`); the token endpoint is derived as
+  `<issuer>/token` and doubles as the PoP `aud`.
+* `SOLID_EXAMPLE_RESOURCE` — the timestamp resource server URL
+  (default `http://localhost:8085`).

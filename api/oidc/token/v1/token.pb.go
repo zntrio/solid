@@ -24,6 +24,7 @@
 package tokenv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -151,6 +152,65 @@ func (TokenStatus) EnumDescriptor() ([]byte, []int) {
 	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{1}
 }
 
+// Authentication event performed by the end-user during the authorization
+// request (RFC 9470 section 6: the achieved authentication context class
+// reference and its time).
+type AuthEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// OPTIONAL. Authentication context class reference achieved by the
+	// end-user authentication (RFC 9470 section 6.2 acr).
+	Acr *string `protobuf:"bytes,1,opt,name=acr,proto3,oneof" json:"acr,omitempty"`
+	// OPTIONAL. Time of the end-user authentication event, seconds since
+	// epoch (RFC 9470 section 6.2 auth_time).
+	AuthTime      *uint64 `protobuf:"fixed64,2,opt,name=auth_time,json=authTime,proto3,oneof" json:"auth_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthEvent) Reset() {
+	*x = AuthEvent{}
+	mi := &file_oidc_token_v1_token_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthEvent) ProtoMessage() {}
+
+func (x *AuthEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_oidc_token_v1_token_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthEvent.ProtoReflect.Descriptor instead.
+func (*AuthEvent) Descriptor() ([]byte, []int) {
+	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *AuthEvent) GetAcr() string {
+	if x != nil && x.Acr != nil {
+		return *x.Acr
+	}
+	return ""
+}
+
+func (x *AuthEvent) GetAuthTime() uint64 {
+	if x != nil && x.AuthTime != nil {
+		return *x.AuthTime
+	}
+	return 0
+}
+
 type TokenMeta struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// REQUIRED. Token issuer URI
@@ -194,7 +254,7 @@ type TokenMeta struct {
 
 func (x *TokenMeta) Reset() {
 	*x = TokenMeta{}
-	mi := &file_oidc_token_v1_token_proto_msgTypes[0]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +266,7 @@ func (x *TokenMeta) String() string {
 func (*TokenMeta) ProtoMessage() {}
 
 func (x *TokenMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_token_v1_token_proto_msgTypes[0]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +279,7 @@ func (x *TokenMeta) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenMeta.ProtoReflect.Descriptor instead.
 func (*TokenMeta) Descriptor() ([]byte, []int) {
-	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{0}
+	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *TokenMeta) GetIssuer() string {
@@ -322,7 +382,7 @@ type Actor struct {
 
 func (x *Actor) Reset() {
 	*x = Actor{}
-	mi := &file_oidc_token_v1_token_proto_msgTypes[1]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -334,7 +394,7 @@ func (x *Actor) String() string {
 func (*Actor) ProtoMessage() {}
 
 func (x *Actor) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_token_v1_token_proto_msgTypes[1]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -347,7 +407,7 @@ func (x *Actor) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Actor.ProtoReflect.Descriptor instead.
 func (*Actor) Descriptor() ([]byte, []int) {
-	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{1}
+	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Actor) GetIssuer() string {
@@ -399,14 +459,20 @@ type Token struct {
 	// OPTIONAL. Actor.
 	Actor []*Actor `protobuf:"bytes,9,rep,name=actor,proto3" json:"actor,omitempty"`
 	// OPTIONAL. Authorized Actor.
-	MayAct        []*Actor `protobuf:"bytes,10,rep,name=may_act,json=mayAct,proto3" json:"may_act,omitempty"`
+	MayAct []*Actor `protobuf:"bytes,10,rep,name=may_act,json=mayAct,proto3" json:"may_act,omitempty"`
+	// OPTIONAL. Selectively disclosable claim Disclosures of this token
+	// (draft-forten-oauth-sd-jwt-access-token-00 section 3-4): the token
+	// carries digests only, the values travel in these disclosures. For
+	// the access token they surface in the token response `disclosures`
+	// parameter; introspection responses MUST NOT carry them.
+	Disclosures   []string `protobuf:"bytes,11,rep,name=disclosures,proto3" json:"disclosures,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Token) Reset() {
 	*x = Token{}
-	mi := &file_oidc_token_v1_token_proto_msgTypes[2]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -418,7 +484,7 @@ func (x *Token) String() string {
 func (*Token) ProtoMessage() {}
 
 func (x *Token) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_token_v1_token_proto_msgTypes[2]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -431,7 +497,7 @@ func (x *Token) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Token.ProtoReflect.Descriptor instead.
 func (*Token) Descriptor() ([]byte, []int) {
-	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{2}
+	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Token) GetIssuer() string {
@@ -504,6 +570,13 @@ func (x *Token) GetMayAct() []*Actor {
 	return nil
 }
 
+func (x *Token) GetDisclosures() []string {
+	if x != nil {
+		return x.Disclosures
+	}
+	return nil
+}
+
 type TokenConfirmation struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Jkt   string                 `protobuf:"bytes,1,opt,name=jkt,proto3" json:"jkt,omitempty"`
@@ -516,7 +589,7 @@ type TokenConfirmation struct {
 
 func (x *TokenConfirmation) Reset() {
 	*x = TokenConfirmation{}
-	mi := &file_oidc_token_v1_token_proto_msgTypes[3]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -528,7 +601,7 @@ func (x *TokenConfirmation) String() string {
 func (*TokenConfirmation) ProtoMessage() {}
 
 func (x *TokenConfirmation) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_token_v1_token_proto_msgTypes[3]
+	mi := &file_oidc_token_v1_token_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -541,7 +614,7 @@ func (x *TokenConfirmation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TokenConfirmation.ProtoReflect.Descriptor instead.
 func (*TokenConfirmation) Descriptor() ([]byte, []int) {
-	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{3}
+	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TokenConfirmation) GetJkt() string {
@@ -558,87 +631,17 @@ func (x *TokenConfirmation) GetX5TS256() string {
 	return ""
 }
 
-type OAuthTokenResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
-	TokenType     string                 `protobuf:"bytes,2,opt,name=token_type,json=tokenType,proto3" json:"token_type,omitempty"`
-	ExpiresIn     uint64                 `protobuf:"fixed64,3,opt,name=expires_in,json=expiresIn,proto3" json:"expires_in,omitempty"`
-	RefreshToken  *string                `protobuf:"bytes,4,opt,name=refresh_token,json=refreshToken,proto3,oneof" json:"refresh_token,omitempty"`
-	IdToken       *string                `protobuf:"bytes,5,opt,name=id_token,json=idToken,proto3,oneof" json:"id_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *OAuthTokenResponse) Reset() {
-	*x = OAuthTokenResponse{}
-	mi := &file_oidc_token_v1_token_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *OAuthTokenResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*OAuthTokenResponse) ProtoMessage() {}
-
-func (x *OAuthTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_oidc_token_v1_token_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use OAuthTokenResponse.ProtoReflect.Descriptor instead.
-func (*OAuthTokenResponse) Descriptor() ([]byte, []int) {
-	return file_oidc_token_v1_token_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *OAuthTokenResponse) GetAccessToken() string {
-	if x != nil {
-		return x.AccessToken
-	}
-	return ""
-}
-
-func (x *OAuthTokenResponse) GetTokenType() string {
-	if x != nil {
-		return x.TokenType
-	}
-	return ""
-}
-
-func (x *OAuthTokenResponse) GetExpiresIn() uint64 {
-	if x != nil {
-		return x.ExpiresIn
-	}
-	return 0
-}
-
-func (x *OAuthTokenResponse) GetRefreshToken() string {
-	if x != nil && x.RefreshToken != nil {
-		return *x.RefreshToken
-	}
-	return ""
-}
-
-func (x *OAuthTokenResponse) GetIdToken() string {
-	if x != nil && x.IdToken != nil {
-		return *x.IdToken
-	}
-	return ""
-}
-
 var File_oidc_token_v1_token_proto protoreflect.FileDescriptor
 
 const file_oidc_token_v1_token_proto_rawDesc = "" +
 	"\n" +
-	"\x19oidc/token/v1/token.proto\x12\roidc.token.v1\x1a(oidc/token/v1/authorization_detail.proto\"\xaa\x03\n" +
+	"\x19oidc/token/v1/token.proto\x12\roidc.token.v1\x1a\x1bbuf/validate/validate.proto\x1a(oidc/token/v1/authorization_detail.proto\"Z\n" +
+	"\tAuthEvent\x12\x15\n" +
+	"\x03acr\x18\x01 \x01(\tH\x00R\x03acr\x88\x01\x01\x12 \n" +
+	"\tauth_time\x18\x02 \x01(\x06H\x01R\bauthTime\x88\x01\x01B\x06\n" +
+	"\x04_acrB\f\n" +
+	"\n" +
+	"_auth_time\"\xaa\x03\n" +
 	"\tTokenMeta\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -662,7 +665,7 @@ const file_oidc_token_v1_token_proto_rawDesc = "" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
 	"\tclient_id\x18\x03 \x01(\tR\bclientId\x12&\n" +
-	"\x03act\x18\x04 \x01(\v2\x14.oidc.token.v1.ActorR\x03act\"\xbf\x03\n" +
+	"\x03act\x18\x04 \x01(\v2\x14.oidc.token.v1.ActorR\x03act\"\xe1\x03\n" +
 	"\x05Token\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x127\n" +
 	"\n" +
@@ -675,22 +678,13 @@ const file_oidc_token_v1_token_proto_rawDesc = "" +
 	"\fconfirmation\x18\b \x01(\v2 .oidc.token.v1.TokenConfirmationR\fconfirmation\x12*\n" +
 	"\x05actor\x18\t \x03(\v2\x14.oidc.token.v1.ActorR\x05actor\x12-\n" +
 	"\amay_act\x18\n" +
-	" \x03(\v2\x14.oidc.token.v1.ActorR\x06mayActB\n" +
+	" \x03(\v2\x14.oidc.token.v1.ActorR\x06mayAct\x12 \n" +
+	"\vdisclosures\x18\v \x03(\tR\vdisclosuresB\n" +
 	"\n" +
-	"\b_phantom\"A\n" +
-	"\x11TokenConfirmation\x12\x10\n" +
-	"\x03jkt\x18\x01 \x01(\tR\x03jkt\x12\x1a\n" +
-	"\bx5t_s256\x18\x02 \x01(\tR\bx5t#S256\"\xde\x01\n" +
-	"\x12OAuthTokenResponse\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12\x1d\n" +
-	"\n" +
-	"token_type\x18\x02 \x01(\tR\ttokenType\x12\x1d\n" +
-	"\n" +
-	"expires_in\x18\x03 \x01(\x06R\texpiresIn\x12(\n" +
-	"\rrefresh_token\x18\x04 \x01(\tH\x00R\frefreshToken\x88\x01\x01\x12\x1e\n" +
-	"\bid_token\x18\x05 \x01(\tH\x01R\aidToken\x88\x01\x01B\x10\n" +
-	"\x0e_refresh_tokenB\v\n" +
-	"\t_id_token*\xb1\x01\n" +
+	"\b_phantom\"\x7f\n" +
+	"\x11TokenConfirmation\x12/\n" +
+	"\x03jkt\x18\x01 \x01(\tB\x1d\xbaH\x1ar\x182\x16^([A-Za-z0-9_-]{43})?$R\x03jkt\x129\n" +
+	"\bx5t_s256\x18\x02 \x01(\tB\x1d\xbaH\x1ar\x182\x16^([A-Za-z0-9_-]{43})?$R\bx5t#S256*\xb1\x01\n" +
 	"\tTokenType\x12\x1a\n" +
 	"\x16TOKEN_TYPE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12TOKEN_TYPE_UNKNOWN\x10\x01\x12\x1b\n" +
@@ -722,22 +716,22 @@ var file_oidc_token_v1_token_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_oidc_token_v1_token_proto_goTypes = []any{
 	(TokenType)(0),              // 0: oidc.token.v1.TokenType
 	(TokenStatus)(0),            // 1: oidc.token.v1.TokenStatus
-	(*TokenMeta)(nil),           // 2: oidc.token.v1.TokenMeta
-	(*Actor)(nil),               // 3: oidc.token.v1.Actor
-	(*Token)(nil),               // 4: oidc.token.v1.Token
-	(*TokenConfirmation)(nil),   // 5: oidc.token.v1.TokenConfirmation
-	(*OAuthTokenResponse)(nil),  // 6: oidc.token.v1.OAuthTokenResponse
+	(*AuthEvent)(nil),           // 2: oidc.token.v1.AuthEvent
+	(*TokenMeta)(nil),           // 3: oidc.token.v1.TokenMeta
+	(*Actor)(nil),               // 4: oidc.token.v1.Actor
+	(*Token)(nil),               // 5: oidc.token.v1.Token
+	(*TokenConfirmation)(nil),   // 6: oidc.token.v1.TokenConfirmation
 	(*AuthorizationDetail)(nil), // 7: oidc.token.v1.AuthorizationDetail
 }
 var file_oidc_token_v1_token_proto_depIdxs = []int32{
 	7, // 0: oidc.token.v1.TokenMeta.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	3, // 1: oidc.token.v1.Actor.act:type_name -> oidc.token.v1.Actor
+	4, // 1: oidc.token.v1.Actor.act:type_name -> oidc.token.v1.Actor
 	0, // 2: oidc.token.v1.Token.token_type:type_name -> oidc.token.v1.TokenType
-	2, // 3: oidc.token.v1.Token.metadata:type_name -> oidc.token.v1.TokenMeta
+	3, // 3: oidc.token.v1.Token.metadata:type_name -> oidc.token.v1.TokenMeta
 	1, // 4: oidc.token.v1.Token.status:type_name -> oidc.token.v1.TokenStatus
-	5, // 5: oidc.token.v1.Token.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	3, // 6: oidc.token.v1.Token.actor:type_name -> oidc.token.v1.Actor
-	3, // 7: oidc.token.v1.Token.may_act:type_name -> oidc.token.v1.Actor
+	6, // 5: oidc.token.v1.Token.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	4, // 6: oidc.token.v1.Token.actor:type_name -> oidc.token.v1.Actor
+	4, // 7: oidc.token.v1.Token.may_act:type_name -> oidc.token.v1.Actor
 	8, // [8:8] is the sub-list for method output_type
 	8, // [8:8] is the sub-list for method input_type
 	8, // [8:8] is the sub-list for extension type_name
@@ -752,8 +746,8 @@ func file_oidc_token_v1_token_proto_init() {
 	}
 	file_oidc_token_v1_authorization_detail_proto_init()
 	file_oidc_token_v1_token_proto_msgTypes[0].OneofWrappers = []any{}
-	file_oidc_token_v1_token_proto_msgTypes[2].OneofWrappers = []any{}
-	file_oidc_token_v1_token_proto_msgTypes[4].OneofWrappers = []any{}
+	file_oidc_token_v1_token_proto_msgTypes[1].OneofWrappers = []any{}
+	file_oidc_token_v1_token_proto_msgTypes[3].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

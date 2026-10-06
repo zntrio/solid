@@ -26,6 +26,7 @@ import (
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
+	"zntr.io/solid/sdk/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -94,13 +95,13 @@ func (d *tokenDecoder) Decode(ctx context.Context, audience, response string) (*
 	// Validate the response envelope BEFORE dispatching on the error claim:
 	// an error response must still be a properly issued, unexpired response
 	// addressed to this audience (oauth-v2-jarm section 5).
-	if claims.Issuer != d.issuer {
+	if !types.SecureCompareString(claims.Issuer, d.issuer) {
 		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response token, '%s' does not match expected issuer", claims.Issuer)
 	}
 
-	if claims.Audience != audience {
+	if !types.SecureCompareString(claims.Audience, audience) {
 		return &flowv1.AuthorizeResponse{
 			Error: rfcerrors.InvalidToken().Build(),
 		}, fmt.Errorf("invalid response token, '%s' does not match expected audience", claims.Audience)

@@ -26,38 +26,61 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jarm"
-	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/jwsreq"
 	"zntr.io/solid/sdk/pairwise"
 	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/rfcerrors"
-	"zntr.io/solid/sdk/token/jwt"
 	"zntr.io/solid/server/profile"
 	"zntr.io/solid/server/services"
 	"zntr.io/solid/server/storage"
 )
 
 // Authorization handles authorization HTTP requests.
+//
+//nolint:gocyclo // linear RFC 6749-ordered presentation dispatch
 func Authorization(issuer string, authz services.Authorization, clients storage.ClientReader, jarmEncoder jarm.ResponseEncoder, pairwiseEncoder pairwise.Encoder, requestObjectAlgorithms []string, profiles profile.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Only GET verb
-		if r.Method != http.MethodGet {
+		// The authorization endpoint accepts GET and POST with
+		// application/x-www-form-urlencoded parameters (draft-ietf-oauth-v2-1
+		// section 4.1); POST bodies take precedence, the query is the
+		// fallback.
+		switch r.Method {
+		case http.MethodGet, http.MethodPost:
+		default:
 			WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
 			return
+		}
+		if r.Method == http.MethodPost {
+			if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+				WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+				return
+			}
+			if err := r.ParseForm(); err != nil {
+				WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+				return
+			}
 		}
 
 		// Parameters
 		var (
-			ctx        = r.Context()
-			q          = r.URL.Query()
-			clientID   = q.Get("client_id")
-			requestRaw = q.Get("request")
+			ctx = r.Context()
+			q   = r.URL.Query()
 		)
+		param := func(name string) string {
+			if v := r.PostFormValue(name); v != "" {
+				return v
+			}
+			return q.Get(name)
+		}
+		clientID := param("client_id")
+		requestRaw := param("request")
 
 		// Retrieve subject from context
 		sub, ok := Subject(ctx)
@@ -66,10 +89,17 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 			return
 		}
 
-		// Retrieve client
+		// Retrieve client. RFC 6749 §4.1.2.1: an unknown or invalid client_id
+		// MUST NOT redirect; answer 400 directly.
 		client, err := clients.Get(ctx, clientID)
 		if err != nil {
-			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			if errors.Is(err, storage.ErrNotFound) {
+				log.Println("unknown client on authorization endpoint:", err)
+				WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			} else {
+				log.Println("unable to retrieve client:", err)
+				WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
+			}
 			return
 		}
 
@@ -83,15 +113,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		}
 
 		// Prepare client request decoder
-		clientRequestDecoder := jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
-			parsed, parseErr := jwk.Parse(client.Jwks)
-			if parseErr != nil {
-				return nil, fmt.Errorf("unable to decode client JWKS")
-			}
-
-			// No error
-			return parsed, nil
-		}, requestObjectAlgorithms), issuer)
+		clientRequestDecoder := clientRequestDecoder(client, issuer, requestObjectAlgorithms)
 
 		// Decode the request object; on failure, RFC 6749 §4.1.2.1
 		// redirects the error when a redirect URI is known.
@@ -103,17 +125,24 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		// Enforce the application-type profile, when the client carries a
 		// known application type: response types outside the profile are
 		// rejected by redirect per RFC 6749 section 4.1.2.1.
-		if !profileAllowsResponseType(profiles, client.ApplicationType, ar.ResponseType) {
+		if !profile.AllowsResponseType(profiles, client.ApplicationType, ar.ResponseType) {
 			redirectAuthorizationError(w, r, ar.RedirectUri, issuer, rfcerrors.InvalidRequest().Build(), ar.State)
 			return
 		}
 
 		// Send request to reactor
+		// RFC 9470 section 6: the login authentication event observed by the
+		// presentation layer rides the authorization request into the service.
+		var authEvent *tokenv1.AuthEvent
+		if ev, ok := AuthenticationEventFromContext(ctx); ok {
+			authEvent = &tokenv1.AuthEvent{Acr: &ev.ACR, AuthTime: &ev.AuthTime}
+		}
 		res, err := authz.Authorize(ctx, &flowv1.AuthorizeRequest{
-			Client:  client,
-			Issuer:  issuer,
-			Subject: sub,
-			Request: ar,
+			Client:    client,
+			Issuer:    issuer,
+			Subject:   sub,
+			Request:   ar,
+			AuthEvent: authEvent,
 		})
 		if err != nil {
 			log.Println("unable to process authorization request:", err)
@@ -121,7 +150,13 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 				redirectAuthorizationError(w, r, res.RedirectUri, issuer, res.Error, ar.State)
 				return
 			}
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			// res may be nil when the service fails before building a
+			// response; WithError is nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+				return
+			}
+			WithError(w, r, http.StatusBadRequest, nil)
 			return
 		}
 
@@ -401,6 +436,5 @@ func redirectAuthorizationError(w http.ResponseWriter, r *http.Request, redirect
 	// object and the server-side registered redirect URI list (validated
 	// in services.Authorization), not from an attacker-controlled query
 	// parameter: not an open redirect.
-	//nolint:gosec // redirect target validated upstream (registered redirect URI)
 	http.Redirect(w, r, u.String(), http.StatusFound)
 }

@@ -354,6 +354,7 @@ func Test_service_Token(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator, sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockDeviceCodeSession, tokens *storagemock.MockToken) {
@@ -401,6 +402,9 @@ func Test_service_Token(t *testing.T) {
 						ExpiresAt: 3601,
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+					},
 				},
 				RefreshToken: &tokenv1.Token{
 					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -416,6 +420,9 @@ func Test_service_Token(t *testing.T) {
 						ExpiresAt: 604801,
 					},
 					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+					},
 				},
 			},
 		},

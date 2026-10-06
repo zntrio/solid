@@ -161,7 +161,7 @@ func newSDCWTFixture(t *testing.T) *sdcwtFixture {
 	if f.issued, f.disclosures, err = f.issuer.Issue(context.Background(), f.claims); err != nil {
 		t.Fatalf("unable to issue: %v", err)
 	}
-	if f.presentation, err = f.holder.Present(f.issued, f.disclosures); err != nil {
+	if f.presentation, err = f.holder.Present(context.Background(), f.issued, f.disclosures); err != nil {
 		t.Fatalf("unable to present: %v", err)
 	}
 
@@ -171,7 +171,7 @@ func newSDCWTFixture(t *testing.T) *sdcwtFixture {
 // validKBT produces a fresh, valid KBT with a fresh cnonce.
 func (f *sdcwtFixture) validKBT(t *testing.T, cnonce []byte) []byte {
 	t.Helper()
-	kbt, err := f.holder.KeyBind(f.presentation, "verifier.example.com", cnonce, sdcwt.WithIssuedAt(1750000500))
+	kbt, err := f.holder.KeyBind(context.Background(), f.presentation, "verifier.example.com", cnonce, sdcwt.WithIssuedAt(1750000500))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,11 +185,11 @@ func (f *sdcwtFixture) validKBT(t *testing.T, cnonce []byte) []byte {
 // KBT bytes for verifier-stage checking.
 func (f *sdcwtFixture) presentOrReject(t *testing.T, reissued []byte, cnonce []byte, disclosures [][]byte) []byte {
 	t.Helper()
-	presentation, err := f.holder.Present(reissued, disclosures)
+	presentation, err := f.holder.Present(context.Background(), reissued, disclosures)
 	if err != nil {
 		return nil
 	}
-	kbt, err := f.holder.KeyBind(presentation, "verifier.example.com", cnonce, sdcwt.WithIssuedAt(1750000500))
+	kbt, err := f.holder.KeyBind(context.Background(), presentation, "verifier.example.com", cnonce, sdcwt.WithIssuedAt(1750000500))
 	if err != nil {
 		return nil
 	}
@@ -221,11 +221,11 @@ func TestSDCWTAdversarial(t *testing.T) {
 			cose.AlgorithmES256,
 			func(context.Context) (jwk.Key, error) { return f.km.attackerKey, nil },
 		)
-		presentation, err := attacker.Present(f.issued, f.disclosures)
+		presentation, err := attacker.Present(context.Background(), f.issued, f.disclosures)
 		if err != nil {
 			t.Fatal(err)
 		}
-		kbt, err := attacker.KeyBind(presentation, "verifier.example.com", []byte("c-attacker"), sdcwt.WithIssuedAt(1750000500))
+		kbt, err := attacker.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("c-attacker"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -247,11 +247,11 @@ func TestSDCWTAdversarial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		presentation, err := f.holder.Present(emptyIssued, nil)
+		presentation, err := f.holder.Present(context.Background(), emptyIssued, nil)
 		if err != nil {
 			t.Fatalf("present with empty sd_claims: %v", err)
 		}
-		kbt, err := f.holder.KeyBind(presentation, "verifier.example.com", []byte("c-empty"), sdcwt.WithIssuedAt(1750000500))
+		kbt, err := f.holder.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("c-empty"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -279,7 +279,7 @@ func TestSDCWTAdversarial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		kbt, err := f.holder.KeyBind(spliced, "verifier.example.com", []byte("c-forged"), sdcwt.WithIssuedAt(1750000500))
+		kbt, err := f.holder.KeyBind(context.Background(), spliced, "verifier.example.com", []byte("c-forged"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -305,7 +305,7 @@ func TestSDCWTAdversarial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		kbt, err := f.holder.KeyBind(spliced, "verifier.example.com", []byte("c-dup"), sdcwt.WithIssuedAt(1750000500))
+		kbt, err := f.holder.KeyBind(context.Background(), spliced, "verifier.example.com", []byte("c-dup"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -482,7 +482,7 @@ func TestSDCWTAdversarial(t *testing.T) {
 	t.Run("audience mismatch and forbidden iss sub", func(t *testing.T) {
 		f := newSDCWTFixture(t)
 		// Audience mismatch: KBT bound to a different audience.
-		otherAud, err := f.holder.KeyBind(f.presentation, "other.example.com", []byte("c-aud"), sdcwt.WithIssuedAt(1750000500))
+		otherAud, err := f.holder.KeyBind(context.Background(), f.presentation, "other.example.com", []byte("c-aud"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -637,13 +637,13 @@ func TestSDCWTAdversarial(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		presentation, err := f.holder.Present(issued, disclosures)
+		presentation, err := f.holder.Present(context.Background(), issued, disclosures)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		// KBT exp after the SD-CWT exp.
-		kbt, err := f.holder.KeyBind(presentation, "verifier.example.com", []byte("c-t1"), sdcwt.WithIssuedAt(1750000500))
+		kbt, err := f.holder.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("c-t1"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -678,7 +678,7 @@ func TestSDCWTAdversarial(t *testing.T) {
 
 		// KBT iat before the SD-CWT iat: needs an SD-CWT with a later
 		// iat; hand-build via the exp fixture above (iat 1750000000).
-		kbt2, err := f.holder.KeyBind(presentation, "verifier.example.com", []byte("c-t2"), sdcwt.WithIssuedAt(1750000000-100))
+		kbt2, err := f.holder.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("c-t2"), sdcwt.WithIssuedAt(1750000000-100))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -711,11 +711,11 @@ func TestSDCWTAdversarial(t *testing.T) {
 		for i := len(f.disclosures) - 1; i >= 0; i-- {
 			reversedBytes = append(reversedBytes, f.disclosures[i])
 		}
-		presentation, err := f.holder.Present(shuffled, reversedBytes)
+		presentation, err := f.holder.Present(context.Background(), shuffled, reversedBytes)
 		if err != nil {
 			t.Fatal(err)
 		}
-		kbt, err := f.holder.KeyBind(presentation, "verifier.example.com", []byte("c-shuffle"), sdcwt.WithIssuedAt(1750000500))
+		kbt, err := f.holder.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("c-shuffle"), sdcwt.WithIssuedAt(1750000500))
 		if err != nil {
 			t.Fatal(err)
 		}

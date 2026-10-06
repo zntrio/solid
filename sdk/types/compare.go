@@ -37,10 +37,9 @@ func SecureCompare(given, actual []byte) bool {
 	if constantTimeEqInt(len(given), len(actual)) == 1 {
 		return subtle.ConstantTimeCompare(given, actual) == 1
 	}
-	// Securely compare actual to itself to keep constant time, but always return false
-	if subtle.ConstantTimeCompare(actual, actual) == 1 {
-		return false
-	}
+	// Length-mismatched inputs never compare equal; the padded self-compare
+	// above keeps the timing profile uniform.
+	_ = subtle.ConstantTimeCompare(actual, actual)
 	return false
 }
 
@@ -49,9 +48,8 @@ func SecureCompareString(given, actual string) bool {
 	if constantTimeEqInt(len(given), len(actual)) == 1 {
 		return subtle.ConstantTimeCompare([]byte(given), []byte(actual)) == 1
 	}
-	// Securely compare actual to itself to keep constant time, but always return false
-	if subtle.ConstantTimeCompare([]byte(actual), []byte(actual)) == 1 {
-		return false
-	}
+	// Length-mismatched inputs never compare equal; the padded self-compare
+	// above keeps the timing profile uniform.
+	_ = subtle.ConstantTimeCompare([]byte(actual), []byte(actual))
 	return false
 }

@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -38,7 +38,7 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*tokenmock.MockSerializer)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -81,8 +81,8 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -106,8 +106,8 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -131,8 +131,8 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -144,7 +144,7 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 			defer ctrl.Finish()
 
 			// Arm mocks
-			serializer := tokenmock.NewMockSerializer(ctrl)
+			serializer := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -162,4 +162,71 @@ func Test_introspectionGenerator_Generate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_introspectionGenerator_Generate_StepUpMembers asserts the RFC 9470
+// section 6.2 acr / auth_time members are carried into the
+// token_introspection claim when the metadata has them, and omitted
+// otherwise.
+func Test_introspectionGenerator_Generate_StepUpMembers(t *testing.T) {
+	acr := "urn:solid:loa:1fa:any"
+	authTime := uint64(1_700_000_000)
+
+	newToken := func() *tokenv1.Token {
+		return &tokenv1.Token{
+			TokenId:   "123456789",
+			TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+			Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+			Metadata: &tokenv1.TokenMeta{
+				Issuer:    "http://localhost:8080",
+				Audience:  "azertyuiop",
+				ClientId:  "789456",
+				Subject:   "test",
+				Scope:     "openid",
+				IssuedAt:  uint64(time.Now().Unix()) - 1,
+				NotBefore: uint64(time.Now().Unix()) - 1,
+				ExpiresAt: uint64(time.Now().Unix()) + 30,
+			},
+		}
+	}
+
+	capture := func(t *testing.T, tok *tokenv1.Token) map[string]any {
+		t.Helper()
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		serializer := tokenmock.NewMockSigner(ctrl)
+		var captured any
+		serializer.EXPECT().Sign(gomock.Any(), gomock.Any()).Do(func(_ context.Context, claims any) {
+			captured = claims
+		}).Return("fake-token", nil)
+
+		c := token.Introspection(serializer)
+		_, err := c.Generate(context.Background(), tok)
+		require.NoError(t, err)
+		require.NotNil(t, captured)
+
+		m, ok := captured.(map[string]any)
+		require.True(t, ok)
+		inner, ok := m["token_introspection"].(map[string]any)
+		require.True(t, ok)
+		return inner
+	}
+
+	t.Run("acr and auth_time present when metadata carries them", func(t *testing.T) {
+		tok := newToken()
+		tok.Metadata.Acr = &acr
+		tok.Metadata.AuthTime = &authTime
+
+		inner := capture(t, tok)
+		require.Equal(t, acr, inner["acr"])
+		require.Equal(t, authTime, inner["auth_time"])
+	})
+
+	t.Run("acr and auth_time omitted when metadata lacks them", func(t *testing.T) {
+		inner := capture(t, newToken())
+		require.NotContains(t, inner, "acr")
+		require.NotContains(t, inner, "auth_time")
+	})
 }

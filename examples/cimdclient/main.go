@@ -31,11 +31,12 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"time"
 
 	"zntr.io/solid/client"
 	"zntr.io/solid/examples/authorizationserver/cimddemo"
+	exampleenv "zntr.io/solid/examples/internal/exampleenv"
+	"zntr.io/solid/examples/internal/flowlog"
 )
 
 func main() {
@@ -48,7 +49,7 @@ func run() error {
 	ctx := context.Background()
 
 	// AS issuer identifier, overridable with SOLID_EXAMPLE_ISSUER.
-	issuer := envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
+	issuer := exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
 
 	// Rebuild the client JWK (AKP, ML-DSA-65) from the published fixture
 	// seed: the private seed drives the JWT assertion signature, the
@@ -63,8 +64,15 @@ func run() error {
 	oidcClient, err := client.HTTP(ctx, issuer, &client.Options{
 		ClientID: cimddemo.ClientIdentifierURL,
 		JWK:      []byte(jwkDoc),
-		Scopes:   []string{"openid"},
-		Audience: "http://localhost:8085",
+
+		// Request an access token for the introspection demo: the resource
+		// indicator is the token audience (RFC 8707), the scope the
+		// permission carried by the token.
+		Resource: "http://localhost:8085",
+		Scope:    "timestamp:read",
+
+		// Print the protocol flow (metadata, token, introspection).
+		HTTPClient: flowlog.New(),
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create oidc client: %w", err)
@@ -103,13 +111,4 @@ func run() error {
 	fmt.Printf("Introspection: client_id=%s status=%s\n", it.Metadata.GetClientId(), it.Status)
 
 	return nil
-}
-
-// envOr reads an environment variable, falling back to def when unset or
-// empty.
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }

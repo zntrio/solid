@@ -96,11 +96,11 @@ type Issuer interface {
 type Holder interface {
 	// Present rebuilds the SD-CWT with only the selected disclosures
 	// in sd_claims.
-	Present(issued []byte, selected [][]byte) ([]byte, error)
+	Present(ctx context.Context, issued []byte, selected [][]byte) ([]byte, error)
 
 	// KeyBind builds the KBT (a COSE_Sign1 key binding token, draft
 	// section 8) embedding the presentation.
-	KeyBind(presentation []byte, audience string, cnonce []byte, opts ...KeyBindOption) ([]byte, error)
+	KeyBind(ctx context.Context, presentation []byte, audience string, cnonce []byte, opts ...KeyBindOption) ([]byte, error)
 }
 
 //go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/sdk/sdtoken/sdcwt Verifier

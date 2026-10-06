@@ -33,6 +33,16 @@ import (
 // Responses are marked non-cacheable per §5.1 (Cache-Control: no-store
 // and Pragma: no-cache).
 func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {
+	// A nil error must not panic the handler: fall back to a generic
+	// server error (services may return a nil response object on
+	// infrastructure failures).
+	if err == nil {
+		err = (&corev1.Error{
+			Error:            "server_error",
+			ErrorDescription: "The authorization server encountered an unexpected condition.",
+		})
+		code = http.StatusInternalServerError
+	}
 	// Marshal response as json
 	body, _ := json.Marshal(err)
 

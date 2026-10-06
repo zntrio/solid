@@ -30,7 +30,7 @@ import (
 
 func Test_defaultProver_Prove(t *testing.T) {
 	type fields struct {
-		signer token.Serializer
+		signer token.Signer
 	}
 	type args struct {
 		htm  string
@@ -41,7 +41,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		prepare func(*tokenmock.MockSerializer)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -93,8 +93,8 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htm: "POST",
 				htu: "https://server.com/resource",
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -104,8 +104,8 @@ func Test_defaultProver_Prove(t *testing.T) {
 				htm: "POST",
 				htu: "https://server.com/resource",
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -119,8 +119,8 @@ func Test_defaultProver_Prove(t *testing.T) {
 					WithTokenValue("1234567890"),
 				},
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -134,8 +134,8 @@ func Test_defaultProver_Prove(t *testing.T) {
 					WithExpectedNonce("server-issued-nonce"),
 				},
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, claims any) (string, error) {
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, claims any) (string, error) {
 					pc, ok := claims.(*proofClaims)
 					if !ok {
 						return "", fmt.Errorf("unexpected claims type %T", claims)
@@ -155,7 +155,7 @@ func Test_defaultProver_Prove(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockSigner := tokenmock.NewMockSerializer(ctrl)
+			mockSigner := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {

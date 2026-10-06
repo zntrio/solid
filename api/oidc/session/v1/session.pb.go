@@ -220,7 +220,11 @@ type AuthorizationCodeSession struct {
 	// authorization time. When set, the token request presenting this code
 	// MUST prove possession of the same key (RFC 9449 section 10
 	// authorization code binding).
-	Confirmation  *v12.TokenConfirmation `protobuf:"bytes,7,opt,name=confirmation,proto3,oneof" json:"confirmation,omitempty"`
+	Confirmation *v12.TokenConfirmation `protobuf:"bytes,7,opt,name=confirmation,proto3,oneof" json:"confirmation,omitempty"`
+	// OPTIONAL. Authentication event of the end-user login captured at code
+	// issuance (RFC 9470 section 6); propagated into the tokens minted from
+	// this session.
+	AuthEvent     *v12.AuthEvent `protobuf:"bytes,8,opt,name=auth_event,json=authEvent,proto3,oneof" json:"auth_event,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -300,6 +304,13 @@ func (x *AuthorizationCodeSession) GetStatus() AuthorizationCodeStatus {
 func (x *AuthorizationCodeSession) GetConfirmation() *v12.TokenConfirmation {
 	if x != nil {
 		return x.Confirmation
+	}
+	return nil
+}
+
+func (x *AuthorizationCodeSession) GetAuthEvent() *v12.AuthEvent {
+	if x != nil {
+		return x.AuthEvent
 	}
 	return nil
 }
@@ -604,7 +615,7 @@ var File_oidc_session_v1_session_proto protoreflect.FileDescriptor
 
 const file_oidc_session_v1_session_proto_rawDesc = "" +
 	"\n" +
-	"\x1doidc/session/v1/session.proto\x12\x0foidc.session.v1\x1a\x1boidc/client/v1/client.proto\x1a\x17oidc/flow/v1/flow.proto\x1a\x1boidc/flow/v1/flow_api.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x19oidc/token/v1/token.proto\"\xf3\x02\n" +
+	"\x1doidc/session/v1/session.proto\x12\x0foidc.session.v1\x1a\x1boidc/client/v1/client.proto\x1a\x17oidc/flow/v1/flow.proto\x1a\x1boidc/flow/v1/flow_api.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x19oidc/token/v1/token.proto\"\xc0\x03\n" +
 	"\x18AuthorizationCodeSession\x12.\n" +
 	"\x06client\x18\x01 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12\x16\n" +
 	"\x06issuer\x18\x02 \x01(\tR\x06issuer\x12\x18\n" +
@@ -612,8 +623,11 @@ const file_oidc_session_v1_session_proto_rawDesc = "" +
 	"\arequest\x18\x04 \x01(\v2\".oidc.flow.v1.AuthorizationRequestR\arequest\x12\x19\n" +
 	"\bgrant_id\x18\x05 \x01(\tR\agrantId\x12@\n" +
 	"\x06status\x18\x06 \x01(\x0e2(.oidc.session.v1.AuthorizationCodeStatusR\x06status\x12I\n" +
-	"\fconfirmation\x18\a \x01(\v2 .oidc.token.v1.TokenConfirmationH\x00R\fconfirmation\x88\x01\x01B\x0f\n" +
-	"\r_confirmation\"\xe9\x04\n" +
+	"\fconfirmation\x18\a \x01(\v2 .oidc.token.v1.TokenConfirmationH\x00R\fconfirmation\x88\x01\x01\x12<\n" +
+	"\n" +
+	"auth_event\x18\b \x01(\v2\x18.oidc.token.v1.AuthEventH\x01R\tauthEvent\x88\x01\x01B\x0f\n" +
+	"\r_confirmationB\r\n" +
+	"\v_auth_event\"\xe9\x04\n" +
 	"\x11DeviceCodeSession\x12.\n" +
 	"\x06client\x18\x01 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12\x16\n" +
 	"\x06issuer\x18\x02 \x01(\tR\x06issuer\x12\x1d\n" +
@@ -697,29 +711,31 @@ var file_oidc_session_v1_session_proto_goTypes = []any{
 	(*v1.Client)(nil),                            // 6: oidc.client.v1.Client
 	(*v11.AuthorizationRequest)(nil),             // 7: oidc.flow.v1.AuthorizationRequest
 	(*v12.TokenConfirmation)(nil),                // 8: oidc.token.v1.TokenConfirmation
-	(*v11.DeviceAuthorizationRequest)(nil),       // 9: oidc.flow.v1.DeviceAuthorizationRequest
-	(*v12.AuthorizationDetail)(nil),              // 10: oidc.token.v1.AuthorizationDetail
-	(*v11.BackchannelAuthenticationRequest)(nil), // 11: oidc.flow.v1.BackchannelAuthenticationRequest
+	(*v12.AuthEvent)(nil),                        // 9: oidc.token.v1.AuthEvent
+	(*v11.DeviceAuthorizationRequest)(nil),       // 10: oidc.flow.v1.DeviceAuthorizationRequest
+	(*v12.AuthorizationDetail)(nil),              // 11: oidc.token.v1.AuthorizationDetail
+	(*v11.BackchannelAuthenticationRequest)(nil), // 12: oidc.flow.v1.BackchannelAuthenticationRequest
 }
 var file_oidc_session_v1_session_proto_depIdxs = []int32{
 	6,  // 0: oidc.session.v1.AuthorizationCodeSession.client:type_name -> oidc.client.v1.Client
 	7,  // 1: oidc.session.v1.AuthorizationCodeSession.request:type_name -> oidc.flow.v1.AuthorizationRequest
 	0,  // 2: oidc.session.v1.AuthorizationCodeSession.status:type_name -> oidc.session.v1.AuthorizationCodeStatus
 	8,  // 3: oidc.session.v1.AuthorizationCodeSession.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	6,  // 4: oidc.session.v1.DeviceCodeSession.client:type_name -> oidc.client.v1.Client
-	9,  // 5: oidc.session.v1.DeviceCodeSession.request:type_name -> oidc.flow.v1.DeviceAuthorizationRequest
-	1,  // 6: oidc.session.v1.DeviceCodeSession.status:type_name -> oidc.session.v1.DeviceCodeStatus
-	10, // 7: oidc.session.v1.DeviceCodeSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	6,  // 8: oidc.session.v1.BackchannelAuthenticationSession.client:type_name -> oidc.client.v1.Client
-	11, // 9: oidc.session.v1.BackchannelAuthenticationSession.request:type_name -> oidc.flow.v1.BackchannelAuthenticationRequest
-	2,  // 10: oidc.session.v1.BackchannelAuthenticationSession.status:type_name -> oidc.session.v1.BackchannelAuthenticationStatus
-	10, // 11: oidc.session.v1.BackchannelAuthenticationSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
-	8,  // 12: oidc.session.v1.BackchannelAuthenticationSession.confirmation:type_name -> oidc.token.v1.TokenConfirmation
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	9,  // 4: oidc.session.v1.AuthorizationCodeSession.auth_event:type_name -> oidc.token.v1.AuthEvent
+	6,  // 5: oidc.session.v1.DeviceCodeSession.client:type_name -> oidc.client.v1.Client
+	10, // 6: oidc.session.v1.DeviceCodeSession.request:type_name -> oidc.flow.v1.DeviceAuthorizationRequest
+	1,  // 7: oidc.session.v1.DeviceCodeSession.status:type_name -> oidc.session.v1.DeviceCodeStatus
+	11, // 8: oidc.session.v1.DeviceCodeSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	6,  // 9: oidc.session.v1.BackchannelAuthenticationSession.client:type_name -> oidc.client.v1.Client
+	12, // 10: oidc.session.v1.BackchannelAuthenticationSession.request:type_name -> oidc.flow.v1.BackchannelAuthenticationRequest
+	2,  // 11: oidc.session.v1.BackchannelAuthenticationSession.status:type_name -> oidc.session.v1.BackchannelAuthenticationStatus
+	11, // 12: oidc.session.v1.BackchannelAuthenticationSession.authorization_details:type_name -> oidc.token.v1.AuthorizationDetail
+	8,  // 13: oidc.session.v1.BackchannelAuthenticationSession.confirmation:type_name -> oidc.token.v1.TokenConfirmation
+	14, // [14:14] is the sub-list for method output_type
+	14, // [14:14] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_oidc_session_v1_session_proto_init() }

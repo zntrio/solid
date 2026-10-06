@@ -20,6 +20,9 @@ package inmemory
 import (
 	"context"
 	"strings"
+	"sync"
+
+	"google.golang.org/protobuf/proto"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
@@ -28,6 +31,7 @@ import (
 )
 
 type clientStorage struct {
+	mu      sync.RWMutex
 	backend map[string]*clientv1.Client
 }
 
@@ -238,26 +242,33 @@ var defaultClients = map[string]*clientv1.Client{
 // -----------------------------------------------------------------------------
 
 func (s *clientStorage) Get(ctx context.Context, id string) (*clientv1.Client, error) {
-	// Check is client exists
+	s.mu.RLock()
 	client, ok := s.backend[id]
+	s.mu.RUnlock()
 	if !ok {
 		return nil, storage.ErrNotFound
 	}
 
-	// No error
-	return client, nil
+	// Return a deep copy: callers must not mutate the shared registration
+	// record through the reader path.
+	return proto.Clone(client).(*clientv1.Client), nil //nolint:forcetypeassert // map values are *clientv1.Client
 }
 
 func (s *clientStorage) GetByName(ctx context.Context, name string) (*clientv1.Client, error) {
-	// Iterate over bakend map
+	s.mu.RLock()
+	var found *clientv1.Client
 	for _, c := range s.backend {
 		if strings.EqualFold(c.ClientName, name) {
-			return c, nil
+			found = c
+			break
 		}
 	}
+	s.mu.RUnlock()
+	if found == nil {
+		return nil, storage.ErrNotFound
+	}
 
-	// Not found
-	return nil, storage.ErrNotFound
+	return proto.Clone(found).(*clientv1.Client), nil //nolint:forcetypeassert // map values are *clientv1.Client
 }
 
 // -----------------------------------------------------------------------------
@@ -267,13 +278,18 @@ func (s *clientStorage) Register(ctx context.Context, c *clientv1.Client) (strin
 	c.ClientId = random.String(16)
 
 	// Assign to storage
+	s.mu.Lock()
 	s.backend[c.ClientId] = c
+	s.mu.Unlock()
 
 	// No error
 	return c.ClientId, nil
 }
 
 func (s *clientStorage) Update(ctx context.Context, c *clientv1.Client) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Check the client exists
 	if _, ok := s.backend[c.GetClientId()]; !ok {
 		return storage.ErrNotFound
@@ -287,6 +303,9 @@ func (s *clientStorage) Update(ctx context.Context, c *clientv1.Client) error {
 }
 
 func (s *clientStorage) Delete(ctx context.Context, id string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Check the client exists
 	if _, ok := s.backend[id]; !ok {
 		return storage.ErrNotFound

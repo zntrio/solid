@@ -68,6 +68,10 @@ message AuthorizeRequest {
   // authorization code session and enforced at redemption (RFC 9449
   // section 10).
   optional .oidc.token.v1.TokenConfirmation confirmation = 5;
+  // OPTIONAL. Authentication event of the end-user login as observed by the
+  // presentation layer (RFC 9470 section 6: the achieved acr and auth_time
+  // conveyed into the issued tokens).
+  .oidc.token.v1.AuthEvent auth_event = 6;
 }
 
 // https://www.rfc-editor.org/rfc/rfc6749.html#section-4.1.2
@@ -119,13 +123,17 @@ message AuthorizeResponse {
 
 message RegistrationRequest {
   // REQUIRED. Issuer uri.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
 
   // REQUIRED. Client that requests the authorization requests registration.
-  .oidc.client.v1.Client client = 2;
+  .oidc.client.v1.Client client = 2 [(buf.validate.field).required = true];
 
   // REQUIRED. The request to register.
-  AuthorizationRequest request = 3;
+  AuthorizationRequest request = 3 [(buf.validate.field).required = true];
 
   // OPTIONAL. DPoP Proof confirmation.
   optional .oidc.token.v1.TokenConfirmation confirmation = 4;
@@ -266,27 +274,38 @@ message TokenResponse {
   // requested, otherwise the consented set).
   // https://www.rfc-editor.org/rfc/rfc9396#section-7
   repeated .oidc.token.v1.AuthorizationDetail authorization_details = 8;
+  // OPTIONAL. The Disclosures of a selectively disclosable access
+  // token (draft-forten-oauth-sd-jwt-access-token-00 section 4):
+  // they travel on the access_token Token spec (its disclosures
+  // field), which this response carries.
 }
 
 // https://tools.ietf.org/html/rfc8628#section-3.1
 message DeviceAuthorizationRequest {
   // REQUIRED. Issuer uri.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
 
   // REQUIRED if the client is not authenticating with the
   // authorization server as described in Section 3.2.1. of [RFC6749].
   // The client identifier as described in Section 2.2 of [RFC6749].
-  string client_id = 2;
+  string client_id = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
 
-  // OPTIONAL.  The scope of the access request as defined by
+  // OPTIONAL.  The scope of the access request as defined in
   // Section 3.3 of [RFC6749].
   optional string scope = 3;
 
   // OPTIONAL.  The target audience.
   optional string audience = 4;
 
-  // OPTIONAL. JSON array of objects specifying the requested authorization
-  // details, carried with the device authorization request. The AS shows
+  // OPTIONAL. JSON array of objects specifying the requested
+  // authorization details, carried with the device authorization request. The AS shows
   // them at consent time; the consented set then lives on the device
   // session and is fixed for the tokens minted from it.
   // https://www.rfc-editor.org/rfc/rfc9396#section-3
@@ -335,9 +354,16 @@ message DeviceCodeValidationResponse {
 // https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-7.1
 message BackchannelAuthenticationRequest {
   // REQUIRED. Issuer uri.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
   // REQUIRED. Client identifier (RFC 6749 section 2.2).
-  string client_id = 2;
+  string client_id = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
   // REQUIRED by CIBA section 7.1 (must contain the openid scope value;
   // enforced semantically in the service).
   optional string scope = 3;
@@ -354,8 +380,10 @@ message BackchannelAuthenticationRequest {
   // by the deployment-provided hint resolver.
   optional string id_token_hint = 8;
   // REQUIRED (solid promotion). Human-readable interlock between the
-  // consumption and authentication devices; enforced semantically
-  // (4-64 chars, charset [A-Za-z0-9._-]).
+  // consumption and authentication devices; enforced semantically by the
+  // service with the dedicated invalid_binding_message error code
+  // (4-64 chars, charset [A-Za-z0-9._-]) — deliberately not a
+  // protovalidate annotation so the CIBA-specific code mapping holds.
   optional string binding_message = 9;
   // OPTIONAL. Requested auth_req_id lifetime in seconds (CIBA section 7.1);
   // honored when within (0, 3600], clamped otherwise by the service.
@@ -371,7 +399,9 @@ message BackchannelAuthenticationRequest {
   // the DPoP proofs at the token endpoint when polling this auth_req_id.
   // Carried inside the signed request object (dpop_jkt claim) — when a
   // request object is used, it MUST NOT appear outside it.
-  optional string dpop_jkt = 13;
+  optional string dpop_jkt = 13 [(buf.validate.field).string = {
+    pattern: "^[A-Za-z0-9_-]{43}$"
+  }];
 }
 
 // https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html#section-7.3

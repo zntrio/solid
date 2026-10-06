@@ -335,7 +335,7 @@ func (a *authorizationServer) handleIntrospect(w mux.ResponseWriter, r *mux.Mess
 		return
 	}
 	rsClient, err := a.clients.GetByName(ctx, "coap-ace-rs")
-	if err != nil || rsClient == nil || !sanUriMatches(peerCert, rsClient.TlsClientAuthSanUri) {
+	if err != nil || rsClient == nil || !clientauthentication.TLSClientBindingMatches(rsClient, peerCert) {
 		writeACEError(w, codes.Unauthorized, ace.ErrInvalidClient, "RS certificate not bound to a registered client")
 		return
 	}
@@ -406,16 +406,5 @@ func peerCertificate(w mux.ResponseWriter) (*x509.Certificate, bool) {
 	return cert, true
 }
 
-// sanUriMatches checks the certificate URI SANs against the registered
-// binding (RFC 8705 section 2.1.2 binary comparison).
-func sanUriMatches(cert *x509.Certificate, want string) bool {
-	if want == "" {
-		return false
-	}
-	for _, u := range cert.URIs {
-		if u != nil && u.String() == want {
-			return true
-		}
-	}
-	return false
-}
+// (The SAN-URI binding check itself is shared with the token endpoint:
+// clientauthentication.TLSClientBindingMatches, RFC 8705 section 2.1.2.)

@@ -148,22 +148,27 @@ func verifyKBTBinding(kbtMsg *cose.Sign1Message, sdClaims map[any]any) (map[any]
 	}
 
 	// Decode the KBT payload with the structural constraints.
-	kbtClaimsAny, err := enforceDuplicateMapKeys(kbtMsg.Payload)
+	return decodeKBTClaims(kbtMsg.Payload, ErrInvalidKBT)
+}
+
+// decodeKBTClaims decodes a KBT payload into a claims map with the
+// structural constraints: no duplicate map keys, integer or string
+// keys only, and iss/sub MUST NOT appear (draft section 8.1).
+func decodeKBTClaims(payload []byte, errInvalid error) (map[any]any, error) {
+	kbtClaimsAny, err := enforceDuplicateMapKeys(payload)
 	if err != nil {
 		return nil, err
 	}
 	kbtClaims, ok := kbtClaimsAny.(map[any]any)
 	if !ok {
-		return nil, fmt.Errorf("%w: kbt payload is not a claims map", ErrInvalidKBT)
+		return nil, fmt.Errorf("%w: kbt payload is not a claims map", errInvalid)
 	}
 	if err := checkMapKeys(kbtClaims, 0); err != nil {
 		return nil, err
 	}
-
-	// iss/sub MUST NOT appear in the KBT (draft section 8.1).
-	for _, forbidden := range []any{uint64(1), uint64(2), "iss", "sub"} {
+	for _, forbidden := range []any{uint64(1), uint64(2), claimNameIss, claimNameSub} {
 		if _, has := kbtClaims[forbidden]; has {
-			return nil, fmt.Errorf("%w: kbt carries a forbidden iss/sub claim", ErrInvalidKBT)
+			return nil, fmt.Errorf("%w: kbt carries a forbidden iss/sub claim", errInvalid)
 		}
 	}
 	return kbtClaims, nil
@@ -198,8 +203,20 @@ func (v *verifier) checkKBTAudCnonce(kbtClaims map[any]any) error {
 // processSDCWTDisclosures decodes the sd_claims disclosures from the
 // embedded SD-CWT and runs order-independent verifier-semantics
 // processing (draft section 9 step 8), returning the Validated
-// Disclosed Claims Set.
+// Disclosed Claims Set. An empty presented set is rejected per draft
+// section 9 step 2 — the access-token profile relaxation is
+// processSDCWTDisclosuresOpt.
 func processSDCWTDisclosures(sdMsg *cose.Sign1Message, sdClaims map[any]any) (map[any]any, error) {
+	return processSDCWTDisclosuresOpt(sdMsg, sdClaims, false)
+}
+
+// processSDCWTDisclosuresOpt is processSDCWTDisclosures with the
+// empty-array policy as a parameter: allowEmpty keeps every redaction
+// site redacted (the _sd container claims are still stripped by the
+// core engine) — the draft-forten section 5.1 zero-Disclosure
+// presentation; the credential verifier passes false (draft section 9
+// step 2: an empty sd_claims array is invalid).
+func processSDCWTDisclosuresOpt(sdMsg *cose.Sign1Message, sdClaims map[any]any, allowEmpty bool) (map[any]any, error) {
 	rawDisclosures, hasDisclosures := sdMsg.Headers.Unprotected[HeaderLabelSdClaims]
 	if !hasDisclosures {
 		return nil, fmt.Errorf("%w: sd-cwt carries no sd_claims header", ErrInvalidSDCWT)
@@ -208,8 +225,7 @@ func processSDCWTDisclosures(sdMsg *cose.Sign1Message, sdClaims map[any]any) (ma
 	if !ok {
 		return nil, fmt.Errorf("%w: sd_claims is not an array", ErrInvalidSDCWT)
 	}
-	if len(disclosureList) == 0 {
-		// Draft section 9 step 2: an empty sd_claims array is invalid.
+	if len(disclosureList) == 0 && !allowEmpty {
 		return nil, fmt.Errorf("%w: sd_claims is empty", ErrInvalidSDCWT)
 	}
 	decoded := make([]sdtoken.DecodedDisclosure, 0, len(disclosureList))

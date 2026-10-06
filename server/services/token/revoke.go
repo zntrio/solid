@@ -25,6 +25,7 @@ import (
 
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -32,7 +33,7 @@ import (
 func (s *service) Revoke(ctx context.Context, req *tokenv1.RevokeRequest) (*tokenv1.RevokeResponse, error) {
 	res := &tokenv1.RevokeResponse{}
 
-	// Check parameters
+	// Check parameters, then the protovalidate syntactic level.
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("could not process nil request")
@@ -50,6 +51,10 @@ func (s *service) Revoke(ctx context.Context, req *tokenv1.RevokeRequest) (*toke
 	if req.Client == nil {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("no client authentication found")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 	if req.Token == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()

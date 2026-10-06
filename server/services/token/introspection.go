@@ -23,8 +23,12 @@ import (
 	"fmt"
 	"net/url"
 
+	"google.golang.org/protobuf/proto"
+
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/sdk/types"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -32,7 +36,7 @@ import (
 func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest) (*tokenv1.IntrospectResponse, error) {
 	res := &tokenv1.IntrospectResponse{}
 
-	// Check parameters
+	// Check parameters, then the protovalidate syntactic level.
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("could not process nil request")
@@ -50,6 +54,10 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 	if req.Client == nil {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("no client authentication found")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 	if req.Token == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
@@ -98,7 +106,7 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 	// envelope as an unknown token.
 	if t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE && t.Metadata != nil && t.Metadata.ClientId != req.Client.ClientId {
 		owner, err := s.clients.Get(ctx, t.Metadata.ClientId)
-		if err != nil || !containsString(owner.GetAuthorizedIntrospectionClients(), req.Client.ClientId) {
+		if err != nil || !types.Contains(owner.GetAuthorizedIntrospectionClients(), req.Client.ClientId) {
 			res.Token = &tokenv1.Token{
 				Issuer: req.Issuer,
 				Value:  req.Token,
@@ -120,8 +128,12 @@ func (s *service) Introspect(ctx context.Context, req *tokenv1.IntrospectRequest
 		return res, nil
 	}
 
-	// Return the token
-	res.Token = t
+	// Return the token — without its Disclosures: the strings carry
+	// the actual selectively disclosable values, and draft-forten
+	// section 5.3 forbids them in any introspection response, whatever
+	// the transport (gRPC returns the proto verbatim).
+	res.Token = proto.Clone(t).(*tokenv1.Token)
+	res.Token.Disclosures = nil
 
 	// No error
 	return res, nil

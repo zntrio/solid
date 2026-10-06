@@ -21,6 +21,7 @@ import (
 	"encoding/pem"
 	"log"
 	"net/http"
+	"strings"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -36,7 +37,7 @@ import (
 // dpopProofs is the shared DPoP proof (jti) store used by the proof-of-
 // possession client authentication processors.
 //
-//nolint:gocyclo // linear presentation-layer dispatch; each branch selects one authentication processor
+//nolint:gocyclo,funlen // linear presentation-layer dispatch; each branch selects one authentication processor
 func ClientAuthentication(clients storage.ClientReader, issuer string, supportedAlgorithms []string, spiffeBundles spiffe.BundleSource, dpopProofs storage.DPoP, profiles profile.Server) Adapter {
 	// Prepare the client authentication processors, shared with the other
 	// presentation layers (gRPC backend). The audience surface is the AS
@@ -47,10 +48,28 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var (
-				ctx         = r.Context()
-				q           = r.URL.Query()
+				ctx = r.Context()
+				q   = r.URL.Query()
+				// RFC 6749 §2.3.1: public clients MAY send client_id in the
+				// request body instead of the query; honor the POST form when
+				// it parses and carries no authentication material —
+				// confidential clients flow through the full dispatch below,
+				// where their body client_id is consumed with the assertion.
 				clientIDRaw = q.Get("client_id")
 			)
+			formParseErr := error(nil)
+			if clientIDRaw == "" && r.Method == http.MethodPost &&
+				strings.HasPrefix(r.Header.Get("Content-Type"), "application/x-www-form-urlencoded") {
+				formParseErr = r.ParseForm()
+				if formParseErr == nil &&
+					r.PostFormValue("client_assertion") == "" &&
+					r.PostFormValue("client_assertion_type") == "" &&
+					r.Header.Get("OAuth-Client-Attestation") == "" &&
+					r.Header.Get("OAuth-Client-Attestation-PoP") == "" &&
+					r.TLS == nil {
+					clientIDRaw = r.PostFormValue("client_id")
+				}
+			}
 
 			if clientIDRaw != "" {
 				// Retrieve client details
@@ -70,6 +89,14 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 					return
 				}
 			} else {
+				// The form may already have been parsed above; a body that
+				// failed to parse there is a 400 (the retry below cannot
+				// re-read a consumed body).
+				if formParseErr != nil {
+					log.Println("unable to parse form:", formParseErr)
+					WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+					return
+				}
 				if err := r.ParseForm(); err != nil {
 					log.Println("unable to parse form:", err)
 					WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())

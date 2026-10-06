@@ -32,6 +32,7 @@ import (
 	sessionstate "zntr.io/solid/sdk/session"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -76,10 +77,14 @@ var timeFunc = time.Now
 func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorizationRequest) (*flowv1.DeviceAuthorizationResponse, error) {
 	res := &flowv1.DeviceAuthorizationResponse{}
 
-	// Check req nullity
+	// Check req nullity, then the protovalidate syntactic level.
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 
 	// Check issuer
@@ -97,7 +102,12 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorization
 	// Check client existence
 	client, err := s.clients.Get(ctx, req.ClientId)
 	if err != nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
+		if errors.Is(err, storage.ErrNotFound) {
+			// RFC 8628 section 3.1: an unknown client_id is invalid_client.
+			res.Error = rfcerrors.InvalidClient().Build()
+		} else {
+			res.Error = rfcerrors.ServerError().Build()
+		}
 		return res, fmt.Errorf("unable to retrieve client details: %w", err)
 	}
 	if client == nil {
@@ -179,13 +189,18 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorization
 	return res, nil
 }
 
+//nolint:gocyclo // linear RFC 8628-ordered validation chain
 func (s *service) Validate(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error) {
 	res := &flowv1.DeviceCodeValidationResponse{}
 
-	// Check req nullity
+	// Check req nullity, then the protovalidate syntactic level.
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 
 	// Check issuer
@@ -286,10 +301,14 @@ func (s *service) Validate(ctx context.Context, req *flowv1.DeviceCodeValidation
 func (s *service) Deny(ctx context.Context, req *flowv1.DeviceCodeValidationRequest) (*flowv1.DeviceCodeValidationResponse, error) {
 	res := &flowv1.DeviceCodeValidationResponse{}
 
-	// Check req nullity
+	// Check req nullity, then the protovalidate syntactic level.
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 
 	// Check issuer

@@ -148,7 +148,7 @@ message ClientMeta {
   map<string, string> tos_uri_i18n = 14;
   optional string policy_uri = 15;
   map<string, string> policy_uri_i18n = 16;
-  optional string jwk_uri = 17;
+  optional string jwks_uri = 17;
   optional bytes jwks = 18;
   optional string software_id = 19;
   optional string software_version = 20;

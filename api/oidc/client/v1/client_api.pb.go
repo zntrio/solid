@@ -24,6 +24,7 @@
 package clientv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -642,9 +643,10 @@ var File_oidc_client_v1_client_api_proto protoreflect.FileDescriptor
 
 const file_oidc_client_v1_client_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1foidc/client/v1/client_api.proto\x12\x0eoidc.client.v1\x1a\x1boidc/client/v1/client.proto\x1a\x18oidc/core/v1/error.proto\"\xa9\x04\n" +
-	"\x13AuthenticateRequest\x12 \n" +
-	"\tclient_id\x18\x01 \x01(\tH\x00R\bclientId\x88\x01\x01\x12(\n" +
+	"\x1foidc/client/v1/client_api.proto\x12\x0eoidc.client.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1boidc/client/v1/client.proto\x1a\x18oidc/core/v1/error.proto\"\xb5\x04\n" +
+	"\x13AuthenticateRequest\x12,\n" +
+	"\tclient_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80\x01H\x00R\bclientId\x88\x01\x01\x12(\n" +
 	"\rclient_secret\x18\x02 \x01(\tH\x01R\fclientSecret\x88\x01\x01\x127\n" +
 	"\x15client_assertion_type\x18\x03 \x01(\tH\x02R\x13clientAssertionType\x88\x01\x01\x12.\n" +
 	"\x10client_assertion\x18\x04 \x01(\tH\x03R\x0fclientAssertion\x88\x01\x01\x12+\n" +

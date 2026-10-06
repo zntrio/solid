@@ -57,3 +57,12 @@ func TestMetadataDocumentAdvertisesClientAttestationAlgorithms(t *testing.T) {
 	require.Equal(t, []string{"ML-DSA-65"}, md.ClientAttestationPopSigningAlgValuesSupported,
 		"client_attestation_pop_signing_alg_values_supported must advertise ML-DSA-65")
 }
+
+// TestMetadataDocumentAdvertisesAcrValuesSupported asserts the example's
+// discovery document advertises acr_values_supported with the ACR the demo
+// Basic login achieves (RFC 9470 section 7).
+func TestMetadataDocumentAdvertisesAcrValuesSupported(t *testing.T) {
+	md := metadataDocument("https://as.example.org")
+	require.Equal(t, []string{"urn:solid:loa:1fa:any"}, md.AcrValuesSupported,
+		"acr_values_supported must advertise the demo login's authentication context class reference")
+}

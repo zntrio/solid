@@ -38,7 +38,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*tokenmock.MockSerializer)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -69,8 +69,8 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Error: rfcerrors.AccessDenied().Build(),
 				},
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -83,8 +83,8 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					Error: rfcerrors.AccessDenied().Build(),
 				},
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -145,8 +145,8 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					ExpiresIn: 60,
 				},
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -161,8 +161,8 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 					ExpiresIn: 60,
 				},
 			},
-			prepare: func(signer *tokenmock.MockSerializer) {
-				signer.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(signer *tokenmock.MockSigner) {
+				signer.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -173,7 +173,7 @@ func Test_jwtEncoder_Encode(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockSigner := tokenmock.NewMockSerializer(ctrl)
+			mockSigner := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare mocks
 			if tt.prepare != nil {

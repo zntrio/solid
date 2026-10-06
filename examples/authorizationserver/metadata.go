@@ -88,6 +88,10 @@ func metadataDocument(issuer string) *discoveryv1.ServerMetadata {
 		ClientIdMetadataDocumentSupported:      true,
 		RequestObjectSigningAlgValuesSupported: []string{mldsaAlg},
 		AuthorizationDetailsTypesSupported:     []string{authDetailsType},
+		// RFC 9470 section 7: advertise the authentication context class
+		// references this AS understands and honors in authorization requests
+		// (acr_values / max_age support signal).
+		AcrValuesSupported: []string{"urn:solid:loa:1fa:any"},
 		// draft-ietf-oauth-identity-assertion-authz-grant-04 section 7:
 		// advertise the ID-JAG token type this server can issue via token
 		// exchange, and the ID-JAG grant profile it can process as a

@@ -27,7 +27,6 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	_ "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -409,7 +408,7 @@ var File_oidc_flow_v1_flow_proto protoreflect.FileDescriptor
 
 const file_oidc_flow_v1_flow_proto_rawDesc = "" +
 	"\n" +
-	"\x17oidc/flow/v1/flow.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\x1a(oidc/token/v1/authorization_detail.proto\x1a\x1cgoogle/protobuf/struct.proto\"\xda\t\n" +
+	"\x17oidc/flow/v1/flow.proto\x12\foidc.flow.v1\x1a\x1bbuf/validate/validate.proto\x1a(oidc/token/v1/authorization_detail.proto\"\xf6\t\n" +
 	"\x14AuthorizationRequest\x12\x1d\n" +
 	"\x05scope\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x05scope\x12,\n" +
 	"\rresponse_type\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\fresponseType\x12$\n" +
@@ -436,8 +435,8 @@ const file_oidc_flow_v1_flow_proto_rawDesc = "" +
 	"\x15code_challenge_method\x18\x11 \x01(\tB\x11\xbaH\x0er\f\x10\x04\x18\x042\x06^S256$R\x13codeChallengeMethod\x12#\n" +
 	"\baudience\x18\x12 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\baudience\x12\"\n" +
 	"\n" +
-	"dpop_proof\x18\x13 \x01(\tH\tR\tdpopProof\x88\x01\x01\x12\x1e\n" +
-	"\bdpop_jkt\x18\x18 \x01(\tH\n" +
+	"dpop_proof\x18\x13 \x01(\tH\tR\tdpopProof\x88\x01\x01\x12:\n" +
+	"\bdpop_jkt\x18\x18 \x01(\tB\x1a\xbaH\x17r\x152\x13^[A-Za-z0-9_-]{43}$H\n" +
 	"R\adpopJkt\x88\x01\x01\x12\x1a\n" +
 	"\bresource\x18\x14 \x03(\tR\bresource\x12\x15\n" +
 	"\x03iss\x18\x15 \x01(\tH\vR\x03iss\x88\x01\x01\x12-\n" +

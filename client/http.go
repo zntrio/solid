@@ -42,11 +42,13 @@ const bodyLimiterSize = 5 << 20 // 5 Mb
 
 // HTTP creates an HTTP OIDC Client.
 func HTTP(ctx context.Context, issuer string, opts *Options) (Client, error) {
-	// Initialize solid client
 	c := &httpClient{
 		opts:       opts,
 		issuer:     issuer,
 		httpClient: http.DefaultClient,
+	}
+	if opts.HTTPClient != nil {
+		c.httpClient = opts.HTTPClient
 	}
 
 	// Query server metadata endpoint. RFC 8414 section 3: the well-known
@@ -108,10 +110,7 @@ type httpClient struct {
 
 // -----------------------------------------------------------------------------
 
-func (c *httpClient) ClientID() string                            { return c.opts.ClientID }
-func (c *httpClient) Audience() string                            { return c.opts.Audience }
 func (c *httpClient) ServerMetadata() *discoveryv1.ServerMetadata { return c.serverMetadata }
-func (c *httpClient) Issuer() string                              { return c.issuer }
 
 // -----------------------------------------------------------------------------
 
@@ -181,6 +180,12 @@ func (c *httpClient) ClientCredentials(ctx context.Context, assertion string) (*
 	params.Add("grant_type", "client_credentials")
 	params.Add("client_assertion", assertion)
 	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
+	if c.opts.Scope != "" {
+		params.Add("scope", c.opts.Scope)
+	}
+	if c.opts.Resource != "" {
+		params.Add("resource", c.opts.Resource)
+	}
 
 	// Query token endpoint
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL.String(), strings.NewReader(params.Encode()))

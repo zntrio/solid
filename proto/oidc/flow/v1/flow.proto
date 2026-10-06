@@ -23,7 +23,6 @@ option go_package = "zntr.io/solid/api/oidc/flow/v1;flowv1";
 
 import "buf/validate/validate.proto";
 import "oidc/token/v1/authorization_detail.proto";
-import "google/protobuf/struct.proto";
 
 
 // An Authentication Request is an OAuth 2.0 Authorization Request that requests
@@ -174,7 +173,9 @@ message AuthorizationRequest {
   // When present, the authorization code is issued bound to this key and
   // redemption MUST present a DPoP proof made with the same key.
   // https://www.rfc-editor.org/rfc/rfc9449#section-10
-  optional string dpop_jkt = 24;
+  optional string dpop_jkt = 24 [(buf.validate.field).string = {
+    pattern: "^[A-Za-z0-9_-]{43}$"
+  }];
 
   // OPTIONAL
   // https://tools.ietf.org/html/rfc8707

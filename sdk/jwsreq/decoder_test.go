@@ -19,6 +19,7 @@ package jwsreq
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -33,6 +34,13 @@ import (
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
+
+// compactRequestObject assembles a compact JWS whose JOSE header carries the
+// given typ value, so tests exercise the header gate before claim processing.
+func compactRequestObject(typ string) string {
+	header := fmt.Sprintf(`{"alg":"ES256","typ":"%s"}`, typ)
+	return base64.RawURLEncoding.EncodeToString([]byte(header)) + ".fake-signature"
+}
 
 var cmpOpts = []cmp.Option{
 	cmpopts.IgnoreUnexported(flowv1.AuthorizationRequest{}),
@@ -70,7 +78,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		{
 			name: "claims error",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
@@ -80,7 +88,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		{
 			name: "claims json error",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
@@ -97,7 +105,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		{
 			name: "claims protojson error",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
@@ -113,9 +121,23 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "wrong typ header",
+			args: args{
+				value: compactRequestObject("jwt"),
+			},
+			wantErr: true,
+		},
+		{
+			name: "jarm typ header",
+			args: args{
+				value: compactRequestObject("oauth-v2-jarm+jwt"),
+			},
+			wantErr: true,
+		},
+		{
 			name: "request object missing exp claim",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
@@ -133,7 +155,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		{
 			name: "request object aud does not match issuer",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
@@ -150,9 +172,29 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "nbf claim is not a number",
+			args: args{
+				value: compactRequestObject("oauth-authz-req+jwt"),
+			},
+			prepare: func(verifier *tokenmock.MockVerifier) {
+				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
+					switch v := claims.(type) {
+					case *map[string]any:
+						*v = map[string]any{
+							"scope": "openid",
+							"exp":   float64(9999999999),
+							"nbf":   "tomorrow",
+							"aud":   "https://honest.as.example",
+						}
+					}
+				}).Return(nil)
+			},
+			wantErr: true,
+		},
+		{
 			name: "valid",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
@@ -174,7 +216,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 		{
 			name: "authorization_details",
 			args: args{
-				value: "fake-token",
+				value: compactRequestObject("oauth-authz-req+jwt"),
 			},
 			prepare: func(verifier *tokenmock.MockVerifier) {
 				verifier.EXPECT().Claims(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx any, key any, claims any) {
@@ -212,6 +254,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 			defer ctrl.Finish()
 
 			mockVerifier := tokenmock.NewMockVerifier(ctrl)
+			mockVerifier.EXPECT().ContentType().Return("JWT").AnyTimes()
 
 			// Prepare mocks
 			if tt.prepare != nil {

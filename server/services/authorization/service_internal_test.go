@@ -83,6 +83,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -101,6 +102,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -119,6 +121,7 @@ func Test_service_validate(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -137,6 +140,7 @@ func Test_service_validate(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -156,6 +160,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "hi/there?",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -174,6 +179,7 @@ func Test_service_validate(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -193,6 +199,7 @@ func Test_service_validate(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -211,6 +218,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -229,6 +237,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -248,6 +257,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -266,6 +276,7 @@ func Test_service_validate(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -285,6 +296,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -322,6 +334,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "B385",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -341,6 +354,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8$",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -360,6 +374,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			wantErr: true,
@@ -379,6 +394,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:          "https://client.example.org/cb",
 					CodeChallenge:        "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod:  "S256",
+					ResponseMode:         new(oidc.ResponseModeQueryJWT),
 					AuthorizationDetails: []*tokenv1.AuthorizationDetail{{Type: "payment"}},
 				},
 			},
@@ -411,8 +427,8 @@ func Test_service_validate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
-					RedirectUris:  []string{"https://client.example.org/cb"},
 					ResponseModes: []string{oidc.ResponseModeQueryJWT},
+					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 			},
 			wantErr: false,
@@ -452,6 +468,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -474,6 +491,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -496,6 +514,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -520,6 +539,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
@@ -545,12 +565,14 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 				},
 			},
 			prepare: func(clients *storagemock.MockClientReader) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"http://foo.com"},
 				}, nil)
 			},
@@ -600,6 +622,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "com.example.app:/oauth2redirect",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              new(oidc.PromptConsent),
 				},
 			},
@@ -607,6 +630,7 @@ func Test_service_validate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"com.example.app:/oauth2redirect"},
 				}, nil)
 			},
@@ -627,6 +651,7 @@ func Test_service_validate(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              new(oidc.PromptConsent),
 				},
 			},
@@ -634,6 +659,7 @@ func Test_service_validate(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 			},
@@ -661,7 +687,6 @@ func Test_service_validate(t *testing.T) {
 				authorizationRequests:     authorizationRequests,
 				authorizationCodeSessions: sessions,
 				authzDetailsValidator:     tt.validator,
-				messageValidator:          mustTestMessageValidator(t),
 			}
 			got, err := s.validate(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {
@@ -691,7 +716,6 @@ func Fuzz_service_validate(f *testing.F) {
 			clients:                   clients,
 			authorizationRequests:     authorizationRequests,
 			authorizationCodeSessions: sessions,
-			messageValidator:          mustTestMessageValidator(t),
 		}
 
 		// Making sure the function never panics
@@ -699,14 +723,5 @@ func Fuzz_service_validate(f *testing.F) {
 	})
 }
 
-// mustTestMessageValidator builds the protovalidate-backed syntactic
-// validator for directly-constructed services.
-func mustTestMessageValidator(t *testing.T) *messageValidator {
-	t.Helper()
-
-	mv, err := newMessageValidator()
-	if err != nil {
-		t.Fatalf("unable to build message validator: %v", err)
-	}
-	return mv
-}
+// The protovalidate-backed syntactic level is the shared msgval package;
+// directly-constructed services need no validator wiring.

@@ -36,99 +36,99 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RevocatonService_Revoke_FullMethodName = "/oidc.token.v1.RevocatonService/Revoke"
+	RevocationService_Revoke_FullMethodName = "/oidc.token.v1.RevocationService/Revoke"
 )
 
-// RevocatonServiceClient is the client API for RevocatonService service.
+// RevocationServiceClient is the client API for RevocationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type RevocatonServiceClient interface {
+type RevocationServiceClient interface {
 	Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error)
 }
 
-type revocatonServiceClient struct {
+type revocationServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewRevocatonServiceClient(cc grpc.ClientConnInterface) RevocatonServiceClient {
-	return &revocatonServiceClient{cc}
+func NewRevocationServiceClient(cc grpc.ClientConnInterface) RevocationServiceClient {
+	return &revocationServiceClient{cc}
 }
 
-func (c *revocatonServiceClient) Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error) {
+func (c *revocationServiceClient) Revoke(ctx context.Context, in *RevokeRequest, opts ...grpc.CallOption) (*RevokeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RevokeResponse)
-	err := c.cc.Invoke(ctx, RevocatonService_Revoke_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, RevocationService_Revoke_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// RevocatonServiceServer is the server API for RevocatonService service.
-// All implementations should embed UnimplementedRevocatonServiceServer
+// RevocationServiceServer is the server API for RevocationService service.
+// All implementations should embed UnimplementedRevocationServiceServer
 // for forward compatibility.
-type RevocatonServiceServer interface {
+type RevocationServiceServer interface {
 	Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error)
 }
 
-// UnimplementedRevocatonServiceServer should be embedded to have
+// UnimplementedRevocationServiceServer should be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedRevocatonServiceServer struct{}
+type UnimplementedRevocationServiceServer struct{}
 
-func (UnimplementedRevocatonServiceServer) Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error) {
+func (UnimplementedRevocationServiceServer) Revoke(context.Context, *RevokeRequest) (*RevokeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Revoke not implemented")
 }
-func (UnimplementedRevocatonServiceServer) testEmbeddedByValue() {}
+func (UnimplementedRevocationServiceServer) testEmbeddedByValue() {}
 
-// UnsafeRevocatonServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to RevocatonServiceServer will
+// UnsafeRevocationServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RevocationServiceServer will
 // result in compilation errors.
-type UnsafeRevocatonServiceServer interface {
-	mustEmbedUnimplementedRevocatonServiceServer()
+type UnsafeRevocationServiceServer interface {
+	mustEmbedUnimplementedRevocationServiceServer()
 }
 
-func RegisterRevocatonServiceServer(s grpc.ServiceRegistrar, srv RevocatonServiceServer) {
-	// If the following call panics, it indicates UnimplementedRevocatonServiceServer was
+func RegisterRevocationServiceServer(s grpc.ServiceRegistrar, srv RevocationServiceServer) {
+	// If the following call panics, it indicates UnimplementedRevocationServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&RevocatonService_ServiceDesc, srv)
+	s.RegisterService(&RevocationService_ServiceDesc, srv)
 }
 
-func _RevocatonService_Revoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _RevocationService_Revoke_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RevokeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RevocatonServiceServer).Revoke(ctx, in)
+		return srv.(RevocationServiceServer).Revoke(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RevocatonService_Revoke_FullMethodName,
+		FullMethod: RevocationService_Revoke_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RevocatonServiceServer).Revoke(ctx, req.(*RevokeRequest))
+		return srv.(RevocationServiceServer).Revoke(ctx, req.(*RevokeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// RevocatonService_ServiceDesc is the grpc.ServiceDesc for RevocatonService service.
+// RevocationService_ServiceDesc is the grpc.ServiceDesc for RevocationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var RevocatonService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "oidc.token.v1.RevocatonService",
-	HandlerType: (*RevocatonServiceServer)(nil),
+var RevocationService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "oidc.token.v1.RevocationService",
+	HandlerType: (*RevocationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Revoke",
-			Handler:    _RevocatonService_Revoke_Handler,
+			Handler:    _RevocationService_Revoke_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

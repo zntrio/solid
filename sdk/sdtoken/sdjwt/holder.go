@@ -35,11 +35,11 @@ import (
 // jwt.RawTypedSigner("kb+jwt", "ES256", holderKeyProvider)).
 type holder struct {
 	issuerVerifier token.Verifier
-	kbSigner       token.Serializer
+	kbSigner       token.Signer
 }
 
 // Holder returns an SD-JWT Holder (RFC 9901 section 7.2).
-func NewHolder(issuerVerifier token.Verifier, kbSigner token.Serializer) Holder {
+func NewHolder(issuerVerifier token.Verifier, kbSigner token.Signer) Holder {
 	return &holder{
 		issuerVerifier: issuerVerifier,
 		kbSigner:       kbSigner,
@@ -48,7 +48,7 @@ func NewHolder(issuerVerifier token.Verifier, kbSigner token.Serializer) Holder 
 
 // Present builds an SD-JWT presentation carrying the selected subset of
 // the issued disclosures (RFC 9901 section 7.2).
-func (h *holder) Present(issued string, selected ...string) (string, error) {
+func (h *holder) Present(ctx context.Context, issued string, selected ...string) (string, error) {
 	// Step 1: parse the issued SD-JWT.
 	parsed, err := Parse(issued)
 	if err != nil {
@@ -112,7 +112,7 @@ func (h *holder) Present(issued string, selected ...string) (string, error) {
 
 // KeyBind attaches a KB-JWT to a presentation (RFC 9901 section 4.3),
 // producing SD-JWT+KB.
-func (h *holder) KeyBind(presentation, nonce, audience string, issuedAt int64) (string, error) {
+func (h *holder) KeyBind(ctx context.Context, presentation, nonce, audience string, issuedAt int64) (string, error) {
 	// The input must be a plain SD-JWT presentation (trailing "~").
 	parsed, err := Parse(presentation)
 	if err != nil {
@@ -137,7 +137,7 @@ func (h *holder) KeyBind(presentation, nonce, audience string, issuedAt int64) (
 	}
 
 	// Sign the KB-JWT with the holder key.
-	kbJWT, err := h.kbSigner.Serialize(context.TODO(), kbClaims)
+	kbJWT, err := h.kbSigner.Sign(ctx, kbClaims)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign kb-jwt: %w", err)
 	}
@@ -155,8 +155,9 @@ func sdHashOf(sdjwtPart string) string {
 
 // verifiedPayload verifies the issuer JWT and decodes its claims.
 func verifiedPayload(verifier token.Verifier, rawJWT string) (map[string]any, error) {
-	var payload map[string]any
-	if err := verifier.Claims(context.TODO(), rawJWT, &payload); err != nil {
+	// Local crypto only: no context-dependent work is performed.
+	payload, err := token.ClaimsOf[map[string]any](context.Background(), verifier, rawJWT)
+	if err != nil {
 		return nil, fmt.Errorf("unable to verify issuer-signed jwt: %w", err)
 	}
 	return payload, nil

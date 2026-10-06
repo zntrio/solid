@@ -59,7 +59,7 @@ func TestRFC9449_JktVsCnfMismatch(t *testing.T) {
 	// Verify while asserting a DIFFERENT confirmation key (K2 jkt).
 	_, err = dpopVerifier.Verify(t.Context(), "GET", htu, proof,
 		dpop.WithTokenValue(res.AccessToken.Value),
-		dpop.WithTokenConfirmation("totally-different-jkt-value"),
+		dpop.WithTokenConfirmation("totally-different-jkt-value-11111111111111111"),
 	)
 	require.Error(t, err, "proof key must match the asserted token confirmation")
 }
@@ -104,7 +104,7 @@ func TestRFC9449_DpopJktBinding_10(t *testing.T) {
 			},
 		},
 		// Present K1's confirmation: mismatch.
-		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "attacker-key-one-jkt"},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "attacker-key-one-jkt-1111111111111111111111"},
 	})
 	require.Error(t, err, "proof-key swap against the bound dpop_jkt must fail")
 	require.NotNil(t, res.Error)

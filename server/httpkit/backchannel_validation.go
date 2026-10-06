@@ -82,7 +82,13 @@ func BackchannelValidation(issuer string, backchannelz services.BackchannelAuthe
 		})
 		if err != nil {
 			log.Println("unable to process backchannel validation request:", err)
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			// res may be nil on infrastructure failure; WithError is
+			// nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+			} else {
+				WithError(w, r, http.StatusBadRequest, nil)
+			}
 			return
 		}
 	}

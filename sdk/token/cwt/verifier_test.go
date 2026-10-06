@@ -73,7 +73,7 @@ func signCWT(t *testing.T, key *ecdsa.PrivateKey, kid string) string {
 	}
 	raw, err := AccessTokenSigner(cose.AlgorithmES256, func(context.Context) (jwk.Key, error) {
 		return k, nil
-	}).Serialize(context.Background(), cwtClaims{
+	}).Sign(context.Background(), cwtClaims{
 		Iss: "https://as.example.com",
 		Sub: "pairwise-subject-1",
 		Exp: 2000000000,

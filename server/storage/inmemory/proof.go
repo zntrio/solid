@@ -28,10 +28,14 @@ type proofCache struct {
 	backend *ttlCache
 }
 
-// DPoPProofs returns an dpop proof cache.
+// DPoPProofs returns a dpop proof cache. The jti retention window must
+// exceed the maximum assertion lifetime accepted by the client
+// authenticators (10 minutes for private_key_jwt) with margin, otherwise a
+// burned jti becomes reusable while the assertion it came from is still
+// acceptable — a replay window.
 func DPoPProofs() storage.DPoP {
 	// Initialize in-memory caches
-	backendCache := newTTLCache(1 * time.Minute)
+	backendCache := newTTLCache(15 * time.Minute)
 
 	return &proofCache{
 		backend: backendCache,

@@ -95,7 +95,9 @@ type TokenReader interface {
 	// GetByGrantID returns every token bound to a grant family (RFC 9700 section 4.14.2).
 	GetByGrantID(ctx context.Context, issuer, grantID string) []*tokenv1.Token
 	// GetByClientID returns every token issued to the client (RFC 7592
-	// section 2.3 token invalidation on deprovision).
+	// section 2.3 token invalidation on deprovision). An empty clientID
+	// matches every issuer deliberately: client deletion invalidates the
+	// tokens of the deleted registration across all issuers.
 	GetByClientID(ctx context.Context, clientID string) []*tokenv1.Token
 }
 

@@ -33,6 +33,7 @@ import (
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/spiffe"
+	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 )
 
@@ -101,7 +102,7 @@ func (p *spiffeWITAuthentication) Authenticate(ctx context.Context, req *clientv
 	}
 
 	// Enforce the algorithm allowlist before processing claims.
-	if !containsString(p.supportedAlgorithms, witToken.Method.Alg()) {
+	if !types.Contains(p.supportedAlgorithms, witToken.Method.Alg()) {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("wit-svid algorithm %q is not supported", witToken.Method.Alg())
 	}
@@ -193,7 +194,7 @@ func (p *spiffeWITAuthentication) Authenticate(ctx context.Context, req *clientv
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("client attestation pop is syntaxically invalid: %w", err)
 	}
-	if !containsString(p.supportedAlgorithms, popToken.Method.Alg()) {
+	if !types.Contains(p.supportedAlgorithms, popToken.Method.Alg()) {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("pop algorithm %q is not supported", popToken.Method.Alg())
 	}

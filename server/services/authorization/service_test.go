@@ -244,6 +244,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					},
 				},
 			},
@@ -251,6 +252,7 @@ func Test_service_Authorize(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("", fmt.Errorf("foo"))
@@ -278,6 +280,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					},
 				},
 			},
@@ -285,6 +288,7 @@ func Test_service_Authorize(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
@@ -313,6 +317,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              nil,
 					},
 				},
@@ -321,6 +326,7 @@ func Test_service_Authorize(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
@@ -334,13 +340,14 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
-				Issuer:      "https://honest.as.example",
-				Error:       nil,
-				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
-				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-				RedirectUri: "https://client.example.org/cb",
-				ClientId:    "s6BhdRkqt3",
-				ExpiresIn:   uint64(60),
+				Issuer:       "https://honest.as.example",
+				Error:        nil,
+				Code:         "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:        "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri:  "https://client.example.org/cb",
+				ClientId:     "s6BhdRkqt3",
+				ExpiresIn:    uint64(60),
+				ResponseMode: oidc.ResponseModeQueryJWT,
 			},
 		},
 		{
@@ -360,6 +367,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              types.StringRef(oidc.PromptLogin),
 					},
 				},
@@ -368,6 +376,7 @@ func Test_service_Authorize(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
@@ -381,13 +390,14 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
-				Issuer:      "https://honest.as.example",
-				Error:       nil,
-				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
-				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-				RedirectUri: "https://client.example.org/cb",
-				ClientId:    "s6BhdRkqt3",
-				ExpiresIn:   uint64(60),
+				Issuer:       "https://honest.as.example",
+				Error:        nil,
+				Code:         "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:        "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri:  "https://client.example.org/cb",
+				ClientId:     "s6BhdRkqt3",
+				ExpiresIn:    uint64(60),
+				ResponseMode: oidc.ResponseModeQueryJWT,
 			},
 		},
 		{
@@ -414,6 +424,7 @@ func Test_service_Authorize(t *testing.T) {
 					Nonce:               "XDwbBH4MokU8BmrZ",
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 			},
@@ -450,11 +461,13 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
@@ -468,13 +481,14 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
-				Issuer:      "https://honest.as.example",
-				Error:       nil,
-				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
-				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-				RedirectUri: "https://client.example.org/cb",
-				ClientId:    "s6BhdRkqt3",
-				ExpiresIn:   uint64(60),
+				Issuer:       "https://honest.as.example",
+				Error:        nil,
+				Code:         "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:        "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri:  "https://client.example.org/cb",
+				ClientId:     "s6BhdRkqt3",
+				ExpiresIn:    uint64(60),
+				ResponseMode: oidc.ResponseModeQueryJWT,
 			},
 		},
 		{
@@ -502,11 +516,13 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUri:         "http://127.0.0.1:9527/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"http://127.0.0.1:8080/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
@@ -520,13 +536,14 @@ func Test_service_Authorize(t *testing.T) {
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
-				Issuer:      "https://honest.as.example",
-				Error:       nil,
-				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
-				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-				RedirectUri: "http://127.0.0.1:9527/cb",
-				ClientId:    "s6BhdRkqt3",
-				ExpiresIn:   uint64(60),
+				Issuer:       "https://honest.as.example",
+				Error:        nil,
+				Code:         "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:        "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri:  "http://127.0.0.1:9527/cb",
+				ClientId:     "s6BhdRkqt3",
+				ExpiresIn:    uint64(60),
+				ResponseMode: oidc.ResponseModeQueryJWT,
 			},
 		},
 		{
@@ -554,11 +571,13 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUri:         "http://127.0.0.1:9527/other",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"http://127.0.0.1:8080/cb"},
 				}, nil)
 			},
@@ -594,11 +613,13 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUri:         "https://client.example.org:9527/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 			},
@@ -634,6 +655,7 @@ func Test_service_Authorize(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb#frag",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				}, nil)
 			},
@@ -688,6 +710,7 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					},
 				},
 			},
@@ -695,6 +718,7 @@ func Test_service_Authorize(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "other-client").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 			},
@@ -721,7 +745,8 @@ func Test_service_Authorize(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
-						DpopJkt:             types.StringRef("jkt1"),
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
+						DpopJkt:             types.StringRef("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
 					},
 				},
 			},
@@ -729,26 +754,28 @@ func Test_service_Authorize(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				codes.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT", nil)
 				sessions.EXPECT().Register(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _, _ string, s *sessionv1.AuthorizationCodeSession) (uint64, error) {
-						if s.Confirmation == nil || s.Confirmation.Jkt != "jkt1" {
-							return 0, fmt.Errorf("session confirmation must carry the dpop_jkt 'jkt1'")
+						if s.Confirmation == nil || s.Confirmation.Jkt != "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" {
+							return 0, fmt.Errorf("session confirmation must carry the fixture dpop_jkt")
 						}
 						return uint64(60), nil
 					})
 			},
 			wantErr: false,
 			want: &flowv1.AuthorizeResponse{
-				Issuer:      "https://honest.as.example",
-				Error:       nil,
-				Code:        "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
-				State:       "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
-				RedirectUri: "https://client.example.org/cb",
-				ClientId:    "s6BhdRkqt3",
-				ExpiresIn:   uint64(60),
+				Issuer:       "https://honest.as.example",
+				Error:        nil,
+				Code:         "owtjMpUVdrGsn0FPPDTzC0sXWWl3btIYPQC2NGowzNVKeB35EC4RG1ZhLy2OtUT",
+				State:        "oESIiuoybVxAJ5fAKmxxM6s2CnVic6zU",
+				RedirectUri:  "https://client.example.org/cb",
+				ClientId:     "s6BhdRkqt3",
+				ExpiresIn:    uint64(60),
+				ResponseMode: oidc.ResponseModeQueryJWT,
 			},
 		},
 	}
@@ -935,6 +962,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					},
 				},
 			},
@@ -968,6 +996,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
@@ -977,6 +1006,7 @@ func Test_service_Register(t *testing.T) {
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 			},
@@ -1004,6 +1034,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
@@ -1013,6 +1044,7 @@ func Test_service_Register(t *testing.T) {
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("", fmt.Errorf("test"))
@@ -1041,6 +1073,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
@@ -1050,6 +1083,7 @@ func Test_service_Register(t *testing.T) {
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac", nil)
@@ -1063,6 +1097,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				})).Return(uint64(90), fmt.Errorf("foo"))
 			},
@@ -1090,6 +1125,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
@@ -1099,6 +1135,7 @@ func Test_service_Register(t *testing.T) {
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac", nil)
@@ -1112,6 +1149,7 @@ func Test_service_Register(t *testing.T) {
 					RedirectUri:         "https://client.example.org/cb",
 					CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 					CodeChallengeMethod: "S256",
+					ResponseMode:        new(oidc.ResponseModeQueryJWT),
 					Prompt:              types.StringRef(oidc.PromptConsent),
 				})).Return(uint64(90), nil)
 			},
@@ -1133,7 +1171,7 @@ func Test_service_Register(t *testing.T) {
 						ClientId: "s6BhdRkqt3",
 					},
 					Confirmation: &tokenv1.TokenConfirmation{
-						Jkt: "jkt9",
+						Jkt: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 					},
 					Request: &flowv1.AuthorizationRequest{
 						Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
@@ -1145,6 +1183,7 @@ func Test_service_Register(t *testing.T) {
 						RedirectUri:         "https://client.example.org/cb",
 						CodeChallenge:       "K2-ltc83acc4h0c9w6ESC_rEMTJ3bww-uCHaoeK1t8U",
 						CodeChallengeMethod: "S256",
+						ResponseMode:        new(oidc.ResponseModeQueryJWT),
 						Prompt:              types.StringRef(oidc.PromptConsent),
 					},
 				},
@@ -1154,13 +1193,14 @@ func Test_service_Register(t *testing.T) {
 					ClientId:      "s6BhdRkqt3",
 					GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
 					ResponseTypes: []string{"code"},
+					ResponseModes: []string{oidc.ResponseModeQueryJWT},
 					RedirectUris:  []string{"https://client.example.org/cb"},
 				}, nil)
 				mru.EXPECT().Generate(gomock.Any(), "https://honest.as.example").Return("urn:solid:Jny1CLd0EZAD0tNnDsmR56gVPhsKk9ac", nil)
 				ar.EXPECT().Register(gomock.Any(), "https://honest.as.example", gomock.Any(), gomock.Any()).
 					DoAndReturn(func(_ context.Context, _, _ string, r *flowv1.AuthorizationRequest) (uint64, error) {
-						if r.DpopJkt == nil || *r.DpopJkt != "jkt9" {
-							return 0, fmt.Errorf("stored request must carry the confirmed dpop_jkt 'jkt9'")
+						if r.DpopJkt == nil || *r.DpopJkt != "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" {
+							return 0, fmt.Errorf("stored request must carry the confirmed fixture dpop_jkt")
 						}
 						return uint64(90), nil
 					})

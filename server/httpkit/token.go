@@ -51,6 +51,14 @@ type tokenEndpointResponse struct {
 	RefreshToken         string                         `json:"refresh_token,omitempty"`
 	Scope                string                         `json:"scope"`
 	AuthorizationDetails []*tokenv1.AuthorizationDetail `json:"authorization_details,omitempty"`
+	// draft-forten-oauth-sd-jwt-access-token-00 section 4: the
+	// Disclosures of a selectively disclosable access token.
+	Disclosures []string `json:"disclosures,omitempty"`
+	// Note: the SD ID-token generalization (sdk/token/sd
+	// IDTokenWithSelectiveDisclosure) mints a selectively disclosable ID
+	// token and lands its disclosures on the TokenResponse id_token spec;
+	// no grant handler wires it yet, so no id_token wire parameter is
+	// emitted until one does.
 }
 
 // Token handles token HTTP requests.
@@ -114,7 +122,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, pro
 		// Enforce the application-type profile, when the client carries a
 		// known application type: grant types outside the profile are
 		// rejected before reaching the service.
-		if !profileAllowsGrantType(profiles, client.ApplicationType, r.FormValue("grant_type")) {
+		if !profile.AllowsGrantType(profiles, client.ApplicationType, r.FormValue("grant_type")) {
 			WithError(w, r, http.StatusBadRequest, rfcerrors.UnauthorizedClient().Build())
 			return
 		}
@@ -126,8 +134,11 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, pro
 			return
 		}
 
-		// Ensure DPoP enabled to use use DPoP.
-		if dpopProof == "" && client.DpopBoundAccessTokens {
+		// DPoP proof gate (RFC 9449): the authorization_code grant requires
+		// a proof unconditionally (the code is DPoP-bound at issuance via
+		// the captured dpop_jkt); clients flagged DpopBoundAccessTokens
+		// must prove on every grant.
+		if dpopProof == "" && (client.DpopBoundAccessTokens || r.FormValue("grant_type") == oidc.GrantTypeAuthorizationCode) {
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}
@@ -144,42 +155,19 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, pro
 		res, err := tokenz.Token(ctx, msg)
 		if err != nil {
 			log.Println("unable to process token request:", err)
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			// res may be nil on infrastructure failure; WithError is
+			// nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+			} else {
+				WithError(w, r, http.StatusBadRequest, nil)
+			}
 			return
 		}
 
 		// Prepare and send the JSON response.
 		writeTokenResponse(w, res)
 	})
-}
-
-// profileAllowsGrantType reports whether the application-type profile of
-// the given client application type allows the grant type: an unknown
-// application type (no profile entry) imposes no constraint — the client
-// registration metadata remains the gate.
-func profileAllowsGrantType(profiles profile.Server, applicationType, grantType string) bool {
-	if grantType == "" {
-		return true
-	}
-	prof, ok := profiles.ApplicationType(applicationType)
-	if !ok {
-		return true
-	}
-	return prof.GrantTypesSupported().Contains(grantType)
-}
-
-// profileAllowsResponseType reports whether the application-type profile
-// of the given client application type allows the response type: an
-// unknown application type imposes no constraint.
-func profileAllowsResponseType(profiles profile.Server, applicationType, responseType string) bool {
-	if responseType == "" {
-		return true
-	}
-	prof, ok := profiles.ApplicationType(applicationType)
-	if !ok {
-		return true
-	}
-	return prof.ResponseTypesSupported().Contains(responseType)
 }
 
 // tokenResponseType resolves the token_type of an issued access token:
@@ -196,12 +184,26 @@ func tokenResponseType(at *tokenv1.Token) string {
 // including the refresh token and authorization details when present
 // (RFC 9396 section 7).
 func writeTokenResponse(w http.ResponseWriter, res *flowv1.TokenResponse) {
+	// Defensive: a nil access token or metadata is a server fault; answer
+	// with the RFC 6749 §5.2 error envelope instead of panicking.
+	if res == nil || res.AccessToken == nil || res.AccessToken.Metadata == nil {
+		WithJSON(w, http.StatusInternalServerError, map[string]any{
+			"error":             "server_error",
+			"error_description": "The authorization server encountered an unexpected condition.",
+		})
+		return
+	}
+
 	// Prepare response
 	jsonResponse := &tokenEndpointResponse{
 		AccessToken: res.AccessToken.Value,
-		ExpiresIn:   res.AccessToken.Metadata.ExpiresAt - uint64(time.Now().Unix()), //nolint:gosec // unix time is non-negative
 		TokenType:   tokenResponseType(res.AccessToken),
 		Scope:       res.AccessToken.Metadata.Scope,
+	}
+	// expires_in floors at zero: an already-expired token must not
+	// underflow into a huge unsigned lifetime.
+	if lifetime := int64(res.AccessToken.Metadata.ExpiresAt) - time.Now().Unix(); lifetime > 0 { //nolint:gosec // expires_at is a protocol-bounded timestamp
+		jsonResponse.ExpiresIn = uint64(lifetime)
 	}
 	if res.RefreshToken != nil {
 		jsonResponse.RefreshToken = res.RefreshToken.Value
@@ -213,6 +215,11 @@ func writeTokenResponse(w http.ResponseWriter, res *flowv1.TokenResponse) {
 		jsonResponse.AuthorizationDetails = res.AuthorizationDetails
 	}
 
+	// draft-forten section 4: the Disclosures of a selectively
+	// disclosable access token travel in the token response.
+	if len(res.AccessToken.Disclosures) > 0 {
+		jsonResponse.Disclosures = res.AccessToken.Disclosures
+	}
 	// Send json response
 	WithJSON(w, http.StatusOK, jsonResponse)
 }

@@ -141,36 +141,7 @@ func (p *tlsClientAuthentication) Authenticate(ctx context.Context, req *clientv
 
 	// RFC 8705 section 2.1.2: enforce the subject binding between the
 	// presented certificate and the registered metadata value.
-	bound := false
-	switch {
-	case client.TlsClientAuthSubjectDn != "":
-		// The registered value is an RFC 4514 string; pkix.Name.String()
-		// renders the RFC 4514 form, so a constant-time comparison against
-		// the canonical Go rendering is the predictable normalization.
-		bound = types.SecureCompareString(client.TlsClientAuthSubjectDn, cert.Subject.String())
-	case client.TlsClientAuthSanDns != "":
-		bound = types.StringArray(cert.DNSNames).Contains(client.TlsClientAuthSanDns)
-	case client.TlsClientAuthSanUri != "":
-		for _, u := range cert.URIs {
-			if u != nil && u.String() == client.TlsClientAuthSanUri {
-				bound = true
-				break
-			}
-		}
-	case client.TlsClientAuthSanIp != "":
-		registeredIP := net.ParseIP(client.TlsClientAuthSanIp)
-		for _, ip := range cert.IPAddresses {
-			// RFC 8705 section 2.1.2: IP comparison in binary format;
-			// net.IP.Equal does exactly this.
-			if registeredIP != nil && ip.Equal(registeredIP) {
-				bound = true
-				break
-			}
-		}
-	case client.TlsClientAuthSanEmail != "":
-		bound = types.StringArray(cert.EmailAddresses).Contains(client.TlsClientAuthSanEmail)
-	}
-	if !bound {
+	if !TLSClientBindingMatches(client, cert) {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("client certificate subject does not match the registered binding")
 	}
@@ -180,4 +151,40 @@ func (p *tlsClientAuthentication) Authenticate(ctx context.Context, req *clientv
 
 	// No error
 	return res, nil
+}
+
+// TLSClientBindingMatches reports whether the presented client certificate
+// satisfies exactly the registered tls_client_auth subject binding
+// (RFC 8705 section 2.1.2 binary comparison). Shared with the CoAP
+// presentation adapters that authenticate resource-server certificates.
+func TLSClientBindingMatches(client *clientv1.Client, cert *x509.Certificate) bool {
+	switch {
+	case client.TlsClientAuthSubjectDn != "":
+		// The registered value is an RFC 4514 string; pkix.Name.String()
+		// renders the RFC 4514 form, so a constant-time comparison against
+		// the canonical Go rendering is the predictable normalization.
+		return types.SecureCompareString(client.TlsClientAuthSubjectDn, cert.Subject.String())
+	case client.TlsClientAuthSanDns != "":
+		return types.StringArray(cert.DNSNames).Contains(client.TlsClientAuthSanDns)
+	case client.TlsClientAuthSanUri != "":
+		for _, u := range cert.URIs {
+			if u != nil && u.String() == client.TlsClientAuthSanUri {
+				return true
+			}
+		}
+		return false
+	case client.TlsClientAuthSanIp != "":
+		registeredIP := net.ParseIP(client.TlsClientAuthSanIp)
+		for _, ip := range cert.IPAddresses {
+			// RFC 8705 section 2.1.2: IP comparison in binary format;
+			// net.IP.Equal does exactly this.
+			if registeredIP != nil && ip.Equal(registeredIP) {
+				return true
+			}
+		}
+		return false
+	case client.TlsClientAuthSanEmail != "":
+		return types.StringArray(cert.EmailAddresses).Contains(client.TlsClientAuthSanEmail)
+	}
+	return false
 }

@@ -31,14 +31,14 @@ import (
 // issuer assembles the RFC 9901 Issuer role over an injected JWT
 // serializer (alg allowlist enforced at signer construction).
 type issuer struct {
-	signer token.Serializer
+	signer token.Signer
 }
 
 // NewIssuer returns an SD-JWT Issuer (RFC 9901 section 5.1). The signer
 // is injected by the caller, e.g. jwt.RawTypedSigner("vc+sd-jwt",
 // "ES256", kp): typ values of RFC 9901 do not follow the "<base>+jwt"
 // HeaderType derivation, hence RawTypedSigner.
-func NewIssuer(signer token.Serializer, _ ...IssueOption) Issuer {
+func NewIssuer(signer token.Signer, _ ...IssueOption) Issuer {
 	return &issuer{signer: signer}
 }
 
@@ -101,7 +101,7 @@ func (i *issuer) Issue(ctx context.Context, claims map[string]any, opts ...Issue
 	}
 
 	// Step 6: sign and assemble JWT~D1~...~Dn~ (trailing "~").
-	signed, err := i.signer.Serialize(ctx, claims)
+	signed, err := i.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", nil, fmt.Errorf("unable to sign sd-jwt claims: %w", err)
 	}

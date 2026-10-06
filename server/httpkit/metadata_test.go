@@ -39,7 +39,7 @@ import (
 )
 
 // metadataSigner builds a signing serializer for the metadata handler.
-func metadataSigner(t *testing.T) token.Serializer {
+func metadataSigner(t *testing.T) token.Signer {
 	t.Helper()
 
 	key, err := ecdsa.GenerateKey(elliptic.P384(), cryptoRand.Reader)

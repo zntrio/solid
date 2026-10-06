@@ -56,7 +56,7 @@ func TestMLDSAEndToEnd(t *testing.T) {
 
 	// Sign an access token.
 	signer := solidjwt.AccessTokenSigner("ML-DSA-65", provider)
-	raw, err := signer.Serialize(context.Background(), map[string]any{"sub": "alice", "iss": "https://as.example"})
+	raw, err := signer.Sign(context.Background(), map[string]any{"sub": "alice", "iss": "https://as.example"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestMLDSADPoPEmbedRoundTrip(t *testing.T) {
 	}
 
 	signer := solidjwt.DPoPSigner("ML-DSA-65", func(context.Context) (jwk.Key, error) { return key, nil })
-	raw, err := signer.Serialize(context.Background(), map[string]any{"htm": "GET", "htu": "https://rs.example", "jti": "x1", "iat": 1234567890})
+	raw, err := signer.Sign(context.Background(), map[string]any{"htm": "GET", "htu": "https://rs.example", "jti": "x1", "iat": 1234567890})
 	if err != nil {
 		t.Fatal(err)
 	}

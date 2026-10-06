@@ -255,7 +255,7 @@ func encryptWith(t *testing.T, keys *testKeys, alg, enc string, claims any) stri
 		})
 	}
 
-	serialized, err := token.Encryption(signer, encrypter).Serialize(context.Background(), claims)
+	serialized, err := token.Encryption(signer, encrypter).Sign(context.Background(), claims)
 	if err != nil {
 		t.Fatalf("unable to sign-then-encrypt: %v", err)
 	}

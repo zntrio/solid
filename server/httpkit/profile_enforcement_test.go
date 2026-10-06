@@ -94,7 +94,10 @@ func TestProfileTokenHandlerRejectsGrantOutsideProfile(t *testing.T) {
 }
 
 // TestProfileTokenHandlerAllowsUnconstrainedClient asserts a client without
-// a profile-known application type passes through to the service.
+// a profile-known application type passes through to the service. The
+// grant is client_credentials: under the enforced DPoP posture the
+// authorization_code grant always requires a proof, so only a non-code
+// grant can exercise the pass-through path.
 func TestProfileTokenHandlerAllowsUnconstrainedClient(t *testing.T) {
 	clients := inmemory.Clients()
 	// "cli" is not a strict profile entry: the client stays unconstrained.
@@ -102,7 +105,7 @@ func TestProfileTokenHandlerAllowsUnconstrainedClient(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	httpkit.Token("https://as.example.org", nopTokenService{}, nopDPoPVerifier{}, profile.Strict()).
-		ServeHTTP(rec, profileTokenRequest(t, client, oidc.GrantTypeAuthorizationCode))
+		ServeHTTP(rec, profileTokenRequest(t, client, oidc.GrantTypeClientCredentials))
 
 	require.NotEqual(t, http.StatusBadRequest, rec.Code,
 		"client without profile-known application type must reach the service")

@@ -573,10 +573,10 @@ func (m *ClientMeta) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x92
 	}
-	if m.JwkUri != nil {
-		i -= len(*m.JwkUri)
-		copy(dAtA[i:], *m.JwkUri)
-		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.JwkUri)))
+	if m.JwksUri != nil {
+		i -= len(*m.JwksUri)
+		copy(dAtA[i:], *m.JwksUri)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.JwksUri)))
 		i--
 		dAtA[i] = 0x1
 		i--
@@ -1385,8 +1385,8 @@ func (m *ClientMeta) SizeVT() (n int) {
 			n += mapEntrySize + 2 + protohelpers.SizeOfVarint(uint64(mapEntrySize))
 		}
 	}
-	if m.JwkUri != nil {
-		l = len(*m.JwkUri)
+	if m.JwksUri != nil {
+		l = len(*m.JwksUri)
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	if m.Jwks != nil {
@@ -3629,7 +3629,7 @@ func (m *ClientMeta) UnmarshalVT(dAtA []byte) error {
 			iNdEx = postIndex
 		case 17:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field JwkUri", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field JwksUri", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -3658,7 +3658,7 @@ func (m *ClientMeta) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			s := string(dAtA[iNdEx:postIndex])
-			m.JwkUri = &s
+			m.JwksUri = &s
 			iNdEx = postIndex
 		case 18:
 			if wireType != 2 {

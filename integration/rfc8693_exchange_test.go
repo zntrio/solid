@@ -119,6 +119,9 @@ func TestRFC8693_ActorTokenValid(t *testing.T) {
 				ActorTokenType:   &actorType,
 			},
 		},
+		// Subject and actor tokens are DPoP-bound (minted through the
+		// enforced code flow); present the matching confirmation.
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: integrationDPoPJkt},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res.AccessToken)
@@ -251,7 +254,7 @@ func TestRFC8693_ConfirmationMismatch(t *testing.T) {
 				SubjectTokenType: oidc.TokenExchangeAccessTokenType,
 			},
 		},
-		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "different-key-jkt"},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 	})
 	require.Error(t, err, "proof-key swap during exchange must fail")
 	require.NotNil(t, res.Error)

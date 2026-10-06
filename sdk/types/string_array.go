@@ -25,7 +25,18 @@ import (
 // StringArray describes string array type
 type StringArray []string
 
-// -----------------------------------------------------------------------------
+// Contains reports whether the list contains the value, comparing
+// case-sensitively (unlike StringArray.Contains, which folds case for
+// protocol identifiers like scope values; algorithm names require exact
+// matching).
+func Contains(list []string, value string) bool {
+	for _, v := range list {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
 
 // Contains checks if item is in collection
 func (s StringArray) Contains(item string) bool {

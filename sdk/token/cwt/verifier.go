@@ -36,8 +36,16 @@ import (
 
 // DefaultVerifier declares a default CWT verifier for COSE_Sign1 (tag 18)
 // objects as defined by RFC 8392 section 7.1. Verification only succeeds
-// for algorithms present in supportedAlgorithms.
+// for algorithms present in supportedAlgorithms. The allowlist is
+// validated at construction time, mirroring the signer side: assembling a
+// verifier that accepts an out-of-allowlist algorithm is a programming
+// error, not a runtime input.
 func DefaultVerifier(keySetProvider jwk.KeySetProviderFunc, supportedAlgorithms []cose.Algorithm) token.Verifier {
+	for _, alg := range supportedAlgorithms {
+		if err := EnforceAlgorithmAllowlist(alg); err != nil {
+			panic(err)
+		}
+	}
 	return &defaultVerifier{
 		keySetProvider:      keySetProvider,
 		supportedAlgorithms: supportedAlgorithms,

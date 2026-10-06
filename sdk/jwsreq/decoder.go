@@ -20,14 +20,17 @@ package jwsreq
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/token"
+	"zntr.io/solid/sdk/types"
 )
 
 // -----------------------------------------------------------------------------
@@ -52,6 +55,13 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*flowv1.Author
 	// Check arguments
 	if value == "" {
 		return nil, fmt.Errorf("value must not be blank")
+	}
+
+	// RFC 9101 section 5: the request object JOSE header MUST use the
+	// typ value for its serialization format, i.e. 'oauth-authz-req+jwt'
+	// for the JWT profile (section 2.2 of the OAuth JWT profile).
+	if err := d.checkTyp(value); err != nil {
+		return nil, err
 	}
 
 	// Extract claims
@@ -80,8 +90,16 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*flowv1.Author
 	if exp, ok := claims["exp"].(float64); !ok || exp <= float64(now.Unix()) {
 		return nil, fmt.Errorf("request object is expired")
 	}
-	if nbf, ok := claims["nbf"].(float64); ok && nbf > float64(now.Unix()) {
-		return nil, fmt.Errorf("request object not yet valid")
+	if nbfRaw, ok := claims["nbf"]; ok {
+		nbf, isNumber := nbfRaw.(float64)
+		if !isNumber {
+			// Fail closed: a non-numeric nbf claim is malformed and
+			// MUST NOT be silently ignored.
+			return nil, fmt.Errorf("request object 'nbf' claim must be a numeric date")
+		}
+		if nbf > float64(now.Unix()) {
+			return nil, fmt.Errorf("request object not yet valid")
+		}
 	}
 
 	// RFC 9101 section 5: the aud claim MUST identify the authorization
@@ -109,6 +127,32 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*flowv1.Author
 	return &req, nil
 }
 
+// checkTyp verifies the JOSE header 'typ' of the compact-encoded request
+// object without trusting its signature: the header selects the profile the
+// verifier should apply, so a mismatched typ is rejected before any claim
+// processing (RFC 9101 section 5, JWT profile section 2.2).
+func (d *tokenDecoder) checkTyp(raw string) error {
+	parts := strings.Split(raw, ".")
+	if len(parts) < 2 {
+		return fmt.Errorf("request object is not a valid compact JWS")
+	}
+	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return fmt.Errorf("unable to decode request object JOSE header: %w", err)
+	}
+	var header struct {
+		Typ string `json:"typ"`
+	}
+	if err := json.Unmarshal(headerJSON, &header); err != nil {
+		return fmt.Errorf("unable to parse request object JOSE header: %w", err)
+	}
+	expected := token.HeaderType(token.TypeAuthzRequest, d.verifier.ContentType())
+	if header.Typ != expected {
+		return fmt.Errorf("request object 'typ' header value must be '%s'", expected)
+	}
+	return nil
+}
+
 // stripEnvelopeClaims removes the JOSE envelope claims that have no
 // AuthorizationRequest representation (validated by the caller).
 func stripEnvelopeClaims(claims map[string]any) map[string]any {
@@ -124,10 +168,10 @@ func stripEnvelopeClaims(claims map[string]any) map[string]any {
 func audClaimContains(aud any, expected string) bool {
 	switch v := aud.(type) {
 	case string:
-		return v == expected
+		return types.SecureCompareString(v, expected)
 	case []any:
 		for _, item := range v {
-			if s, ok := item.(string); ok && s == expected {
+			if s, ok := item.(string); ok && types.SecureCompareString(s, expected) {
 				return true
 			}
 		}

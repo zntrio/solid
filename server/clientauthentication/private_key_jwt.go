@@ -32,6 +32,7 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 )
 
@@ -155,7 +156,7 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 
 	// Enforce the algorithm allowlist before processing claims: reject
 	// e.g. HS256 tokens early on an EC-only authenticator.
-	if !containsString(p.supportedAlgorithms, t.Method.Alg()) {
+	if !types.Contains(p.supportedAlgorithms, t.Method.Alg()) {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("assertion algorithm %q is not supported", t.Method.Alg())
 	}
@@ -189,26 +190,13 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("aud must contain exactly one value")
 	}
-	receivingEndpoint := req.GetEndpoint()
-	if claims.Audience[0] != p.issuer && (receivingEndpoint == "" || claims.Audience[0] != receivingEndpoint) {
+	if errAud := validateAudience(claims.Audience[0], p.issuer, req.GetEndpoint()); errAud != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience[0], p.issuer, receivingEndpoint)
+		return res, fmt.Errorf("aud %q does not match issuer identifier %q nor receiving endpoint %q", claims.Audience[0], p.issuer, req.GetEndpoint())
 	}
-	if claims.IssuedAt > uint64(time.Now().Add(5*time.Minute).Unix()) { //nolint:gosec // unix time is non-negative
+	if errTmp := validateAssertionTemporal(&privateKeyJWTTemporal{claims: claims}); errTmp != nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("iat is in the future")
-	}
-	if claims.Expires > claims.IssuedAt+uint64(maxAssertionLifetime.Seconds()) {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("exp is too far in the future, assertion lifetime must not exceed %s", maxAssertionLifetime)
-	}
-	if claims.NotBefore > 0 && claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("nbf is in the future")
-	}
-	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("expired token")
+		return res, errTmp
 	}
 
 	// Check client in storage
@@ -274,12 +262,10 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 	return res, nil
 }
 
-// containsString reports whether list contains the value.
-func containsString(list []string, value string) bool {
-	for _, v := range list {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
+// privateKeyJWTTemporal adapts privateJWTClaims to the shared temporal
+// validation of assertionclaims.go.
+type privateKeyJWTTemporal struct{ claims privateJWTClaims }
+
+func (a *privateKeyJWTTemporal) issuedAt() uint64  { return a.claims.IssuedAt }
+func (a *privateKeyJWTTemporal) expiresAt() uint64 { return a.claims.Expires }
+func (a *privateKeyJWTTemporal) notBefore() uint64 { return a.claims.NotBefore }

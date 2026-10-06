@@ -37,7 +37,7 @@ func Test_clientAssertionGenerator_Generate(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*tokenmock.MockSerializer)
+		prepare func(*tokenmock.MockSigner)
 		want    string
 		wantErr bool
 	}{
@@ -87,8 +87,8 @@ func Test_clientAssertionGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -107,8 +107,8 @@ func Test_clientAssertionGenerator_Generate(t *testing.T) {
 					},
 				},
 			},
-			prepare: func(s *tokenmock.MockSerializer) {
-				s.EXPECT().Serialize(gomock.Any(), gomock.Any()).Return("fake-token", nil)
+			prepare: func(s *tokenmock.MockSigner) {
+				s.EXPECT().Sign(gomock.Any(), gomock.Any()).Return("fake-token", nil)
 			},
 			wantErr: false,
 			want:    "fake-token",
@@ -120,7 +120,7 @@ func Test_clientAssertionGenerator_Generate(t *testing.T) {
 			defer ctrl.Finish()
 
 			// Arm mocks
-			serializer := tokenmock.NewMockSerializer(ctrl)
+			serializer := tokenmock.NewMockSigner(ctrl)
 
 			// Prepare them
 			if tt.prepare != nil {

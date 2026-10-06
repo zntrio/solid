@@ -240,7 +240,7 @@ func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClai
 	// sections 6.2.2 / 6.2.3) before comparing.
 	htuEqual, err := normalizedURLEqual(claims.HTTPURL, htu)
 	if err != nil {
-		return "", fmt.Errorf("invalid proof: http url don't match, got:'%s', expected: '%s'", htu, claims.HTTPURL)
+		return "", fmt.Errorf("invalid proof: malformed http url, got:'%s', expected: '%s': %w", htu, claims.HTTPURL, err)
 	}
 	if !htuEqual {
 		return "", fmt.Errorf("invalid proof: http url don't match, got:'%s', expected: '%s'", htu, claims.HTTPURL)
@@ -284,8 +284,9 @@ func (v *defaultVerifier) checkProofCache(ctx context.Context, jtiHash string) e
 }
 
 // normalizedURLEqual compares two URIs after lowercasing the scheme and host
-// components, per the normalization recommended by RFC 9449 section 4.3
-// (referring to RFC 3986 sections 6.2.2 and 6.2.3).
+// components and stripping scheme-default ports, per the normalization
+// recommended by RFC 9449 section 4.3 (referring to RFC 3986 sections 6.2.2
+// and 6.2.3).
 func normalizedURLEqual(a, b string) (bool, error) {
 	ua, err := url.Parse(a)
 	if err != nil {
@@ -296,6 +297,20 @@ func normalizedURLEqual(a, b string) (bool, error) {
 		return false, err
 	}
 	return strings.EqualFold(ua.Scheme, ub.Scheme) &&
-		strings.EqualFold(ua.Host, ub.Host) &&
+		strings.EqualFold(stripDefaultPort(ua), stripDefaultPort(ub)) &&
 		ua.Path == ub.Path, nil
+}
+
+// stripDefaultPort removes the explicit scheme-default port (https://...:443,
+// http://...:80) so URIs that differ only by an explicit default port compare
+// equal.
+func stripDefaultPort(u *url.URL) string {
+	host := u.Host
+	switch {
+	case strings.EqualFold(u.Scheme, "https") && strings.HasSuffix(host, ":443"):
+		host = host[:len(host)-4]
+	case strings.EqualFold(u.Scheme, "http") && strings.HasSuffix(host, ":80"):
+		host = host[:len(host)-3]
+	}
+	return host
 }

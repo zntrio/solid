@@ -43,7 +43,7 @@ const contentTypeCWT = "CWT"
 // DefaultSigner declares a default CWT signer producing COSE_Sign1 (tag 18)
 // objects as defined by RFC 8392 section 7.1, on the algorithm allowlist
 // enforced below (elliptic curves only).
-func DefaultSigner(tokenType string, alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Serializer {
+func DefaultSigner(tokenType string, alg cose.Algorithm, keyProvider jwk.KeyProviderFunc) token.Signer {
 	return &defaultSigner{
 		tokenType:   tokenType,
 		alg:         alg,
@@ -59,7 +59,7 @@ type defaultSigner struct {
 	keyProvider jwk.KeyProviderFunc
 }
 
-func (ds *defaultSigner) Serialize(ctx context.Context, claims any) (string, error) {
+func (ds *defaultSigner) Sign(ctx context.Context, claims any) (string, error) {
 	// Check arguments
 	if types.IsNil(claims) {
 		return "", errors.New("unable to sign nil claim object")

@@ -235,3 +235,26 @@ const (
 	// error, typically account_selection_required.
 	PromptSelectAccount = "select_account"
 )
+
+// Step Up Authentication (RFC 9470) ---------------------------------------------
+
+const (
+	// ParamMaxAge is the OIDC Core max_age authorization request parameter.
+	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	// https://datatracker.ietf.org/doc/html/rfc9470#section-4
+	ParamMaxAge = "max_age"
+	// ParamAcrValues is the OIDC Core acr_values authorization request parameter.
+	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	// https://datatracker.ietf.org/doc/html/rfc9470#section-4
+	ParamAcrValues = "acr_values"
+	// ErrorUnmetAuthenticationRequirements is the error code returned when the
+	// requested authentication requirements (acr_values, max_age) cannot be met.
+	// https://datatracker.ietf.org/doc/html/rfc9470#section-5
+	// (error code defined by the OpenID Connect unmet_authentication_requirements spec)
+	ErrorUnmetAuthenticationRequirements = "unmet_authentication_requirements"
+	// ErrorInsufficientUserAuthentication is the Bearer challenge error code a
+	// resource server emits when the access token does not satisfy the
+	// authentication requirements of the protected resource.
+	// https://datatracker.ietf.org/doc/html/rfc9470#section-3
+	ErrorInsufficientUserAuthentication = "insufficient_user_authentication"
+)

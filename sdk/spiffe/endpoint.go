@@ -92,24 +92,30 @@ func NewBundleEndpointSource(endpoints map[string]string, fetcher BundleFetcher,
 // Get returns the (cached) trust bundle for the trust domain, refreshing it
 // when the refresh hint (or the minimum refresh interval) has expired.
 func (s *endpointBundleSource) Get(ctx context.Context, trustDomain string) (jwk.Set, error) {
+	// Resolve the endpoint and snapshot the cache state under the lock;
+	// the network fetch itself runs outside it, so one slow or hung trust
+	// domain cannot stall authentication for every other domain.
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	endpoint, ok := s.endpoints[trustDomain]
 	if !ok {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("spiffe: no bundle endpoint configured for trust domain %q", trustDomain)
 	}
-
 	entry, cached := s.cache[trustDomain]
 	now := s.now()
 
 	// Serve from cache while fresh.
 	if cached && now.Sub(entry.fetchedAt) < s.refreshAfter(entry.refreshHint) {
+		s.mu.Unlock()
 		return entry.set, nil
 	}
+	s.mu.Unlock()
 
-	// Re-fetch (first fetch or expired hint).
+	// Re-fetch (first fetch or expired hint), unlocked.
 	set, hint, err := s.fetch(ctx, endpoint)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if err != nil {
 		if cached {
 			// Serve the last known good bundle; the endpoint being

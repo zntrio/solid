@@ -25,6 +25,21 @@ import (
 )
 
 // MarshalJSON implements json.Marshaler
+func (msg *AuthEvent) MarshalJSON() ([]byte, error) {
+	return protojson.MarshalOptions{
+		EmitUnpopulated: true,
+		UseProtoNames:   true,
+	}.Marshal(msg)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (msg *AuthEvent) UnmarshalJSON(b []byte) error {
+	return protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}.Unmarshal(b, msg)
+}
+
+// MarshalJSON implements json.Marshaler
 func (msg *TokenMeta) MarshalJSON() ([]byte, error) {
 	return protojson.MarshalOptions{
 		EmitUnpopulated: true,
@@ -79,21 +94,6 @@ func (msg *TokenConfirmation) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements json.Unmarshaler
 func (msg *TokenConfirmation) UnmarshalJSON(b []byte) error {
-	return protojson.UnmarshalOptions{
-		DiscardUnknown: true,
-	}.Unmarshal(b, msg)
-}
-
-// MarshalJSON implements json.Marshaler
-func (msg *OAuthTokenResponse) MarshalJSON() ([]byte, error) {
-	return protojson.MarshalOptions{
-		EmitUnpopulated: true,
-		UseProtoNames:   true,
-	}.Marshal(msg)
-}
-
-// UnmarshalJSON implements json.Unmarshaler
-func (msg *OAuthTokenResponse) UnmarshalJSON(b []byte) error {
 	return protojson.UnmarshalOptions{
 		DiscardUnknown: true,
 	}.Unmarshal(b, msg)

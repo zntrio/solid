@@ -24,6 +24,7 @@
 package tokenv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -169,16 +170,18 @@ var File_oidc_token_v1_revocation_api_proto protoreflect.FileDescriptor
 
 const file_oidc_token_v1_revocation_api_proto_rawDesc = "" +
 	"\n" +
-	"\"oidc/token/v1/revocation_api.proto\x12\roidc.token.v1\x1a\x1boidc/client/v1/client.proto\x1a\x18oidc/core/v1/error.proto\"\xae\x01\n" +
-	"\rRevokeRequest\x12\x16\n" +
-	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12.\n" +
-	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12\x14\n" +
-	"\x05token\x18\x03 \x01(\tR\x05token\x12+\n" +
+	"\"oidc/token/v1/revocation_api.proto\x12\roidc.token.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1boidc/client/v1/client.proto\x1a\x18oidc/core/v1/error.proto\"\xc9\x01\n" +
+	"\rRevokeRequest\x12%\n" +
+	"\x06issuer\x18\x01 \x01(\tB\r\xbaH\n" +
+	"r\b\x10\x01\x18\x80\x10\x88\x01\x01R\x06issuer\x12.\n" +
+	"\x06client\x18\x02 \x01(\v2\x16.oidc.client.v1.ClientR\x06client\x12 \n" +
+	"\x05token\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\x10\x01\x18\x80@R\x05token\x12+\n" +
 	"\x0ftoken_type_hint\x18\x04 \x01(\tH\x00R\rtokenTypeHint\x88\x01\x01B\x12\n" +
 	"\x10_token_type_hint\";\n" +
 	"\x0eRevokeResponse\x12)\n" +
-	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error2[\n" +
-	"\x10RevocatonService\x12G\n" +
+	"\x05error\x18\x01 \x01(\v2\x13.oidc.core.v1.ErrorR\x05error2\\\n" +
+	"\x11RevocationService\x12G\n" +
 	"\x06Revoke\x12\x1c.oidc.token.v1.RevokeRequest\x1a\x1d.oidc.token.v1.RevokeResponse\"\x00B)Z'zntr.io/solid/api/oidc/token/v1;tokenv1b\x06proto3"
 
 var (
@@ -203,8 +206,8 @@ var file_oidc_token_v1_revocation_api_proto_goTypes = []any{
 var file_oidc_token_v1_revocation_api_proto_depIdxs = []int32{
 	2, // 0: oidc.token.v1.RevokeRequest.client:type_name -> oidc.client.v1.Client
 	3, // 1: oidc.token.v1.RevokeResponse.error:type_name -> oidc.core.v1.Error
-	0, // 2: oidc.token.v1.RevocatonService.Revoke:input_type -> oidc.token.v1.RevokeRequest
-	1, // 3: oidc.token.v1.RevocatonService.Revoke:output_type -> oidc.token.v1.RevokeResponse
+	0, // 2: oidc.token.v1.RevocationService.Revoke:input_type -> oidc.token.v1.RevokeRequest
+	1, // 3: oidc.token.v1.RevocationService.Revoke:output_type -> oidc.token.v1.RevokeResponse
 	3, // [3:4] is the sub-list for method output_type
 	2, // [2:3] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

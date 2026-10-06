@@ -29,6 +29,9 @@ type Token struct {
 	TokenType    string `json:"token_type,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	ExpiresIn    uint64 `json:"expires_in,omitempty"`
+	// Disclosures of a selectively disclosable access token
+	// (draft-forten-oauth-sd-jwt-access-token-00 section 4).
+	Disclosures []string `json:"disclosures,omitempty"`
 }
 
 // -----------------------------------------------------------------------------

@@ -22,6 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
+
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -100,7 +102,7 @@ func newBackend(t *testing.T) *backend {
 	clientv1.RegisterClientRegistrationServiceServer(srv, ClientRegistration(registrz, testIssuer))
 	clientv1.RegisterClientRegistrationManagementServiceServer(srv, ClientRegistrationManagement(registrz, testIssuer))
 	tokenv1.RegisterIntrospectionServiceServer(srv, IntrospectionService(tokenz))
-	tokenv1.RegisterRevocatonServiceServer(srv, RevocationService(tokenz))
+	tokenv1.RegisterRevocationServiceServer(srv, RevocationService(tokenz))
 
 	lis := bufconn.Listen(1024 * 1024)
 	go func() { _ = srv.Serve(lis) }()
@@ -233,7 +235,7 @@ func TestGRPCBackendClientCredentials(t *testing.T) {
 	require.True(t, active.GetToken().GetStatus() == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE, "token must be active, got %v", active.GetToken().GetStatus())
 
 	// Revoke.
-	revocation := tokenv1.NewRevocatonServiceClient(b.conn)
+	revocation := tokenv1.NewRevocationServiceClient(b.conn)
 	revoked, err := revocation.Revoke(ctx, &tokenv1.RevokeRequest{
 		Issuer: testIssuer,
 		Client: &clientv1.Client{ClientId: client.GetClientId()},
@@ -261,6 +263,8 @@ func TestGRPCBackendPARCodeFlow(t *testing.T) {
 	client := b.registerClient(t, &clientv1.ClientMeta{
 		TokenEndpointAuthMethod: new(oidc.AuthMethodPrivateKeyJWT),
 		GrantTypes:              []string{oidc.GrantTypeAuthorizationCode},
+		ResponseTypes:           []string{oidc.ResponseTypeCode},
+		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 		RedirectUris:            []string{testRedirectURI},
 		Jwks:                    clientJWKSWithSIG,
 	})
@@ -285,6 +289,7 @@ func TestGRPCBackendPARCodeFlow(t *testing.T) {
 			Audience:            "urn:example:cooperation-context",
 			CodeChallenge:       s256Challenge(verifier),
 			CodeChallengeMethod: oidc.CodeChallengeMethodSha256,
+			ResponseMode:        new(oidc.ResponseModeQueryJWT),
 		},
 	})
 	require.NoError(t, err)
@@ -318,6 +323,7 @@ func TestGRPCBackendPARCodeFlow(t *testing.T) {
 				RedirectUri:  testRedirectURI,
 			},
 		},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: strings.Repeat("a", 43)},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, tokenRes)

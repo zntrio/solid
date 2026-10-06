@@ -28,7 +28,7 @@ profile (PAR → authorize → code → redeem → refresh → revoke).
 | Quint action | solid source |
 |---|---|
 | `registerPAR` | `server/services/authorization/service.go` `Register` (PAR endpoint) |
-| `authorizePAR` / `authorizeDirect` | `service.go` `Authorize` (PAR burn-after-read; pairwise encoding from `examples/authorizationserver/handlers/authorization.go`) |
+| `authorizePAR` / `authorizeDirect` | `service.go` `Authorize` (PAR burn-after-read; pairwise encoding in `server/httpkit/authorization.go` wired from `examples/authorizationserver/main.go`) |
 | `redeem` | `server/services/token/grant_authorization_code.go` `authorizationCode` |
 | `refresh` | `server/services/token/grant_refresh_token.go` `refreshToken` (+ `revokeGrantFamily`) |
 

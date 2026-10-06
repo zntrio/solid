@@ -19,6 +19,7 @@ syntax = "proto3";
 
 package oidc.token.v1;
 
+import "buf/validate/validate.proto";
 import "oidc/client/v1/client.proto";
 import "oidc/core/v1/error.proto";
 import "oidc/token/v1/token.proto";
@@ -36,7 +37,11 @@ service IntrospectionService {
 // https://tools.ietf.org/html/rfc7662#section-2.1
 message IntrospectRequest {
   // REQUIRED. Token issuer URL.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
 
   // REQUIRED. Client that invoke the token introspection.
   .oidc.client.v1.Client client = 2;
@@ -47,15 +52,18 @@ message IntrospectRequest {
   // this is the "refresh_token" value returned from the token endpoint
   // as defined in OAuth 2.0 [RFC6749], Section 5.1.  Other token types
   // are outside the scope of this specification.
-  string token = 3;
+  string token = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 8192
+  }];
 
   // OPTIONAL.  A hint about the type of the token submitted for
   // introspection.  The protected resource MAY pass this parameter to
   // help the authorization server optimize the token lookup.  If the
   // server is unable to locate the token using the given hint, it MUST
-  // extend its search across all of its supported token types.  An
-  // authorization server MAY ignore this parameter, particularly if it
-  // is able to detect the token type automatically.  Values for this
+  // extend its search across all of its token types.  An authorization
+  // server MAY ignore this parameter, particularly if it is
+  // able to detect the token type automatically.  Values for this
   // field are defined in the "OAuth Token Type Hints" registry defined
   // in OAuth Token Revocation [RFC7009]
   optional string token_type_hint = 4;

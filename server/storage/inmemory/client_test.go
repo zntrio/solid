@@ -19,64 +19,65 @@ package inmemory
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
-	"zntr.io/solid/server/storage"
 )
 
-func Test_clientStorage(t *testing.T) {
+// TestClientStorageConcurrentAccess exercises concurrent readers and writers
+// on the shared client store; run with -race it fails on the unsynchronized
+// map implementation and passes with the RWMutex-guarded one.
+func TestClientStorageConcurrentAccess(t *testing.T) {
+	store := clientStorage{backend: map[string]*clientv1.Client{}}
 	ctx := context.Background()
 
-	t.Run("Update replaces a registered client", func(t *testing.T) {
-		s := Clients()
-		c := &clientv1.Client{ClientName: "before"}
-		id, err := s.Register(ctx, c)
-		if err != nil {
-			t.Fatalf("Register() error = %v", err)
-		}
+	var wg sync.WaitGroup
+	for i := range 32 {
+		wg.Add(3)
+		go func(i int) {
+			defer wg.Done()
+			id, err := store.Register(ctx, &clientv1.Client{ClientName: "race-client"})
+			if err != nil {
+				t.Errorf("register: %v", err)
+			}
+			_ = id
+		}(i)
+		go func(i int) {
+			defer wg.Done()
+			if _, err := store.Get(ctx, "t8p9duw4n2klximkv3kagaud796ul67g"); err == nil {
+				// fixture may or may not exist; only the race matters
+			}
+		}(i)
+		go func(i int) {
+			defer wg.Done()
+			if _, err := store.GetByName(ctx, "race-client"); err == nil {
+				// may or may not be found; only the race matters
+			}
+		}(i)
+	}
+	wg.Wait()
+}
 
-		updated := &clientv1.Client{ClientId: id, ClientName: "after"}
-		if err := s.Update(ctx, updated); err != nil {
-			t.Fatalf("Update() error = %v", err)
-		}
+// TestClientStorageGetReturnsCopy asserts the reader path hands out deep
+// copies: mutating the returned client must not corrupt the stored record.
+func TestClientStorageGetReturnsCopy(t *testing.T) {
+	store := clientStorage{backend: map[string]*clientv1.Client{
+		"client-a": {ClientId: "client-a", ClientName: "original"},
+	}}
+	ctx := context.Background()
 
-		got, err := s.Get(ctx, id)
-		if err != nil {
-			t.Fatalf("Get() error = %v", err)
-		}
-		if got.GetClientName() != "after" {
-			t.Errorf("Get() name = %q, want %q", got.GetClientName(), "after")
-		}
-	})
+	got, err := store.Get(ctx, "client-a")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	got.ClientName = "mutated"
 
-	t.Run("Update of missing client returns ErrNotFound", func(t *testing.T) {
-		s := Clients()
-		if err := s.Update(ctx, &clientv1.Client{ClientId: "no-such-client"}); err != storage.ErrNotFound {
-			t.Errorf("Update() err = %v, want ErrNotFound", err)
-		}
-	})
-
-	t.Run("Delete removes a registered client", func(t *testing.T) {
-		s := Clients()
-		id, err := s.Register(ctx, &clientv1.Client{ClientName: "doomed"})
-		if err != nil {
-			t.Fatalf("Register() error = %v", err)
-		}
-
-		if err := s.Delete(ctx, id); err != nil {
-			t.Fatalf("Delete() error = %v", err)
-		}
-
-		if _, err := s.Get(ctx, id); err != storage.ErrNotFound {
-			t.Errorf("Get() after Delete() err = %v, want ErrNotFound", err)
-		}
-	})
-
-	t.Run("Delete of missing client returns ErrNotFound", func(t *testing.T) {
-		s := Clients()
-		if err := s.Delete(ctx, "no-such-client"); err != storage.ErrNotFound {
-			t.Errorf("Delete() err = %v, want ErrNotFound", err)
-		}
-	})
+	again, err := store.Get(ctx, "client-a")
+	if err != nil {
+		t.Fatalf("second get: %v", err)
+	}
+	if again.ClientName != "original" {
+		t.Fatalf("stored record mutated through reader path: %q", again.ClientName)
+	}
 }

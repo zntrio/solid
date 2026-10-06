@@ -207,10 +207,10 @@ func newSDJWTFixture(t *testing.T) *sdjwtFixture {
 	}
 
 	// Present everything (full chain) — simplest valid baseline.
-	if f.presentation, err = f.holder.Present(f.issued, f.disclosures...); err != nil {
+	if f.presentation, err = f.holder.Present(context.Background(), f.issued, f.disclosures...); err != nil {
 		t.Fatalf("unable to present: %v", err)
 	}
-	if f.kb, err = f.holder.KeyBind(f.presentation, f.nonce, "verifier.example.com", time.Now().Unix()); err != nil {
+	if f.kb, err = f.holder.KeyBind(context.Background(), f.presentation, f.nonce, "verifier.example.com", time.Now().Unix()); err != nil {
 		t.Fatalf("unable to key bind: %v", err)
 	}
 
@@ -273,7 +273,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 		tampered := base64.RawURLEncoding.EncodeToString(mustJSON(t, arr))
 		var selected []string
 		selected = append(selected, f.disclosures[1:]...)
-		if _, err := f.holder.Present(f.issued, append(selected, tampered)...); err == nil {
+		if _, err := f.holder.Present(context.Background(), f.issued, append(selected, tampered)...); err == nil {
 			t.Error("holder must reject a tampered disclosure")
 		}
 	})
@@ -283,13 +283,13 @@ func TestSDJWTAdversarial(t *testing.T) {
 		// Build a valid-shaped disclosure that was never issued.
 		forged := base64.RawURLEncoding.EncodeToString(mustJSON(t, []any{"extra-salt-123", "extra_claim", "value"}))
 		// Present the issued chain plus the forged disclosure.
-		presentation, err := f.holder.Present(f.issued, f.disclosures...)
+		presentation, err := f.holder.Present(context.Background(), f.issued, f.disclosures...)
 		if err != nil {
 			t.Fatal(err)
 		}
 		// Splice the forged disclosure in.
 		spliced := presentation[:len(presentation)-1] + "~" + forged + "~"
-		kb, err := f.holder.KeyBind(spliced, "nonce-t2", "verifier.example.com", time.Now().Unix())
+		kb, err := f.holder.KeyBind(context.Background(), spliced, "nonce-t2", "verifier.example.com", time.Now().Unix())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -299,7 +299,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 	t.Run("same disclosure presented twice", func(t *testing.T) {
 		f := newSDJWTFixture(t)
 		dup := append(append([]string{}, f.disclosures...), f.disclosures[0])
-		if _, err := f.holder.Present(f.issued, dup...); err == nil {
+		if _, err := f.holder.Present(context.Background(), f.issued, dup...); err == nil {
 			t.Error("duplicate disclosure must be rejected at present time")
 		}
 	})
@@ -313,7 +313,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 		attackerHolder := sdjwt.NewHolder(issuerVerifier,
 			jwt.RawTypedSigner(sdjwt.TypeKeyBinding, "ES256",
 				func(context.Context) (jwk.Key, error) { return f.km.attackerKey, nil }))
-		kb, err := attackerHolder.KeyBind(f.presentation, "nonce-t4", "verifier.example.com", time.Now().Unix())
+		kb, err := attackerHolder.KeyBind(context.Background(), f.presentation, "nonce-t4", "verifier.example.com", time.Now().Unix())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -327,7 +327,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 		// signature stays valid (it is an independent JWT) but the
 		// sd_hash check fails.
 		half := f.disclosures[:len(f.disclosures)/2]
-		other, err := f.holder.Present(f.issued, half...)
+		other, err := f.holder.Present(context.Background(), f.issued, half...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -386,11 +386,11 @@ func TestSDJWTAdversarial(t *testing.T) {
 		if street == "" {
 			t.Fatal("street_address disclosure not found")
 		}
-		presentation, err := f.holder.Present(f.issued, street)
+		presentation, err := f.holder.Present(context.Background(), f.issued, street)
 		if err == nil {
 			// Holder-side Present rejects unreferenced disclosures;
 			// if it accepted, the verifier must reject.
-			kb, errKb := f.holder.KeyBind(presentation, "nonce-t9", "verifier.example.com", time.Now().Unix())
+			kb, errKb := f.holder.KeyBind(context.Background(), presentation, "nonce-t9", "verifier.example.com", time.Now().Unix())
 			if errKb != nil {
 				t.Fatal(errKb)
 			}
@@ -409,7 +409,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 		forged := base64.RawURLEncoding.EncodeToString(mustJSON(t, []any{"collision-salt", "iss", "https://attacker.example.com"}))
 		// Rebuild the presentation: all issued disclosures plus the
 		// forged one spliced in after the holder's legitimate build.
-		kb, err := f.holder.KeyBind(f.presentation, "nonce-t10", "verifier.example.com", time.Now().Unix())
+		kb, err := f.holder.KeyBind(context.Background(), f.presentation, "nonce-t10", "verifier.example.com", time.Now().Unix())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -425,7 +425,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 
 	t.Run("kb iat outside freshness window", func(t *testing.T) {
 		f := newSDJWTFixture(t)
-		stale, err := f.holder.KeyBind(f.presentation, "nonce-t11", "verifier.example.com", time.Now().Add(-10*time.Minute).Unix())
+		stale, err := f.holder.KeyBind(context.Background(), f.presentation, "nonce-t11", "verifier.example.com", time.Now().Add(-10*time.Minute).Unix())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -449,7 +449,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 			jwt.SupportedSignAlgorithms(),
 		), jwt.RawTypedSigner("other+jwt", "ES256",
 			func(context.Context) (jwk.Key, error) { return f.km.holderPrivKey, nil }))
-		kb, err := wrongKB.KeyBind(f.presentation, "nonce-t12", "verifier.example.com", time.Now().Unix())
+		kb, err := wrongKB.KeyBind(context.Background(), f.presentation, "nonce-t12", "verifier.example.com", time.Now().Unix())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -488,7 +488,7 @@ func TestSDJWTAdversarial(t *testing.T) {
 func sdjwtRebind(f *sdjwtFixture, presentation, nonce string) string {
 	t := f.presentation // placeholder to access t via closure is not possible
 	_ = t
-	kb, err := f.holder.KeyBind(presentation, nonce, "verifier.example.com", time.Now().Unix())
+	kb, err := f.holder.KeyBind(context.Background(), presentation, nonce, "verifier.example.com", time.Now().Unix())
 	if err != nil {
 		return ""
 	}
@@ -521,6 +521,6 @@ func mustJSON(t *testing.T, v any) []byte {
 
 // compile-time guard: the fixture uses the exported role constructors.
 var (
-	_ token.Serializer = jwt.RawTypedSigner("vc+sd-jwt", "ES256", nil)
-	_                  = strings.HasPrefix
+	_ token.Signer = jwt.RawTypedSigner("vc+sd-jwt", "ES256", nil)
+	_              = strings.HasPrefix
 )

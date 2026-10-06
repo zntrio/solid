@@ -124,6 +124,7 @@ func (h *mtlsHarness) registerMTLSClient(t *testing.T, binding func(*clientv1.Cl
 		ClientType:                            clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
 		GrantTypes:                            []string{oidc.GrantTypeClientCredentials, oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken, oidc.GrantTypeTokenExchange},
 		ResponseTypes:                         []string{oidc.ResponseTypeCode},
+		ResponseModes:                         []string{oidc.ResponseModeQueryJWT},
 		RedirectUris:                          []string{testRedirectURI},
 		TokenEndpointAuthMethod:               oidc.AuthMethodTLSClientAuth,
 		TlsClientCertificateBoundAccessTokens: true,
@@ -216,7 +217,7 @@ func TestRFC8705_TlsClientAuth_PKIBinding(t *testing.T) {
 				Grant: &flowv1.TokenRequest_ClientCredentials{
 					ClientCredentials: &flowv1.GrantClientCredentials{},
 				},
-				TokenConfirmation: &tokenv1.TokenConfirmation{X5TS256: thumbprint},
+				TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8", X5TS256: thumbprint},
 			})
 			require.NoError(t, err)
 			require.NotNil(t, minted.AccessToken)
@@ -423,7 +424,7 @@ func TestRFC8705_RefreshTokenCertificateBinding(t *testing.T) {
 				RedirectUri:  testRedirectURI,
 			},
 		},
-		TokenConfirmation: &tokenv1.TokenConfirmation{X5TS256: thumbprint},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8", X5TS256: thumbprint},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, minted.RefreshToken)
@@ -447,7 +448,7 @@ func TestRFC8705_RefreshTokenCertificateBinding(t *testing.T) {
 
 	// A5 replay with a mismatched thumbprint (attacker certificate): must
 	// fail closed with invalid_grant.
-	mismatched, err := h.tokenz.Token(context.Background(), refreshReq("attacker-thumbprint"))
+	mismatched, err := h.tokenz.Token(context.Background(), refreshReq("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"))
 	require.Error(t, err, "stolen refresh token replay without the certificate must fail")
 	require.NotNil(t, mismatched.Error)
 	assert.Equal(t, "invalid_grant", mismatched.Error.Error)
@@ -484,15 +485,15 @@ func TestRFC8705_TokenExchangeCertificateBinding(t *testing.T) {
 				RedirectUri:  testRedirectURI,
 			},
 		},
-		TokenConfirmation: &tokenv1.TokenConfirmation{X5TS256: thumbprint},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8", X5TS256: thumbprint},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, minted.AccessToken)
 	require.Equal(t, thumbprint, minted.AccessToken.Confirmation.X5TS256)
 
-	// Exchange with a DPoP-only confirmation: the subject token carries no
-	// Jkt, so the Jkt check does not fire; the minted token must inherit the
-	// subject confirmation (binding propagates through exchange).
+	// Exchange presenting the subject token's full confirmation (jkt from
+	// the enforced code-flow binding plus the certificate thumbprint):
+	// binding propagates through exchange.
 	audience := "urn:example:cooperation-context"
 	exchanged, err := h.tokenz.Token(context.Background(), &flowv1.TokenRequest{
 		Issuer:    h.issuer,
@@ -505,7 +506,10 @@ func TestRFC8705_TokenExchangeCertificateBinding(t *testing.T) {
 				SubjectTokenType: oidc.TokenExchangeAccessTokenType,
 			},
 		},
-		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "dpop-only-jkt"},
+		TokenConfirmation: &tokenv1.TokenConfirmation{
+			Jkt:     integrationDPoPJkt,
+			X5TS256: thumbprint,
+		},
 	})
 	require.NoError(t, err, "exchange with a DPoP confirmation must succeed")
 	require.NotNil(t, exchanged.AccessToken)
@@ -540,7 +544,7 @@ func TestRFC8705_BearerRequiresMatchingCertificate(t *testing.T) {
 
 	// The middleware's token-shape gates: a jkt-only confirmation is a DPoP
 	// token (rejected under Bearer), a jkt+x5t token requires both proofs.
-	assert.False(t, sdktoken.CertificateBound(&tokenv1.TokenConfirmation{Jkt: "some-jkt"}, []*x509.Certificate{cert.cert}))
+	assert.False(t, sdktoken.CertificateBound(&tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}, []*x509.Certificate{cert.cert}))
 }
 
 // TestRFC8705_IntrospectionCnfRendering exercises the service-level
@@ -559,7 +563,7 @@ func TestRFC8705_IntrospectionCnfRendering(t *testing.T) {
 		Grant: &flowv1.TokenRequest_ClientCredentials{
 			ClientCredentials: &flowv1.GrantClientCredentials{},
 		},
-		TokenConfirmation: &tokenv1.TokenConfirmation{X5TS256: thumbprint},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8", X5TS256: thumbprint},
 	})
 	require.NoError(t, err)
 

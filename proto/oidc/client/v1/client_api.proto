@@ -19,6 +19,7 @@ syntax = "proto3";
 
 package oidc.client.v1;
 
+import "buf/validate/validate.proto";
 import "oidc/client/v1/client.proto";
 import "oidc/core/v1/error.proto";
 
@@ -45,7 +46,10 @@ service ClientRegistrationManagementService {
 // -----------------------------------------------------------------------------
 
 message AuthenticateRequest {
-  optional string client_id = 1;
+  optional string client_id = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 128
+  }];
   optional string client_secret = 2;
   optional string client_assertion_type = 3;
   optional string client_assertion = 4;

@@ -469,7 +469,7 @@ func TestSDCWT_IssuePresentVerifyRoundTrip(t *testing.T) {
 		t.Fatal("postal_code disclosure not found")
 	}
 
-	presentation, err := hold.Present(issued, selected)
+	presentation, err := hold.Present(context.Background(), issued, selected)
 	if err != nil {
 		t.Fatalf("unable to present: %v", err)
 	}
@@ -477,7 +477,7 @@ func TestSDCWT_IssuePresentVerifyRoundTrip(t *testing.T) {
 	// Key bind with cnonce and iat.
 	cnonce := []byte("challenge-nonce-1")
 	cnonces := map[string]bool{}
-	kbt, err := hold.KeyBind(presentation, "verifier.example.com", cnonce, WithIssuedAt(1750000500))
+	kbt, err := hold.KeyBind(context.Background(), presentation, "verifier.example.com", cnonce, WithIssuedAt(1750000500))
 	if err != nil {
 		t.Fatalf("unable to key bind: %v", err)
 	}
@@ -514,11 +514,11 @@ func TestSDCWT_IssuePresentVerifyRoundTrip(t *testing.T) {
 	}
 
 	// Cnonce replay must fail.
-	presentation2, err := hold.Present(issued, selected)
+	presentation2, err := hold.Present(context.Background(), issued, selected)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kbt2, err := hold.KeyBind(presentation2, "verifier.example.com", cnonce, WithIssuedAt(1750000501))
+	kbt2, err := hold.KeyBind(context.Background(), presentation2, "verifier.example.com", cnonce, WithIssuedAt(1750000501))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -532,11 +532,11 @@ func TestSDCWT_IssuePresentVerifyRoundTrip(t *testing.T) {
 	for i := len(selected) - 1; i >= 0; i-- {
 		reversed = append(reversed, selected[i])
 	}
-	presentation3, err := hold.Present(issued, reversed)
+	presentation3, err := hold.Present(context.Background(), issued, reversed)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kbt3, err := hold.KeyBind(presentation3, "verifier.example.com", []byte("fresh-nonce"), WithIssuedAt(1750000502))
+	kbt3, err := hold.KeyBind(context.Background(), presentation3, "verifier.example.com", []byte("fresh-nonce"), WithIssuedAt(1750000502))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -576,7 +576,7 @@ func TestSDCWT_KBTWithCti(t *testing.T) {
 	}
 
 	hold := NewHolder(issuerSetP, cose.AlgorithmES256, holderKP)
-	presentation, err := hold.Present(issued, disclosures)
+	presentation, err := hold.Present(context.Background(), issued, disclosures)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -584,7 +584,7 @@ func TestSDCWT_KBTWithCti(t *testing.T) {
 	// KBT with cti instead of iat (draft section 8.1: one of
 	// iat/cti REQUIRED).
 	cti := []byte("token-id-1")
-	kbt, err := hold.KeyBind(presentation, "verifier.example.com", []byte("nonce-cti"), WithCti(cti))
+	kbt, err := hold.KeyBind(context.Background(), presentation, "verifier.example.com", []byte("nonce-cti"), WithCti(cti))
 	if err != nil {
 		t.Fatal(err)
 	}

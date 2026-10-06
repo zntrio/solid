@@ -24,6 +24,7 @@ import (
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 )
@@ -65,11 +66,16 @@ func validateGrantPreamble(client *clientv1.Client, req *flowv1.TokenRequest, gr
 	return nil, nil
 }
 
-// enforceSenderBinding enforces the client-level token-binding policy
-// shared by grant handlers:
+// enforceSenderBinding enforces the token-binding policy shared by grant
+// handlers:
 //
+//   - the authorization_code grant ALWAYS requires a DPoP confirmation
+//     (project security posture: PAR captures dpop_jkt unconditionally,
+//     so the code is issued bound to a key and redemption MUST present the
+//     matching proof — RFC 9449 section 10);
 //   - a client registered with DpopBoundAccessTokens must present a DPoP
-//     confirmation (RFC 9449 / RFC 10027 section 6.1.12 semantics);
+//     confirmation for the other grants too (RFC 9449 / RFC 10027 section
+//     6.1.12 semantics);
 //   - a client registered with TlsClientCertificateBoundAccessTokens must
 //     present a mutual-TLS certificate confirmation (RFC 8705 section 3:
 //     certificates bound at the token endpoint via x5t#S256).
@@ -78,6 +84,10 @@ func validateGrantPreamble(client *clientv1.Client, req *flowv1.TokenRequest, gr
 // layer (HTTP, CoAP) extracts the confirmation from the transport, so the
 // mechanism does not depend on any specific presentation.
 func enforceSenderBinding(res *flowv1.TokenResponse, client *clientv1.Client, req *flowv1.TokenRequest) error {
+	if req.GrantType == oidc.GrantTypeAuthorizationCode && (req.TokenConfirmation == nil || req.TokenConfirmation.Jkt == "") {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return fmt.Errorf("authorization code redemption requires a DPoP confirmation (RFC 9449 section 10)")
+	}
 	if client.DpopBoundAccessTokens && (req.TokenConfirmation == nil || req.TokenConfirmation.Jkt == "") {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return fmt.Errorf("client requires DPoP-bound access tokens")

@@ -60,8 +60,14 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 		// Send request to reactor
 		res, err := tokenz.Introspect(ctx, msg)
 		if err != nil {
-			log.Println("unable to process introspection request: %w", err)
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			log.Printf("unable to process introspection request: %v", err)
+			// res may be nil on infrastructure failure; WithError is
+			// nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+			} else {
+				WithError(w, r, http.StatusBadRequest, nil)
+			}
 			return
 		}
 

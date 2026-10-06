@@ -33,6 +33,7 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/dpop"
 	"zntr.io/solid/sdk/random"
@@ -158,6 +159,7 @@ func TestOAuth21_RedemptionWithoutRedirectUri_4_1_3(t *testing.T) {
 				CodeVerifier: verifier,
 			},
 		},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8"},
 	})
 	require.NoError(t, err, "redeeming a code without redirect_uri must succeed (draft §4.1.3)")
 	require.Nil(t, res.Error)
@@ -327,6 +329,29 @@ func postToken(t *testing.T, ts *httptest.Server, assertion, grantType string, f
 	return res, body
 }
 
+// postTokenWithDPoP performs a token-endpoint POST carrying a DPoP proof
+// header, as required for the code grant under the enforced posture.
+func postTokenWithDPoP(t *testing.T, ts *httptest.Server, assertion, proof, grantType string, form url.Values) (*http.Response, map[string]any) {
+	t.Helper()
+
+	form.Set("grant_type", grantType)
+	form.Set("client_assertion_type", oidc.AssertionTypeJWTBearer)
+	form.Set("client_assertion", assertion)
+
+	req, err := http.NewRequest(http.MethodPost, ts.URL, strings.NewReader(form.Encode()))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("DPoP", proof)
+
+	res, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = res.Body.Close() })
+
+	var body map[string]any
+	require.NoError(t, json.NewDecoder(res.Body).Decode(&body))
+	return res, body
+}
+
 func TestOAuth21_TokenEndpointHTTPPresentation_3_2_3_3_2_4(t *testing.T) {
 	h := newHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
@@ -337,19 +362,25 @@ func TestOAuth21_TokenEndpointHTTPPresentation_3_2_3_3_2_4(t *testing.T) {
 	code := h.seedAuthorization(t, client, validAuthorizationRequest(client.ClientId, verifier, testRedirectURI))
 
 	// Success: Cache-Control: no-store on the token response (§3.2.3).
-	res, body := postToken(t, ts, validClientAssertion(t, client.ClientId), oidc.GrantTypeAuthorizationCode, url.Values{
+	// The code grant is DPoP-enforced, so the request presents a proof.
+	prover := buildDPoPProver(t)
+	tokenProof, err := prover.Prove(http.MethodPost, ts.URL+"/")
+	require.NoError(t, err)
+	res, body := postTokenWithDPoP(t, ts, validClientAssertion(t, client.ClientId), tokenProof, oidc.GrantTypeAuthorizationCode, url.Values{
 		"code":          {code},
 		"code_verifier": {verifier},
 		"redirect_uri":  {testRedirectURI},
 	})
 	require.Equal(t, http.StatusOK, res.StatusCode, "body: %v", body)
 	require.Equal(t, "no-store", res.Header.Get("Cache-Control"), "§3.2.3: token responses MUST NOT be cached")
-	require.Equal(t, "Bearer", body["token_type"], "non-DPoP tokens signal Bearer")
+	require.Equal(t, "DPoP", body["token_type"], "code-flow tokens are DPoP-bound under the enforced posture")
 	require.NotEmpty(t, body["access_token"])
 
 	// Error: no-store on error responses too, and the error key is "error"
 	// (§3.2.4). The code was burned by the redemption above.
-	errRes, errBody := postToken(t, ts, validClientAssertion(t, client.ClientId), oidc.GrantTypeAuthorizationCode, url.Values{
+	replayProof, err := prover.Prove(http.MethodPost, ts.URL+"/")
+	require.NoError(t, err)
+	errRes, errBody := postTokenWithDPoP(t, ts, validClientAssertion(t, client.ClientId), replayProof, oidc.GrantTypeAuthorizationCode, url.Values{
 		"code":          {code},
 		"code_verifier": {verifier},
 		"redirect_uri":  {testRedirectURI},

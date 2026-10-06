@@ -17,6 +17,10 @@
 
 package sdjwt
 
+import (
+	"zntr.io/solid/sdk/token"
+)
+
 // IssueOption configures sdjwt Issuer.Issue calls. Options are thin
 // wrappers over the sdtoken core options (salt source, decoy counts).
 type IssueOption interface {
@@ -77,6 +81,7 @@ type verifyConfig struct {
 	kbMaxAge           seconds
 	leeway             seconds
 	expectedTypSuffix  string
+	kbKeyProvider      func(processedClaims map[string]any) (token.Verifier, error)
 }
 
 type seconds = int64
@@ -130,6 +135,20 @@ func WithLeeway(leewaySeconds seconds) VerifyOption {
 func WithExpectedTyp(typ string) VerifyOption {
 	return verifyOptionFunc(func(c *verifyConfig) {
 		c.expectedTypSuffix = typ
+	})
+}
+
+// WithKeyBindingKeyProvider overrides the key binding verification key
+// source (default: the cnf.jwk member of the processed payload, RFC
+// 9901 section 7.3 step 5). When set, the provider resolves the KB-JWT
+// verifier from the processed claims — the draft-forten
+// sd-jwt-access-token profile uses it to verify the KB-JWT with the
+// DPoP proof key instead (its section 5.3: the binding key is the
+// DPoP key whose thumbprint equals cnf.jkt). Unset behavior is
+// unchanged.
+func WithKeyBindingKeyProvider(provider func(processedClaims map[string]any) (token.Verifier, error)) VerifyOption {
+	return verifyOptionFunc(func(c *verifyConfig) {
+		c.kbKeyProvider = provider
 	})
 }
 

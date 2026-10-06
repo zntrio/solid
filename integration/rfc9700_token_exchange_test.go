@@ -24,6 +24,7 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 )
 
@@ -44,6 +45,9 @@ func exchangeRequest(issuer, clientID, subjectToken, audience string) *flowv1.To
 				SubjectTokenType: "urn:ietf:params:oauth:token-type:access_token",
 			},
 		},
+		// The subject token is DPoP-bound (minted through the enforced code
+		// flow); the exchange presents the matching confirmation.
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: integrationDPoPJkt},
 	}
 }
 

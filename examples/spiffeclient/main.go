@@ -40,16 +40,28 @@ import (
 
 	"zntr.io/solid/client"
 	"zntr.io/solid/examples/authorizationserver/spiffedemo"
+	exampleenv "zntr.io/solid/examples/internal/exampleenv"
+	"zntr.io/solid/examples/internal/flowlog"
 	"zntr.io/solid/oidc"
 	random "zntr.io/solid/sdk/random"
 )
 
+// flowlogClient prints the protocol flow (request and response) for every
+// exchange in the demo.
+var flowlogClient = flowlog.New()
+
 // tokenEndpoint is the AS token endpoint, overridable with
 // SOLID_EXAMPLE_ISSUER.
-var tokenEndpoint = envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080") + "/token"
+var tokenEndpoint = exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080") + "/token"
 
 const (
 	bodyLimiterSize = 5 << 20 // 5 Mb
+
+	// The demo requests an access token for the example resource server,
+	// carrying the resource-server demo scope: the resource indicator is
+	// the audience of the minted token, the scope the permission granted.
+	resource = "http://localhost:8085"
+	scope    = "timestamp:read"
 )
 
 // -----------------------------------------------------------------------------
@@ -95,6 +107,8 @@ func run() error {
 	// with the jwt-spiffe client assertion, draft section 3.1).
 	form := url.Values{}
 	form.Set("grant_type", oidc.GrantTypeClientCredentials)
+	form.Set("resource", resource)
+	form.Set("scope", scope)
 	form.Set("client_assertion_type", oidc.AssertionTypeJWTSPIFFE)
 	form.Set("client_assertion", svidRaw)
 
@@ -105,7 +119,7 @@ func run() error {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Send the request
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := flowlogClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unable to process the request: %w", err)
 	}
@@ -123,13 +137,4 @@ func run() error {
 	fmt.Printf("Access Token: %s\n", tokenResponse.AccessToken)
 
 	return nil
-}
-
-// envOr reads an environment variable, falling back to def when unset or
-// empty.
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }

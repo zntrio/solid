@@ -105,6 +105,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Grant: &flowv1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &flowv1.GrantAuthorizationCode{},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			wantErr: true,
@@ -124,6 +125,7 @@ func Test_service_authorizationCode(t *testing.T) {
 					Grant: &flowv1.TokenRequest_AuthorizationCode{
 						AuthorizationCode: &flowv1.GrantAuthorizationCode{},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			wantErr: true,
@@ -152,6 +154,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			wantErr: true,
@@ -181,6 +184,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			wantErr: true,
@@ -211,6 +215,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			wantErr: true,
@@ -240,6 +245,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri: "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			wantErr: true,
@@ -269,6 +275,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -312,6 +319,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -345,6 +353,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -378,6 +387,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb12346",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -413,6 +423,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb12346",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -461,6 +472,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb12346",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -506,6 +518,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb1",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -551,6 +564,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb1",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -598,6 +612,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -643,13 +658,14 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
 					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Confirmation: &tokenv1.TokenConfirmation{
-						Jkt: "jkt1",
+						Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 					Request: &flowv1.AuthorizationRequest{
 						ClientId:            "s6BhdRkqt3",
@@ -689,13 +705,14 @@ func Test_service_authorizationCode(t *testing.T) {
 							DpopJkt:      new("jkt2"),
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
 				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
 					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
 					Confirmation: &tokenv1.TokenConfirmation{
-						Jkt: "jkt1",
+						Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
 					},
 					Request: &flowv1.AuthorizationRequest{
 						ClientId:            "s6BhdRkqt3",
@@ -712,6 +729,10 @@ func Test_service_authorizationCode(t *testing.T) {
 			},
 		},
 		{
+			// Under the enforced DPoP posture the request without a
+			// confirmation is rejected by enforceSenderBinding (invalid_request)
+			// before the grant-level binding checks run; the grant dpop_jkt
+			// remains asserted by the mismatch test below.
 			name: "grant dpop_jkt present, token confirmation missing",
 			args: args{
 				ctx: context.Background(),
@@ -732,27 +753,15 @@ func Test_service_authorizationCode(t *testing.T) {
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
-							DpopJkt:      new("jkt1"),
+							DpopJkt:      new("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
 						},
 					},
 					TokenConfirmation: nil,
 				},
 			},
-			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
-				sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
-					Status: sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
-					Request: &flowv1.AuthorizationRequest{
-						ClientId:            "s6BhdRkqt3",
-						State:               "af0ifjsldkj",
-						RedirectUri:         "https://client.example.org/cb",
-						CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
-						CodeChallengeMethod: "S256",
-					},
-				}, nil)
-			},
 			wantErr: true,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidGrant().State("af0ifjsldkj").Build(),
+				Error: rfcerrors.InvalidRequest().Build(),
 			},
 		},
 		{
@@ -776,11 +785,11 @@ func Test_service_authorizationCode(t *testing.T) {
 							Code:         "1234567891234567890",
 							CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
 							RedirectUri:  "https://client.example.org/cb",
-							DpopJkt:      new("jkt1"),
+							DpopJkt:      new("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"),
 						},
 					},
 					TokenConfirmation: &tokenv1.TokenConfirmation{
-						Jkt: "jkt2",
+						Jkt: "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
 					},
 				},
 			},
@@ -824,6 +833,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -869,6 +879,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -915,6 +926,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -960,6 +972,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, resources *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1004,6 +1017,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1046,6 +1060,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1092,6 +1107,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1138,6 +1154,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1185,6 +1202,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
@@ -1233,6 +1251,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
@@ -1281,6 +1300,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
@@ -1331,6 +1351,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator, rt *tokenmock.MockGenerator) {
@@ -1369,6 +1390,9 @@ func Test_service_authorizationCode(t *testing.T) {
 						ExpiresAt: 3601,
 					},
 					Value: "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+					},
 				},
 				RefreshToken: &tokenv1.Token{
 					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -1383,6 +1407,9 @@ func Test_service_authorizationCode(t *testing.T) {
 						ExpiresAt: 604801,
 					},
 					Value: "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
+					Confirmation: &tokenv1.TokenConfirmation{
+						Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+					},
 				},
 			},
 		},
@@ -1484,6 +1511,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							DpopJkt:      types.StringRef("attacker-key-thumbprint-not-the-bound-one"),
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1529,6 +1557,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, _ *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {
@@ -1574,6 +1603,7 @@ func Test_service_authorizationCode(t *testing.T) {
 							RedirectUri:  "https://client.example.org/cb",
 						},
 					},
+					TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
 				},
 			},
 			prepare: func(sessions *storagemock.MockAuthorizationCodeSession, _ *storagemock.MockToken, resources *storagemock.MockResourceReader, _ *tokenmock.MockGenerator, _ *tokenmock.MockGenerator) {

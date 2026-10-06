@@ -33,6 +33,7 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/storage"
 )
 
@@ -142,7 +143,7 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 
 	// Enforce the algorithm allowlist before processing claims (draft
 	// section 7.2, rule 3).
-	if !containsString(p.supportedAlgorithms, popToken.Method.Alg()) {
+	if !types.Contains(p.supportedAlgorithms, popToken.Method.Alg()) {
 		res.Error = rfcerrors.InvalidClientAttestation().Build()
 		return res, fmt.Errorf("PoP algorithm %q is not supported", popToken.Method.Alg())
 	}
@@ -286,7 +287,7 @@ func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.
 
 	// Enforce the algorithm allowlist before processing claims (draft
 	// section 7.1, rule 3).
-	if !containsString(p.supportedAlgorithms, t.Method.Alg()) {
+	if !types.Contains(p.supportedAlgorithms, t.Method.Alg()) {
 		return nil, "", fmt.Errorf("attestation algorithm %q is not supported", t.Method.Alg())
 	}
 
@@ -316,10 +317,11 @@ func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.
 
 	// Freshness (draft section 7.1, rule 6): an expired attestation is the
 	// sole use_fresh_attestation condition (section 7.4).
-	if claims.Expires < uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
+	now := uint64(time.Now().Unix()) //nolint:gosec // unix time is non-negative
+	if claims.Expires < now {
 		return nil, "", errClientAttestationNotFresh
 	}
-	if claims.NotBefore > uint64(time.Now().Unix()) { //nolint:gosec // unix time is non-negative
+	if claims.NotBefore > now {
 		return nil, "", fmt.Errorf("not useable token")
 	}
 

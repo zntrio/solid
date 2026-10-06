@@ -35,6 +35,7 @@ import (
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -45,15 +46,13 @@ type service struct {
 	codeGenerator             generator.AuthorizationCode
 	requestURIGenerator       generator.RequestURI
 	authzDetailsValidator     authzdetails.Validator
-	messageValidator          *messageValidator
 }
 
 // New build and returns an authorization service implementation.
 func New(clients storage.ClientReader, authorizationRequests storage.AuthorizationRequest, authorizationCodeSessions storage.AuthorizationCodeSessionWriter, codeGenerator generator.AuthorizationCode, requestURIGenerator generator.RequestURI, authzDetailsValidator authzdetails.Validator) services.Authorization {
-	// Initialize the syntactic validation level (protovalidate).
-	mv, err := newMessageValidator()
-	if err != nil {
-		// A misconfigured CEL environment is unrecoverable: surface it loudly.
+	// Fail fast when the shared protovalidate environment is broken: a
+	// misconfigured CEL environment is unrecoverable and surfaced loudly.
+	if err := msgval.Probe(); err != nil {
 		panic(err)
 	}
 
@@ -64,7 +63,6 @@ func New(clients storage.ClientReader, authorizationRequests storage.Authorizati
 		codeGenerator:             codeGenerator,
 		requestURIGenerator:       requestURIGenerator,
 		authzDetailsValidator:     authzDetailsValidator,
-		messageValidator:          mv,
 	}
 }
 
@@ -156,6 +154,16 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.AuthorizeRequest) (
 		res.Error = rfcerrors.InvalidRequest().State(req.Request.State).Build()
 		return res, fmt.Errorf("client_id mismatch between client and request object")
 	}
+
+	// RFC 9470 section 4/5: step-up requirements (acr_values, max_age) are
+	// checked against the login authentication event before a code is minted;
+	// a violation is unmet_authentication_requirements, preventing clients
+	// from looping on tokens the RS will keep rejecting.
+	if publicErr, stepErr := validateStepUpRequirements(req.Request, req.AuthEvent); publicErr != nil || stepErr != nil {
+		res.Error = publicErr
+		res.State = req.Request.State
+		return res, stepErr
+	}
 	// Create an authorization code
 	code, err := s.codeGenerator.Generate(ctx, req.Issuer)
 	if err != nil {
@@ -181,6 +189,12 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.AuthorizeRequest) (
 	}
 	if req.Request.DpopJkt != nil && *req.Request.DpopJkt != "" {
 		session.Confirmation = &tokenv1.TokenConfirmation{Jkt: *req.Request.DpopJkt}
+	}
+
+	// RFC 9470 section 6: persist the login authentication event with the
+	// code session; it propagates into the tokens minted from this grant.
+	if req.AuthEvent != nil {
+		session.AuthEvent = req.AuthEvent
 	}
 	expiresIn, err := s.authorizationCodeSessions.Register(ctx, req.Issuer, code, session)
 	if err != nil {
@@ -303,7 +317,7 @@ func (s *service) validate(ctx context.Context, req *flowv1.AuthorizationRequest
 	// PKCE code_challenge charset and the S256 method of RFC 7636
 	// section 4.2/4.3). The protovalidate error descriptions name the
 	// offending fields.
-	if publicErr := s.messageValidator.ValidateAuthorizationRequest(req); publicErr != nil {
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
 		return rfcerrors.InvalidRequest().State(req.State).Description(publicErr.ErrorDescription).Build(), fmt.Errorf("syntactically invalid authorization request: %s", publicErr.ErrorDescription)
 	}
 
@@ -347,6 +361,17 @@ func (s *service) validate(ctx context.Context, req *flowv1.AuthorizationRequest
 		if *req.ResponseMode == oidc.ResponseModeJWT && req.ResponseType == oidc.ResponseTypeCode {
 			req.ResponseMode = new(oidc.ResponseModeQueryJWT)
 		}
+	}
+
+	// JARM enforcement (project security posture): with the code response
+	// type the authorization response MUST be a signed JWT response mode —
+	// query.jwt, fragment.jwt or form_post.jwt. The plain query, fragment
+	// and form_post modes expose the code and state in the front channel
+	// and are deliberately not offered for the authorization code flow.
+	switch req.GetResponseMode() {
+	case oidc.ResponseModeQueryJWT, oidc.ResponseModeFragmentJWT, oidc.ResponseModeFormPOSTJWT:
+	default:
+		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("authorization code flow requires a JWT response mode (query.jwt, fragment.jwt or form_post.jwt)")
 	}
 
 	// Validate authorization details when the request carries them

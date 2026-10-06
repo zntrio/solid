@@ -56,8 +56,14 @@ func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 			TokenTypeHint: optionalString(tokenTypeHint),
 		})
 		if err != nil {
-			log.Println("unable to process revocation request: %w", err)
-			WithError(w, r, http.StatusBadRequest, res.Error)
+			log.Printf("unable to process revocation request: %v", err)
+			// res may be nil on infrastructure failure; WithError is
+			// nil-safe.
+			if res != nil {
+				WithError(w, r, http.StatusBadRequest, res.Error)
+			} else {
+				WithError(w, r, http.StatusBadRequest, nil)
+			}
 			return
 		}
 

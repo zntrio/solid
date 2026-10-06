@@ -26,18 +26,18 @@ import (
 	"zntr.io/solid/sdk/token"
 )
 
-// DefaultSigner builds an ID-JAG signer from a claims serializer
-// (token.Serializer), e.g. jwt.IDJAG, a CWT signer or a PASETO signer
+// DefaultSigner builds an ID-JAG signer from a claims signer
+// (token.Signer), e.g. jwt.IDJAG, a CWT signer or a PASETO signer
 // assembled by the consumer. The serialization format is the assembly's
 // decision; this package stays agnostic.
-func DefaultSigner(serializer token.Serializer) Signer {
+func DefaultSigner(delegate token.Signer) Signer {
 	return &defaultSigner{
-		delegate: serializer,
+		delegate: delegate,
 	}
 }
 
 type defaultSigner struct {
-	delegate token.Serializer
+	delegate token.Signer
 }
 
 // Serialize validates the REQUIRED claim set (draft section 3.1) and signs
@@ -78,7 +78,7 @@ func (s *defaultSigner) Serialize(ctx context.Context, grant *tokenv1.IdentityAs
 	}
 
 	// Serialize through the injected serializer.
-	raw, err := s.delegate.Serialize(ctx, grant)
+	raw, err := s.delegate.Sign(ctx, grant)
 	if err != nil {
 		return "", fmt.Errorf("unable to serialize ID-JAG: %w", err)
 	}

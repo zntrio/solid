@@ -32,22 +32,22 @@ import (
 // -----------------------------------------------------------------------------
 
 // AccessToken instantiate an access token generator.
-func AccessToken(serializer Serializer) Generator {
+func AccessToken(signer Signer) Generator {
 	return &accessTokenGenerator{
-		serializer: serializer,
+		signer: signer,
 	}
 }
 
 // -----------------------------------------------------------------------------
 
 type accessTokenGenerator struct {
-	serializer Serializer
+	signer Signer
 }
 
 func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
 	// Check arguments
-	if types.IsNil(c.serializer) {
-		return "", fmt.Errorf("unable to use nil serializer")
+	if types.IsNil(c.signer) {
+		return "", fmt.Errorf("unable to use nil signer")
 	}
 	if t == nil {
 		return "", fmt.Errorf("unable to generate claims from nil token")
@@ -65,6 +65,23 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (
 	}
 
 	// Prepare claims
+	claims := assembleAccessTokenClaims(t)
+
+	// Sign the assertion
+	raw, err := c.signer.Sign(ctx, claims)
+	if err != nil {
+		return "", fmt.Errorf("unable to sign access token: %w", err)
+	}
+
+	// No error
+	return raw, nil
+}
+
+// assembleAccessTokenClaims builds the claim object of an access token
+// from its persisted spec: the RFC 9068 protocol claims plus cnf when
+// confirmed (shared by the plain and the selectively disclosable
+// generators).
+func assembleAccessTokenClaims(t *tokenv1.Token) any {
 	claims := struct {
 		Iss                  string                         `json:"iss,omitempty" cbor:"1,keyasint,omitempty"`
 		Sub                  string                         `json:"sub,omitempty" cbor:"2,keyasint,omitempty"`
@@ -77,6 +94,8 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (
 		Scope                string                         `json:"scope,omitempty" cbor:"101,keyasint,omitempty"`
 		Cnf                  *JSONConfirmation              `json:"cnf,omitempty" cbor:"102,keyasint,omitempty"`
 		AuthorizationDetails []*tokenv1.AuthorizationDetail `json:"authorization_details,omitempty" cbor:"103,keyasint,omitempty"`
+		ACR                  string                         `json:"acr,omitempty" cbor:"104,keyasint,omitempty"`
+		AuthTime             uint64                         `json:"auth_time,omitempty" cbor:"105,keyasint,omitempty"`
 	}{
 		Iss:                  t.Metadata.Issuer,
 		Sub:                  t.Metadata.Subject,
@@ -88,6 +107,9 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (
 		ClientID:             t.Metadata.ClientId,
 		Scope:                t.Metadata.Scope,
 		AuthorizationDetails: t.Metadata.AuthorizationDetails,
+		// RFC 9470 section 6.1: authentication event claims of the login.
+		ACR:      t.Metadata.GetAcr(),
+		AuthTime: t.Metadata.GetAuthTime(),
 	}
 
 	// If token has a confirmation
@@ -96,14 +118,7 @@ func (c *accessTokenGenerator) Generate(ctx context.Context, t *tokenv1.Token) (
 		claims.Cnf = ConfirmationAsJSON(t.Confirmation)
 	}
 
-	// Sign the assertion
-	raw, err := c.serializer.Serialize(ctx, claims)
-	if err != nil {
-		return "", fmt.Errorf("unable to serialize access token: %w", err)
-	}
-
-	// No error
-	return raw, nil
+	return claims
 }
 
 // -----------------------------------------------------------------------------

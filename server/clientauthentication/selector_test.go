@@ -27,6 +27,7 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/server/storage"
 	storagemock "zntr.io/solid/server/storage/mock"
 )
 
@@ -137,10 +138,21 @@ func TestProcessorSetSelect(t *testing.T) {
 			wantOK:        true,
 		},
 		{
-			name:          "tls cert, unknown client",
+			name:          "tls cert, storage failure",
 			tlsClientCert: "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
 			clientIDParam: "unknown",
 			storageErr:    errStorageGet,
+			// Fail-closed: an infrastructure error must not silently
+			// re-route the request to the SPIFFE X.509-SVID path.
+			wantMethod:    "",
+			wantProcessor: "",
+			wantOK:        false,
+		},
+		{
+			name:          "tls cert, unknown client",
+			tlsClientCert: "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
+			clientIDParam: "unknown",
+			storageErr:    storage.ErrNotFound,
 			wantMethod:    oidc.AuthMethodSPIFFEX509,
 			wantProcessor: "SPIFFEX509",
 			wantOK:        true,

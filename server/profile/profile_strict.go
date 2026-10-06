@@ -66,14 +66,14 @@ var strictProfile = &defaultServerProfile{
 				oidc.AuthMethodPrivateKeyJWT,
 			},
 		},
-		// Service account
+		// Service account. No response types: service clients use the
+		// client_credentials grant; the implicit-flow `token` response
+		// type is never advertised (project security posture).
 		oidc.ApplicationTypeService: &defaultClientProfile{
 			grantTypesSupported: []string{
 				oidc.GrantTypeClientCredentials,
 			},
-			responseTypesSupported: []string{
-				oidc.ResponseTypeToken,
-			},
+			responseTypesSupported: []string{},
 			tokenEndpointAuthMethodsSupported: []string{
 				oidc.AuthMethodPrivateKeyJWT,
 				// RFC 8705 section 2.1: PKI mutual-TLS client

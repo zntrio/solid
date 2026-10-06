@@ -18,57 +18,36 @@
 package dpop
 
 import (
-	"crypto/tls"
-	"net/http"
-	"net/url"
 	"testing"
 )
 
-func TestCleanURL(t *testing.T) {
-	tests := []struct {
+// TestNormalizedURLEqualDefaultPorts asserts the RFC 9449 section 4.3 htu
+// comparison tolerates explicit scheme-default ports and rejects real
+// mismatches.
+func TestNormalizedURLEqualDefaultPorts(t *testing.T) {
+	cases := []struct {
 		name string
-		req  *http.Request
-		want string
+		a, b string
+		want bool
 	}{
-		{
-			name: "plain http request",
-			req:  &http.Request{Host: "server.example.com", URL: mustParse(t, "/resource")},
-			want: "http://server.example.com/resource",
-		},
-		{
-			name: "tls request",
-			req:  &http.Request{Host: "server.example.com", URL: mustParse(t, "/resource"), TLS: fakeTLSState()},
-			want: "https://server.example.com/resource",
-		},
-		{
-			name: "X-Forwarded-Scheme header must not be trusted",
-			req: func() *http.Request {
-				r := &http.Request{Host: "server.example.com", URL: mustParse(t, "/resource")}
-				r.Header = http.Header{}
-				r.Header.Set("X-Forwarded-Scheme", "https")
-				return r
-			}(),
-			want: "http://server.example.com/resource",
-		},
+		{"identical", "https://server.example.com/resource", "https://server.example.com/resource", true},
+		{"https default port explicit", "https://server.example.com:443/resource", "https://server.example.com/resource", true},
+		{"http default port explicit", "http://server.example.com:80/resource", "http://server.example.com/resource", true},
+		{"scheme case", "HTTPS://Server.Example.com/resource", "https://server.example.com/resource", true},
+		{"non-default port kept", "https://server.example.com:8443/resource", "https://server.example.com/resource", false},
+		{"different host", "https://attacker.example.com/resource", "https://server.example.com/resource", false},
+		{"different path", "https://server.example.com/other", "https://server.example.com/resource", false},
+		{"query ignored by design of caller", "https://server.example.com/resource?a=1", "https://server.example.com/resource?a=2", true},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := CleanURL(tt.req); got != tt.want {
-				t.Errorf("CleanURL() = %v, want %v", got, tt.want)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := normalizedURLEqual(tc.a, tc.b)
+			if err != nil {
+				t.Fatalf("normalizedURLEqual(%q, %q) error = %v", tc.a, tc.b, err)
+			}
+			if got != tc.want {
+				t.Errorf("normalizedURLEqual(%q, %q) = %v, want %v", tc.a, tc.b, got, tc.want)
 			}
 		})
 	}
-}
-
-func mustParse(t *testing.T, raw string) *url.URL {
-	t.Helper()
-	u, err := url.Parse(raw)
-	if err != nil {
-		t.Fatalf("unable to parse %q: %v", raw, err)
-	}
-	return u
-}
-
-func fakeTLSState() *tls.ConnectionState {
-	return &tls.ConnectionState{}
 }

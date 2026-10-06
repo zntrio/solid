@@ -28,6 +28,7 @@ import (
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/server/services"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -40,20 +41,30 @@ type service struct {
 	backchannelSessions       storage.BackchannelAuthenticationSession
 	tokens                    storage.Token
 	resources                 storage.ResourceReader
-	messageValidator          *messageValidator
 	idjagVerifier             idjag.Verifier
 	idjagSigner               idjag.Signer
 	idjagAudienceResolver     IDJAGAudienceResolver
 	idjagSubjectResolver      IDJAGSubjectResolver
 }
 
-// New build and returns an authorization service implementation.
+// New builds and returns a token service implementation.
 func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader) services.Token {
-	// Initialize the syntactic validation level (protovalidate).
-	mv, err := newMessageValidator()
+	svc, err := newService(accessTokenGen, refreshTokenGen, clients, authorizationCodeSessions, deviceCodeSessions, backchannelSessions, tokens, resources)
 	if err != nil {
-		// A misconfigured CEL environment is unrecoverable: surface it loudly.
+		// A misconfigured CEL environment is unrecoverable: surface it
+		// loudly. This is a deployment-level programming error, not a
+		// runtime input.
 		panic(err)
+	}
+	return svc
+}
+
+// newService assembles the service; the syntactic validation level is
+// shared with the other services through the msgval package.
+func newService(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader) (*service, error) {
+	// Fail fast when the shared protovalidate environment is broken.
+	if err := msgval.Probe(); err != nil {
+		return nil, err
 	}
 
 	return &service{
@@ -65,8 +76,7 @@ func New(accessTokenGen, refreshTokenGen token.Generator, clients storage.Client
 		backchannelSessions:       backchannelSessions,
 		tokens:                    tokens,
 		resources:                 resources,
-		messageValidator:          mv,
-	}
+	}, nil
 }
 
 // Option is a token service constructor option.
@@ -83,10 +93,10 @@ func WithIDJAGVerifier(v idjag.Verifier) Option {
 
 // NewWithOptions builds a token service with constructor options.
 func NewWithOptions(accessTokenGen, refreshTokenGen token.Generator, clients storage.ClientReader, authorizationCodeSessions storage.AuthorizationCodeSession, deviceCodeSessions storage.DeviceCodeSession, backchannelSessions storage.BackchannelAuthenticationSession, tokens storage.Token, resources storage.ResourceReader, opts ...Option) services.Token {
-	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationCodeSessions, deviceCodeSessions, backchannelSessions, tokens, resources).(*service)
+	svc := New(accessTokenGen, refreshTokenGen, clients, authorizationCodeSessions, deviceCodeSessions, backchannelSessions, tokens, resources)
 	for _, opt := range opts {
 		if opt != nil {
-			opt(svc)
+			opt(svc.(*service)) //nolint:forcetypeassert // New returns *service
 		}
 	}
 	return svc
@@ -110,7 +120,7 @@ func (s *service) Token(ctx context.Context, req *flowv1.TokenRequest) (*flowv1.
 	res := &flowv1.TokenResponse{}
 
 	// First validation level: syntactic rules from protovalidate annotations.
-	if err := s.messageValidator.ValidateTokenRequest(req); err != nil {
+	if err := msgval.ValidateOrError(req); err != nil {
 		res.Error = err
 		return res, fmt.Errorf("unable to validate token request syntax")
 	}

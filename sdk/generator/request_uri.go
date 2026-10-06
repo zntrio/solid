@@ -31,7 +31,9 @@ const (
 	DefaultRequestURILen = 32
 )
 
-var requestURIMatcher = regexp.MustCompile(`urn:solid:[A-Za-z0-9]{32}`)
+// requestURIMatcher is anchored on both ends: MatchString must accept the
+// complete value only, never a matching substring of a longer URI.
+var requestURIMatcher = regexp.MustCompile(`^urn:solid:[A-Za-z0-9]{32}$`)
 
 // DefaultRequestURI returns the default request uri generator.
 func DefaultRequestURI() RequestURI {

@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"os"
 
 	"google.golang.org/grpc"
 
@@ -40,6 +39,7 @@ import (
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/examples/authorizationserver/spiffedemo"
+	exampleenv "zntr.io/solid/examples/internal/exampleenv"
 	"zntr.io/solid/sdk/authzdetails"
 	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/jwk"
@@ -112,13 +112,13 @@ func main() {
 	// management (Read/Update/Delete) rides the same gate: no registration
 	// means no registration access token, so management calls fail closed.
 	registrz := clientregistration.New(clients, tokens, func(context.Context, *clientv1.RegisterRequest) bool {
-		return envOr("SOLID_EXAMPLE_DCR_ENABLED", "false") == "true"
+		return exampleenv.Or("SOLID_EXAMPLE_DCR_ENABLED", "false") == "true"
 	})
 
 	// The AS issuer advertised by the backend is the public issuer of the
 	// presentation layer in front of it; the gRPC listen address is a
 	// separate, private surface.
-	issuer := envOr("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
+	issuer := exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
 
 	// SPIFFE trust bundles (draft-ietf-oauth-spiffe-client-auth-02
 	// section 6): the example.org trust domain keys are pre-configured
@@ -140,22 +140,13 @@ func main() {
 	clientv1.RegisterClientRegistrationServiceServer(srv, grpckit.ClientRegistration(registrz, issuer))
 	clientv1.RegisterClientRegistrationManagementServiceServer(srv, grpckit.ClientRegistrationManagement(registrz, issuer))
 	tokenv1.RegisterIntrospectionServiceServer(srv, grpckit.IntrospectionService(tokenz))
-	tokenv1.RegisterRevocatonServiceServer(srv, grpckit.RevocationService(tokenz))
+	tokenv1.RegisterRevocationServiceServer(srv, grpckit.RevocationService(tokenz))
 
-	listenAddr := envOr("SOLID_EXAMPLE_GRPC_LISTEN_ADDR", ":9090")
+	listenAddr := exampleenv.Or("SOLID_EXAMPLE_GRPC_LISTEN_ADDR", ":9090")
 	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", listenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("gRPC authorization backend listening on", listenAddr)
 	log.Fatal(srv.Serve(lis))
-}
-
-// envOr reads an environment variable, falling back to def when unset or
-// empty.
-func envOr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return def
 }

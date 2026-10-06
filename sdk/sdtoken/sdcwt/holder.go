@@ -52,13 +52,13 @@ func NewHolder(issuerKeys jwk.KeySetProviderFunc, holderAlg cose.Algorithm, hold
 // Present rebuilds the SD-CWT with only the selected disclosures in
 // sd_claims (the unprotected header is not signed, so the issuer
 // signature stays valid).
-func (h *holder) Present(issued []byte, selected [][]byte) ([]byte, error) {
+func (h *holder) Present(ctx context.Context, issued []byte, selected [][]byte) ([]byte, error) {
+	_ = ctx // no context-dependent work: local crypto only
 	// Parse and verify the issued SD-CWT.
-	msg, claims, err := verifySDCWT(issued, h.issuerKeys)
+	msg, _, err := verifySDCWT(issued, h.issuerKeys)
 	if err != nil {
 		return nil, err
 	}
-	_ = claims
 
 	// The selection must be a duplicate-free subset of the issued
 	// disclosures.
@@ -105,7 +105,7 @@ func (h *holder) Present(issued []byte, selected [][]byte) ([]byte, error) {
 // KeyBind builds the KBT (draft section 8): a COSE_Sign1 with typ 294
 // and kcwt (13) carrying the raw presentation bytes; payload holds
 // aud (3), iat (6) or cti (7), cnonce (39); MUST NOT carry iss/sub.
-func (h *holder) KeyBind(presentation []byte, audience string, cnonce []byte, opts ...KeyBindOption) ([]byte, error) {
+func (h *holder) KeyBind(ctx context.Context, presentation []byte, audience string, cnonce []byte, opts ...KeyBindOption) ([]byte, error) {
 	cfg := newKeyBindConfig(opts...)
 
 	// Enforce the algorithm allowlist before resolving keys.
@@ -114,7 +114,7 @@ func (h *holder) KeyBind(presentation []byte, audience string, cnonce []byte, op
 	}
 
 	// Resolve the holder signing key (AKP/ML-DSA aware).
-	keySigner, kid, err := cwt.ResolveSigningKey(context.TODO(), h.holderKeyProvider)
+	keySigner, kid, err := cwt.ResolveSigningKey(ctx, h.holderKeyProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -178,8 +178,17 @@ func (h *holder) KeyBind(presentation []byte, audience string, cnonce []byte, op
 
 // verifySDCWT parses a COSE_Sign1 SD-CWT, checks the typ and sd_alg
 // headers, enforces the structural constraints, and verifies the
-// signature against the candidate keys of the issuer set.
+// signature against the candidate keys of the issuer set. The typ is
+// the SD-CWT media type (293 / "application/sd-cwt").
 func verifySDCWT(raw []byte, issuerKeys jwk.KeySetProviderFunc) (*cose.Sign1Message, map[any]any, error) {
+	return verifySDCWTWithType(raw, issuerKeys, checkSDCWTType)
+}
+
+// verifySDCWTWithType is verifySDCWT with a pluggable typ check: the
+// draft-forten profile tokens keep their ordinary media type
+// ("application/at+cwt" / "application/id+cwt"), so the profile
+// adapter passes its own check.
+func verifySDCWTWithType(raw []byte, issuerKeys jwk.KeySetProviderFunc, checkTyp func(cose.ProtectedHeader) error) (*cose.Sign1Message, map[any]any, error) {
 	// Structural constraints first (draft section 5).
 	if err := checkDefiniteLength(raw); err != nil {
 		return nil, nil, err
@@ -190,8 +199,8 @@ func verifySDCWT(raw []byte, issuerKeys jwk.KeySetProviderFunc) (*cose.Sign1Mess
 		return nil, nil, fmt.Errorf("%w: unable to parse COSE_Sign1: %w", ErrInvalidSDCWT, err)
 	}
 
-	// typ MUST be 293 or "application/sd-cwt" (draft section 4).
-	if err := checkSDCWTType(msg.Headers.Protected); err != nil {
+	// typ check (pluggable).
+	if err := checkTyp(msg.Headers.Protected); err != nil {
 		return nil, nil, err
 	}
 

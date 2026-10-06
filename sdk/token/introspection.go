@@ -29,7 +29,7 @@ import (
 // -----------------------------------------------------------------------------
 
 // Introspection instantiate an introspection assertion generator.
-func Introspection(signer Serializer) Generator {
+func Introspection(signer Signer) Generator {
 	return &introspectionAssertionGenerator{
 		signer: signer,
 	}
@@ -38,7 +38,7 @@ func Introspection(signer Serializer) Generator {
 // -----------------------------------------------------------------------------
 
 type introspectionAssertionGenerator struct {
-	signer Serializer
+	signer Signer
 }
 
 func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *tokenv1.Token) (string, error) {
@@ -67,6 +67,22 @@ func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *token
 		tokenIntrospection["scope"] = t.Metadata.Scope
 		tokenIntrospection["sub"] = t.Metadata.Subject
 		tokenIntrospection["jti"] = t.TokenId
+
+		// RFC 7800 section 3: sender-constraining methods carry their
+		// confirmation in the cnf claim of the introspection response
+		// (jkt for DPoP, RFC 9449 section 5; x5t#S256 for mTLS, RFC 8707
+		// section 3.3).
+		if cnf := confirmationClaims(t.Confirmation); len(cnf) > 0 {
+			tokenIntrospection["cnf"] = cnf
+		}
+
+		// RFC 9470 section 6.2: acr/auth_time introspection members.
+		if v := t.Metadata.GetAcr(); v != "" {
+			tokenIntrospection["acr"] = v
+		}
+		if v := t.Metadata.GetAuthTime(); v != 0 {
+			tokenIntrospection["auth_time"] = v
+		}
 	}
 
 	claims := map[string]any{
@@ -76,11 +92,27 @@ func (c *introspectionAssertionGenerator) Generate(ctx context.Context, t *token
 	}
 
 	// Sign the assertion
-	raw, err := c.signer.Serialize(ctx, claims)
+	raw, err := c.signer.Sign(ctx, claims)
 	if err != nil {
 		return "", fmt.Errorf("unable to sign client assertion: %w", err)
 	}
 
 	// No error
 	return raw, nil
+}
+
+// confirmationClaims maps a TokenConfirmation to the RFC 7800 section 3 cnf
+// claim members. An empty map means the token is not sender-constrained.
+func confirmationClaims(c *tokenv1.TokenConfirmation) map[string]any {
+	if c == nil {
+		return nil
+	}
+	cnf := make(map[string]any)
+	if c.GetJkt() != "" {
+		cnf["jkt"] = c.GetJkt()
+	}
+	if c.GetX5TS256() != "" {
+		cnf["x5t#S256"] = c.GetX5TS256()
+	}
+	return cnf
 }

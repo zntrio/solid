@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+
 	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 )
 

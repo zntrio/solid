@@ -41,6 +41,7 @@ import (
 	sessionstate "zntr.io/solid/sdk/session"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -93,10 +94,16 @@ var timeFunc = time.Now
 func (s *service) Authorize(ctx context.Context, req *flowv1.BackchannelAuthenticationRequest) (*flowv1.BackchannelAuthenticationResponse, error) {
 	res := &flowv1.BackchannelAuthenticationResponse{}
 
-	// Check req nullity
+	// Check req nullity, then the protovalidate syntactic level (detailed
+	// field-level descriptions; the hand-rolled checks below remain as
+	// the semantic second level).
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 
 	// Check issuer
@@ -263,10 +270,16 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.BackchannelAuthenti
 func (s *service) Validate(ctx context.Context, req *flowv1.BackchannelAuthenticationValidationRequest) (*flowv1.BackchannelAuthenticationValidationResponse, error) {
 	res := &flowv1.BackchannelAuthenticationValidationResponse{}
 
-	// Check req nullity
+	// Check req nullity, then the protovalidate syntactic level (detailed
+	// field-level descriptions; the hand-rolled checks below remain as
+	// the semantic second level).
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 
 	// Check issuer
@@ -350,10 +363,16 @@ func (s *service) Validate(ctx context.Context, req *flowv1.BackchannelAuthentic
 func (s *service) Deny(ctx context.Context, req *flowv1.BackchannelAuthenticationValidationRequest) (*flowv1.BackchannelAuthenticationValidationResponse, error) {
 	res := &flowv1.BackchannelAuthenticationValidationResponse{}
 
-	// Check req nullity
+	// Check req nullity, then the protovalidate syntactic level (detailed
+	// field-level descriptions; the hand-rolled checks below remain as
+	// the semantic second level).
 	if req == nil {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("unable to process nil request")
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		res.Error = publicErr
+		return res, fmt.Errorf("syntactically invalid request")
 	}
 
 	// Check issuer

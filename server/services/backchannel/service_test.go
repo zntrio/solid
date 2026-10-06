@@ -45,6 +45,9 @@ var cmpOpts = []cmp.Option{
 	cmpopts.IgnoreUnexported(flowv1.BackchannelAuthenticationResponse{}),
 	cmpopts.IgnoreUnexported(flowv1.BackchannelAuthenticationValidationResponse{}),
 	cmpopts.IgnoreUnexported(corev1.Error{}),
+	// protovalidate generates the syntactic-level descriptions; their
+	// exact wording is not the protocol contract, the error code is.
+	cmpopts.IgnoreFields(corev1.Error{}, "ErrorDescription"),
 }
 
 func cibaClient() *clientv1.Client {
@@ -306,15 +309,15 @@ func Test_service_Authorize(t *testing.T) {
 			name: "valid - dpop_jkt bound to session",
 			req: func() *flowv1.BackchannelAuthenticationRequest {
 				r := validRequest()
-				r.DpopJkt = new("bound-jkt")
+				r.DpopJkt = new("0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8")
 				return r
 			}(),
 			prepare: func(clients *storagemock.MockClientReader, sessions *storagemock.MockBackchannelAuthenticationSession, authReqIDs *generatormock.MockAuthReqID) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(cibaClient(), nil)
 				authReqIDs.EXPECT().Generate(gomock.Any(), "https://honest.as.example.com").Return("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", nil)
 				sessions.EXPECT().Register(gomock.Any(), "https://honest.as.example.com", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", gomock.Any()).Do(func(_ context.Context, _ string, _ string, session *sessionv1.BackchannelAuthenticationSession) {
-					if session.Confirmation == nil || session.Confirmation.Jkt != "bound-jkt" {
-						t.Errorf("registered session Confirmation = %v, want jkt 'bound-jkt' (RFC 9449 section 10 binding)", session.Confirmation)
+					if session.Confirmation == nil || session.Confirmation.Jkt != "0ZCat6lh5RWAddz9W0j43PFtzl6Ph2K54NfLxQXT2M8" {
+						t.Errorf("registered session Confirmation = %v, want the bound jkt (RFC 9449 section 10 binding)", session.Confirmation)
 					}
 				}).Return(uint64(300), nil)
 			},

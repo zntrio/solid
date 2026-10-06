@@ -19,6 +19,7 @@ syntax = "proto3";
 
 package oidc.token.v1;
 
+import "buf/validate/validate.proto";
 import "oidc/client/v1/client.proto";
 import "oidc/core/v1/error.proto";
 
@@ -26,7 +27,7 @@ option go_package = "zntr.io/solid/api/oidc/token/v1;tokenv1";
 
 // -----------------------------------------------------------------------------
 
-service RevocatonService {
+service RevocationService {
   rpc Revoke(RevokeRequest) returns (RevokeResponse) {}
 }
 
@@ -35,13 +36,20 @@ service RevocatonService {
 // https://tools.ietf.org/html/rfc7009#section-2.1
 message RevokeRequest {
   // REQUIRED. Token issuer URL.
-  string issuer = 1;
+  string issuer = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+    uri: true
+  }];
 
   // REQUIRED. Client that invoke the token revocation.
   .oidc.client.v1.Client client = 2;
 
   // REQUIRED.  The token that the client wants to get revoked.
-  string token = 3;
+  string token = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 8192
+  }];
 
   // OPTIONAL.  A hint about the type of the token
   // submitted for revocation.  Clients MAY pass this parameter in

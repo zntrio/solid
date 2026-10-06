@@ -19,6 +19,7 @@ package client
 
 import (
 	"context"
+	"net/http"
 
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -28,22 +29,25 @@ import (
 // Client describes OIDC client contract.
 type Client interface {
 	Assertion() (string, error)
-	// CreateRequestURI(ctx context.Context, assertion, state string) (*RequestURIResponse, error)
-	// AuthenticationURL(ctx context.Context, requestURI string) (string, error)
-	// ExchangeCode(ctx context.Context, assertion, authorizationCode, pkceCodeVerifier string) (*Token, error)
 	PublicKeys(ctx context.Context) (jwk.Set, uint64, error)
-	Audience() string
 	ServerMetadata() *discoveryv1.ServerMetadata
-	Issuer() string
 	Introspect(ctx context.Context, assertion, token string) (*tokenv1.Token, error)
 	ClientCredentials(ctx context.Context, assertion string) (*Token, error)
 }
 
 // Options defines client options
 type Options struct {
-	Audience    string
-	ClientID    string
-	RedirectURI string
-	Scopes      []string
-	JWK         []byte
+	ClientID string
+	JWK      []byte
+
+	// HTTPClient overrides the *http.Client used for metadata, token, and
+	// introspection requests (http.DefaultClient when nil). Demos use it
+	// to install a transport that prints the protocol flow.
+	HTTPClient *http.Client
+
+	// Scope and Resource are sent with the client_credentials grant: the
+	// authorization server requires a non-empty scope and a resource
+	// indicator (the token audience, RFC 8707) on the minted token.
+	Scope    string
+	Resource string
 }

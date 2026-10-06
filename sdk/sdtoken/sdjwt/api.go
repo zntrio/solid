@@ -170,12 +170,12 @@ type Issuer interface {
 type Holder interface {
 	// Present builds an SD-JWT presentation from a selected subset of
 	// the issued disclosures.
-	Present(issued string, selected ...string) (string, error)
+	Present(ctx context.Context, issued string, selected ...string) (string, error)
 
 	// KeyBind attaches a KB-JWT to a presentation, returning SD-JWT+KB.
 	// sd_hash is computed over the presentation as presented (including
 	// its trailing "~").
-	KeyBind(presentation, nonce, audience string, issuedAt int64) (string, error)
+	KeyBind(ctx context.Context, presentation, nonce, audience string, issuedAt int64) (string, error)
 }
 
 //go:generate mockgen -destination mock/verifier.gen.go -package mock zntr.io/solid/sdk/sdtoken/sdjwt Verifier

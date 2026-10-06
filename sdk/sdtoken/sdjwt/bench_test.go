@@ -157,7 +157,7 @@ func BenchmarkSDJWTPresent(b *testing.B) {
 	}
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := hold.Present(issued, disclosures...); err != nil {
+		if _, err := hold.Present(context.Background(), issued, disclosures...); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -177,11 +177,11 @@ func BenchmarkSDJWTVerify(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	presentation, err := hold.Present(issued, disclosures...)
+	presentation, err := hold.Present(context.Background(), issued, disclosures...)
 	if err != nil {
 		b.Fatal(err)
 	}
-	kb, err := hold.KeyBind(presentation, "bench-nonce", "verifier.example.com", time.Now().Unix())
+	kb, err := hold.KeyBind(context.Background(), presentation, "bench-nonce", "verifier.example.com", time.Now().Unix())
 	if err != nil {
 		b.Fatal(err)
 	}

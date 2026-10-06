@@ -94,6 +94,9 @@ type fetcher struct {
 // refused, and per-phase timeouts never exceed the defaults above. A
 // caller-supplied client timeout is honored only when stricter than
 // DefaultTimeout, never looser.
+//
+// Production fetches are https-only: the preflight rejects any non-https
+// scheme before the request is issued.
 func New(client *http.Client, maxResponseBytes int64) Fetcher {
 	if maxResponseBytes <= 0 {
 		maxResponseBytes = DefaultMaxResponseBytes
@@ -130,8 +133,21 @@ func New(client *http.Client, maxResponseBytes int64) Fetcher {
 			}(),
 		},
 		maxBytes:  maxResponseBytes,
-		preflight: rejectSpecialUseHost,
+		preflight: productionPreflight,
 	}
+}
+
+// productionPreflight is the SSRF preflight for production fetchers: https
+// scheme required, then the special-use address rejection.
+func productionPreflight(rawURL string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("httpfetch: unable to parse document URL: %w", err)
+	}
+	if u.Scheme != "https" {
+		return fmt.Errorf("httpfetch: document URL scheme must be https, got %q", u.Scheme)
+	}
+	return rejectSpecialUseHost(rawURL)
 }
 
 // NewTestFetcher builds a Fetcher with the SSRF pre-flight check disabled.

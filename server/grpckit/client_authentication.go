@@ -29,6 +29,7 @@ import (
 	"zntr.io/solid/sdk/spiffe"
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/profile"
+	"zntr.io/solid/server/services/msgval"
 	"zntr.io/solid/server/storage"
 )
 
@@ -65,10 +66,17 @@ func ClientAuthentication(clients storage.ClientReader, issuer string,
 // sections 3.2/3.3, draft-ietf-oauth-attestation-based-client-auth-11).
 // The result — resolved client or RFC error — rides the response payload;
 // transport status only signals adapter-level failures.
+//
+//nolint:gocyclo // linear credential dispatch mirroring the httpkit middleware
 func (s *clientAuthenticationService) Authenticate(ctx context.Context, req *clientv1.AuthenticateRequest) (*clientv1.AuthenticateResponse, error) {
 	if req == nil {
 		return &clientv1.AuthenticateResponse{
 			Error: rfcerrors.InvalidRequest().Build(),
+		}, nil
+	}
+	if publicErr := msgval.ValidateOrError(req); publicErr != nil {
+		return &clientv1.AuthenticateResponse{
+			Error: publicErr,
 		}, nil
 	}
 

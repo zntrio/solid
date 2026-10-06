@@ -117,7 +117,7 @@ func (v *verifier) Verify(ctx context.Context, presentation string) (map[string]
 
 // checkKeyBinding validates the KB-JWT per RFC 9901 section 7.3 step 5.
 func (v *verifier) checkKeyBinding(parsed SDJWT, processedClaims map[string]any) error {
-	kbVerifier, err := kbJWTVerifierFor(processedClaims)
+	kbVerifier, err := v.kbVerifierFor(processedClaims)
 	if err != nil {
 		return err
 	}
@@ -134,6 +134,17 @@ func (v *verifier) checkKeyBinding(parsed SDJWT, processedClaims map[string]any)
 	}
 
 	return v.checkKBJWTClaims(parsed, kbClaims)
+}
+
+// kbVerifierFor resolves the KB-JWT verifier: the configured
+// WithKeyBindingKeyProvider when set (draft-forten section 5.3: the
+// DPoP proof key), otherwise the cnf.jwk extraction (RFC 9901
+// section 7.3 step 5).
+func (v *verifier) kbVerifierFor(processedClaims map[string]any) (token.Verifier, error) {
+	if v.cfg.kbKeyProvider != nil {
+		return v.cfg.kbKeyProvider(processedClaims)
+	}
+	return kbJWTVerifierFor(processedClaims)
 }
 
 // kbJWTVerifierFor extracts the cnf.jwk holder key from the processed

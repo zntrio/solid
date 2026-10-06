@@ -26,9 +26,9 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	proofmock "zntr.io/solid/sdk/dpop/mock"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
-	storagemock "zntr.io/solid/server/storage/mock"
 )
 
 func Test_defaultVerifier_Verify(t *testing.T) {
@@ -42,7 +42,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		prepare func(*storagemock.MockDPoP, *tokenmock.MockVerifier, *tokenmock.MockToken)
+		prepare func(*proofmock.MockProofStore, *tokenmock.MockVerifier, *tokenmock.MockToken)
 		want    string
 		wantErr bool
 	}{
@@ -99,7 +99,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, _ *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, _ *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(nil, fmt.Errorf("foo"))
 			},
 			wantErr: true,
@@ -111,7 +111,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, _ *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, _ *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(nil, nil)
 			},
 			wantErr: true,
@@ -123,7 +123,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				token.EXPECT().Type().Return("", fmt.Errorf("foo"))
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 			},
@@ -136,7 +136,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(fmt.Errorf("foo"))
@@ -151,7 +151,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
 				token.EXPECT().Claims(gomock.Any(), gomock.Any()).Return(nil)
@@ -166,7 +166,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -193,7 +193,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -220,7 +220,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -248,7 +248,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -278,7 +278,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithTokenConfirmation("0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"),
 				},
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -308,7 +308,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithTokenConfirmation("0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"),
 				},
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -339,7 +339,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithTokenConfirmation("0ZcOCORZNYy-DWpqq30jZyJGHTN0d2HglBV3uiguA4I"),
 				},
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -366,7 +366,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -395,7 +395,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 				htu:   "https://server.com/resource",
 				proof: "fake-proof",
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -428,7 +428,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithTokenConfirmation("fake-confirmation"),
 				},
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -461,7 +461,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithExpectedNonce("server-issued-nonce"),
 				},
 			},
-			prepare: func(proofs *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(proofs *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -495,7 +495,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithExpectedNonce("server-issued-nonce"),
 				},
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -524,7 +524,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					WithExpectedNonce("server-issued-nonce"),
 				},
 			},
-			prepare: func(_ *storagemock.MockDPoP, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
+			prepare: func(_ *proofmock.MockProofStore, verifier *tokenmock.MockVerifier, token *tokenmock.MockToken) {
 				verifier.EXPECT().Parse("fake-proof").Return(token, nil)
 				token.EXPECT().Type().Return(HeaderType, nil)
 				token.EXPECT().PublicKey().Return(&struct{}{}, nil).Times(2)
@@ -551,7 +551,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockStorage := storagemock.NewMockDPoP(ctrl)
+			mockStorage := proofmock.NewMockProofStore(ctrl)
 			mockVerifier := tokenmock.NewMockVerifier(ctrl)
 			mockToken := tokenmock.NewMockToken(ctrl)
 
@@ -655,7 +655,7 @@ func Test_defaultVerifier_validateProofHeader(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockStorage := storagemock.NewMockDPoP(ctrl)
+			mockStorage := proofmock.NewMockProofStore(ctrl)
 			mockVerifier := tokenmock.NewMockVerifier(ctrl)
 
 			v := &defaultVerifier{
@@ -729,7 +729,7 @@ func Test_defaultVerifier_extractProofClaims(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockStorage := storagemock.NewMockDPoP(ctrl)
+			mockStorage := proofmock.NewMockProofStore(ctrl)
 			mockVerifier := tokenmock.NewMockVerifier(ctrl)
 
 			v := &defaultVerifier{
@@ -854,7 +854,7 @@ func Test_defaultVerifier_validateProofClaims(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			mockStorage := storagemock.NewMockDPoP(ctrl)
+			mockStorage := proofmock.NewMockProofStore(ctrl)
 			mockVerifier := tokenmock.NewMockVerifier(ctrl)
 
 			v := &defaultVerifier{

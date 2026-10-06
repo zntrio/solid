@@ -103,7 +103,7 @@ func signThenEncryptCose(t *testing.T, keys *coseTestKeys, alg, contentAlg int64
 	signer := AccessTokenSigner(cose.AlgorithmES256, func(context.Context) (jwk.Key, error) {
 		return keys.signingPrivate, nil
 	})
-	signed, err := signer.Serialize(context.Background(), claims)
+	signed, err := signer.Sign(context.Background(), claims)
 	require.NoError(t, err, "unable to sign inner CWT")
 
 	var encrypter token.Encrypter

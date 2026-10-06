@@ -1,4 +1,3 @@
-BAZEL = bazelisk
 PROTO_SRC_DIR=proto
 PROTO_API_DIR=api
 
@@ -14,28 +13,6 @@ buildall:
 vulncheck: ## Run govulncheck on the whole module
 	./bin/govulncheck ./...
 
-.PHONY: update-go-bazel-files
-update-go-bazel-files:
-	$(BAZEL) run //:gazelle -- update ./
-
-.PHONY: update-go-bazel-deps
-update-go-bazel-deps:
-	$(BAZEL) run //:gazelle -- update-repos -from_file=go.mod -to_macro=go_repositories.bzl%go_repositories
-
-.PHONY: gazelle
-gazelle: update-go-bazel-deps update-go-bazel-files
-
-.PHONY: bazel-build
-bazel-build:
-	$(BAZEL) build //...
-
-.PHONY: bazel-test
-bazel-test:
-	$(BAZEL) test //...
-
-.PHONY: bazel-test-nocache
-bazel-test-nocache:
-	$(BAZEL) test --cache_test_results=no //...
 
 .PHONY: install-tools
 install-tools:

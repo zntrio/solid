@@ -14,7 +14,6 @@ whitelist:
   - NewBSD
   - BSD-3-Clause
   - BSD-2-Clause
-  - MPL-2.0-no-copyleft-exception
   - BSD-Protection
   - BSD-1-Clause
   - BSD-4-Clause

@@ -63,43 +63,6 @@ type tokenEndpointResponse struct {
 
 // Token handles token HTTP requests.
 func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, profiles profile.Server) http.Handler {
-	messageBuilder := func(r *http.Request, client *clientv1.Client) (*flowv1.TokenRequest, error) {
-		msg := &flowv1.TokenRequest{
-			Issuer:    issuer,
-			Client:    client,
-			GrantType: r.FormValue("grant_type"),
-		}
-
-		setGrantFromRequest(msg, r)
-
-		// draft-ietf-oauth-v2-1-16 §4.3.1 (RFC 6749 §6): a refresh request
-		// may carry a scope parameter; grant services enforce the
-		// narrowing rule.
-		if v := r.FormValue("scope"); v != "" {
-			msg.Scope = &v
-		}
-
-		// RFC 8707: the resource parameter indicates the target service
-		// of the token; it becomes the audience of the issued access token
-		// (required by the JWT access-token profile, RFC 9068 section 3).
-		if v := r.FormValue("resource"); v != "" {
-			msg.Audience = &v
-		}
-		// RFC 9396 section 6: the authorization_details request parameter
-		// is a JSON array of objects. The grant services compare each entry
-		// against the consented set; malformed JSON is rejected here.
-		if raw := r.FormValue("authorization_details"); raw != "" {
-			details, errParse := parseAuthorizationDetails(raw)
-			if errParse != nil {
-				return nil, errParse
-			}
-			msg.AuthorizationDetails = details
-		}
-
-		// Return request
-		return msg, nil
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only POST verb
 		if r.Method != http.MethodPost {
@@ -127,7 +90,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, pro
 			return
 		}
 
-		msg, errBuild := messageBuilder(r, client)
+		msg, errBuild := buildTokenRequest(issuer, r, client)
 		if errBuild != nil {
 			log.Println("unable to parse token request:", errBuild)
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidAuthorizationDetails().Build())
@@ -168,6 +131,45 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, pro
 		// Prepare and send the JSON response.
 		writeTokenResponse(w, res)
 	})
+}
+
+// buildTokenRequest assembles the protocol TokenRequest message from the
+// HTTP form and query parameters.
+func buildTokenRequest(issuer string, r *http.Request, client *clientv1.Client) (*flowv1.TokenRequest, error) {
+	msg := &flowv1.TokenRequest{
+		Issuer:    issuer,
+		Client:    client,
+		GrantType: r.FormValue("grant_type"),
+	}
+
+	setGrantFromRequest(msg, r)
+
+	// draft-ietf-oauth-v2-1-16 §4.3.1 (RFC 6749 §6): a refresh request
+	// may carry a scope parameter; grant services enforce the
+	// narrowing rule.
+	if v := r.FormValue("scope"); v != "" {
+		msg.Scope = &v
+	}
+
+	// RFC 8707: the resource parameter indicates the target service
+	// of the token; it becomes the audience of the issued access token
+	// (required by the JWT access-token profile, RFC 9068 section 3).
+	if v := r.FormValue("resource"); v != "" {
+		msg.Audience = &v
+	}
+	// RFC 9396 section 6: the authorization_details request parameter
+	// is a JSON array of objects. The grant services compare each entry
+	// against the consented set; malformed JSON is rejected here.
+	if raw := r.FormValue("authorization_details"); raw != "" {
+		details, errParse := parseAuthorizationDetails(raw)
+		if errParse != nil {
+			return nil, errParse
+		}
+		msg.AuthorizationDetails = details
+	}
+
+	// Return request
+	return msg, nil
 }
 
 // tokenResponseType resolves the token_type of an issued access token:

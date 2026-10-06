@@ -62,7 +62,8 @@ func signHandler(priv *mldsa.PrivateKey) http.Handler {
 			return
 		}
 		// The JWT signer requires an identifiable key (kid).
-		if err := jwk.AssignKeyID(privJWK); err != nil {
+		err = jwk.AssignKeyID(privJWK)
+		if err != nil {
 			http.Error(w, "Unable to assign signing key id", http.StatusInternalServerError)
 			return
 		}

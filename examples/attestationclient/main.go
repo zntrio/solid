@@ -107,7 +107,8 @@ func computeClientPOP(priv *mldsa.PrivateKey) (string, error) {
 		return "", fmt.Errorf("unable to import client key: %w", err)
 	}
 	// The JWT signer requires an identifiable key (kid).
-	if err := jwk.AssignKeyID(privJWK); err != nil {
+	err = jwk.AssignKeyID(privJWK)
+	if err != nil {
 		return "", fmt.Errorf("unable to assign client key id: %w", err)
 	}
 	claims := map[string]any{

@@ -59,15 +59,7 @@ func roundTrip(req *http.Request) (*http.Response, error) {
 	fmt.Printf("→ %s %s\n", req.Method, req.URL)
 
 	// Request headers, redacting the cryptographic ones.
-	for name, values := range req.Header {
-		for _, v := range values {
-			if headersRedacted[http.CanonicalHeaderKey(name)] && len(v) > 48 {
-				fmt.Printf("  %s: %s…(+%d bytes)\n", name, v[:48], len(v)-48)
-			} else {
-				fmt.Printf("  %s: %s\n", name, v)
-			}
-		}
-	}
+	printHeaders(req.Header)
 
 	// Request body: form parameters print field by field with token-like
 	// values truncated; everything else prints raw (bounded).
@@ -92,11 +84,7 @@ func roundTrip(req *http.Request) (*http.Response, error) {
 
 	// Response line and headers.
 	fmt.Printf("← HTTP %d\n", res.StatusCode)
-	for name, values := range res.Header {
-		for _, v := range values {
-			fmt.Printf("  %s: %s\n", name, v)
-		}
-	}
+	printHeaders(res.Header)
 
 	// Response body is fully buffered — restored intact for the caller —
 	// while the printed copy is bounded and truncated for readability.
@@ -116,6 +104,33 @@ func roundTrip(req *http.Request) (*http.Response, error) {
 
 	fmt.Println()
 	return res, nil
+}
+
+// printHeaders prints HTTP headers one per line, sorted by name, with every
+// value routed through redactHeaderValue so long cryptographic material
+// (bearer tokens, DPoP proofs, client attestations) never reaches the log
+// in full.
+func printHeaders(headers http.Header) {
+	names := make([]string, 0, len(headers))
+	for name := range headers {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		for _, v := range headers[name] {
+			fmt.Printf("  %s: %s\n", name, redactHeaderValue(name, v))
+		}
+	}
+}
+
+// redactHeaderValue truncates a header value that may carry a long
+// cryptographic secret (access token, DPoP proof, client assertion) to its
+// first 48 bytes; short values are returned unchanged.
+func redactHeaderValue(name, value string) string {
+	if headersRedacted[http.CanonicalHeaderKey(name)] && len(value) > 48 {
+		return value[:48] + fmt.Sprintf("…(+%d bytes)", len(value)-48)
+	}
+	return value
 }
 
 // printRequestBody prints a request body. Form-encoded bodies print one

@@ -45,3 +45,26 @@ func IsUsable(t *tokenv1.Token) bool {
 	// No error
 	return true
 }
+
+// JSONActor is the RFC 8693 section 4.4 "act" member entry: the acting
+// party subject with a nested "act" chain of prior delegations.
+type JSONActor struct {
+	Sub string     `json:"sub"`
+	Act *JSONActor `json:"act,omitempty"`
+}
+
+// ActorAsJSON converts the flat actor chain (immediate actor first, then
+// prior delegations) into the nested RFC 8693 section 4.4 shape
+// {"sub": ..., "act": {"sub": ...}}. It is nil-safe: an empty chain
+// yields nil.
+func ActorAsJSON(actors []*tokenv1.Actor) *JSONActor {
+	if len(actors) == 0 {
+		return nil
+	}
+	// Right fold: the last entry is the innermost delegation.
+	chain := &JSONActor{Sub: actors[len(actors)-1].Subject}
+	for i := len(actors) - 2; i >= 0; i-- {
+		chain = &JSONActor{Sub: actors[i].Subject, Act: chain}
+	}
+	return chain
+}

@@ -78,9 +78,10 @@ var AccessTokenProfile = Profile{
 // IDTokenProfile generalizes the draft-forten selective-disclosure
 // posture to OIDC Core ID tokens: the claims an RP validates are
 // protected, user claims (email, name, address, ...) are the disclosable
-// ones. No standard mints SD ID tokens today — this profile is an SDK
-// surface for assemblies; the repo posture (no id_token in the
-// authorization code flow) is untouched.
+// ones. No standard mints SD ID tokens today — this profile is the
+// SDK surface assemblies wire through the opt-in D-12.1 id_token
+// generator (server/services/token WithIDTokenGenerator); the default
+// posture (no id_token in the code flow) is unchanged.
 var IDTokenProfile = Profile{
 	Name:        "id_token",
 	BaseTyp:     token.TypeIDToken,

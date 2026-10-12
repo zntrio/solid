@@ -4,10 +4,12 @@
  *
  * COVERS
  *   - Shared grant validation: validateGrantPreamble token_exchange
- *     capability, authorization_details fail-closed gate
- *     (invalid_authorization_details — exchange delegates, no consent
- *     authority), non-empty subject_token_type/subject_token
+ *     capability, non-empty subject_token_type/subject_token
  *     ( grant_token_exchange.go: tokenExchange, lines 47-113 )
+ *   - authorization_details pass-through (RFC 9396 §6, mocked
+ *     processing): the requested entries are carried verbatim into the
+ *     minted token and the token response — no consent narrowing is
+ *     enforced by this AS; the target resource server evaluates them.
  *   - Access-token subject path ( tokenExchangeAccessToken, lines 115-310 ):
  *     subject token lookup/status/type/metadata guards, requested_token_type
  *     access_token-only, optional actor token validation, may_act actor
@@ -52,6 +54,11 @@ module tokenexchange {
     Set("openid", "profile", "admin"), // escalation attempt source
   )
   pure val JKTS: Set[int] = Set(0, 1, 2) // DPoP thumbprints; 0 = unbound
+  pure val DETAIL_SETS: Set[Set[str]] = Set(
+    Set(),                   // no details requested
+    Set("mcp_tools"),        // single entry
+    Set("mcp_tools", "payments"), // multiple entries
+  )
   pure val CHAINS: Set[List[int]] = Set(
     List(),                  // no prior delegation
     List(11),                // depth 1 prior chain
@@ -90,6 +97,7 @@ module tokenexchange {
     expiresAt: int,          // integer stamp vs the discrete clock
     viaExchange: bool,       // true iff minted by token exchange
     grantId: int,            // fresh per exchange mint; -1 = seeded
+    details: Set[str],       // carried authorization_details (RFC 9396)
   }
 
   type ExchangeToken = {     // the minted exchange artifact (observable surface)
@@ -101,6 +109,7 @@ module tokenexchange {
     jkt: int,                // T6: carried subject-token confirmation
     actorChain: List[int],   // T5: [actor.subject] ++ actor's chain
     audience: int,           // T7: registered resource URN; -1 = none
+    details: Set[str],       // T8: authorization_details carried verbatim
   }
 
   // ------------------------------------------------------------------
@@ -117,7 +126,8 @@ module tokenexchange {
   pure val NO_CLIENT: Client = { grants: Set() }
   pure val NO_TOKEN: Token =
     { id: -1, status: Revoked, kind: Access, subject: 0, client: "", scopes: Set(),
-      jkt: 0, mayAct: Set(), actorChain: List(), expiresAt: 0, viaExchange: false, grantId: -1 }
+      jkt: 0, mayAct: Set(), actorChain: List(), expiresAt: 0, viaExchange: false, grantId: -1,
+      details: Set() }
 
   // ------------------------------------------------------------------
   // Functional layer (pure)
@@ -163,7 +173,8 @@ module tokenexchange {
   // Seed an ACTIVE access token (abstract authorization_code mint): the
   // subject-token / actor-token source for exchanges.
   action seedToken(client: str, subject: int, scopes: Set[str], jkt: int,
-                   mayAct: Set[int], actorChain: List[int], expiresAt: int): bool = {
+                   mayAct: Set[int], actorChain: List[int], expiresAt: int,
+                   details: Set[str]): bool = {
     all {
       clients.keys().contains(client),
       counter < MAX_IDS,
@@ -180,6 +191,7 @@ module tokenexchange {
         expiresAt: expiresAt,
         viaExchange: false,
         grantId: -1,
+        details: details,
       }),
       exchangeTokens' = exchangeTokens,
       clients' = clients,
@@ -192,10 +204,10 @@ module tokenexchange {
   // ( grant_token_exchange.go: tokenExchangeAccessToken, lines 115-310 ).
   // FAITHFUL GUARD ORDER — the guards fire exactly in the code's order:
   //   0. shared: token_exchange capability (validateGrantPreamble),
-  //      authorization_details fail-closed gate, non-empty
-  //      subject_token_type + subject_token (modeled: the action is only
-  //      enabled for well-formed requests; malformed shapes are the
-  //      disabled action, which in Quint means "nothing happens").
+  //      non-empty subject_token_type + subject_token (modeled: the
+  //      action is only enabled for well-formed requests; malformed shapes
+  //      are the disabled action, which in Quint means "nothing happens").
+  //      authorization_details: NO gate — carried verbatim (mocked).
   //   1. subject token: found, ACTIVE, access-token kind, metadata present.
   //   2. requested_token_type: nil or access_token.
   //   3. actor token (optional): found, ACTIVE, access-token kind, unexpired.
@@ -219,7 +231,7 @@ module tokenexchange {
   // guards reject it (mints nothing).
   action exchange(requester: str, subjectTokenId: int,
                   requestedTokenType: int,   // 0 = nil, 1 = access_token, 2 = other
-                  hasAuthzDetails: bool,     // true ⇒ invalid_authorization_details gate
+                  requestedDetails: Set[str], // authorization_details: carried verbatim (mocked)
                   actorTokenId: int,         // -1 = no actor token
                   proofJkt: int,             // presented TokenConfirmation.jkt; 0 = none
                   requestedScopes: Set[str], // empty = inherit subject scope
@@ -239,7 +251,9 @@ module tokenexchange {
     all {
       // -- 0. shared preamble guards --------------------------------
       cl.grants.contains(GRANT),                    // validateGrantPreamble
-      not(hasAuthzDetails),                        // RFC 9396 fail-closed gate
+      // RFC 9396 §6, mocked processing: no gate — the requested entries
+      // ride the mint verbatim (inv_detailsCarriedVerbatim pins the
+      // transport); the resource server evaluates them.
       // (subject_token_type/subject_token non-empty: the enabled action
       //  IS a well-formed request; empty shapes never dispatch.)
       // -- 1. subject token guards ---------------------------------
@@ -285,6 +299,7 @@ module tokenexchange {
         expiresAt: clock + 10,
         viaExchange: true,
         grantId: counter,
+        details: requestedDetails,
       }),
       exchangeTokens' = exchangeTokens.union(Set({
         id: counter,
@@ -295,6 +310,7 @@ module tokenexchange {
         jkt: st.jkt,
         actorChain: chain,
         audience: resolvedAudience,
+        details: requestedDetails,
       })),
       clients' = clients,
       clock' = clock,
@@ -314,21 +330,22 @@ module tokenexchange {
     nondet mayAct = Set(Set(), Set(11), Set(12), Set(11, 12)).oneOf()
     nondet chain = CHAINS.oneOf()
     nondet expiresOffset = Set(5, 0).oneOf()
-    seedToken(client, subject, scopes, jkt, mayAct, chain, clock + expiresOffset)
+    nondet details = DETAIL_SETS.oneOf()
+    seedToken(client, subject, scopes, jkt, mayAct, chain, clock + expiresOffset, details)
   }
 
   action exchangeStep: bool = {
     nondet requester = CLIENTS.oneOf()
     nondet subjectTokenId = 0.to(MAX_IDS - 1).oneOf()
     nondet requestedTokenType = Set(0, 1, 2).oneOf()
-    nondet hasAuthzDetails = Set(true, false).oneOf()
+    nondet requestedDetails = DETAIL_SETS.oneOf()
     nondet actorTokenId = Set(-1).union(0.to(MAX_IDS - 1).fold(Set(), (acc, v) => acc.union(Set(v)))).oneOf()
     nondet proofJkt = JKTS.oneOf()
     nondet requestedScopes = SCOPE_SETS.oneOf()
     nondet audience = Set("", "https://rs.example/api", "https://other.example",
                           "https://evil.example").oneOf()
     nondet wantRefresh = Set(true, false).oneOf()
-    exchange(requester, subjectTokenId, requestedTokenType, hasAuthzDetails,
+    exchange(requester, subjectTokenId, requestedTokenType, requestedDetails,
              actorTokenId, proofJkt, requestedScopes, audience, wantRefresh)
   }
 
@@ -402,12 +419,18 @@ module tokenexchange {
     exchangeTokens.forall(et =>
       et.audience == -1 or et.audience == 100 or et.audience == 200)
 
-  // E8 — T8 no RT, no authorization_details: every minted record is an
-  // access token (the model's Token type has no Refresh variant at all),
-  // and no authorization_details survive the gate (the record type has no
-  // such field — pinned structurally, like xaa.qnt's inv_noRefreshFromBearer).
-  val inv_noRefreshNoDetails: bool =
+  // E8 — T8 no RT: every minted record is an access token (the model's
+  // Token type has no Refresh variant at all — pinned structurally, like
+  // xaa.qnt's inv_noRefreshFromBearer).
+  val inv_noRefresh: bool =
     exchangeTokens.size() == tokens.keys().filter(k => tokens.get(k).viaExchange).mapBy(k => k).keys().size()
+
+  // E9 — T8 authorization_details carried verbatim (RFC 9396 §6, mocked
+  // processing): the minted record's details equal the request's entries
+  // exactly — the transport never drops, adds, or narrows them; the
+  // resource server is the evaluation authority.
+  val inv_detailsCarriedVerbatim: bool =
+    exchangeTokens.forall(et => tokens.get(et.id).details == et.details)
 
 
   val allInvariants: bool = all {
@@ -418,7 +441,8 @@ module tokenexchange {
     inv_actChainCap,
     inv_dpopContinuity,
     inv_audienceRegistry,
-    inv_noRefreshNoDetails,
+    inv_noRefresh,
+    inv_detailsCarriedVerbatim,
   }
 
   // ------------------------------------------------------------------
@@ -433,6 +457,8 @@ module tokenexchange {
     exchangeTokens.exists(et => et.actorChain.length() > 0)
   val w_deepChainMinted: bool =                     // depth-3 chain (cap edge)
     exchangeTokens.exists(et => et.actorChain.length() == 3)
+  val w_detailsCarried: bool =                      // non-empty details survive the mint
+    exchangeTokens.exists(et => et.details != Set())
 
   // Negative-space witnesses: attack states are REACHABLE as attempts —
   // proving the guards, not dead code, stop them. Each fires an exchange

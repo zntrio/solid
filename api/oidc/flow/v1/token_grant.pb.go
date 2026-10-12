@@ -484,11 +484,10 @@ const file_oidc_flow_v1_token_grant_proto_rawDesc = "" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\tauthReqId\x12'\n" +
 	"\tclient_id\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x01R\bclientId\"\x18\n" +
-	"\x16GrantClientCredentials\"\xc9\x02\n" +
+	"\x16GrantClientCredentials\"\xca\x02\n" +
 	"\x12GrantTokenExchange\x125\n" +
-	"\x14requested_token_type\x18\x01 \x01(\tH\x00R\x12requestedTokenType\x88\x01\x01\x12/\n" +
-	"\rsubject_token\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80 R\fsubjectToken\x128\n" +
+	"\x14requested_token_type\x18\x01 \x01(\tH\x00R\x12requestedTokenType\x88\x01\x01\x120\n" +
+	"\rsubject_token\x18\x02 \x01(\tB\v\xbaH\br\x06\x10\x01\x18\x80\x80\x01R\fsubjectToken\x128\n" +
 	"\x12subject_token_type\x18\x03 \x01(\tB\n" +
 	"\xbaH\ar\x05\x10\x01\x18\x80\x02R\x10subjectTokenType\x12$\n" +
 	"\vactor_token\x18\x04 \x01(\tH\x01R\n" +

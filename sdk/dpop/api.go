@@ -37,6 +37,11 @@ const (
 type ProofStore interface {
 	Register(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
+	// RegisterIfAbsent atomically claims the id and reports whether it was
+	// newly claimed: a single critical-section check-and-insert with no
+	// interleaving window, unlike an Exists-then-Register pair. Replay
+	// burns MUST use this operation.
+	RegisterIfAbsent(ctx context.Context, id string) (bool, error)
 }
 
 //go:generate mockgen -destination mock/proof_store.gen.go -package mock zntr.io/solid/sdk/dpop ProofStore

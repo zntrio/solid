@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"strings"
 
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
@@ -405,21 +406,69 @@ func (s *service) validate(ctx context.Context, req *flowv1.AuthorizationRequest
 		req.Scope = strings.Join(scopes, " ")
 	}
 
+	// Resolve the client registration once: it drives both the capability
+	// checks and the registered-scope enforcement below (RFC 6749 section
+	// 3.3).
+	client, publicErr, errClient := s.resolveClient(ctx, req)
+	if errClient != nil {
+		return publicErr, errClient
+	}
+
+	// Validate client capabilities.
+	if publicErr, errCap := validateClientCapabilities(client, req); errCap != nil {
+		return publicErr, errCap
+	}
+
+	// RFC 6749 section 3.3 / F.1.1 (solid stronger posture): when the
+	// client registration pins a scope, every requested scope MUST be
+	// within the registered set — an unregistered scope is an
+	// invalid_scope, never silently granted. Clients without a registered
+	// scope (open-ended registration) are unaffected. The check runs
+	// against the pre-strip scope set so a consent-less offline_access
+	// request is rejected rather than silently trimmed below the
+	// registration.
+	if publicErr, errScope := enforceRegisteredScope(client, req, scopes); errScope != nil {
+		return publicErr, errScope
+	}
+
 	// No error
-	return s.validateClientCapabilities(ctx, req)
+	return nil, nil
 }
 
-func (s *service) validateClientCapabilities(ctx context.Context, req *flowv1.AuthorizationRequest) (*corev1.Error, error) {
-	// Check client ID
+// resolveClient fetches the client registration behind the request
+// (RFC 6749 section 4.1.2.1: an unknown client is an invalid_request).
+func (s *service) resolveClient(ctx context.Context, req *flowv1.AuthorizationRequest) (*clientv1.Client, *corev1.Error, error) {
 	client, err := s.clients.Get(ctx, req.ClientId)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
-			return rfcerrors.ServerError().State(req.State).Build(), fmt.Errorf("unable to retrieve client details: %w", err)
+			return nil, rfcerrors.ServerError().State(req.State).Build(), fmt.Errorf("unable to retrieve client details: %w", err)
 		}
 
-		return rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("unable to retrieve client details: %w", err)
+		return nil, rfcerrors.InvalidRequest().State(req.State).Build(), fmt.Errorf("unable to retrieve client details: %w", err)
 	}
+	return client, nil, nil
+}
 
+// enforceRegisteredScope applies the RFC 6749 section 3.3 registered-scope
+// rule: with a pinned registration scope, every requested scope value must
+// be within the registered set.
+func enforceRegisteredScope(client *clientv1.Client, req *flowv1.AuthorizationRequest, scopes types.StringArray) (*corev1.Error, error) {
+	if client.Scope == nil || *client.Scope == "" {
+		return nil, nil
+	}
+	registered := types.StringArray(strings.Fields(*client.Scope))
+	for _, sc := range scopes {
+		if !registered.Contains(sc) {
+			return rfcerrors.InvalidScope().State(req.State).Build(), fmt.Errorf("requested scope '%s' exceeds client registered scope", sc)
+		}
+	}
+	return nil, nil
+}
+
+// validateClientCapabilities enforces the client-registration capability
+// requirements of the authorization request (grant type, response type,
+// redirect URI exact-match, response mode).
+func validateClientCapabilities(client *clientv1.Client, req *flowv1.AuthorizationRequest) (*corev1.Error, error) {
 	// Validate client capabilities
 	if !types.StringArray(client.GrantTypes).Contains(oidc.GrantTypeAuthorizationCode) {
 		return rfcerrors.UnsupportedGrantType().State(req.State).Build(), fmt.Errorf("client doesn't support 'authorization_code' as grant type")

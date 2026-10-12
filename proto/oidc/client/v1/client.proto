@@ -129,6 +129,13 @@ message Client {
   // RFC 7592 section 2: registration access token bound to this client
   // (server-side record; never returned outside the registration surface).
   optional string registration_access_token = 33;
+  // RFC 6749 section 2.3 / RFC 7591 section 2: the scope values the
+  // client may request (registered set). Empty or absent means the
+  // registration is open-ended; when set, the authorization endpoint
+  // enforces requested scope ⊆ registered scope (invalid_scope
+  // otherwise) — the AS never grants scope beyond what the client is
+  // entitled to (RFC 6749 section 3.3 / F.1.1).
+  optional string scope = 34;
 }
 
 message ClientMeta {

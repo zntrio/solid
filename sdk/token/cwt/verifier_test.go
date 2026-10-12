@@ -114,8 +114,9 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 	foreignSet := keySetFromECDSA(t, foreignKey, "foreign-key-1")
 	foreignToken := signCWT(t, foreignKey, "foreign-key-1")
 
-	// A token whose kid is absent from the set falls back to every
-	// candidate key.
+	// A token whose kid is absent from the set is rejected (header-
+	// injection posture, mirroring the JWT verifier): an unknown kid in
+	// a kid-addressed set is a header attack, not a legitimate rotation.
 	unknownKidSet := keySetFromECDSA(t, trustedKey, "another-key-id")
 	unknownKidToken := signCWT(t, trustedKey, "unknown-kid")
 
@@ -190,10 +191,11 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 			token:               trustedToken,
 		},
 		{
-			name:                "unknown kid falls back to candidates",
+			name:                "unknown kid in kidded set rejected",
 			keySetProvider:      staticKeySet(unknownKidSet),
 			supportedAlgorithms: []cose.Algorithm{cose.AlgorithmES256},
 			token:               unknownKidToken,
+			wantErr:             true,
 		},
 		{
 			name:                "foreign token with unknown kid",

@@ -73,7 +73,7 @@ func main() {
 	defer cancel()
 
 	printf("--- Authorization Server (coaps://%s, ES256/P-256, tls_client_auth) ---", demoASAddr)
-	as, err := startAS(pki, demoASAddr)
+	as, err := startAS(pki, demoASAddr, demoRSAddr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "unable to start the AS: %v\n", err)
 		return
@@ -115,7 +115,7 @@ func runStandaloneAS() {
 		fmt.Fprintf(os.Stderr, "unable to generate demo PKI: %v\n", err)
 		os.Exit(1)
 	}
-	if _, err := startAS(pki, demoASAddr); err != nil {
+	if _, err := startAS(pki, demoASAddr, demoRSAddr); err != nil {
 		fmt.Fprintf(os.Stderr, "unable to start the AS: %v\n", err)
 		os.Exit(1)
 	}

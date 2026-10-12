@@ -61,6 +61,22 @@ func (c *ttlCache) Set(key string, value any) {
 	c.mu.Unlock()
 }
 
+// SetIfAbsent stores the value under the key only when the key is absent
+// or expired, in a single critical section, and reports whether the
+// insertion happened. Concurrent callers for the same key: exactly one
+// sees true.
+func (c *ttlCache) SetIfAbsent(key string, value any) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entry, found := c.items[key]
+	if found && time.Now().Before(entry.expiresAt) {
+		return false
+	}
+	c.items[key] = ttlEntry{value: value, expiresAt: time.Now().Add(c.defaultTTL)}
+	return true
+}
+
 // Get returns the value stored under the key, and whether it was present
 // and not expired.
 func (c *ttlCache) Get(key string) (any, bool) {

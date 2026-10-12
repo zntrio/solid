@@ -142,11 +142,17 @@ func main() {
 	tokenv1.RegisterIntrospectionServiceServer(srv, grpckit.IntrospectionService(tokenz))
 	tokenv1.RegisterRevocationServiceServer(srv, grpckit.RevocationService(tokenz))
 
-	listenAddr := exampleenv.Or("SOLID_EXAMPLE_GRPC_LISTEN_ADDR", ":9090")
+	// Loopback by default: this backend performs NO caller authentication
+	// (the adapters trust the frontend-authenticated request fields); it
+	// MUST sit behind a trusted presentation layer. Plaintext on all
+	// interfaces would let any network peer mint, introspect or revoke
+	// tokens for arbitrary clients.
+	listenAddr := exampleenv.Or("SOLID_EXAMPLE_GRPC_LISTEN_ADDR", "127.0.0.1:9090")
 	lis, err := (&net.ListenConfig{}).Listen(context.Background(), "tcp", listenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Println("WARNING: gRPC backend without transport authentication; trusted-network deployment only — do not expose beyond loopback.")
 	log.Println("gRPC authorization backend listening on", listenAddr)
 	log.Fatal(srv.Serve(lis))
 }

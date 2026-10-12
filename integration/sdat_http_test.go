@@ -109,7 +109,7 @@ func newSDATHarness(t *testing.T) *harness {
 	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(),
 		backchannel.HintResolverFunc(func(context.Context, *flowv1.BackchannelAuthenticationRequest) (string, error) { return "", nil }),
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
-	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts)
+	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})
 
 	return &harness{

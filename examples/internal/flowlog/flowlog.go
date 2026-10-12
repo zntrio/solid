@@ -38,6 +38,9 @@ var headersRedacted = map[string]bool{
 	"Dpop":                         true,
 	"OAuth-Client-Attestation":     true,
 	"OAuth-Client-Attestation-Pop": true,
+	// The 302 Location carries the full JARM response JWT — signed, not
+	// encrypted, and embedding the authorization code.
+	"Location": true,
 }
 
 // bodyLimit caps how much of a response body is printed.
@@ -150,18 +153,25 @@ func printRequestBody(req *http.Request, body []byte) {
 		return
 	}
 	if len(body) > 0 {
-		fmt.Printf("  %s\n", string(body))
+		// Non-form bodies (JSON documents, CBOR payloads) can carry
+		// credentials or be arbitrarily large: clip like response bodies.
+		fmt.Printf("  %s\n", clip(body))
 	}
 }
 
 // isSecretParam reports whether a form parameter carries a long
-// cryptographic value (client assertion, request object, or token).
+// cryptographic or credential value: client assertions, request objects,
+// tokens, authorization codes, PKCE verifiers, and the subject/actor
+// tokens of the exchange grant (live access tokens).
 func isSecretParam(key string) bool {
 	switch key {
-	case "client_assertion", "request", "token":
+	case "client_assertion", "request", "token",
+		"code", "code_verifier", "refresh_token",
+		"subject_token", "actor_token", "device_code":
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 // isRedactableJSON reports whether the body looks like a JSON object
@@ -171,10 +181,15 @@ func isRedactableJSON(body []byte) bool {
 	return strings.HasPrefix(s, "{")
 }
 
-// jsonRedactKeys lists JSON response members truncated in output.
+// jsonRedactKeys lists JSON response members truncated in output: the
+// token pair plus the id_token and its selective-disclosure payload (the
+// SD id+jwt carries the user's email/name).
 var jsonRedactKeys = map[string]bool{
-	"access_token":  true,
-	"refresh_token": true,
+	"access_token":         true,
+	"refresh_token":        true,
+	"id_token":             true,
+	"id_token_disclosures": true,
+	"request_uri":          true,
 }
 
 func printRedactedJSON(body []byte) {

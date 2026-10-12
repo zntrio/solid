@@ -18,6 +18,7 @@
 package httpkit
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -32,7 +33,32 @@ import (
 // supports); other status codes carry the JSON error body alone.
 // Responses are marked non-cacheable per §5.1 (Cache-Control: no-store
 // and Pragma: no-cache).
+//
+// The challenge realm comes from the request context when a handler set
+// it (WithErrorIssuer) — the configured issuer, never the client-
+// controlled Host header.
 func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Error) {
+	realm := r.Host
+	if v, ok := r.Context().Value(realmContextKey{}).(string); ok && v != "" {
+		realm = v
+	}
+	withErrorRealm(w, code, err, realm)
+}
+
+// WithErrorIssuer is an Adapter recording the issuer to use as the
+// WWW-Authenticate realm for 401 challenges: HTTP 401 challenges MUST NOT
+// reflect the request Host header (client-controlled) back into responses.
+func WithErrorIssuer(issuer string) Adapter {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), realmContextKey{}, issuer)))
+		})
+	}
+}
+
+type realmContextKey struct{}
+
+func withErrorRealm(w http.ResponseWriter, code int, err *corev1.Error, realm string) {
 	// A nil error must not panic the handler: fall back to a generic
 	// server error (services may return a nil response object on
 	// infrastructure failures).
@@ -55,7 +81,7 @@ func WithError(w http.ResponseWriter, r *http.Request, code int, err *corev1.Err
 	// Set content type header
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if code == http.StatusUnauthorized {
-		w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm=%q, error=%q, error_description=%q`, r.Host, err.Error, err.ErrorDescription))
+		w.Header().Set("WWW-Authenticate", fmt.Sprintf(`Bearer realm=%q, error=%q, error_description=%q`, realm, err.Error, err.ErrorDescription))
 	}
 
 	// Write status

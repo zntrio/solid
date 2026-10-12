@@ -212,21 +212,30 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 		return res, fmt.Errorf("client spiffe_id %q does not match svid subject %q", client.SpiffeId, claims.Subject)
 	}
 
+	// Defensive: the client must be registered for the spiffe_jwt method
+	// (cross-method authentication attempts fail closed, as with the other
+	// asymmetric authenticators — a private_key_jwt-registered client
+	// carrying a matching SpiffeId must not authenticate via a JWT-SVID).
+	if client.TokenEndpointAuthMethod != oidc.AuthMethodSPIFFEJWT {
+		res.Error = rfcerrors.InvalidClient().Build()
+		return res, fmt.Errorf("client is not registered for %s", oidc.AuthMethodSPIFFEJWT)
+	}
+
 	// Prevent assertion replay: the jti must be single-use. Burn it only
 	// after the signature has been fully validated (RFC 7523 section 3).
-	// Key-prefixed hash namespaces distinct clients.
+	// Key-prefixed hash namespaces distinct clients. The burn is a single
+	// atomic claim: concurrent presentations of the same SVID cannot both
+	// succeed.
 	jtiHash := blake2b.Sum256([]byte("jwt-spiffe:" + claims.Subject + ":" + claims.JTI))
 	jtiKey := base64.RawURLEncoding.EncodeToString(jtiHash[:])
-	if exists, errExists := p.proofs.Exists(ctx, jtiKey); errExists != nil {
+	claimed, errClaim := p.proofs.RegisterIfAbsent(ctx, jtiKey)
+	if errClaim != nil {
 		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to verify svid uniqueness: %w", errExists)
-	} else if exists {
+		return res, fmt.Errorf("unable to register svid jti: %w", errClaim)
+	}
+	if !claimed {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("svid jti has already been used")
-	}
-	if err := p.proofs.Register(ctx, jtiKey); err != nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to register svid jti: %w", err)
 	}
 
 	// Assign client to result

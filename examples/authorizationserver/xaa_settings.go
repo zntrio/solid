@@ -143,9 +143,11 @@ func xaaOptions(cfg *XAAConfig, issuer string, signingKey jwk.KeyProviderFunc, a
 			}
 			issuers[issuerID] = set
 		}
-		opts = append(opts, token.WithIDJAGVerifier(
-			idjag.DefaultVerifier(issuer, &xaaIssuerResolver{issuers: issuers}, jwt.DefaultVerifier(nil, algorithms)),
-		))
+		opts = append(opts,
+			token.WithIDJAGVerifier(
+				idjag.DefaultVerifier(issuer, &xaaIssuerResolver{issuers: issuers}, jwt.DefaultVerifier(nil, algorithms)),
+			),
+		)
 	}
 
 	// IdP role: issue ID-JAGs for trusted audiences.

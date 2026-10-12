@@ -39,6 +39,12 @@ enum TokenStatus {
   TOKEN_STATUS_ACTIVE = 2;
   TOKEN_STATUS_EXPIRED = 3;
   TOKEN_STATUS_REVOKED = 4;
+  // RFC 9700 section 4.14.2: a refresh token rotated away by a successful
+  // redemption is consumed — single-use by atomic compare-and-set. A
+  // presented CONSUMED token is a replay signal (distinct from REVOKED:
+  // revocation cascades the grant family, consumption is the honest
+  // rotation outcome).
+  TOKEN_STATUS_CONSUMED = 5;
 }
 
 // Authentication event performed by the end-user during the authorization
@@ -90,6 +96,10 @@ message TokenMeta {
   // (section 9.2).
   // https://www.rfc-editor.org/rfc/rfc9396#section-9
   repeated .oidc.token.v1.AuthorizationDetail authorization_details = 12;
+  // OPTIONAL. The nonce of the authorization request this token derives
+  // from (OIDC Core section 2; RFC 9700 section 4.5.3.2 replay defense).
+  // Set on ID tokens minted from the authorization code flow.
+  optional string nonce = 13;
 }
 
 message Actor {

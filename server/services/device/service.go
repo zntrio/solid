@@ -24,9 +24,11 @@ import (
 	"strings"
 	"time"
 
+	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/authzdetails"
 	"zntr.io/solid/sdk/generator"
 	"zntr.io/solid/sdk/rfcerrors"
 	sessionstate "zntr.io/solid/sdk/session"
@@ -37,11 +39,12 @@ import (
 )
 
 type service struct {
-	clients            storage.ClientReader
-	deviceCodeSessions storage.DeviceCodeSession
-	deviceCodes        generator.DeviceCode
-	userCodes          generator.DeviceUserCode
-	userCodeAttempts   storage.UserCodeAttempts
+	clients               storage.ClientReader
+	deviceCodeSessions    storage.DeviceCodeSession
+	deviceCodes           generator.DeviceCode
+	userCodes             generator.DeviceUserCode
+	userCodeAttempts      storage.UserCodeAttempts
+	authzDetailsValidator authzdetails.Validator
 }
 
 const (
@@ -60,13 +63,14 @@ const (
 )
 
 // New build and returns an authorization service implementation.
-func New(clients storage.ClientReader, deviceCodeSessions storage.DeviceCodeSession, deviceCodes generator.DeviceCode, userCodes generator.DeviceUserCode, userCodeAttempts storage.UserCodeAttempts) services.Device {
+func New(clients storage.ClientReader, deviceCodeSessions storage.DeviceCodeSession, deviceCodes generator.DeviceCode, userCodes generator.DeviceUserCode, userCodeAttempts storage.UserCodeAttempts, authzDetailsValidator authzdetails.Validator) services.Device {
 	return &service{
-		clients:            clients,
-		deviceCodeSessions: deviceCodeSessions,
-		deviceCodes:        deviceCodes,
-		userCodes:          userCodes,
-		userCodeAttempts:   userCodeAttempts,
+		clients:               clients,
+		deviceCodeSessions:    deviceCodeSessions,
+		deviceCodes:           deviceCodes,
+		userCodes:             userCodes,
+		userCodeAttempts:      userCodeAttempts,
+		authzDetailsValidator: authzDetailsValidator,
 	}
 }
 
@@ -135,36 +139,20 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorization
 		return res, fmt.Errorf("unable to generate user code: %w", err)
 	}
 
-	// Prepare session. The in-memory registration TTL is 120 seconds; the
-	// absolute expiry is stamped so that the token grant can distinguish an
-	// expired session from a pending one (RFC 8628 section 3.5).
-	session := &sessionv1.DeviceCodeSession{
-		Issuer:     req.Issuer,
-		Client:     client,
-		Request:    req,
-		Scope:      req.Scope,
-		Audience:   req.Audience,
-		DeviceCode: deviceCode,
-		Status:     sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
-		ExpiresAt:  uint64(time.Now().Add(deviceSessionTTL).Unix()), //nolint:gosec // unix time is non-negative
-		// Advertised polling interval (RFC 8628 section 3.2); the token
-		// grant enforces it with slow_down (RFC 8628 section 3.5).
-		PollInterval: defaultPollInterval,
-		// RFC 9396 section 3: authorization details requested with the
-		// device authorization request are stored on the session and shown
-		// at consent time.
-		AuthorizationDetails: req.AuthorizationDetails,
+	// RFC 9396: authorization details are validated against the registry
+	// before they are stored on the session — an unregistered type fails
+	// closed (mirroring the backchannel service; without this gate any
+	// presentation layer that populates the field stores attacker-
+	// controlled entries verbatim into minted tokens).
+	if len(req.AuthorizationDetails) > 0 {
+		if errDetails := s.authzDetailsValidator.Validate(ctx, req.AuthorizationDetails); errDetails != nil {
+			res.Error = rfcerrors.InvalidAuthorizationDetails().Build()
+			return res, fmt.Errorf("authorization_details are invalid: %w", errDetails)
+		}
 	}
 
-	// RFC 10027 section 6.1.9: the cross-device channel is unauthenticated
-	// and has no consent gate, so the device grant never grants offline
-	// access — strip it from the session scope before storing.
-	if req.Scope != nil {
-		scopes := types.StringArray(strings.Fields(*req.Scope))
-		scopes.Remove(oidc.ScopeOfflineAccess)
-		filtered := strings.Join(scopes, " ")
-		session.Scope = &filtered
-	}
+	// Prepare session (assembly + scope policy extracted).
+	session := newDeviceCodeSession(req, client, deviceCode)
 
 	// Store device code request
 	expiresIn, err := s.deviceCodeSessions.Register(ctx, req.Issuer, userCode, session)
@@ -187,6 +175,40 @@ func (s *service) Authorize(ctx context.Context, req *flowv1.DeviceAuthorization
 
 	// No error
 	return res, nil
+}
+
+// newDeviceCodeSession assembles the pending device-code session for a
+// validated authorization request, applying the scope policy of the
+// device grant (RFC 10027 section 6.1.9: the unauthenticated
+// cross-device channel never grants offline access).
+func newDeviceCodeSession(req *flowv1.DeviceAuthorizationRequest, client *clientv1.Client, deviceCode string) *sessionv1.DeviceCodeSession {
+	// The in-memory registration TTL is 120 seconds; the absolute expiry is
+	// stamped so that the token grant can distinguish an expired session
+	// from a pending one (RFC 8628 section 3.5).
+	session := &sessionv1.DeviceCodeSession{
+		Issuer:     req.Issuer,
+		Client:     client,
+		Request:    req,
+		Scope:      req.Scope,
+		Audience:   req.Audience,
+		DeviceCode: deviceCode,
+		Status:     sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_AUTHORIZATION_PENDING,
+		ExpiresAt:  uint64(time.Now().Add(deviceSessionTTL).Unix()), //nolint:gosec // unix time is non-negative
+		// Advertised polling interval (RFC 8628 section 3.2); the token
+		// grant enforces it with slow_down (RFC 8628 section 3.5).
+		PollInterval: defaultPollInterval,
+		// RFC 9396 section 3: authorization details requested with the
+		// device authorization request are stored on the session and shown
+		// at consent time.
+		AuthorizationDetails: req.AuthorizationDetails,
+	}
+	if req.Scope != nil {
+		scopes := types.StringArray(strings.Fields(*req.Scope))
+		scopes.Remove(oidc.ScopeOfflineAccess)
+		filtered := strings.Join(scopes, " ")
+		session.Scope = &filtered
+	}
+	return session
 }
 
 //nolint:gocyclo // linear RFC 8628-ordered validation chain

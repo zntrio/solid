@@ -23,6 +23,7 @@ import (
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/sdk/rfcerrors"
+	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/services"
 )
 
@@ -51,13 +52,36 @@ func DeviceAuthorization(issuer string, devicez services.Device, verificationURI
 		// Parameters
 		ctx := r.Context()
 
-		// Send to reactor
-		res, err := devicez.Authorize(ctx, &flowv1.DeviceAuthorizationRequest{
+		// RFC 8628 section 3.1 / the CIBA-equivalent posture: the client
+		// identity comes from the ClientAuthentication middleware context —
+		// a form client_id value is never trusted for identity, only for
+		// public-client identification when no authenticated client exists.
+		// A confidential client may not initiate device sessions under a
+		// different client's identity.
+		ownerClientID := r.PostFormValue("client_id")
+		if authenticated, okAuth := clientauthentication.FromContext(ctx); okAuth && authenticated != nil {
+			ownerClientID = authenticated.ClientId
+		}
+
+		// Send to reactor. RFC 9396: the authorization_details parameter is
+		// a JSON array of objects — mapped like the token and CIBA
+		// endpoints map it (a malformed array is rejected, never silently
+		// dropped).
+		msg := &flowv1.DeviceAuthorizationRequest{
 			Issuer:   issuer,
-			ClientId: r.FormValue("client_id"),
-			Scope:    optionalString(r.FormValue("scope")),
-			Audience: optionalString(r.FormValue("audience")),
-		})
+			ClientId: ownerClientID,
+			Scope:    optionalString(r.PostFormValue("scope")),
+			Audience: optionalString(r.PostFormValue("audience")),
+		}
+		if raw := r.PostFormValue("authorization_details"); raw != "" {
+			details, errParse := parseAuthorizationDetails(raw)
+			if errParse != nil {
+				WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidAuthorizationDetails().Build())
+				return
+			}
+			msg.AuthorizationDetails = details
+		}
+		res, err := devicez.Authorize(ctx, msg)
 		if err != nil {
 			log.Println("unable to process device authorization request:", err)
 			// res may be nil on infrastructure failure; WithError is

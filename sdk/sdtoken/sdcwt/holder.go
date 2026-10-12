@@ -209,10 +209,17 @@ func verifySDCWTWithType(raw []byte, issuerKeys jwk.KeySetProviderFunc, checkTyp
 		return nil, nil, err
 	}
 
-	// Resolve the algorithm and candidate keys.
+	// Resolve the algorithm and candidate keys. Enforce the project
+	// signing-algorithm allowlist (EC / ML-DSA only) before any
+	// verification attempt: without it, any go-cose-registered algorithm —
+	// including symmetric HMAC or RSA — is attempted against whatever key
+	// materializes from the issuer set, violating the strict posture.
 	alg, err := msg.Headers.Protected.Algorithm()
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: sd-cwt has no algorithm header", ErrInvalidSDCWT)
+	}
+	if errAllowed := cwt.EnforceAlgorithmAllowlist(alg); errAllowed != nil {
+		return nil, nil, fmt.Errorf("%w: %w", ErrInvalidSDCWT, errAllowed)
 	}
 	jwks, err := issuerKeys(context.Background())
 	if err != nil {

@@ -27,6 +27,7 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	sdkidjag "zntr.io/solid/sdk/idjag"
@@ -92,8 +93,13 @@ func Test_service_jwtBearer(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -167,8 +173,13 @@ func Test_service_jwtBearer(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -217,8 +228,13 @@ func Test_service_jwtBearer(t *testing.T) {
 	t.Run("rejects scope exceeding the grant", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -261,8 +277,13 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -291,8 +312,13 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -317,8 +343,13 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 	t.Run("rejects authorization_details exceeding the grant", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		verifier := idjagmock.NewMockVerifier(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, nil,
+		svc := NewWithOptions(nil, nil, nil, nil, nil, nil, nil, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -341,8 +372,13 @@ func Test_service_jwtBearer_authorizationDetails(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -418,8 +454,13 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)
@@ -443,8 +484,13 @@ func Test_service_jwtBearer_edgeCases(t *testing.T) {
 		verifier := idjagmock.NewMockVerifier(ctrl)
 		generator := tokenmock.NewMockGenerator(ctrl)
 		tokens := storagemock.NewMockToken(ctrl)
+		resources := storagemock.NewMockResourceReader(ctrl)
+		resources.EXPECT().GetByURI(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, urn string) (*resourcev1.Resource, error) {
+				return &resourcev1.Resource{Urn: urn}, nil
+			}).AnyTimes()
 
-		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, nil,
+		svc := NewWithOptions(generator, nil, nil, nil, nil, nil, tokens, resources,
 			WithIDJAGVerifier(verifier)).(*service)
 
 		claims := validIDJAGClaims(now)

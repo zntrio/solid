@@ -61,22 +61,29 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 		return res, fmt.Errorf("refresh_token must not be empty")
 	}
 
-	// Check given token
-	rt, err := s.tokens.GetByValue(ctx, req.Issuer, grant.RefreshToken)
+	// Atomic single-use consume (RFC 9700 section 4.14.2): the presented
+	// refresh token transitions ACTIVE -> CONSUMED in one compare-and-set.
+	// Concurrent presentations of the same token cannot both win the
+	// rotation; the loser observes CONSUMED and is treated as a replay,
+	// cascading grant-family revocation exactly like the sequential case.
+	rt, err := s.tokens.ConsumeIfActive(ctx, req.Issuer, grant.RefreshToken)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.ServerError().Build()
 		} else {
 			res.Error = rfcerrors.InvalidGrant().Build()
 		}
-		return res, fmt.Errorf("unable to retrieve token '%s' from storage: %w", grant.RefreshToken, err)
+		return res, fmt.Errorf("unable to retrieve refresh token from storage: %w", err)
 	}
 
-	// Check token
+	// Check the pre-transition state: only the winner of the consume race
+	// proceeds with the rotation.
 	if rt.Status != tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
 		// RFC 9700 section 4.14.2: replay of an invalidated refresh token
-		// reveals theft — revoke the entire grant family.
-		if rt.Status == tokenv1.TokenStatus_TOKEN_STATUS_REVOKED && rt.Metadata != nil && rt.Metadata.GrantId != "" {
+		// reveals theft — revoke the entire grant family. CONSUMED (lost
+		// rotation race or sequential replay of a rotated token) and REVOKED
+		// both trigger the theft signal.
+		if rt.Status != tokenv1.TokenStatus_TOKEN_STATUS_EXPIRED && rt.Metadata != nil && rt.Metadata.GrantId != "" {
 			if errRevoke := s.revokeGrantFamily(ctx, req.Issuer, rt.Metadata.GrantId); errRevoke != nil {
 				res.Error = rfcerrors.ServerError().Build()
 				return res, fmt.Errorf("unable to revoke grant family after refresh token replay: %w", errRevoke)
@@ -120,6 +127,21 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 		}
 	}
 
+	// RFC 9449 section 8: a DPoP-bound refresh token MUST be refreshed with
+	// a proof signed by the same key (jkt continuity); a request under a
+	// different key is a proof-of-possession failure, mirroring the x5t
+	// branch above and the authorization-code grant's session binding.
+	if rt.Confirmation != nil && rt.Confirmation.Jkt != "" {
+		presented := ""
+		if req.TokenConfirmation != nil {
+			presented = req.TokenConfirmation.Jkt
+		}
+		if presented == "" || !types.SecureCompareString(presented, rt.Confirmation.Jkt) {
+			res.Error = rfcerrors.InvalidGrant().Build()
+			return res, fmt.Errorf("refresh token is DPoP-bound but no matching jkt confirmation was presented")
+		}
+	}
+
 	// Sender-constrained token policy (RFC 10027 section 6.1.12 for DPoP,
 	// RFC 8705 section 3 for certificate bindings): a client requiring
 	// bound access tokens must present its confirmation when no stored
@@ -139,6 +161,32 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 				res.Error = rfcerrors.InvalidScope().Build()
 				return res, fmt.Errorf("requested scope '%s' exceeds refresh token granted scope", *req.Scope)
 			}
+		}
+		// RFC 6749 section 3.3: the requested scope must also stay within
+		// the client-registered scope (a client may narrow below its
+		// registration but never beyond it, even when the token's grant
+		// predates a registration tightening).
+		if client.Scope != nil && *client.Scope != "" {
+			registered := types.StringArray(strings.Fields(*client.Scope))
+			for _, s := range strings.Fields(*req.Scope) {
+				if !registered.Contains(s) {
+					res.Error = rfcerrors.InvalidScope().Build()
+					return res, fmt.Errorf("requested scope '%s' exceeds client registered scope", s)
+				}
+			}
+		}
+	}
+
+	// RFC 8707 section 2.2: on a refresh request the acceptable resources
+	// are limited to those originally granted (or a subset thereof). With
+	// the single-resource posture the only subset of a one-resource grant
+	// is the resource itself: a refresh request carrying a resource equal
+	// to the granted audience is honored, anything else is an
+	// invalid_target.
+	if len(req.Resource) > 0 {
+		if len(req.Resource) > 1 || req.Resource[0] != rt.Metadata.Audience {
+			res.Error = rfcerrors.InvalidTarget().Build()
+			return res, fmt.Errorf("requested resource exceeds the resources granted to the refresh token (RFC 8707 section 2.2)")
 		}
 	}
 
@@ -177,11 +225,9 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 		return res, fmt.Errorf("unable to generate refresh token: %w", errRt)
 	}
 
-	// Revoke old refresh token
-	if errRevoke := s.tokens.Revoke(ctx, req.Issuer, rt.TokenId); errRevoke != nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to revoke old refresh token '%s': %w", rt.TokenId, errRevoke)
-	}
+	// The old refresh token was already transitioned to CONSUMED by the
+	// atomic ConsumeIfActive above — no separate revoke is needed (the
+	// rotation is serialized end-to-end by the compare-and-set).
 
 	// Assign new refresh token
 	res.RefreshToken = newRt
@@ -202,7 +248,7 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 func (s *service) revokeGrantFamily(ctx context.Context, issuer, grantID string) error {
 	for _, t := range s.tokens.GetByGrantID(ctx, issuer, grantID) {
 		if err := s.tokens.Revoke(ctx, issuer, t.TokenId); err != nil && !errors.Is(err, storage.ErrNotFound) {
-			return fmt.Errorf("unable to revoke token '%s': %w", t.TokenId, err)
+			return fmt.Errorf("unable to revoke token: %w", err)
 		}
 	}
 	return nil

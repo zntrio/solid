@@ -107,6 +107,14 @@ type TokenReader interface {
 type TokenWriter interface {
 	Create(ctx context.Context, issuer string, t *tokenv1.Token) error
 	Revoke(ctx context.Context, issuer, id string) error
+	// ConsumeIfActive atomically transitions the refresh token addressed
+	// by value from ACTIVE to CONSUMED and returns the pre-transition
+	// state. It MUST be a single compare-and-set with no interleaving
+	// window (RFC 9700 section 4.14.2 rotation serialization): of two
+	// concurrent refresh requests presenting the same token exactly one
+	// wins — the loser receives the post-transition (CONSUMED) state and
+	// reports a replay.
+	ConsumeIfActive(ctx context.Context, issuer, value string) (*tokenv1.Token, error)
 }
 
 //go:generate mockgen -destination mock/token.gen.go -package mock zntr.io/solid/server/storage Token
@@ -227,6 +235,13 @@ type UserCodeAttempts interface {
 type DPoP interface {
 	Register(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
+	// RegisterIfAbsent atomically claims id and reports whether it was
+	// newly claimed. It MUST be a single critical-section check-and-insert:
+	// two concurrent calls for the same id cannot both report true. The jti
+	// single-use burn (DPoP proofs, client assertions) MUST go through this
+	// operation, never through an Exists-then-Register pair, which has an
+	// interleaving window.
+	RegisterIfAbsent(ctx context.Context, id string) (bool, error)
 }
 
 //go:generate mockgen -destination mock/resource_reader.gen.go -package mock zntr.io/solid/server/storage ResourceReader

@@ -58,3 +58,15 @@ func (s *proofCache) Exists(ctx context.Context, id string) (bool, error) {
 	}
 	return false, nil
 }
+
+// RegisterIfAbsent atomically claims the id and reports whether it was
+// newly claimed. A single critical-section check-and-insert: two
+// concurrent calls for the same id cannot both report true — the property
+// the DPoP proof / client-assertion jti single-use burn requires
+// (sdk/dpop/api.go ProofStore contract).
+func (s *proofCache) RegisterIfAbsent(ctx context.Context, id string) (bool, error) {
+	if s.backend.SetIfAbsent(id, id) {
+		return true, nil
+	}
+	return false, nil
+}

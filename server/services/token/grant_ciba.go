@@ -192,6 +192,18 @@ func (s *service) ciba(ctx context.Context, client *clientv1.Client, req *flowv1
 		AuthorizationDetails: session.AuthorizationDetails,
 	}
 	if session.Audience != nil {
+		// RFC 8707 section 2: the audience is validated against the
+		// resource registry before it reaches the minted token — an
+		// attacker-controlled bc-authorize parameter never lands verbatim
+		// in the aud claim.
+		if _, errAud := s.resources.GetByURI(ctx, *session.Audience); errAud != nil {
+			if errors.Is(errAud, storage.ErrNotFound) {
+				res.Error = rfcerrors.InvalidTarget().Build()
+				return res, fmt.Errorf("unknown audience '%s'", *session.Audience)
+			}
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("unable to validate audience '%s': %w", *session.Audience, errAud)
+		}
 		tm.Audience = *session.Audience
 	}
 	if session.Scope != nil {

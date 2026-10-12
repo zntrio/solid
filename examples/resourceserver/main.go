@@ -127,7 +127,11 @@ func main() {
 	http.Handle("/.well-known/oauth-protected-resource", ResourceMetadata())
 
 	server := &http.Server{
-		Addr:              ":8085",
+		// Loopback by default: the example serves plaintext HTTP — binding
+		// all interfaces would expose tokens and Basic credentials to the
+		// network. Override with SOLID_EXAMPLE_LISTEN_ADDR for containerized
+		// demos.
+		Addr:              exampleenv.Or("SOLID_EXAMPLE_LISTEN_ADDR", "127.0.0.1:8085"),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	log.Fatal(server.ListenAndServe())

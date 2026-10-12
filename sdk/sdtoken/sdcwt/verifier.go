@@ -289,16 +289,37 @@ func checkKBTInternalTime(kbt map[any]any, now, leeway int64) error {
 		return fmt.Errorf("%w: kbt nbf without iat", ErrInvalidKBT)
 	}
 
-	// KBT nbf ≤ iat.
-	if nbf, ok := numericClaim(kbt[uint64(ClaimKeyNbf)]); ok && hasIatValue && nbf > iat+leeway {
-		return fmt.Errorf("%w: kbt nbf after iat", ErrInvalidKBT)
+	// KBT nbf ≤ iat, iat < exp, exp in the future. Malformed temporal
+	// claims fail closed (checkKBTTemporalWindow): a non-decodable exp/nbf
+	// cannot be evaluated and must not be treated as absent (unlimited
+	// validity).
+	if errWindow := checkKBTTemporalWindow(kbt, iat, hasIatValue, now, leeway); errWindow != nil {
+		return errWindow
 	}
-	// KBT iat < exp and exp in the future.
-	if exp, ok := numericClaim(kbt[uint64(ClaimKeyExp)]); ok {
+	return nil
+}
+
+// checkKBTTemporalWindow enforces the nbf ≤ iat < exp inequalities on the
+// KBT claims, failing closed when exp/nbf are present but non-numeric.
+func checkKBTTemporalWindow(kbt map[any]any, iat int64, hasIat bool, now, leeway int64) error {
+	if hasNbf := kbt[uint64(ClaimKeyNbf)] != nil; hasNbf {
+		nbf, ok := numericClaim(kbt[uint64(ClaimKeyNbf)])
+		if !ok {
+			return fmt.Errorf("%w: kbt nbf claim is not numeric", ErrInvalidKBT)
+		}
+		if hasIat && nbf > iat+leeway {
+			return fmt.Errorf("%w: kbt nbf after iat", ErrInvalidKBT)
+		}
+	}
+	if hasExp := kbt[uint64(ClaimKeyExp)] != nil; hasExp {
+		exp, ok := numericClaim(kbt[uint64(ClaimKeyExp)])
+		if !ok {
+			return fmt.Errorf("%w: kbt exp claim is not numeric", ErrInvalidKBT)
+		}
 		if now > exp+leeway {
 			return fmt.Errorf("%w: kbt expired", ErrInvalidKBT)
 		}
-		if hasIatValue && iat >= exp-leeway {
+		if hasIat && iat >= exp-leeway {
 			return fmt.Errorf("%w: kbt iat not before exp", ErrInvalidKBT)
 		}
 	}

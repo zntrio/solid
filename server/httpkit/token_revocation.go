@@ -30,6 +30,13 @@ import (
 // TokenRevocation handles token revocation HTTP requests.
 func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// RFC 7009 section 2.1: the request MUST use the POST method. The
+		// token value is a credential: reading it from the URL query would
+		// leak it into access logs, proxies and browser history.
+		if r.Method != http.MethodPost {
+			WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			return
+		}
 		if err := r.ParseForm(); err != nil {
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
@@ -37,8 +44,8 @@ func TokenRevocation(issuer string, tokenz services.Token) http.Handler {
 
 		var (
 			ctx           = r.Context()
-			token         = r.FormValue("token")
-			tokenTypeHint = r.FormValue("token_type_hint")
+			token         = r.PostFormValue("token")
+			tokenTypeHint = r.PostFormValue("token_type_hint")
 		)
 
 		// Retrieve client front context

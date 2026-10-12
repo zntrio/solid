@@ -113,7 +113,7 @@ message GrantTokenExchange {
   // issued in response to the request.
   string subject_token = 2 [(buf.validate.field).string = {
     min_len: 1
-    max_len: 4096
+    max_len: 16384
   }];
 
   // REQUIRED.  An identifier, as described in Section 3, that

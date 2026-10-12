@@ -59,7 +59,7 @@ func TestCoAPACEDemo(t *testing.T) {
 	asAddr := freeUDPPort(t)
 	rsAddr := freeUDPPort(t)
 
-	as, err := startAS(pki, asAddr)
+	as, err := startAS(pki, asAddr, rsAddr)
 	if err != nil {
 		t.Fatalf("unable to start the AS: %v", err)
 	}

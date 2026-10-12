@@ -51,9 +51,12 @@ func exchangeRequest(issuer, clientID, subjectToken, audience string) *flowv1.To
 	}
 }
 
-// TestRFC9700_TokenExchangeAudienceRestriction_4_10_2 asserts the exchanged
-// token's audience is restricted to the requested resource and differs from
-// tokens minted for other audiences (RFC 9700 section 4.10.2).
+// TestRFC9700_TokenExchangeAudienceRestriction_4_10_2 pins the audience
+// policy of the exchange grant (RFC 8693 section 5 / RFC 9700 section
+// 4.10.2): a same-audience exchange mints a token for the requested
+// resource, and audience retargeting — a token for RS-A exchanged for RS-B —
+// requires a delegated actor token; a bearer subject-token exchange cannot
+// silently retarget its audience.
 func TestRFC9700_TokenExchangeAudienceRestriction_4_10_2(t *testing.T) {
 	h := newHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken, oidc.GrantTypeTokenExchange})
@@ -64,23 +67,19 @@ func TestRFC9700_TokenExchangeAudienceRestriction_4_10_2(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res.AccessToken)
 
-	// Exchange for the first audience.
+	// Exchange for the subject token's own audience: succeeds.
 	h.authenticateClient(t, client.ClientId)
 	exResA, err := h.tokenz.Token(t.Context(), exchangeRequest(h.issuer, client.ClientId, res.AccessToken.Value, "urn:example:cooperation-context"))
 	require.NoError(t, err)
 	require.NotNil(t, exResA.AccessToken)
 	require.Equal(t, "urn:example:cooperation-context", exResA.AccessToken.Metadata.Audience)
 
-	// Exchange for the second audience.
+	// Bearer retargeting to a different audience: rejected (no actor token
+	// proves the delegation).
 	exResB, err := h.tokenz.Token(t.Context(), exchangeRequest(h.issuer, client.ClientId, res.AccessToken.Value, "urn:example:backend-api"))
-	require.NoError(t, err)
-	require.NotNil(t, exResB.AccessToken)
-	require.Equal(t, "urn:example:backend-api", exResB.AccessToken.Metadata.Audience)
-
-	// The two minted tokens are audience-distinct: a token for audience A
-	// must not carry audience B (the resource server for B can distinguish
-	// and refuse it).
-	require.NotEqual(t, exResA.AccessToken.Metadata.Audience, exResB.AccessToken.Metadata.Audience)
+	require.Error(t, err, "audience retargeting without an actor token must be rejected")
+	require.NotNil(t, exResB.Error)
+	require.Equal(t, "invalid_target", exResB.Error.Error)
 }
 
 // TestRFC9700_TokenExchangeUnknownAudience_4_10_2 asserts an exchange

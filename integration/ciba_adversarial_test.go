@@ -86,7 +86,7 @@ func TestCIBA_ApprovalThenToken(t *testing.T) {
 	client := h.registerCIBAClient(t)
 
 	authReqID := h.startBackchannelAuth(t, client)
-	h.approveBackchannel(t, authReqID, "ciba-user-1")
+	h.approveBackchannel(t, authReqID, "hello")
 
 	res, err := h.pollCIBAToken(t, client.ClientId, authReqID)
 	require.NoError(t, err)
@@ -172,7 +172,7 @@ func TestCIBA_WrongClientPoll(t *testing.T) {
 	clientB := h.registerCIBAClient(t)
 
 	authReqID := h.startBackchannelAuth(t, clientA)
-	h.approveBackchannel(t, authReqID, "ciba-user-1")
+	h.approveBackchannel(t, authReqID, "hello")
 
 	res, err := h.pollCIBAToken(t, clientB.ClientId, authReqID)
 	require.Error(t, err, "cross-client poll must fail")
@@ -304,7 +304,7 @@ func TestCIBA_SignedRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, res.Error)
 
-	h.approveBackchannel(t, res.AuthReqId, "ciba-user-1")
+	h.approveBackchannel(t, res.AuthReqId, "hello")
 	tokenRes, err := h.pollCIBAToken(t, client.ClientId, res.AuthReqId)
 	require.NoError(t, err)
 	require.Nil(t, tokenRes.Error)
@@ -390,7 +390,7 @@ func TestCIBA_AuthorizationDetails(t *testing.T) {
 	authReqID := h.startBackchannelAuth(t, client, func(req *flowv1.BackchannelAuthenticationRequest) {
 		req.AuthorizationDetails = paymentInitiationDetails()
 	})
-	h.approveBackchannel(t, authReqID, "ciba-user-1")
+	h.approveBackchannel(t, authReqID, "hello")
 
 	res, err := h.pollCIBAToken(t, client.ClientId, authReqID)
 	require.NoError(t, err)
@@ -403,7 +403,7 @@ func TestCIBA_AuthorizationDetails(t *testing.T) {
 	authReqID2 := h.startBackchannelAuth(t, client, func(req *flowv1.BackchannelAuthenticationRequest) {
 		req.AuthorizationDetails = paymentInitiationDetails()
 	})
-	h.approveBackchannel(t, authReqID2, "ciba-user-1")
+	h.approveBackchannel(t, authReqID2, "hello")
 
 	narrowingReq := cibaTokenRequest(h.issuer, client.ClientId, authReqID2)
 	narrowingReq.AuthorizationDetails = paymentInitiationDetails()
@@ -446,7 +446,7 @@ func TestCIBA_OfflineAccessStripped(t *testing.T) {
 		scope := "openid offline_access"
 		req.Scope = &scope
 	})
-	h.approveBackchannel(t, authReqID, "ciba-user-1")
+	h.approveBackchannel(t, authReqID, "hello")
 
 	// Stored session scope has no offline_access.
 	session, err := h.backchannelSessions.GetByAuthReqID(context.Background(), h.issuer, authReqID)
@@ -511,7 +511,7 @@ func TestCIBA_DPoPKeyBinding(t *testing.T) {
 	require.Nil(t, res.Error)
 	authReqID := res.AuthReqId
 
-	h.approveBackchannel(t, authReqID, "ciba-user-1")
+	h.approveBackchannel(t, authReqID, "hello")
 
 	// Poll without a DPoP proof: rejected before the consume.
 	res2, err := h.pollCIBAToken(t, client.ClientId, authReqID)

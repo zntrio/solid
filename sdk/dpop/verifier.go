@@ -256,6 +256,15 @@ func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClai
 		return "", fmt.Errorf("invalid proof: issued in the future")
 	}
 
+	// RFC 9449 section 4.2: the jti claim is REQUIRED and MUST be unique
+	// per proof. A blank jti collapses every blank-jti proof onto the same
+	// cache slot (hash of the empty string), poisoning it for every other
+	// blank-jti proof and degrading replay detection to a single shared
+	// identity.
+	if claims.JTI == "" {
+		return "", fmt.Errorf("invalid proof: jti must not be blank")
+	}
+
 	// Compute jti hash
 	jtiHashRaw := blake2b.Sum256([]byte(claims.JTI))
 	jtiStorage := base64.RawURLEncoding.EncodeToString(jtiHashRaw[:])
@@ -265,18 +274,15 @@ func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClai
 }
 
 func (v *defaultVerifier) checkProofCache(ctx context.Context, jtiHash string) error {
-	// Check existence
-	valid, err := v.proofs.Exists(ctx, jtiHash)
+	// Atomic single-use burn: RegisterIfAbsent is one critical-section
+	// check-and-insert, so two concurrent presentations of the same proof
+	// cannot both pass (RFC 9449 section 4.3 jti MUST NOT be used twice).
+	claimed, err := v.proofs.RegisterIfAbsent(ctx, jtiHash)
 	if err != nil {
-		return fmt.Errorf("unable to query proof storage: %w", err)
-	}
-	if valid {
-		return fmt.Errorf("invalid proof: already used")
-	}
-
-	// Insert proof in cache
-	if err = v.proofs.Register(ctx, jtiHash); err != nil {
 		return fmt.Errorf("unable to register proof in storage: %w", err)
+	}
+	if !claimed {
+		return fmt.Errorf("invalid proof: already used")
 	}
 
 	// No error

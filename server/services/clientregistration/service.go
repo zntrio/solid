@@ -315,6 +315,7 @@ func (s *clientRegistration) validatedClient(metadata *clientv1.ClientMeta) (*cl
 		JwksUri:                               metadata.GetJwksUri(),
 		SubjectType:                           metadata.GetSubjectType(),
 		SectorIdentifier:                      metadata.GetSectorIdentifier(),
+		Scope:                                 metadata.Scope,
 		TokenEndpointAuthMethod:               authMethod,
 		TlsClientAuthSubjectDn:                metadata.GetTlsClientAuthSubjectDn(),
 		TlsClientAuthSanDns:                   metadata.GetTlsClientAuthSanDns(),

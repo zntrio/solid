@@ -42,13 +42,17 @@ const bodyLimiterSize = 5 << 20 // 5 Mb
 
 // HTTP creates an HTTP OIDC Client.
 func HTTP(ctx context.Context, issuer string, opts *Options) (Client, error) {
+	// Default to a bounded HTTP client: http.DefaultClient has no timeout,
+	// so discovery, token, introspection and JWKS fetches could hang
+	// indefinitely on a stalled or malicious authorization server.
+	transport := &http.Client{Timeout: 15 * time.Second}
+	if opts != nil && opts.HTTPClient != nil {
+		transport = opts.HTTPClient
+	}
 	c := &httpClient{
 		opts:       opts,
 		issuer:     issuer,
-		httpClient: http.DefaultClient,
-	}
-	if opts.HTTPClient != nil {
-		c.httpClient = opts.HTTPClient
+		httpClient: transport,
 	}
 
 	// Query server metadata endpoint. RFC 8414 section 3: the well-known
@@ -83,10 +87,14 @@ func HTTP(ctx context.Context, issuer string, opts *Options) (Client, error) {
 	// Validate the issuer value carried by the server metadata
 	// (draft-ietf-oauth-security-topics-update-03 section 2.1.2.1: clients
 	// MUST retrieve and validate the issuer identifier — an attacker
-	// publishing or tampering metadata that claims a different issuer must
-	// fail client construction). An absent issuer value is tolerated for
-	// honest older authorization servers.
-	if c.serverMetadata.Issuer != "" && c.serverMetadata.Issuer != issuer {
+	// publishing or tampering metadata that claims a different issuer, or
+	// omits it while steering the endpoint URLs, must fail client
+	// construction; a metadata document without an issuer cannot anchor
+	// that validation at all).
+	if c.serverMetadata.Issuer == "" {
+		return nil, fmt.Errorf("server metadata does not carry an issuer identifier")
+	}
+	if c.serverMetadata.Issuer != issuer {
 		return nil, fmt.Errorf("server metadata issuer %q does not match expected issuer %q", c.serverMetadata.Issuer, issuer)
 	}
 

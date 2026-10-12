@@ -37,11 +37,18 @@ import (
 
 // -----------------------------------------------------------------------------
 type identity struct {
-	Subject  string
-	ClientID string
-	AuthTime *uint64
-	Acr      *string
+	Subject              string
+	ClientID             string
+	AuthTime             *uint64
+	Acr                  *string
+	Scope                string
+	Audience             string
+	AuthorizationDetails []*tokenv1.AuthorizationDetail
 }
+
+// resourceMetadataURI is this resource server's RFC 8707 resource
+// identifier: the audience every accepted access token must carry.
+const resourceMetadataURI = "http://127.0.0.1:8085"
 
 var permissions = map[string]map[string]types.StringArray{
 	"timestamp:read": {
@@ -51,7 +58,45 @@ var permissions = map[string]map[string]types.StringArray{
 		"attestation-client": {
 			"",
 		},
+		// The AI-agent client (examples/agentclient): authorized through
+		// its exchanged token; the mcpToolAccess gate below evaluates the
+		// carried mcp_tools authorization detail before access is granted.
+		"https://agent.example.org/ai-agent": {
+			"",
+		},
 	},
+}
+
+// mcpToolAccess pins the AI-agent client's tool-grant requirement: the
+// presented token must carry an mcp_tools authorization detail for this
+// resource whose actions include the requested intent (RFC 9396 section 5,
+// evaluated by the resource server — the remote MCP service makes the
+// authorization decision; the AS carries the entries without evaluating
+// them).
+var mcpToolAccess = map[string]struct {
+	Type      string
+	Locations []string
+}{
+	"https://agent.example.org/ai-agent": {Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}},
+}
+
+// hasToolGrant reports whether the identity's token carries the matching
+// mcp_tools authorization detail for the requested intent.
+func hasToolGrant(id *identity, intent string) bool {
+	req, ok := mcpToolAccess[id.ClientID]
+	if !ok {
+		return false
+	}
+	for _, d := range id.AuthorizationDetails {
+		if d == nil || d.Type != req.Type {
+			continue
+		}
+		if types.StringArray(d.Locations).Contains(req.Locations[0]) &&
+			types.StringArray(d.Actions).Contains(intent) {
+			return true
+		}
+	}
+	return false
 }
 
 func can(id *identity, intent string) bool {
@@ -66,8 +111,17 @@ func can(id *identity, intent string) bool {
 	if !ok {
 		return false
 	}
+	if !subjects.Contains(id.Subject) {
+		return false
+	}
 
-	return subjects.Contains(id.Subject)
+	// MCP tool-grant evaluation: clients pinned in mcpToolAccess must
+	// present a token carrying the matching authorization detail.
+	if _, ok := mcpToolAccess[id.ClientID]; ok && !hasToolGrant(id, intent) {
+		return false
+	}
+
+	return true
 }
 
 // -----------------------------------------------------------------------------
@@ -110,6 +164,11 @@ func authenticateWithBearer(req *http.Request, cli client.Client) (*identity, er
 		ClientID: t.Metadata.ClientId,
 		AuthTime: t.Metadata.AuthTime,
 		Acr:      t.Metadata.Acr,
+		Scope:    t.Metadata.Scope,
+		Audience: t.Metadata.Audience,
+		// RFC 9396: the carried authorization details are evaluated by
+		// this resource server (the AS transport-only pass-through).
+		AuthorizationDetails: t.Metadata.AuthorizationDetails,
 	}, nil
 }
 
@@ -168,6 +227,11 @@ func authenticateWithDPoP(req *http.Request, cli client.Client, dpopVerifier dpo
 		ClientID: t.Metadata.ClientId,
 		AuthTime: t.Metadata.AuthTime,
 		Acr:      t.Metadata.Acr,
+		Scope:    t.Metadata.Scope,
+		Audience: t.Metadata.Audience,
+		// RFC 9396: the carried authorization details are evaluated by
+		// this resource server (the AS transport-only pass-through).
+		AuthorizationDetails: t.Metadata.AuthorizationDetails,
 	}, nil
 }
 
@@ -205,20 +269,8 @@ func Authorizer(next http.Handler, intent string, cli client.Client, acrValues t
 			return
 		}
 
-		// Control authentication context
-		if maxAuthAge > 0 && id.AuthTime != nil {
-			if uint64(time.Now().Unix())-*id.AuthTime > maxAuthAge { //nolint:gosec // unix time is non-negative
-				w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", error_description="More recent authentication is required", resource="http://127.0.0.1:8085", resource_metadata="http://127.0.0.1:8085/.well-known/oauth-protected-resource"`+fmt.Sprintf(", max_age=%d", maxAuthAge))
-				http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
-				return
-			}
-		}
-		if len(acrValues) > 0 && id.Acr != nil {
-			if !acrValues.Contains(*id.Acr) {
-				w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", error_description="A different authentication level is required", resource="http://127.0.0.1:8085", resource_metadata="http://127.0.0.1:8085/.well-known/oauth-protected-resource"`+fmt.Sprintf(", acr_values=%q", strings.Join(acrValues, " ")))
-				http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
-				return
-			}
+		if !checkTokenEligibility(w, id, intent, acrValues, maxAuthAge) {
+			return
 		}
 
 		// Authorize the identity for intent
@@ -230,4 +282,51 @@ func Authorizer(next http.Handler, intent string, cli client.Client, acrValues t
 		// Delegate to next handler.
 		next.ServeHTTP(w, r)
 	})
+}
+
+// checkTokenEligibility enforces the token-level requirements on the
+// authenticated identity — audience (RFC 8707), scope (RFC 6749 section
+// 3.3), authentication age (max_age) and authentication context (RFC
+// 9470; a required ACR with a token carrying none fails closed) — writing
+// the RFC 6750 challenge and returning false on the first violation.
+func checkTokenEligibility(w http.ResponseWriter, id *identity, intent string, acrValues types.StringArray, maxAuthAge uint64) bool {
+	// RFC 8707: the token must be audience-restricted to this resource
+	// server — a token minted for another RS, presented here by an
+	// allowlisted client, is not a valid credential for the intent.
+	if id.Audience != "" && !types.SecureCompareString(id.Audience, resourceMetadataURI) {
+		w.Header().Set("WWW-Authenticate", `Bearer error="invalid_token", error_description="The access token provided is expired, revoked, malformed, or invalid for other reasons", resource="`+resourceMetadataURI+`", resource_metadata="`+resourceMetadataURI+`/.well-known/oauth-protected-resource"`)
+		http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
+		return false
+	}
+
+	// RFC 6749 section 3.3: the token must carry the scope the intent
+	// requires — a token lacking the intent scope is authorized for
+	// nothing here, whatever the client allowlist says.
+	if id.Scope != "" && !types.StringArray(strings.Fields(id.Scope)).Contains(intent) {
+		w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_scope", error_description="The access token does not carry the scope required by the intent", resource="`+resourceMetadataURI+`", resource_metadata="`+resourceMetadataURI+`/.well-known/oauth-protected-resource"`+fmt.Sprintf(", scope=%q", intent))
+		http.Error(w, "Operation not allowed for this identity.", http.StatusForbidden)
+		return false
+	}
+
+	// Control authentication context
+	if maxAuthAge > 0 && id.AuthTime != nil {
+		if uint64(time.Now().Unix())-*id.AuthTime > maxAuthAge { //nolint:gosec // unix time is non-negative
+			w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", error_description="More recent authentication is required", resource="`+resourceMetadataURI+`", resource_metadata="`+resourceMetadataURI+`/.well-known/oauth-protected-resource"`+fmt.Sprintf(", max_age=%d", maxAuthAge))
+			http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
+			return false
+		}
+	}
+	// RFC 9470: when the RS requires an ACR, a token without any ACR does
+	// not satisfy the requirement — nil fails closed.
+	if len(acrValues) > 0 && id.Acr == nil {
+		w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", error_description="The access token does not carry an authentication context class", resource="`+resourceMetadataURI+`", resource_metadata="`+resourceMetadataURI+`/.well-known/oauth-protected-resource"`+fmt.Sprintf(", acr_values=%q", strings.Join(acrValues, " ")))
+		http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
+		return false
+	}
+	if id.Acr != nil && !acrValues.Contains(*id.Acr) {
+		w.Header().Set("WWW-Authenticate", `Bearer error="insufficient_user_authentication", error_description="A different authentication level is required", resource="`+resourceMetadataURI+`", resource_metadata="`+resourceMetadataURI+`/.well-known/oauth-protected-resource"`+fmt.Sprintf(", acr_values=%q", strings.Join(acrValues, " ")))
+		http.Error(w, "Unable to authenticate the request intent.", http.StatusUnauthorized)
+		return false
+	}
+	return true
 }

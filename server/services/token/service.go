@@ -45,6 +45,7 @@ type service struct {
 	idjagSigner               idjag.Signer
 	idjagAudienceResolver     IDJAGAudienceResolver
 	idjagSubjectResolver      IDJAGSubjectResolver
+	idTokenGen                token.Generator
 }
 
 // New builds and returns a token service implementation.
@@ -88,6 +89,16 @@ type Option func(*service)
 func WithIDJAGVerifier(v idjag.Verifier) Option {
 	return func(s *service) {
 		s.idjagVerifier = v
+	}
+}
+
+// WithIDTokenGenerator wires the opt-in ID-token generator for the
+// authorization code flow (D-12.1): when set and the openid scope was
+// granted, the handler mints an id_token through the generator. Without
+// the option (default), no id_token is issued.
+func WithIDTokenGenerator(gen token.Generator) Option {
+	return func(s *service) {
+		s.idTokenGen = gen
 	}
 }
 

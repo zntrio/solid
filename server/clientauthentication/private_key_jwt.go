@@ -232,19 +232,19 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 	// Prevent assertion replay: the jti must be single-use. Burn it only
 	// after the signature has been fully validated (RFC 7523 section 3:
 	// "the authorization server MAY reject JWTs with a jti value previously
-	// used"). Key-prefixed hash namespaces distinct clients.
+	// used"). Key-prefixed hash namespaces distinct clients. The burn is a
+	// single atomic claim: concurrent presentations of the same assertion
+	// cannot both succeed.
 	jtiHash := blake2b.Sum256([]byte("jwt-bearer:" + claims.Issuer + ":" + claims.JTI))
 	jtiKey := base64.RawURLEncoding.EncodeToString(jtiHash[:])
-	if exists, errExists := p.proofs.Exists(ctx, jtiKey); errExists != nil {
+	claimed, errClaim := p.proofs.RegisterIfAbsent(ctx, jtiKey)
+	if errClaim != nil {
 		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to verify assertion uniqueness: %w", errExists)
-	} else if exists {
+		return res, fmt.Errorf("unable to register assertion jti: %w", errClaim)
+	}
+	if !claimed {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("assertion jti has already been used")
-	}
-	if err := p.proofs.Register(ctx, jtiKey); err != nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to register assertion jti: %w", err)
 	}
 
 	// Defensive: the client must be registered for the private_key_jwt

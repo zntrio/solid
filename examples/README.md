@@ -26,6 +26,7 @@ client-authentication mechanisms.
 | [`spiffeclient`](spiffeclient/README.md) | client | — | `authorizationserver` |
 | [`cibaclient`](cibaclient/README.md) | client | — | `authorizationserver` |
 | [`cimdclient`](cimdclient/README.md) | client | — | `authorizationserver` |
+| [`agentclient`](agentclient/README.md) | client | — | `authorizationserver` + `resourceserver` |
 | [`grpcbackend`](grpcbackend/README.md) | server (gRPC) | `:9090` | — |
 
 Client demos are one-shot: they run, print the exchanged token (and the
@@ -103,6 +104,10 @@ go run ./examples/cimdclient
 # CIBA poll-mode client (OpenID Client-Initiated Backchannel Authentication)
 go run ./examples/cibaclient
 
+# AI agent: PAR + JARM authorization code, then token exchange (RFC 8693)
+# carrying mcp_tools authorization_details for the remote MCP resource
+go run ./examples/agentclient
+
 # ACE-OAuth over mutual DTLS 1.2 (RFC 9200, self-contained triangle)
 go run ./examples/coapace
 ```
@@ -130,6 +135,16 @@ What each demo exercises:
   proof of the bound key with every poll (honoring the advertised interval
   and `slow_down`); prints the sender-constrained access token
   (`token_type: DPoP`, no refresh token, per RFC 9700 §4.12.2).
+* **`agentclient`** — an AI agent acting on behalf of a user against the
+  remote MCP-style resource server: CIMD client identity
+  (`https://agent.example.org/ai-agent`, ML-DSA-65 key driving assertions,
+  JAR and DPoP), PAR with `request_uri` consumption, mocked user approval
+  (Basic login) with a JARM `query.jwt` response, DPoP-bound
+  authorization_code redemption, then RFC 8693 token exchange with
+  `actor_token` (delegation) and `authorization_details` carried verbatim
+  (mocked AS processing — RFC 9396); the resource server evaluates the
+  `mcp_tools` detail (introspection exposes the `act` chain, the details
+  and the `cnf.jkt` binding).
 
 ## Authorization server configuration
 
@@ -137,8 +152,8 @@ What each demo exercises:
 * `SOLID_EXAMPLE_ISSUER` — authorization server issuer identifier
   (default `http://127.0.0.1:8080`). Recognized by the authorization server
   and the client demos (deviceclient, cibaclient, cimdclient, spiffeclient,
-  attestationclient, resourceserver) — set it on both sides when running the
-  AS on a non-default address.
+  attestationclient, agentclient, resourceserver) — set it on both sides when
+  running the AS on a non-default address.
 * `SOLID_EXAMPLE_TOKEN_FORMAT` — (coapace) token serialization format:
   `opaque` (default, verifiable UUIDv7 reference tokens) or `cwt`
   (RFC 8392 CBOR Web Tokens signed with an ephemeral ES256 key).

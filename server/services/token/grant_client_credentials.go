@@ -19,8 +19,10 @@ package token
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"strings"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -28,8 +30,10 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
+	"zntr.io/solid/server/storage"
 )
 
+//nolint:gocyclo,funlen // linear RFC-ordered validation chain; each guard is a protocol requirement
 func (s *service) clientCredentials(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
 	res := &flowv1.TokenResponse{}
 	grant := req.GetClientCredentials()
@@ -96,6 +100,53 @@ func (s *service) clientCredentials(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("client is not authorized to use grant type '%s'", oidc.GrantTypeClientCredentials)
 	}
 
+	// RFC 8707 section 2.2 (solid stronger posture): a resource parameter
+	// on a token request MUST be registered and singular — the RFC
+	// "encourages" a single resource; a multi-audience token is not
+	// offered here.
+	if len(req.Resource) > 0 {
+		if len(req.Resource) > 1 {
+			res.Error = rfcerrors.InvalidTarget().Build()
+			return res, fmt.Errorf("multiple resource indicators are not supported (RFC 8707 section 3)")
+		}
+		if _, errRes := s.resources.GetByURI(ctx, req.Resource[0]); errRes != nil {
+			if errors.Is(errRes, storage.ErrNotFound) {
+				res.Error = rfcerrors.InvalidTarget().Build()
+				return res, fmt.Errorf("unknown resource indicator '%s'", req.Resource[0])
+			}
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("unable to validate resource indicator '%s': %w", req.Resource[0], errRes)
+		}
+	}
+
+	// RFC 8707 section 2.2: the audience parameter MUST be validated
+	// against the resource registry — an attacker-controlled string never
+	// lands verbatim in the aud claim of the minted token.
+	if len(req.Resource) == 0 && req.Audience != nil && *req.Audience != "" {
+		if _, errAud := s.resources.GetByURI(ctx, *req.Audience); errAud != nil {
+			if errors.Is(errAud, storage.ErrNotFound) {
+				res.Error = rfcerrors.InvalidTarget().Build()
+				return res, fmt.Errorf("unknown audience '%s'", *req.Audience)
+			}
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("unable to validate audience '%s': %w", *req.Audience, errAud)
+		}
+	}
+
+	// RFC 6749 section 3.3 / F.1.1 (solid stronger posture): a requested
+	// scope MUST stay within the client-registered scope — the AS never
+	// grants scope beyond the client's entitlement. An open-ended
+	// registration (no registered scope) is unrestricted.
+	if req.Scope != nil && *req.Scope != "" && client.Scope != nil && *client.Scope != "" {
+		registered := types.StringArray(strings.Fields(*client.Scope))
+		for _, sc := range strings.Fields(*req.Scope) {
+			if !registered.Contains(sc) {
+				res.Error = rfcerrors.InvalidScope().Build()
+				return res, fmt.Errorf("requested scope '%s' exceeds client registered scope", sc)
+			}
+		}
+	}
+
 	// Prepare token: with client_credentials the client is the resource
 	// owner, so it is also the token subject (RFC 9068 section 4; the
 	// client identifier is the subject claim).
@@ -107,7 +158,12 @@ func (s *service) clientCredentials(ctx context.Context, client *clientv1.Client
 	if req.Scope != nil {
 		tokenMeta.Scope = *req.Scope
 	}
-	if req.Audience != nil {
+	// RFC 8707 section 2: the validated resource indicator is the minted
+	// audience; the bare audience parameter only applies when no
+	// resource was requested.
+	if len(req.Resource) > 0 {
+		tokenMeta.Audience = req.Resource[0]
+	} else if req.Audience != nil {
 		tokenMeta.Audience = *req.Audience
 	}
 

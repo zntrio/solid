@@ -54,11 +54,10 @@ type tokenEndpointResponse struct {
 	// draft-forten-oauth-sd-jwt-access-token-00 section 4: the
 	// Disclosures of a selectively disclosable access token.
 	Disclosures []string `json:"disclosures,omitempty"`
-	// Note: the SD ID-token generalization (sdk/token/sd
-	// IDTokenWithSelectiveDisclosure) mints a selectively disclosable ID
-	// token and lands its disclosures on the TokenResponse id_token spec;
-	// no grant handler wires it yet, so no id_token wire parameter is
-	// emitted until one does.
+	// D-12.1: opt-in id_token (SD id+jwt, digests only) and its
+	// Disclosures (sdtoken.ResponseParameterIDTokenDisclosures).
+	IDToken            string   `json:"id_token,omitempty"`
+	IDTokenDisclosures []string `json:"id_token_disclosures,omitempty"`
 }
 
 // Token handles token HTTP requests.
@@ -222,6 +221,13 @@ func writeTokenResponse(w http.ResponseWriter, res *flowv1.TokenResponse) {
 	if len(res.AccessToken.Disclosures) > 0 {
 		jsonResponse.Disclosures = res.AccessToken.Disclosures
 	}
+
+	// D-12.1: the opt-in id_token of the code flow and its disclosures
+	// (digests only in the token; values here).
+	if res.IdToken != nil && res.IdToken.Value != "" {
+		jsonResponse.IDToken = res.IdToken.Value
+		jsonResponse.IDTokenDisclosures = res.IdToken.Disclosures
+	}
 	// Send json response
 	WithJSON(w, http.StatusOK, jsonResponse)
 }
@@ -270,7 +276,8 @@ func setGrantFromRequest(msg *flowv1.TokenRequest, r *http.Request) {
 	case oidc.GrantTypeDeviceCode:
 		msg.Grant = &flowv1.TokenRequest_DeviceCode{
 			DeviceCode: &flowv1.GrantDeviceCode{
-				DeviceCode: r.FormValue("device_code"),
+				DeviceCode: r.PostFormValue("device_code"),
+				ClientId:   r.PostFormValue("client_id"),
 			},
 		}
 	case oidc.GrantTypeRefreshToken:
@@ -286,6 +293,28 @@ func setGrantFromRequest(msg *flowv1.TokenRequest, r *http.Request) {
 				ClientId:  r.FormValue("client_id"),
 			},
 		}
+	case oidc.GrantTypeTokenExchange:
+		// RFC 8693 section 2.1: token exchange request parameters. The
+		// optional parameters are recorded only when present so the
+		// service can distinguish an omitted parameter from an empty
+		// value.
+		grant := &flowv1.GrantTokenExchange{
+			SubjectToken:     r.FormValue("subject_token"),
+			SubjectTokenType: r.FormValue("subject_token_type"),
+		}
+		if v := r.FormValue("requested_token_type"); v != "" {
+			requested := v
+			grant.RequestedTokenType = &requested
+		}
+		if v := r.FormValue("actor_token"); v != "" {
+			actor := v
+			grant.ActorToken = &actor
+		}
+		if v := r.FormValue("actor_token_type"); v != "" {
+			actorType := v
+			grant.ActorTokenType = &actorType
+		}
+		msg.Grant = &flowv1.TokenRequest_TokenExchange{TokenExchange: grant}
 	}
 }
 

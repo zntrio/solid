@@ -31,6 +31,7 @@ import (
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
@@ -509,7 +510,7 @@ func Test_service_Token(t *testing.T) {
 				clients.EXPECT().Get(gomock.Any(), "s6BhdRkqt3").Return(&clientv1.Client{
 					GrantTypes: []string{oidc.GrantTypeRefreshToken},
 				}, nil)
-				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
+				tokens.EXPECT().ConsumeIfActive(gomock.Any(), "http://127.0.0.1:8080", "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi").Return(&tokenv1.Token{
 					Value:     "LHT.djeMMoErRAsLuXLlDYZDGdodfVLOduDi",
 					TokenId:   "0123456789",
 					TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
@@ -527,7 +528,6 @@ func Test_service_Token(t *testing.T) {
 				atSave := tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
 				rt.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("JHP.HscxBIrTOYZWgupVlrABwkdbhtqVFrmr", nil)
 				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil).After(atSave)
-				tokens.EXPECT().Revoke(gomock.Any(), "http://127.0.0.1:8080", "0123456789").Return(nil)
 			},
 			wantErr: false,
 			want: &flowv1.TokenResponse{
@@ -578,6 +578,14 @@ func Test_service_Token(t *testing.T) {
 			tokens := storagemock.NewMockToken(ctrl)
 			authorizationCodeSessions := storagemock.NewMockAuthorizationCodeSession(ctrl)
 			deviceCodeSessions := storagemock.NewMockDeviceCodeSession(ctrl)
+			resources := storagemock.NewMockResourceReader(ctrl)
+
+			// Default resource-registry expectation: the fixture audience is
+			// a registered resource (RFC 8707 audience validation runs on
+			// every redemption that reaches minting).
+			resources.EXPECT().GetByURI(gomock.Any(), "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH").Return(&resourcev1.Resource{
+				Urn: "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+			}, nil).AnyTimes()
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -585,8 +593,7 @@ func Test_service_Token(t *testing.T) {
 			}
 
 			// instantiate service
-			underTest := New(accessTokens, refreshTokens, clients, authorizationCodeSessions, deviceCodeSessions, nil, tokens, nil)
-
+			underTest := New(accessTokens, refreshTokens, clients, authorizationCodeSessions, deviceCodeSessions, nil, tokens, resources)
 			// Under test
 			got, err := underTest.Token(tt.args.ctx, tt.args.req)
 			if (err != nil) != tt.wantErr {

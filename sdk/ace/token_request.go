@@ -102,6 +102,10 @@ func init() {
 	var err error
 	decoder, err = cbor.DecOptions{
 		DefaultMapType: reflect.TypeOf(map[int]any{}),
+		// Duplicate map keys are an ambiguous-input vector (two key-24
+		// client_id members decode last-wins without this): reject them
+		// at parse time, mirroring the sdcwt decoder posture.
+		DupMapKey: cbor.DupMapKeyEnforcedAPF,
 	}.DecMode()
 	if err != nil {
 		panic("ace: unable to initialize CBOR decoding mode: " + err.Error())

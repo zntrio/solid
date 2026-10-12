@@ -301,26 +301,14 @@ func (s *service) Validate(ctx context.Context, req *flowv1.BackchannelAuthentic
 	}
 
 	// Resolve session
-	session, err := s.sessions.GetByAuthReqID(ctx, req.Issuer, req.AuthReqId)
+	session, err := resolveBackchannelSession(ctx, s.sessions, req)
 	if err != nil {
-		if !errors.Is(err, storage.ErrNotFound) {
-			res.Error = rfcerrors.ServerError().Build()
-		} else {
+		if errors.Is(err, storage.ErrNotFound) {
 			res.Error = rfcerrors.InvalidRequest().Build()
+		} else {
+			res.Error = rfcerrors.ServerError().Build()
 		}
-		return res, fmt.Errorf("session is invalid")
-	}
-	if session == nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("retrieved nil session for '%s'", req.AuthReqId)
-	}
-	if session.Request == nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("session has nil request for '%s'", req.AuthReqId)
-	}
-	if session.Client == nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("session has nil client for '%s'", req.AuthReqId)
+		return res, err
 	}
 
 	// Check expiration
@@ -337,7 +325,16 @@ func (s *service) Validate(ctx context.Context, req *flowv1.BackchannelAuthentic
 		return res, fmt.Errorf("auth_req_id '%s' cannot be validated: %w", req.AuthReqId, err)
 	}
 
-	// Update session
+	// Update session. CIBA Core section 8/11: when the identification
+	// hint resolved a subject at bc-authorize time, the authenticating user
+	// confirming the request MUST be that subject — an approver identity
+	// substitution would hand the client a token for the wrong user (the
+	// hint contract the client relies on). Overwrite semantics remain only
+	// for sessions whose hint did not resolve a subject.
+	if session.Subject != nil && *session.Subject != "" && !types.SecureCompareString(*session.Subject, req.Subject) {
+		res.Error = rfcerrors.InvalidRequest().Build()
+		return res, fmt.Errorf("auth_req_id '%s' subject mismatch: the confirming user is not the requested user", req.AuthReqId)
+	}
 	session.Subject = new(req.Subject)
 	session.Status = sessionv1.BackchannelAuthenticationStatus_BACKCHANNEL_AUTHENTICATION_STATUS_VALIDATED
 
@@ -355,6 +352,26 @@ func (s *service) Validate(ctx context.Context, req *flowv1.BackchannelAuthentic
 
 	// No error
 	return res, nil
+}
+
+// resolveBackchannelSession resolves and sanity-checks the session behind
+// an auth_req_id: storage lookup plus the nil-session/nil-request/nil-client
+// structural guards.
+func resolveBackchannelSession(ctx context.Context, sessions storage.BackchannelAuthenticationSession, req *flowv1.BackchannelAuthenticationValidationRequest) (*sessionv1.BackchannelAuthenticationSession, error) {
+	session, err := sessions.GetByAuthReqID(ctx, req.Issuer, req.AuthReqId)
+	if err != nil {
+		return nil, fmt.Errorf("session is invalid: %w", err)
+	}
+	if session == nil {
+		return nil, fmt.Errorf("retrieved nil session for '%s'", req.AuthReqId)
+	}
+	if session.Request == nil {
+		return nil, fmt.Errorf("session has nil request for '%s'", req.AuthReqId)
+	}
+	if session.Client == nil {
+		return nil, fmt.Errorf("session has nil client for '%s'", req.AuthReqId)
+	}
+	return session, nil
 }
 
 // Deny refuses a backchannel authentication request: the session moves to

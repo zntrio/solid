@@ -385,6 +385,10 @@ func (k *MLDSAKey) Thumbprint(hash crypto.Hash) ([]byte, error) {
 }
 
 // PublicKey implements the Key interface: returns a public-only copy.
+// The derived key keeps the private key's kid: a JWKS endpoint serving
+// the public half must expose the same key identifier the signer stamps
+// into JWT headers, so kid routing on the verifier side (RFC 7515
+// section 4.1.4) resolves against the published set.
 func (k *MLDSAKey) PublicKey() (Key, error) {
 	k.mu.RLock()
 	defer k.mu.RUnlock()
@@ -393,6 +397,7 @@ func (k *MLDSAKey) PublicKey() (Key, error) {
 		params: k.params,
 		pub:    k.pub,
 		kty:    k.kty,
+		kid:    k.kid,
 		alg:    k.alg,
 		use:    k.use,
 	}, nil

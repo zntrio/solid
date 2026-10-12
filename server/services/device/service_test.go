@@ -32,6 +32,7 @@ import (
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/oidc"
+	"zntr.io/solid/sdk/authzdetails"
 	generatormock "zntr.io/solid/sdk/generator/mock"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/server/storage"
@@ -287,7 +288,7 @@ func Test_service_Device(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(clients, deviceCodeSessions, deviceCodes, userCodes, userCodeAttempts)
+			underTest := New(clients, deviceCodeSessions, deviceCodes, userCodes, userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 
 			// Do the request
 			got, err := underTest.Authorize(tt.args.ctx, tt.args.req)
@@ -647,7 +648,7 @@ func Test_service_DeviceValidate(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(nil, deviceCodeSessions, nil, nil, userCodeAttempts)
+			underTest := New(nil, deviceCodeSessions, nil, nil, userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 
 			// Do the request
 			got, err := underTest.Validate(tt.args.ctx, tt.args.req)
@@ -864,7 +865,7 @@ func Test_service_DeviceDeny(t *testing.T) {
 			}
 
 			// Prepare service
-			underTest := New(nil, deviceCodeSessions, nil, nil, userCodeAttempts)
+			underTest := New(nil, deviceCodeSessions, nil, nil, userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 
 			// Do the request
 			got, err := underTest.Deny(tt.args.ctx, tt.args.req)

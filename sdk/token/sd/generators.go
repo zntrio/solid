@@ -154,14 +154,16 @@ type idTokenSDGenerator struct {
 // IDTokenWithSelectiveDisclosure returns a Generator minting
 // selectively disclosable ID tokens: the ID-token generalization of
 // the draft-forten profile at the SDK level (no standard mints SD ID
-// tokens; this surface exists for assemblies — no grant handler mints
-// ID tokens in this repo). iss, sub, aud, exp and iat derive from the
-// tokenv1.Token spec and are protected (never disclosable); idClaims
-// carries additional protected OIDC claims (nonce, auth_time, azp,
-// ...); disclosableClaims carries the user claims (email, name, ...)
+// tokens; this surface exists for assemblies — the token service mints
+// them when an assembly wires one in, see D-12.1). iss, sub, aud, exp
+// and iat derive from the tokenv1.Token spec and are protected (never
+// disclosable); idClaims carries additional protected OIDC claims
+// (azp, ...); nonce, acr and auth_time are sourced from the token
+// spec metadata when set, overriding any idClaims entry of the same
+// name; disclosableClaims carries the user claims (email, name, ...)
 // that the assembly sources from its identity records. The disclosures
-// land on the token spec (t.Disclosures); no grant handler mints ID
-// tokens in this repo yet, so no token response carries them today.
+// land on the token spec (t.Disclosures) and flow to the token
+// response id_token_disclosures parameter.
 //
 // The issuer is injected already configured: construction options are
 // applied at its constructor, not per Generate call.
@@ -198,6 +200,18 @@ func (g *idTokenSDGenerator) Generate(ctx context.Context, t *tokenv1.Token) (st
 	}
 	for name, value := range g.idClaims {
 		claims[name] = value
+	}
+	// Session truth from the token spec overrides any assembly-supplied
+	// entry of the same name; all three are protected claims in the
+	// ID-token profile, so they can never land in a disclosure.
+	if t.Metadata.Nonce != nil {
+		claims["nonce"] = *t.Metadata.Nonce
+	}
+	if t.Metadata.Acr != nil {
+		claims["acr"] = *t.Metadata.Acr
+	}
+	if t.Metadata.AuthTime != nil {
+		claims["auth_time"] = *t.Metadata.AuthTime
 	}
 	for name, value := range g.extra {
 		claims[name] = sdtoken.Disclosable{Value: value}

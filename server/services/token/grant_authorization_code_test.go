@@ -28,6 +28,7 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
@@ -1638,6 +1639,13 @@ func Test_service_authorizationCode(t *testing.T) {
 			tokens := storagemock.NewMockToken(ctrl)
 			resources := storagemock.NewMockResourceReader(ctrl)
 
+			// Default resource-registry expectation: the fixture audience is
+			// a registered resource (RFC 8707 audience validation runs on
+			// every redemption that reaches minting).
+			resources.EXPECT().GetByURI(gomock.Any(), "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH").Return(&resourcev1.Resource{
+				Urn: "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+			}, nil).AnyTimes()
+
 			// Prepare them
 			if tt.prepare != nil {
 				tt.prepare(sessions, tokens, resources, accessTokens, refreshTokens)
@@ -1660,4 +1668,162 @@ func Test_service_authorizationCode(t *testing.T) {
 			}
 		})
 	}
+}
+
+// newAuthorizationCodeService assembles a service with the shared
+// authorization-code redemption fixture (mock storage + generators) and
+// the given ID-token generator wiring (nil = default posture).
+func newAuthorizationCodeService(t *testing.T, ctrl *gomock.Controller, idTokenGen *tokenmock.MockGenerator) (*service, *flowv1.TokenRequest, *clientv1.Client) {
+	t.Helper()
+
+	sessions := storagemock.NewMockAuthorizationCodeSession(ctrl)
+	accessTokens := tokenmock.NewMockGenerator(ctrl)
+	refreshTokens := tokenmock.NewMockGenerator(ctrl)
+	tokens := storagemock.NewMockToken(ctrl)
+	resources := storagemock.NewMockResourceReader(ctrl)
+
+	// Resource registry: the fixture audience is a registered resource
+	// (RFC 8707 audience validation runs on every redemption that
+	// reaches minting).
+	resources.EXPECT().GetByURI(gomock.Any(), "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH").Return(&resourcev1.Resource{
+		Urn: "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+	}, nil).AnyTimes()
+
+	// Session fixture: consumed code, openid scope, pairwise subject,
+	// auth event and nonce from the authorization request.
+	sessions.EXPECT().DeleteAndGet(gomock.Any(), "http://127.0.0.1:8080", "1234567891234567890").Return(&sessionv1.AuthorizationCodeSession{
+		Status:  sessionv1.AuthorizationCodeStatus_AUTHORIZATION_CODE_STATUS_CONSUMED,
+		Subject: "aC5W5sTsrGh2QzXeEcJUoYzbcVkg9L",
+		GrantId: "g-1",
+		AuthEvent: &tokenv1.AuthEvent{
+			Acr:      new("urn:solid:loa:1fa:any"),
+			AuthTime: new(uint64(51)),
+		},
+		Request: &flowv1.AuthorizationRequest{
+			Audience:            "mDuGcLjmamjNpLmYZMLIshFcXUDCNDcH",
+			ResponseType:        "code",
+			Scope:               "openid profile email",
+			ClientId:            "s6BhdRkqt3",
+			State:               "af0ifjsldkj",
+			RedirectUri:         "https://client.example.org/cb",
+			CodeChallenge:       "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM",
+			CodeChallengeMethod: "S256",
+			Nonce:               "n-0S6_WzA2Mj",
+		},
+	}, nil)
+
+	// Access token minting succeeds.
+	accessTokens.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo", nil)
+	tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+
+	client := &clientv1.Client{
+		ClientId:      "s6BhdRkqt3",
+		GrantTypes:    []string{oidc.GrantTypeAuthorizationCode},
+		ResponseTypes: []string{"code"},
+		RedirectUris:  []string{"https://client.example.org/cb"},
+	}
+	req := &flowv1.TokenRequest{
+		Issuer: "http://127.0.0.1:8080",
+		Client: &clientv1.Client{
+			ClientId: "s6BhdRkqt3",
+		},
+		GrantType: oidc.GrantTypeAuthorizationCode,
+		Grant: &flowv1.TokenRequest_AuthorizationCode{
+			AuthorizationCode: &flowv1.GrantAuthorizationCode{
+				Code:         "1234567891234567890",
+				CodeVerifier: "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk",
+				RedirectUri:  "https://client.example.org/cb",
+			},
+		},
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"},
+	}
+
+	s := &service{
+		authorizationCodeSessions: sessions,
+		accessTokenGen:            accessTokens,
+		refreshTokenGen:           refreshTokens,
+		tokens:                    tokens,
+		resources:                 resources,
+	}
+	if idTokenGen != nil {
+		s.idTokenGen = idTokenGen
+	}
+	return s, req, client
+}
+
+// Test_service_authorizationCode_idtoken pins the D-12.1 opt-in id_token
+// mint: generator wired (minted), not wired (omitted) and failing
+// generator (redemption fails).
+func Test_service_authorizationCode_idtoken(t *testing.T) {
+	t.Run("minted when generator wired", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		idGen := tokenmock.NewMockGenerator(ctrl)
+		idGen.EXPECT().Generate(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, tok *tokenv1.Token) (string, error) {
+			tok.Disclosures = []string{"dlg.NeyJhbGciOiJub25lIn0", "dlg.NeyJhbGciOiJub25lIn1"}
+			return "eyJhbGciOiJFUzI1NiIsInR5cCI6ImlkK2p3dCJ9.e30.signature", nil
+		})
+
+		s, req, client := newAuthorizationCodeService(t, ctrl, idGen)
+		res, err := s.authorizationCode(context.Background(), client, req)
+		if err != nil {
+			t.Fatal("unexpected error:", err)
+		}
+		if res.IdToken == nil {
+			t.Fatal("expected id_token in response")
+		}
+		if res.IdToken.TokenType != tokenv1.TokenType_TOKEN_TYPE_ID_TOKEN {
+			t.Errorf("id_token type = %v, want TOKEN_TYPE_ID_TOKEN", res.IdToken.TokenType)
+		}
+		if got := res.IdToken.Metadata.GetAudience(); got != "s6BhdRkqt3" {
+			t.Errorf("id_token aud = %q, want client_id", got)
+		}
+		if got := res.IdToken.Metadata.GetSubject(); got != "aC5W5sTsrGh2QzXeEcJUoYzbcVkg9L" {
+			t.Errorf("id_token sub = %q, want pairwise subject passthrough", got)
+		}
+		if got := res.IdToken.Metadata.GetNonce(); got != "n-0S6_WzA2Mj" {
+			t.Errorf("id_token nonce = %q, want the request nonce", got)
+		}
+		if got := res.IdToken.Metadata.GetAcr(); got != "urn:solid:loa:1fa:any" {
+			t.Errorf("id_token acr = %q, want the login acr", got)
+		}
+		if got := res.IdToken.Metadata.GetAuthTime(); got != 51 {
+			t.Errorf("id_token auth_time = %d, want 51", got)
+		}
+		if len(res.IdToken.Disclosures) != 2 {
+			t.Errorf("id_token disclosures = %v, want 2 entries", res.IdToken.Disclosures)
+		}
+	})
+
+	t.Run("omitted when no generator wired", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		s, req, client := newAuthorizationCodeService(t, ctrl, nil)
+		res, err := s.authorizationCode(context.Background(), client, req)
+		if err != nil {
+			t.Fatal("unexpected error:", err)
+		}
+		if res.IdToken != nil {
+			t.Errorf("id_token = %v, want nil (default posture)", res.IdToken)
+		}
+	})
+
+	t.Run("generator error fails the redemption", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		idGen := tokenmock.NewMockGenerator(ctrl)
+		idGen.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("", fmt.Errorf("foo"))
+
+		s, req, client := newAuthorizationCodeService(t, ctrl, idGen)
+		res, err := s.authorizationCode(context.Background(), client, req)
+		if err == nil {
+			t.Fatal("expected an error")
+		}
+		if res.IdToken != nil {
+			t.Errorf("id_token = %v, want nil on generator error", res.IdToken)
+		}
+	})
 }

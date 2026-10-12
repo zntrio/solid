@@ -169,10 +169,23 @@ func (v *defaultVerifier) Claims(ctx context.Context, raw string, claims any) er
 
 	// Resolve candidate signing keys, honoring kid routing when the
 	// token carries one present in the key set.
+	//
+	// Solid stronger posture (header-injection defense): with a
+	// kid-addressed key set (its keys carry kids), a token whose header
+	// carries a kid that is NOT in the set is rejected outright instead
+	// of falling back to every signing key — an unknown kid referencing
+	// a non-existent key is a header attack, not a legitimate rotation
+	// (rotation publishes the new key under its kid before tokens
+	// reference it). An anonymous key set cannot be kid-routed (RFC 7515
+	// section 4.1.4: kid is recipient-advisory) and the whole-set
+	// signature verification remains the gate.
 	keys := candidateSigningKeys(jwks)
-	routed, errRoute := routeOnKid(raw, jwks)
+	routed, hasKid, errRoute := routeOnKid(raw, jwks)
 	switch {
 	case errRoute != nil:
+		return token.ErrInvalidTokenSignature
+	case hasKid && len(routed) == 0 && jwk.KeySetIsKidded(jwks):
+		// kid present in the header but absent from a kid-addressed set.
 		return token.ErrInvalidTokenSignature
 	case len(routed) > 0:
 		keys = routed
@@ -228,33 +241,34 @@ func candidateSigningKeys(jwks jwk.Set) []jwk.Key {
 }
 
 // routeOnKid syntactically resolves the token kid header against the key
-// set; an absent or unknown kid yields no candidates (the caller then uses
-// every signing key).
-func routeOnKid(raw string, jwks jwk.Set) ([]jwk.Key, error) {
+// set. The boolean reports whether the header carried a kid at all; when
+// true, an empty result means the kid is unknown to the key set (the
+// caller fails closed on that case — unknown kid, no fallback).
+func routeOnKid(raw string, jwks jwk.Set) (routed []jwk.Key, hasKid bool, err error) {
 	// Decode the header only: kid routing happens before verification,
 	// the header values are never trusted beyond key selection.
 	parts := strings.Split(raw, ".")
 	if len(parts) < 2 {
-		return nil, fmt.Errorf("token is not a compact JWS")
+		return nil, false, fmt.Errorf("token is not a compact JWS")
 	}
 	headerJSON, err := base64.RawURLEncoding.DecodeString(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf("unable to decode token header: %w", err)
+		return nil, false, fmt.Errorf("unable to decode token header: %w", err)
 	}
 	var header struct {
 		KID string `json:"kid"`
 	}
 	if err := json.Unmarshal(headerJSON, &header); err != nil {
-		return nil, fmt.Errorf("unable to decode token header: %w", err)
+		return nil, false, fmt.Errorf("unable to decode token header: %w", err)
 	}
 	if header.KID == "" {
-		return nil, nil
+		return nil, false, nil
 	}
 	k, found := jwks.LookupKeyID(header.KID)
 	if !found {
-		return nil, nil
+		return nil, true, nil
 	}
-	return []jwk.Key{k}, nil
+	return []jwk.Key{k}, true, nil
 }
 
 // decodeVerifiedClaims unmarshals the parsed claims into the target.

@@ -22,8 +22,9 @@ serializations (JWT per the draft, CWT as the format-agnostic analog).
 - **SD ID tokens** (the generalization): OIDC-core claims protected, user
   claims (`email`, `name`) disclosable, verified by the client with the
   `id_token` profile (`typ` `id+jwt` / `application/id+cwt`). Example-level
-  direct mint — no AS grant handler mints ID tokens (the repo keeps the
-  "no id_token in the authorization code flow" posture).
+  direct mint — the reference AS (`examples/authorizationserver`) mints them
+  opt-in via the D-12.1 `WithIDTokenGenerator` wiring; this example shows the
+  direct-mint form.
 - **Both serializations** through one profile factory: `--format=cwt` runs
   the identical flow over the CWT kind.
 

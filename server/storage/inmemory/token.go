@@ -132,6 +132,48 @@ func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 	return nil
 }
 
+// consumeMu serializes refresh-token consumption: the compare-and-set on
+// the two sync.Maps must be a single critical section (the sync.Map
+// LoadOrStore primitive alone cannot guard the value→id pair transition).
+var consumeMu sync.Mutex
+
+// ConsumeIfActive atomically transitions the refresh token addressed by
+// value from ACTIVE to CONSUMED (RFC 9700 section 4.14.2): a single
+// critical-section compare-and-set over the value and id indexes, so two
+// concurrent refresh requests presenting the same token cannot both win —
+// the loser observes the CONSUMED state and reports a replay.
+func (s *tokenStorage) ConsumeIfActive(ctx context.Context, issuer, value string) (*tokenv1.Token, error) {
+	derived := s.deriveValue(issuer, value)
+
+	consumeMu.Lock()
+	defer consumeMu.Unlock()
+
+	// Resolve by value.
+	x, ok := s.valueIndex.Load(derived)
+	if !ok {
+		return nil, storage.ErrNotFound
+	}
+	t, ok := x.(*tokenv1.Token)
+	if !ok {
+		return nil, storage.ErrNotFound
+	}
+
+	// Snapshot the pre-transition state for the caller: ACTIVE means this
+	// call won the race and may rotate the family.
+	snapshot := proto.Clone(t).(*tokenv1.Token)
+
+	// Compare-and-set: only an ACTIVE token transitions. An already
+	// CONSUMED or REVOKED token is returned as-is (the caller reports the
+	// replay / revocation outcome).
+	if t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
+		t.Status = tokenv1.TokenStatus_TOKEN_STATUS_CONSUMED
+		s.idIndex.Store(t.TokenId, t)
+		s.valueIndex.Store(derived, t)
+	}
+
+	return snapshot, nil
+}
+
 // -----------------------------------------------------------------------------
 
 func (s *tokenStorage) deriveValue(issuer, value string) string {

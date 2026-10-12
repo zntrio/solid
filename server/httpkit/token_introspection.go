@@ -31,6 +31,13 @@ import (
 // TokenIntrospection handles token introspection HTTP requests.
 func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// RFC 7662 section 2.1: the request MUST use the POST method. The
+		// token value is a credential: reading it from the URL query would
+		// leak it into access logs, proxies and browser history.
+		if r.Method != http.MethodPost {
+			WithError(w, r, http.StatusMethodNotAllowed, rfcerrors.InvalidRequest().Build())
+			return
+		}
 		if err := r.ParseForm(); err != nil {
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
@@ -38,8 +45,8 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 
 		var (
 			ctx              = r.Context()
-			tokenRaw         = r.FormValue("token")
-			tokenTypeHintRaw = r.FormValue("token_type_hint")
+			tokenRaw         = r.PostFormValue("token")
+			tokenTypeHintRaw = r.PostFormValue("token_type_hint")
 		)
 
 		// Retrieve client front context
@@ -86,6 +93,12 @@ func TokenIntrospection(issuer string, tokenz services.Token) http.Handler {
 			resp["iss"] = res.Token.Metadata.Issuer
 			resp["jti"] = res.Token.TokenId
 
+			// RFC 8693 section 4.4: the actor chain of an exchanged token
+			// is surfaced as the nested "act" member (RFC 7662 section 2.2
+			// token claims).
+			if act := token.ActorAsJSON(res.Token.Actor); act != nil {
+				resp["act"] = act
+			}
 			// Add confirmation with the RFC-mandated member names
 			// ("x5t#S256" per RFC 8705 section 3.1; the generated
 			// protojson marshaler would emit the proto field name).

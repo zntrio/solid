@@ -30,6 +30,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -56,7 +57,8 @@ import (
 	"zntr.io/solid/server/clientauthentication"
 	"zntr.io/solid/server/services"
 	"zntr.io/solid/server/services/authorization"
-	"zntr.io/solid/server/services/backchannel"
+	backchannel "zntr.io/solid/server/services/backchannel"
+	"zntr.io/solid/server/services/clientregistration"
 	"zntr.io/solid/server/services/device"
 	"zntr.io/solid/server/services/token"
 	"zntr.io/solid/server/storage"
@@ -98,6 +100,7 @@ type harness struct {
 	devicez             services.Device
 	backchannelz        services.BackchannelAuthentication
 	clientAuth          clientauthentication.AuthenticationProcessor
+	registrz            services.ClientRegistration
 }
 
 // newHarness builds a fully wired service stack.
@@ -136,7 +139,7 @@ func newHarness(t *testing.T) *harness {
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	tokenz := token.New(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources)
 	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(), hintResolver, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
-	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts)
+	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})
 
 	return &harness{
@@ -155,7 +158,16 @@ func newHarness(t *testing.T) *harness {
 		devicez:             devicez,
 		backchannelz:        backchannelz,
 		clientAuth:          clientAuth,
+		registrz:            clientregistration.New(clients, tokens, allowAllRegistrationAuthorizer),
 	}
+}
+
+// allowAllRegistrationAuthorizer opens dynamic client registration for the
+// adversarial harness (RFC 7591 section 3.2.1 initial access token is a
+// deployment decision; the tests exercise the open posture, the closed one
+// is pinned by TestDCR_NilAuthorizerDeniesAll).
+func allowAllRegistrationAuthorizer(context.Context, *clientv1.RegisterRequest) bool {
+	return true
 }
 
 // registerConfidentialClient registers a confidential client with the given
@@ -176,6 +188,41 @@ func (h *harness) registerConfidentialClient(t *testing.T, redirectURIs, grantTy
 
 	if _, err := h.clients.Register(context.Background(), c); err != nil {
 		t.Fatalf("unable to register client: %v", err)
+	}
+	return c
+}
+
+// registerKiddedClient registers a confidential client whose fixture
+// JWKS publishes its key under the given kid (a kid-addressed key set, the
+// addressing scheme the strict kid routing enforces).
+func (h *harness) registerKiddedClient(t *testing.T, redirectURIs []string, kid string) *clientv1.Client {
+	t.Helper()
+
+	// Parse the fixture key, stamp the kid, re-serialize the JWKS.
+	key, err := jwxjwk.ParseKey(clientPrivateKey)
+	if err != nil {
+		t.Fatalf("unable to parse fixture key: %v", err)
+	}
+	if err := key.Set(jwxjwk.KeyIDKey, kid); err != nil {
+		t.Fatalf("unable to set kid: %v", err)
+	}
+	kidded, err := json.Marshal(map[string]any{"keys": []any{key}})
+	if err != nil {
+		t.Fatalf("unable to serialize kidded JWKS: %v", err)
+	}
+
+	c := &clientv1.Client{
+		ClientName:              "kidded-adversarial-test-client",
+		ClientType:              clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL,
+		GrantTypes:              nil,
+		ResponseTypes:           []string{oidc.ResponseTypeCode},
+		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
+		RedirectUris:            redirectURIs,
+		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
+		Jwks:                    kidded,
+	}
+	if _, err := h.clients.Register(context.Background(), c); err != nil {
+		t.Fatalf("unable to register kidded client: %v", err)
 	}
 	return c
 }
@@ -311,6 +358,22 @@ func refreshGrantRequest(issuer, clientID, refreshToken string) *flowv1.TokenReq
 				RefreshToken: refreshToken,
 			},
 		},
+		// RFC 9449 section 8 key continuity: a DPoP-bound refresh token
+		// (code-flow minted, always jkt-bound in this harness) is refreshed
+		// under the same key that redeemed the code.
+		TokenConfirmation: &tokenv1.TokenConfirmation{Jkt: integrationDPoPJkt},
+	}
+}
+
+// clientCredentialsRequest builds a TokenRequest for the
+// client_credentials grant with an audience parameter.
+func clientCredentialsRequest(issuer, clientID, audience string) *flowv1.TokenRequest {
+	return &flowv1.TokenRequest{
+		Issuer:    issuer,
+		GrantType: oidc.GrantTypeClientCredentials,
+		Client:    &clientv1.Client{ClientId: clientID},
+		Audience:  &audience,
+		Grant:     &flowv1.TokenRequest_ClientCredentials{ClientCredentials: &flowv1.GrantClientCredentials{}},
 	}
 }
 

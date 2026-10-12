@@ -105,7 +105,7 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 	// Check expiration
 	if session.ExpiresAt < uint64(timeFunc().Unix()) { //nolint:gosec // unix time is non-negative
 		res.Error = rfcerrors.TokenExpired().Build()
-		return res, fmt.Errorf("token '%s' is expired", grant.DeviceCode)
+		return res, fmt.Errorf("device code is expired")
 	}
 
 	// Check if it's pending
@@ -117,9 +117,9 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 			return s.deviceCodeSessions.UpdateByDeviceCode(ctx, req.Issuer, grant.DeviceCode, session)
 		})
 		if err != nil {
-			return res, fmt.Errorf("token '%s' poll throttle: %w", grant.DeviceCode, err)
+			return res, fmt.Errorf("device code poll throttle: %w", err)
 		}
-		return res, fmt.Errorf("token '%s' is waiting for authorization", grant.DeviceCode)
+		return res, fmt.Errorf("device code is waiting for authorization")
 	}
 
 	// RFC 8628 section 3.5: the end user refused the request.
@@ -131,7 +131,7 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 	// Check token state
 	if session.Status != sessionv1.DeviceCodeStatus_DEVICE_CODE_STATUS_VALIDATED {
 		res.Error = rfcerrors.InvalidToken().Build()
-		return res, fmt.Errorf("token '%s' is invalid", grant.DeviceCode)
+		return res, fmt.Errorf("device code is invalid")
 	}
 	// Check subject attribute
 	if session.Subject == nil {
@@ -170,6 +170,12 @@ func (s *service) deviceCode(ctx context.Context, client *clientv1.Client, req *
 		scopes := types.StringArray(strings.Fields(*session.Scope))
 		scopes.Remove(oidc.ScopeOfflineAccess) // device flow never grants offline access (RFC 10027 section 6.1.9)
 		tm.Scope = strings.Join(scopes, " ")
+	}
+	// RFC 8707: the audience consented at device-authorization time is the
+	// audience of the minted token (mirroring the CIBA grant; the JWT
+	// access-token profile requires a non-blank aud).
+	if session.Audience != nil {
+		tm.Audience = *session.Audience
 	}
 
 	// Generate access token (access token only: the device grant never

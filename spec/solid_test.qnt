@@ -12,7 +12,7 @@ module solidTest {
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c1", 1, "https://c1.example/cb", 0))
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
       .expect(all {
         tokens.keys().size() == 2,
         tokens.get(2).kind == Access,
@@ -26,16 +26,16 @@ module solidTest {
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c1", 1, "https://c1.example/cb", 0))
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
       .expect(tokens.keys().size() == 1)
-      .then(redeem(1, "c1", 1, "https://c1.example/cb", 0).fail())
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1).fail())
 
   /** redeem with a WRONG verifier is still enabled (burns the code) but mints nothing. */
   run wrongVerifierBurnsCodeTest =
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c1", 2, "https://c1.example/cb", 0))
+      .then(redeem(1, "c1", 2, "https://c1.example/cb", 1))
       .expect(all {
         tokens.keys().size() == 0,
         sessions.keys().size() == 0, // code consumed despite failed PKCE
@@ -46,19 +46,19 @@ module solidTest {
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c1", 2, "https://c1.example/cb", 0))
+      .then(redeem(1, "c1", 2, "https://c1.example/cb", 1))
       .expect(all {
         tokens.keys().size() == 0,
         sessions.keys().size() == 0, // wrong verifier burned the code
       })
-      .then(redeem(1, "c1", 1, "https://c1.example/cb", 0).fail())
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1).fail())
 
   /** Code issued to c1 cannot be redeemed by c2, even with correct verifier/redirect. */
   run clientBindingTest =
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c2", 1, "https://c1.example/cb", 0))
+      .then(redeem(1, "c2", 1, "https://c1.example/cb", 1))
       .expect(all {
         tokens.keys().size() == 0,
         sessions.keys().size() == 0, // burn still consumed the code
@@ -72,49 +72,90 @@ module solidTest {
       .expect(sessions.keys().size() == 1)
       .then(authorizePAR(0).fail())
 
-  /** refresh rotates: new AT+RT minted via FromRefresh, old RT revoked, single active RT. */
+  /** refresh rotates: new AT+RT minted via FromRefresh, old RT CONSUMED (atomic
+    * consume), single active RT. The refresh presents the same DPoP key the
+    * code was redeemed under (RFC 9449 §8 continuity) and the granted scope. */
   run refreshRotationTest =
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c1", 1, "https://c1.example/cb", 0))
-      .then(refresh(3, "c1"))
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
+      .then(refresh(3, "c1", 1, Set("openid", "offline_access")))
       .expect(all {
-        tokens.get(3).status == Revoked,               // old RT rotated out
+        tokens.get(3).status == Consumed,                // old RT atomically consumed
         tokens.get(4).kind == Access, tokens.get(4).via == FromRefresh,
         tokens.get(5).kind == Refresh, tokens.get(5).via == FromRefresh,
-        tokens.get(4).grantId == tokens.get(3).grantId, // family preserved
+        tokens.get(4).grantId == tokens.get(3).grantId,   // family preserved
       })
 
-  /** Replay of the revoked RT revokes the ENTIRE grant family (theft response). */
+  /** Replay of the consumed RT revokes the ENTIRE grant family (theft response):
+    * the loser of the consume race (or a sequential replay) observes CONSUMED. */
   run replayRevokesFamilyTest =
     init
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access"), true, 0))
       .then(authorizePAR(0))
-      .then(redeem(1, "c1", 1, "https://c1.example/cb", 0))
-      .then(refresh(3, "c1"))
-      .then(refresh(3, "c1"))                          // replay the rotated-out RT
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
+      .then(refresh(3, "c1", 1, Set("openid", "offline_access")))
+      .then(refresh(3, "c1", 1, Set("openid", "offline_access")))  // replay the consumed RT
       .expect(all {
         replayDetected == Set(1),
-        tokens.get(2).status == Revoked,               // original AT
-        tokens.get(4).status == Revoked,               // refreshed AT
-        tokens.get(5).status == Revoked,               // rotated RT
-        tokens.get(3).status == Revoked,               // replayed RT
+        tokens.get(2).status == Revoked,                 // original AT
+        tokens.get(4).status == Revoked,                 // refreshed AT
+        tokens.get(5).status == Revoked,                 // rotated RT
+        tokens.get(3).status == Revoked,                 // replayed RT
+      })
+
+  /** A DPoP-bound RT refreshed under a DIFFERENT key mints nothing (jkt
+    * continuity, RFC 9449 §8) — but the token is still consumed (the
+    * atomic consume runs before every check: burn-first). */
+  run refreshDpopKeySwapRejectedTest =
+    init
+      .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access"), true, 1))
+      .then(authorizePAR(0))
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
+      .then(refresh(3, "c1", 2, Set("openid", "offline_access")))
+      .expect(all {
+        tokens.keys().size() == 2,                       // nothing minted
+        tokens.get(3).status == Consumed,                 // still burned
+      })
+
+  /** Scope narrowing at refresh: a subset is granted; an escalation
+    * (requesting a scope never granted, RFC 6749 §6) mints nothing and
+    * CONSUMES the presented RT — the escalation must be tested before
+    * the rotation, since a burned token cannot be refreshed again. */
+  run refreshScopeNarrowingTest =
+    init
+      .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access", "profile"), true, 0))
+      .then(authorizePAR(0))
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
+      .then(refresh(3, "c1", 1, Set("openid", "email")))   // escalation: burns, mints nothing
+      .expect(all {
+        tokens.keys().size() == 2,
+        tokens.get(3).status == Consumed,
+      })
+      .then(init)                                            // reset for the narrowing half
+      .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access", "profile"), true, 0))
+      .then(authorizePAR(0))
+      .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
+      .then(refresh(3, "c1", 1, Set("openid")))
+      .expect(all {
+        tokens.get(4).scopes == Set("openid"),
+        tokens.get(5).scopes == Set("openid"),
       })
 
   /** c2 lacks the refresh_token grant: its refresh attempts are disabled. */
   run refreshCapabilityTest =
     init
       .then(authorizeDirect("c2", 1, 1, "https://c2.example/cb", Set("openid", "offline_access"), true, 0))
-      .then(redeem(0, "c2", 1, "https://c2.example/cb", 0))
+      .then(redeem(0, "c2", 1, "https://c2.example/cb", 1))
       .expect(tokens.keys().size() == 2)               // RT minted to family anyway
-      .then(refresh(1, "c2").fail())                    // but c2 cannot use it
+      .then(refresh(1, "c2", 1, Set("openid", "offline_access")).fail())                    // but c2 cannot use it
 
   /** Revocation by a non-owner client leaves the token ACTIVE. */
   run revokeOwnerOnlyTest =
     init
       .then(authorizeDirect("c1", 1, 1, "https://c1.example/cb", Set("openid"), true, 0))
-      .then(redeem(0, "c1", 1, "https://c1.example/cb", 0))
+      .then(redeem(0, "c1", 1, "https://c1.example/cb", 1))
       .then(revoke(1, "c2"))
       .expect(tokens.get(1).status == Active)
       .then(revoke(1, "c1"))
@@ -125,15 +166,15 @@ module solidTest {
     init
       .then(authorizeDirect("c1", 1, 1, "https://c1.example/cb", Set("openid"), true, 0))
       .then(authorizeDirect("c2", 1, 1, "https://c2.example/cb", Set("openid"), true, 0))
-      .then(redeem(0, "c1", 1, "https://c1.example/cb", 0))
-      .then(redeem(1, "c2", 1, "https://c2.example/cb", 0))
+      .then(redeem(0, "c1", 1, "https://c1.example/cb", 1))
+      .then(redeem(1, "c2", 1, "https://c2.example/cb", 1))
       .expect(tokens.get(2).subject != tokens.get(3).subject)
 
   /** Without consent, offline_access is stripped at authorize time: no RT minted. */
   run offlineNeedsConsentTest =
     init
       .then(authorizeDirect("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access"), false, 0))
-      .then(redeem(0, "c1", 1, "https://c1.example/cb", 0))
+      .then(redeem(0, "c1", 1, "https://c1.example/cb", 1))
       .expect(all {
         tokens.keys().size() == 1,
         tokens.get(1).kind == Access,
@@ -143,7 +184,7 @@ module solidTest {
   run noOpenidNoTokensTest =
     init
       .then(authorizeDirect("c1", 1, 1, "https://c1.example/cb", Set("profile"), true, 0))
-      .then(redeem(0, "c1", 1, "https://c1.example/cb", 0))
+      .then(redeem(0, "c1", 1, "https://c1.example/cb", 1))
       .expect(all {
         tokens.keys().size() == 0,
         sessions.keys().size() == 0,
@@ -188,7 +229,7 @@ module solidTest {
       .then(registerPAR("c1", 1, 1, "https://c1.example/cb", Set("openid", "offline_access"), true, 1))
       .then(authorizePAR(0))
       .then(redeem(1, "c1", 1, "https://c1.example/cb", 1))
-      .then(refresh(3, "c1"))
+      .then(refresh(3, "c1", 1, Set("openid", "offline_access")))
       .expect(all {
         tokens.get(4).jkt == 1,
         tokens.get(5).jkt == 1,

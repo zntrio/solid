@@ -6,34 +6,59 @@
  *   - Device authorization endpoint issue: client capability
  *     ( grants ∋ device_code ), PENDING session with fixed expiry
  *     ( 120s ), poll interval 5s, offline_access stripped, details
- *     frozen at issue time ( server/services/device/service.go )
+ *     frozen at issue time, issue-time authorization_details registry
+ *     validation ( RFC 9396 — unregistered types fail closed ), audience
+ *     frozen at issue time ( RFC 8707 ) ( server/services/device/service.go )
  *   - User approval via user_code: PENDING→VALIDATED (with Subject) is
  *     the only legal transition, PENDING→DENIED terminal; brute-force
- *     throttle on unknown user_codes ( ≥5 failures/subject/5min window
- *     latches access_denied ); expiry does NOT count a failure; the
- *     failure counter resets on successful approval
+ *     throttle on unknown user_codes ( ≥5 failures/subject in a sliding
+ *     5-minute window latches access_denied; the latch DECAYS once the
+ *     window passes ); expiry does NOT count a failure; the failure
+ *     counter resets on successful approval; DENY is deliberately
+ *     NOT throttled and NOT expiry-checked
  *   - Token endpoint poll ( server/services/token/grant_device_code.go ):
- *     grant preamble capability, authorization_details MUST be empty
- *     ( invalid_authorization_details ), DPoP sender binding (RFC 9449 §10
- *     jkt pattern), device_code lookup, client binding, expiry
- *     ( expired_token ), slow_down ( interval += 5s, LastPolledAt NOT
- *     advanced ) vs authorization_pending ( LastPolledAt = now ),
- *     access_denied on DENIED, and the ATOMIC one-time consume
- *     ( DeleteAndGetByDeviceCode ) that mints a single access token —
- *     never a refresh token ( RFC 10027 §6.1.9/6.1.10 )
+ *     grant preamble capability ( unauthorized_client ),
+ *     authorization_details MUST be empty ( invalid_authorization_details ),
+ *     DPoP sender binding by CLIENT REGISTRATION POLICY — a client
+ *     registered dpop_bound MUST present a proof jkt ( enforceSenderBinding,
+ *     RFC 9449 / RFC 10027 §6.1.12; one-directional, NOT a session-key
+ *     equality check ), device_code lookup, client binding, expiry
+ *     ( expired_token; live while now ≤ expiresAt ), slow_down
+ *     ( interval += 5s, LastPolledAt NOT advanced ) vs
+ *     authorization_pending ( LastPolledAt = now ), access_denied on
+ *     DENIED, and the ATOMIC one-time consume ( DeleteAndGetByDeviceCode )
+ *     that mints a single access token — never a refresh token
+ *     ( RFC 10027 §6.1.9/6.1.10 )
  *
  * DOES NOT COVER (deliberate abstractions)
  *   - Cryptography: user_code/device_code values are fresh integers;
  *     DPoP key thumbprints assumed well-formed.
  *   - Wall-clock: time is an abstract integer `clock` advanced by a `tick`
- *     action; 120s TTL / 5s poll interval live in the same abstract units.
+ *     action; 120s TTL / 5s poll interval / 300-unit attempt window live
+ *     in the same abstract units.
  *   - Client authentication — modeled as a closed client registry.
  *   - The verification URI browse / user login page behind the approval.
+ *   - The TLS-client-certificate branch of enforceSenderBinding
+ *     ( x5t#S256, RFC 8705 §3 ) — the dpopBound branch below is the
+ *     modeled analog; adding tlsBound would double the client registry.
+ *   - Unknown client at ISSUE ( invalid_client ) is conflated with the
+ *     capability check ( both disable the issue ).
+ *
+ * DIVERGENCES ( spec previously stricter than the code — resolved 2026-10
+ *   by encoding the code's actual behavior per the DcDrift report ):
+ *   - DPoP binding is client-policy at the token endpoint, not a
+ *     session-bound key fixed at issue; the session carries no key.
+ *   - Expiry boundary: expired iff now > expiresAt ( live at equality ).
+ *   - Deny is unthrottled and not expiry-checked ( deliberate, RFC 8628
+ *     §5.1 comment in service.go: brute-forcing deny only griefs the
+ *     attacker's own code discovery ).
+ *   - The brute-force latch decays after the 5-minute sliding window.
  *
  * WHEN TO UPDATE: re-verify this spec before changing
  *   server/services/device/service.go,
  *   server/services/token/grant_device_code.go, or
- *   server/services/token/grants.go ( enforcePollInterval ).
+ *   server/services/token/grants.go ( validateGrantPreamble,
+ *   enforceSenderBinding, enforcePollInterval ).
  *
  * The spec is the ground truth. Never edit it to match broken code.
  */
@@ -57,11 +82,14 @@ module devicecode {
     Set("tx:pay1"),
     Set("tx:pay1", "tx:pay2"),
   )
+  pure val AUDIENCES: Set[str] = Set("", "https://api.example/") // "" = none requested
   pure val JKTS: Set[int] = Set(0, 1, 2) // DPoP key thumbprints; 0 = unbound
-  pure val TICKS: Set[int] = Set(1, 5, 30, 60) // abstract time deltas
+  pure val TICKS: Set[int] = Set(1, 5, 30, 60, 300) // abstract time deltas
+                                         // (300 = the attempt window span)
   pure val DEVICE_TTL: int = 120      // abstract units (RFC 8628: 120s)
   pure val POLL_BASE: int = 5         // RFC 8628: 5s default interval
   pure val THROTTLE_LIMIT: int = 5    // brute-force failures before latch
+  pure val ATTEMPT_WINDOW: int = 300  // sliding failure window (5 min)
 
   // ------------------------------------------------------------------
   // Types
@@ -69,6 +97,9 @@ module devicecode {
 
   type Client = {
     grants: Set[str],        // "device_code" | "authorization_code"
+    dpopBound: bool,         // registration policy: DPoP-bound access tokens
+                             // (RFC 9449 / RFC 10027 §6.1.12) — such a client
+                             // MUST present a proof jkt at the token endpoint
   }
 
   type SessionStatus = Pending | Validated | Denied
@@ -77,13 +108,13 @@ module devicecode {
     client: str,
     scopes: Set[str],
     details: Set[str],       // authorization_details, frozen at issue
+    audience: str,           // RFC 8707 audience, frozen at issue
     status: SessionStatus,
     subject: int,            // approver subject; 0 = unset (PENDING)
     deviceCode: int,
     expiresAt: int,          // abstract clock units
     pollInterval: int,       // seconds; only ever grows by +5
     lastPolledAt: int,       // advanced ONLY on authorization_pending
-    jkt: int,                // DPoP key bound at issue; 0 = unbound
   }
 
   type TokenKind = Access | Refresh  // Refresh is never minted (RFC 10027)
@@ -97,18 +128,31 @@ module devicecode {
     grantId: int,            // fresh random16 at mint
     scopes: Set[str],
     details: Set[str],       // == session details (no endpoint narrowing)
+    audience: str,           // == session audience (RFC 8707, frozen at issue)
     jkt: int,                // DPoP confirmation carried into the token
   }
 
+  // Per-subject brute-force failure record: a COUNT inside a sliding
+  // window that is re-armed on every failure ( user_code_attempts.go:
+  // each Fail() stamps expiresAt = now + window; Failures() lazily
+  // purges once now > expiresAt ). The latch therefore DECAYS —
+  // it is not absorbing.
+  type AttemptRecord = {
+    count: int,             // failures within the current window
+    failExpiresAt: int,     // window deadline; effective count 0 at
+                            // clock >= failExpiresAt
+  }
+
   // Ghost ledger keyed by deviceCode: freezes the issue-time contract
-  // (client, details) and the approval-time facts (subject, failure count),
-  // plus the interval history used to prove monotonicity after the
-  // session itself has been consumed.
+  // (client, details, audience) and the approval-time facts (subject,
+  // effective failure count), plus the interval history used to prove
+  // monotonicity after the session itself has been consumed.
   type Ledger = {
     client: str,
     details: Set[str],
+    audience: str,
     subject: int,
-    valFailures: int,        // approver's failure count at VALIDATE time
+    valFailures: int,        // approver's effective failure count at VALIDATE time
     interval: int,           // current poll interval (high water)
     intervalLog: Set[int],   // every interval value ever assigned
   }
@@ -122,21 +166,23 @@ module devicecode {
                                          // user_code; device_code lookup by scan
   var tokens: int -> Token                // token id -> record
   var ledger: int -> Ledger               // deviceCode -> frozen facts
-  var failures: int -> int                // subject -> unknown-user_code failures
+  var failures: int -> AttemptRecord      // subject -> failure window record
   var clock: int                          // abstract time
   var counter: int                        // fresh id source
 
   // Sentinel defaults so guarded actions never .get() a missing key.
-  pure val NO_CLIENT: Client = { grants: Set() }
+  pure val NO_CLIENT: Client = { grants: Set(), dpopBound: false }
   pure val NO_SESSION: DeviceSession =
-    { client: "", scopes: Set(), details: Set(), status: Pending, subject: 0,
-      deviceCode: -1, expiresAt: 0, pollInterval: POLL_BASE, lastPolledAt: 0, jkt: 0 }
+    { client: "", scopes: Set(), details: Set(), audience: "", status: Pending,
+      subject: 0, deviceCode: -1, expiresAt: 0, pollInterval: POLL_BASE,
+      lastPolledAt: 0 }
   pure val NO_TOKEN: Token =
     { id: -1, kind: Access, client: "", subject: 0, deviceCode: -1,
-      grantId: -1, scopes: Set(), details: Set(), jkt: 0 }
+      grantId: -1, scopes: Set(), details: Set(), audience: "", jkt: 0 }
   pure val NO_LEDGER: Ledger =
-    { client: "", details: Set(), subject: 0, valFailures: -1,
+    { client: "", details: Set(), audience: "", subject: 0, valFailures: -1,
       interval: POLL_BASE, intervalLog: Set(POLL_BASE) }
+  pure val NO_ATTEMPTS: AttemptRecord = { count: 0, failExpiresAt: 0 }
 
   // ------------------------------------------------------------------
   // Functional layer (pure)
@@ -147,11 +193,18 @@ module devicecode {
   pure def userCodeOf(m: int -> DeviceSession, dc: int): int =
     m.keys().fold(-1, (acc, k) => if (m.get(k).deviceCode == dc) k else acc)
 
+  // Effective failure count ( user_code_attempts.go Failures ): 0 once
+  // the sliding window has passed — the lazily-purged record counts
+  // nothing. A record still inside its window contributes its count.
+  pure def effFailures(rec: AttemptRecord, now: int): int =
+    if (now >= rec.failExpiresAt) 0 else rec.count
+
   pure def mkToken(id: int, client: str, subject: int, deviceCode: int,
-                   grantId: int, scopes: Set[str], details: Set[str], jkt: int): Token =
+                   grantId: int, scopes: Set[str], details: Set[str],
+                   audience: str, jkt: int): Token =
     { id: id, kind: Access, client: client, subject: subject,
       deviceCode: deviceCode, grantId: grantId, scopes: scopes,
-      details: details, jkt: jkt }
+      details: details, audience: audience, jkt: jkt }
 
   // ------------------------------------------------------------------
   // State machine (guarded actions)
@@ -159,9 +212,9 @@ module devicecode {
 
   action init: bool = all {
     clients' = Map(
-      "c1" -> { grants: Set("device_code", "authorization_code") },
-      "c2" -> { grants: Set("device_code") },
-      "c3" -> { grants: Set("authorization_code") },   // no device_code
+      "c1" -> { grants: Set("device_code", "authorization_code"), dpopBound: false },
+      "c2" -> { grants: Set("device_code"), dpopBound: true },  // DPoP-bound policy
+      "c3" -> { grants: Set("authorization_code"), dpopBound: false },  // no device_code
     ),
     sessions' = Map(),
     tokens' = Map(),
@@ -171,31 +224,37 @@ module devicecode {
     counter' = 0,
   }
 
-  // Device authorization endpoint (service.Issue): capability check
-  // (unsupported_grant_type), fresh user_code (2*counter) and device_code
-  // (2*counter+1), PENDING session with fixed expiry, poll interval 5,
-  // offline_access STRIPPED from scopes, details frozen as requested.
-  action issueDeviceAuth(client: str, scopes: Set[str], details: Set[str], jkt: int): bool = {
+  // Device authorization endpoint (service.Authorize): capability check
+  // (unsupported_grant_type), RFC 9396 issue-time registry validation of
+  // authorization_details (unregistered types fail closed,
+  // invalid_authorization_details — no session), fresh user_code
+  // (2*counter) and device_code (2*counter+1), PENDING session with fixed
+  // expiry, poll interval 5, offline_access STRIPPED from scopes, details
+  // and audience frozen as requested.
+  action issueDeviceAuth(client: str, scopes: Set[str], details: Set[str],
+                         audience: str, detailsRegistered: bool): bool = {
     val cl = if (clients.keys().contains(client)) clients.get(client) else NO_CLIENT
     val effScopes = scopes.exclude(Set("offline_access"))
     all {
       cl.grants.contains("device_code"),
+      details == Set() or detailsRegistered,   // registry gate (RFC 9396)
       counter < MAX_IDS,
       sessions' = sessions.put(2 * counter, {
         client: client,
         scopes: effScopes,
         details: details,
+        audience: audience,
         status: Pending,
         subject: 0,
         deviceCode: 2 * counter + 1,
         expiresAt: clock + DEVICE_TTL,
         pollInterval: POLL_BASE,
         lastPolledAt: 0,
-        jkt: jkt,
       }),
       ledger' = ledger.put(2 * counter + 1, {
         client: client,
         details: details,
+        audience: audience,
         subject: 0,
         valFailures: -1,
         interval: POLL_BASE,
@@ -210,49 +269,63 @@ module devicecode {
   }
 
   // User approval via user_code (device/service.go Approve):
-  //   - throttle first: a subject with ≥5 failures is latched out
-  //     (access_denied for ALL further attempts)
+  //   - throttle first: a subject with ≥5 in-window failures is latched
+  //     out (access_denied for ALL further attempts)
   //   - expiry does NOT count a failure and blocks the transition
+  //     ( live while clock ≤ expiresAt — expired iff clock > expiresAt )
   //   - PENDING→VALIDATED (Subject set) is the ONLY legal transition
-  //   - PENDING→DENIED is terminal
   //   - the failure counter resets on a successful approval
-  action attemptUserApprove(userCode: int, subject: int, approved: bool): bool = {
-    val fc = if (failures.keys().contains(subject)) failures.get(subject) else 0
+  action attemptUserApprove(userCode: int, subject: int): bool = {
+    val rec = if (failures.keys().contains(subject)) failures.get(subject) else NO_ATTEMPTS
+    val fc = effFailures(rec, clock)
     val s = if (sessions.keys().contains(userCode)) sessions.get(userCode) else NO_SESSION
     val led = if (ledger.keys().contains(s.deviceCode)) ledger.get(s.deviceCode) else NO_LEDGER
     all {
       sessions.keys().contains(userCode),
       ledger.keys().contains(s.deviceCode),
-      clock < s.expiresAt,              // expired: no failure counted, no transition
+      clock <= s.expiresAt,             // expired: no failure counted, no transition
       s.status == Pending,              // only legal transition source
-      fc < THROTTLE_LIMIT,              // brute-force latch
+      fc < THROTTLE_LIMIT,              // brute-force latch (within window)
       clients' = clients,
       tokens' = tokens,
       clock' = clock,
       counter' = counter,
       failures' =
-        if (approved)
-          failures.keys().filter(k => k != subject).mapBy(k => failures.get(k))
-        else
-          failures,
-      sessions' =
-        if (approved)
-          sessions.put(userCode, { ...s, status: Validated, subject: subject })
-        else
-          sessions.put(userCode, { ...s, status: Denied }),
-      ledger' =
-        if (approved)
-          ledger.put(s.deviceCode, { ...led, subject: subject, valFailures: fc })
-        else
-          ledger,
+        failures.keys().filter(k => k != subject).mapBy(k => failures.get(k)),
+      sessions' = sessions.put(userCode, { ...s, status: Validated, subject: subject }),
+      ledger' = ledger.put(s.deviceCode, { ...led, subject: subject, valFailures: fc }),
+    }
+  }
+
+  // User denial via user_code (device/service.go Deny): PENDING→DENIED
+  // only. Deliberately NOT throttled and NOT expiry-checked — the code
+  // comment (service.go:348) states brute-forcing deny only griefs the
+  // attacker's own code discovery (RFC 8628 §5.1); an expired PENDING
+  // session can still be denied and a latched subject can still deny.
+  // Deny records NO failure side effect.
+  action attemptUserDeny(userCode: int): bool = {
+    val s = if (sessions.keys().contains(userCode)) sessions.get(userCode) else NO_SESSION
+    all {
+      sessions.keys().contains(userCode),
+      s.status == Pending,              // only legal transition source
+      clients' = clients,
+      tokens' = tokens,
+      ledger' = ledger,
+      failures' = failures,
+      clock' = clock,
+      counter' = counter,
+      sessions' = sessions.put(userCode, { ...s, status: Denied }),
     }
   }
 
   // Brute-force attempt on the user_code namespace: an UNKNOWN user_code
-  // counts one failure for the subject (≥5 latches access_denied).
+  // counts one failure for the subject inside the sliding window — each
+  // failure re-arms the window ( failExpiresAt = clock + 300 ), so ≥5
+  // in-window failures latch access_denied until the window passes.
   // Guessing a KNOWN code is not this action — it is attemptUserApprove.
   action attemptUserCodeBrute(subject: int, guessedCode: int): bool = {
-    val fc = if (failures.keys().contains(subject)) failures.get(subject) else 0
+    val rec = if (failures.keys().contains(subject)) failures.get(subject) else NO_ATTEMPTS
+    val fc = effFailures(rec, clock)
     all {
       not(sessions.keys().contains(guessedCode)),
       clients' = clients,
@@ -261,22 +334,29 @@ module devicecode {
       ledger' = ledger,
       clock' = clock,
       counter' = counter,
-      failures' = failures.put(subject, fc + 1),
+      failures' = failures.put(subject, {
+        count: fc + 1,
+        failExpiresAt: clock + ATTEMPT_WINDOW,
+      }),
     }
   }
 
   // Token endpoint, device_code grant (grant_device_code.go).
   // FAITHFUL GUARD ORDER:
   //   1. validateGrantPreamble: client grants ∋ device_code
-  //      (unsupported_grant_type)
+  //      ( unauthorized_client — the ISSUE path is the one that answers
+  //      unsupported_grant_type, service.go:124 )
   //   2. authorization_details len == 0 REQUIRED
   //      (invalid_authorization_details) — smuggling is rejected closed
-  //   3. enforceSenderBinding: a session bound to DPoP key K polls only
-  //      with a proof from K (RFC 9449 §10 analog of solid.qnt)
+  //   3. enforceSenderBinding ( grants.go:91-94 ) runs BEFORE the session
+  //      lookup ( grant_device_code.go:64 precedes :75 ): a client
+  //      REGISTERED dpop_bound MUST present a proof jkt
+  //      ( invalid_request ). One-directional policy — a NON-bound
+  //      client mints an unkeyed token even with no proof at all.
   //   4. lookup by device_code; unknown → invalid_request
   //   5. client match session.client (invalid_request)
-  //   6. expiry → expired_token (no state change; expiry never counted
-  //      as an approval failure either)
+  //   6. expiry → expired_token (no state change; live while
+  //      clock ≤ expiresAt; expiry never counted as an approval failure)
   //   7. status: PENDING → enforcePollInterval (grants.go):
   //        too fast ⇒ slow_down: interval += 5 persisted,
   //                    LastPolledAt NOT advanced
@@ -285,27 +365,31 @@ module devicecode {
   //      VALIDATED → ATOMIC consume (DeleteAndGetByDeviceCode):
   //                    session removed; second/concurrent poll finds
   //                    nothing (invalid_grant); exactly one AT minted
-  //                    with subject, client, scopes, details from the
-  //                    session — NEVER a refresh token (RFC 10027
-  //                    §6.1.9/6.1.10); fresh random16 GrantId.
+  //                    with subject, client, scopes, details, audience
+  //                    from the session — NEVER a refresh token
+  //                    (RFC 10027 §6.1.9/6.1.10); fresh random16 GrantId;
+  //                    the MINTING poll bypasses enforcePollInterval
+  //                    (the interval check lives only in the PENDING
+  //                    branch, grant_device_code.go:112-123).
   action poll(deviceCode: int, client: str, details: Set[str], proofJkt: int): bool = {
     val cl = if (clients.keys().contains(client)) clients.get(client) else NO_CLIENT
     val uk = userCodeOf(sessions, deviceCode)
     val known = uk != -1
     val s = if (known) sessions.get(uk) else NO_SESSION
     val led = if (ledger.keys().contains(s.deviceCode)) ledger.get(s.deviceCode) else NO_LEDGER
-    val dpopOk = s.jkt == 0 or s.jkt == proofJkt
+    // enforceSenderBinding precedes the session lookup in the code.
+    val dpopOk = not(cl.dpopBound) or proofJkt != 0
     val clientOk = client == s.client
-    val live = known and clock < s.expiresAt
+    val live = known and clock <= s.expiresAt
     val slow = live and s.status == Pending and s.lastPolledAt != 0 and clock < s.lastPolledAt + s.pollInterval
     val pending = live and s.status == Pending and not(slow)
     val mint = live and s.status == Validated and clientOk and dpopOk and s.subject != 0
     all {
       cl.grants.contains("device_code"),
       details == Set(),
+      dpopOk,
       known,
       clientOk,
-      dpopOk,
       ledger.keys().contains(s.deviceCode),
       if (mint) counter + 1 <= MAX_IDS else true,
       clients' = clients,
@@ -315,7 +399,7 @@ module devicecode {
       tokens' =
         if (mint)
           tokens.put(counter, mkToken(counter, s.client, s.subject, s.deviceCode,
-                                      counter, s.scopes, s.details, proofJkt))
+                                      counter, s.scopes, s.details, s.audience, proofJkt))
         else
           tokens,
       sessions' =
@@ -359,15 +443,20 @@ module devicecode {
     nondet client = CLIENTS.oneOf()
     nondet scopes = SCOPE_SETS.oneOf()
     nondet details = DETAIL_SETS.oneOf()
-    nondet jkt = JKTS.oneOf()
-    issueDeviceAuth(client, scopes, details, jkt)
+    nondet audience = AUDIENCES.oneOf()
+    nondet detailsRegistered = Set(true, false).oneOf()
+    issueDeviceAuth(client, scopes, details, audience, detailsRegistered)
   }
 
   action approveStep: bool = {
     nondet userCode = 0.to(2 * MAX_IDS).oneOf()
     nondet subject = USERS.oneOf()
-    nondet approved = Set(true, false).oneOf()
-    attemptUserApprove(userCode, subject, approved)
+    attemptUserApprove(userCode, subject)
+  }
+
+  action denyStep: bool = {
+    nondet userCode = 0.to(2 * MAX_IDS).oneOf()
+    attemptUserDeny(userCode)
   }
 
   action bruteStep: bool = {
@@ -392,6 +481,7 @@ module devicecode {
   action step: bool = any {
     issueStep,
     approveStep,
+    denyStep,
     bruteStep,
     pollStep,
     tickStep,
@@ -450,16 +540,18 @@ module devicecode {
       and ledger.get(t.deviceCode).intervalLog.forall(v =>
         v <= ledger.get(t.deviceCode).interval))
 
-  // D6 — details are fixed at device-auth time: minted details equal the
-  // session's issue-time details; no token-endpoint narrowing or widening.
+  // D6 — details and audience are fixed at device-auth time (RFC 9396
+  // §3, RFC 8707): minted details/audience equal the session's
+  // issue-time values; no token-endpoint narrowing or widening.
   val inv_detailsFixed: bool =
     allTokens.forall(t =>
       ledger.keys().contains(t.deviceCode)
-      and t.details == ledger.get(t.deviceCode).details)
+      and t.details == ledger.get(t.deviceCode).details
+      and t.audience == ledger.get(t.deviceCode).audience)
 
-  // D7 — brute-force latch: the approver behind every minted token had
-  // fewer than 5 failures at VALIDATE time (a latched subject can never
-  // validate), and the latch itself is absorbing.
+  // D7 — brute-force latch (sliding window): the approver behind every
+  // minted token had fewer than 5 IN-WINDOW failures at VALIDATE time
+  // (a latched subject cannot validate until the window passes).
   val inv_bruteForceLatch: bool =
     allTokens.forall(t =>
       ledger.keys().contains(t.deviceCode)
@@ -471,6 +563,16 @@ module devicecode {
       (s.status == Pending implies s.subject == 0)
       and (s.status == Validated implies s.subject != 0))
 
+  // Window hygiene: a failure record always carries a non-negative count
+  // and a non-negative window deadline ( stamped clock + 300 > 0 since
+  // the clock starts at 1 ). The effective ( in-window ) count is what
+  // the approve guard consults — effFailures zeroes it once the window
+  // passes.
+  val inv_attemptWindow: bool =
+    failures.keys().forall(k =>
+      failures.get(k).count >= 0
+      and failures.get(k).failExpiresAt >= 0)
+
   val allInvariants: bool = all {
     inv_deviceSingleUse,
     inv_noRefreshToken,
@@ -480,6 +582,7 @@ module devicecode {
     inv_detailsFixed,
     inv_bruteForceLatch,
     inv_statusHygiene,
+    inv_attemptWindow,
   }
 
   // ------------------------------------------------------------------
@@ -492,9 +595,14 @@ module devicecode {
   val w_tokenMinted: bool = allTokens.size() > 0
   val w_slowDown: bool = allSessions.exists(s => s.pollInterval > POLL_BASE)
   val w_pendingAdvanced: bool = allSessions.exists(s => s.lastPolledAt > 0)
-  val w_bruteCounted: bool = failures.keys().exists(k => failures.get(k) > 0)
-  val w_throttleLatched: bool = failures.keys().exists(k => failures.get(k) >= THROTTLE_LIMIT)
-  val w_expiredObserved: bool = allSessions.exists(s => clock >= s.expiresAt)
+  val w_bruteCounted: bool = failures.keys().exists(k =>
+    effFailures(failures.get(k), clock) > 0)
+  val w_throttleLatched: bool = failures.keys().exists(k =>
+    effFailures(failures.get(k), clock) >= THROTTLE_LIMIT)
+  val w_latchDecayed: bool = failures.keys().exists(k =>
+    failures.get(k).count >= THROTTLE_LIMIT
+    and effFailures(failures.get(k), clock) == 0)
+  val w_expiredObserved: bool = allSessions.exists(s => clock > s.expiresAt)
   val w_offlineStripped: bool = allSessions.exists(s =>
     not(s.scopes.contains("offline_access")))
 

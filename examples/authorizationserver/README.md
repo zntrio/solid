@@ -55,6 +55,38 @@ sequenceDiagram
     T-->>C: access_token (+ refresh when granted)
 ```
 
+## Sample run (captured live, via `agentclient`)
+
+```text
+→ POST http://127.0.0.1:8080/par
+  Content-Type: application/x-www-form-urlencoded
+  Dpop: eyJhbGciOiJNTC1EU0EtNjUiLCJqd2siOnsiYWxnIjoiTUwt…(+8182 bytes)
+  client_assertion=eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJKV1QifQ.eyJhd…(+4632 bytes)
+  client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+  request=eyJhbGciOiJNTC1EU0EtNjUiLCJraWQiOiJodHRwczovL2Fn…(+5282 bytes)
+← HTTP 201
+  "expires_in": 60
+  "issuer": "http://127.0.0.1:8080"
+  "request_uri": "urn:solid:8KTkTGjY3pSg7Iz9ORFWCxxGclKlLlTB"
+
+→ GET http://127.0.0.1:8080/authorize?client_id=…&request_uri=urn:solid:…
+  Authorization: Basic aGVsbG86d29ybGQ=
+← HTTP 302
+  Location: http://127.0.0.1:8100/callback?response=eyJhbGci…(+4774 bytes)
+
+→ POST http://127.0.0.1:8080/token
+  Dpop: …  code=…  code_verifier=…  grant_type=authorization_code
+← HTTP 200
+  "access_token": "eyJhbGciOiJIUEtFLTciLCJraWQiOiJnLXZSR…(+7164 bytes)"
+  "id_token": "eyJhbGciOiJNTC1EU0EtNjUiLCJraWQiOiIwMExwTEdNb1F…(+4997 bytes)"
+  "id_token_disclosures": ["WyIwS0ZfRXJKcHl1NjRmRnZaQVJ1UFNnIiwiZW1haWwiLC…(+94 bytes)"]
+  "scope": "openid timestamp:read"
+  "token_type": "DPoP"
+```
+
+Note: the PAR request object rides the form body (RFC 9126 §2.1 — the
+server refuses it in the URL query).
+
 ## Device flow (RFC 8628)
 
 ```mermaid

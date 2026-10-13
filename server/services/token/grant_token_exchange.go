@@ -189,14 +189,33 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 		}
 	}
 
-	// DPoP confirmation binding: when the subject token is key-bound, the
-	// proof presented with this exchange must be made with the same key
-	// (prevents proof-key swap during exchange, RFC 9449 section 8).
-	if st.Confirmation != nil && st.Confirmation.Jkt != "" {
-		if req.TokenConfirmation == nil || !types.SecureCompareString(st.Confirmation.Jkt, req.TokenConfirmation.Jkt) {
-			res.Error = rfcerrors.InvalidGrant().Build()
-			return fmt.Errorf("token confirmation does not match subject token")
+	// RFC 8693 section 5 / delegated re-binding: a client listed in the
+	// subject token's may_act may re-bind the token to its own key. The
+	// may_act list is set exclusively by the AS delegation policy at
+	// issuance (WithDelegationPolicy), so a listing represents an explicit
+	// authorization for that client to re-delegate. In that case the
+	// subject-confirmation equality is replaced by a proof-of-possession
+	// requirement: the requesting client MUST present a DPoP proof whose
+	// key becomes the new confirmation (verified in the presentation
+	// layer before reaching this handler). Security invariant: a stolen
+	// subject token fails even with the thief's own valid actor token —
+	// not in may_act → strict path → no matching proof → invalid_grant.
+	redelegation := actor != nil && mayActContains(client, st)
+	if !redelegation {
+		// DPoP confirmation binding: when the subject token is key-bound, the
+		// proof presented with this exchange must be made with the same key
+		// (prevents proof-key swap during exchange, RFC 9449 section 8).
+		if st.Confirmation != nil && st.Confirmation.Jkt != "" {
+			if req.TokenConfirmation == nil || !types.SecureCompareString(st.Confirmation.Jkt, req.TokenConfirmation.Jkt) {
+				res.Error = rfcerrors.InvalidGrant().Build()
+				return fmt.Errorf("token confirmation does not match subject token")
+			}
 		}
+	} else if req.TokenConfirmation == nil || req.TokenConfirmation.Jkt == "" {
+		// Fail closed: re-delegation without proof of possession of the
+		// re-delegating client's key would mint an unbound token.
+		res.Error = rfcerrors.InvalidGrant().Build()
+		return fmt.Errorf("may_act re-delegation requires a DPoP proof")
 	}
 
 	// If expired
@@ -220,6 +239,14 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 		scope = *req.Scope
 	}
 
+	// Confirmation for the issued token: inherited from the subject token,
+	// or re-bound to the requesting client's proof key on an authorized
+	// may_act re-delegation.
+	confirmation := st.Confirmation
+	if redelegation {
+		confirmation = &tokenv1.TokenConfirmation{Jkt: req.TokenConfirmation.Jkt}
+	}
+
 	// Create access token spec
 	now := timeFunc()
 	at := &tokenv1.Token{
@@ -238,32 +265,53 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 			NotBefore: uint64(now.Unix()),                      //nolint:gosec // unix time is non-negative
 			ExpiresAt: uint64(now.Add(1 * time.Minute).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     scope,
+			// RFC 9470 section 6: the login authentication event is preserved
+			// from the subject token — a delegation keeps the end-user login
+			// context so step-up-enforcing resource servers can evaluate the
+			// exchanged token.
+			Acr:      st.Metadata.Acr,
+			AuthTime: st.Metadata.AuthTime,
 			// Audience inheritance: absent an explicit audience request the
 			// derivative keeps the subject token's audience (RFC 9068
 			// section 3 requires a non-blank aud on JWT access tokens).
 			Audience: st.Metadata.Audience,
 		},
-		Confirmation: st.Confirmation,
+		// Delegated re-binding: a may_act-authorized client re-binds the
+		// token to its own key (the DPoP proof presented with this request;
+		// possession verified in the presentation layer). Otherwise the
+		// subject token's confirmation is inherited verbatim.
+		Confirmation: confirmation,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 	}
 
-	// RFC 8693 section 4.4: when an actor token was presented, the issued
-	// token records the acting party (act chain).
+	// RFC 8693 section 4.4: the act chain records the delegation history.
+	// The issued chain is the immediate actor, then the subject token's
+	// chain, then the actor token's prior chain (identity-chaining-17
+	// section 2.5: claims transcription must not drop hops — losing the
+	// subject's chain would misreport [mcp] instead of [mcp, agent] after
+	// the second hop), skipping duplicate subjects, capped by
+	// maxActChainDepth.
 	if actor != nil && actor.Metadata != nil && actor.Metadata.Subject != "" {
-		// Security cap: the resulting chain (immediate actor + preserved
-		// prior chain) must not exceed maxActChainDepth. Deeper chains
-		// fail closed: an over-deep delegation history is a policy
-		// violation, and silently truncating it would misrepresent the
-		// authorization history to the Resource Server.
-		if 1+len(actor.Actor) > maxActChainDepth {
-			res.Error = rfcerrors.InvalidRequest().Build()
-			return fmt.Errorf("act chain too deep: %d entries exceeds the maximum of %d", 1+len(actor.Actor), maxActChainDepth)
+		chain := make([]*tokenv1.Actor, 0, 1+len(st.Actor)+len(actor.Actor))
+		seen := map[string]struct{}{actor.Metadata.Subject: {}}
+		chain = append(chain, &tokenv1.Actor{Subject: actor.Metadata.Subject})
+		for _, source := range [][]*tokenv1.Actor{st.Actor, actor.Actor} {
+			for _, entry := range source {
+				if entry == nil || entry.Subject == "" {
+					continue
+				}
+				if _, dup := seen[entry.Subject]; dup {
+					continue
+				}
+				seen[entry.Subject] = struct{}{}
+				chain = append(chain, entry)
+			}
 		}
-		at.Actor = append(at.Actor, &tokenv1.Actor{
-			Subject: actor.Metadata.Subject,
-		})
-		// Preserve any prior act chain carried by the actor token.
-		at.Actor = append(at.Actor, actor.Actor...)
+		if len(chain) > maxActChainDepth {
+			res.Error = rfcerrors.InvalidRequest().Build()
+			return fmt.Errorf("act chain too deep: %d entries exceeds the maximum of %d", len(chain), maxActChainDepth)
+		}
+		at.Actor = chain
 	}
 
 	// Add optional meta. RFC 8693 section 5: the new token's audience MUST
@@ -287,6 +335,26 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 
 		// Assign urn
 		at.Metadata.Audience = aud.Urn
+	}
+
+	// may_act issuance (RFC 8693 section 5 / draft-ietf-oauth-identity-
+	// chaining section 2.5): when a delegation policy is wired, the token
+	// minted for a target resource carries the policy's allow-listed
+	// re-delegator client IDs, enabling the next hop's authorized key
+	// re-binding. Fail closed: a policy error mints no token. No policy
+	// wired → no may_act → re-delegation is impossible anywhere.
+	if s.delegationPolicy != nil && req.Audience != nil {
+		allowed, errPolicy := s.delegationPolicy.MayRedelegate(ctx, *req.Audience)
+		if errPolicy != nil {
+			res.Error = rfcerrors.InvalidTarget().Build()
+			return fmt.Errorf("delegation policy error for audience '%s': %w", *req.Audience, errPolicy)
+		}
+		for _, clientID := range allowed {
+			if clientID == "" {
+				continue
+			}
+			at.MayAct = append(at.MayAct, &tokenv1.Actor{Subject: clientID})
+		}
 	}
 	if req.AuthorizationDetails != nil {
 		// RFC 9396 section 6 / RFC 8693 section 5: the exchanged token's
@@ -334,4 +402,22 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 
 	// No error
 	return nil
+}
+
+// mayActContains reports whether the requesting client is listed in the
+// subject token's may_act. The comparison is against the client ID (not
+// the actor token's subject) because a re-delegating service identifies
+// itself through private_key_jwt client authentication: the token it
+// re-delegates is presented by its client identity, and the delegation
+// policy mints may_act entries as client IDs.
+func mayActContains(client *clientv1.Client, st *tokenv1.Token) bool {
+	if client == nil || len(st.MayAct) == 0 {
+		return false
+	}
+	for _, mayAct := range st.MayAct {
+		if mayAct != nil && mayAct.Subject == client.ClientId {
+			return true
+		}
+	}
+	return false
 }

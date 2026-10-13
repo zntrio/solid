@@ -61,6 +61,7 @@ import (
 
 	discoveryv1 "zntr.io/solid/api/oidc/discovery/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/client"
 	"zntr.io/solid/examples/authorizationserver/cimddemo"
 	exampleenv "zntr.io/solid/examples/internal/exampleenv"
@@ -82,16 +83,27 @@ const (
 	// is needed, the demo captures the 302 Location directly.
 	redirectURI = "http://127.0.0.1:8100/callback"
 
-	// resourceURI is the remote MCP-style resource server: the RFC 8707
-	// resource indicator of the token exchange and the location the
-	// mcp_tools detail is scoped to.
-	resourceURI = "http://127.0.0.1:8085"
+	// mcpServerURI is the MCP tool server (examples/mcpserver): the
+	// RFC 8707 resource indicator of the first token-exchange hop and
+	// the location the mcp_tools detail is scoped to.
+	mcpServerURI = "http://127.0.0.1:8090"
 
-	// toolDetail is the authorization_details entry of the token exchange
-	// (RFC 9396): the mcp_tools grant for the timestamp tool on the
-	// remote MCP resource server. The AS transports it verbatim (mocked
-	// processing); the resource server evaluates it.
-	toolDetail = `{"type":"mcp_tools","locations":["http://127.0.0.1:8085"],"actions":["timestamp:read"]}`
+	// backendResourceURI is the backend resource server
+	// (examples/resourceserver): the audience of the MCP server's
+	// second token-exchange hop; the user consents to the backend
+	// mcp_tools detail at PAR so the re-delegation's subset request
+	// passes.
+	backendResourceURI = "http://127.0.0.1:8085"
+
+	// mcpToolDetail is the first-hop authorization_details entry
+	// (RFC 9396): the mcp_tools grant for the tool invocation on the
+	// MCP server.
+	mcpToolDetail = `{"type":"mcp_tools","locations":["http://127.0.0.1:8090"],"actions":["get_signed_timestamp"]}`
+
+	// backendToolDetail is the backend authorization_details entry
+	// (RFC 9396): the mcp_tools grant the MCP server re-delegates
+	// with (a subset of the user's consented set).
+	backendToolDetail = `{"type":"mcp_tools","locations":["http://127.0.0.1:8085"],"actions":["timestamp:read"]}`
 )
 
 // flowlogClient prints the protocol flow (request and response) for every
@@ -294,12 +306,14 @@ func run() error {
 	}
 	fmt.Println("← actor token (client_credentials):", actorRes.AccessToken[:16]+"…")
 
-	// 7. Token exchange (RFC 8693): subject = the user's token, actor =
-	// the agent's token, resource = the remote MCP service,
-	// authorization_details = the mcp_tools grant (RFC 9396) — carried
-	// verbatim by the AS (mocked processing), evaluated by the RS. The
-	// DPoP proof of the same bound key: the exchange rejects proof-key
-	// swaps (RFC 9449 section 8).
+	// 7. First token-exchange hop (RFC 8693): subject = the user's token,
+	// actor = the agent's token, resource = the MCP tool server. The
+	// exchange requests BOTH consented mcp_tools entries — the MCP
+	// server's re-delegation needs the backend entry as a subset of the
+	// subject token it exchanges. The AS delegation policy mints
+	// may_act = [the MCP server] on the exchanged token (T3). The DPoP
+	// proof of the same bound key: the exchange rejects proof-key swaps
+	// (RFC 9449 section 8).
 	exchangeAssertion, err := oidcClient.Assertion()
 	if err != nil {
 		return fmt.Errorf("unable to mint client assertion: %w", err)
@@ -312,34 +326,54 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("← exchanged access token (token_type: %s, expires_in: %ds)\n", exRes.TokenType, exRes.ExpiresIn)
-	fmt.Println("← authorization_details echoed (RFC 9396 §7, verbatim):", exRes.AuthorizationDetails)
+	fmt.Printf("← delegated token T3 (token_type: %s, expires_in: %ds)\n", exRes.TokenType, exRes.ExpiresIn)
+	fmt.Println("← authorization_details echoed (RFC 9396 §7):", exRes.AuthorizationDetails)
 
-	// 8. Call the remote MCP-style resource server with the exchanged
-	// token, proved with the same bound key. The exchanged token lives
-	// 60 seconds: no delay before the resource call.
-	resourceProof, err := prover.Prove(http.MethodPost, resourceURI+"/", dpop.WithTokenValue(exRes.AccessToken))
+	// 8. Invoke the get_signed_timestamp tool on the MCP server with
+	// T3, proved with the same bound key. The MCP server introspects
+	// T3, then re-delegates (may_act) to the backend resource server
+	// and relays the signed timestamp as the tool result. T3 lives 60
+	// seconds: no delay before the tool call.
+	toolProof, err := prover.Prove(http.MethodPost, mcpServerURI+"/tools/get_signed_timestamp/invoke", dpop.WithTokenValue(exRes.AccessToken))
 	if err != nil {
 		return fmt.Errorf("unable to mint DPoP proof: %w", err)
 	}
-	timestampRaw, err := callResourceServer(ctx, exRes.AccessToken, resourceProof)
+	timestampRaw, err := invokeTool(ctx, exRes.AccessToken, toolProof)
 	if err != nil {
 		return err
 	}
-	fmt.Println("← resource server accepted the exchanged token; signed timestamp:")
+	fmt.Println("← tool result (signed timestamp, relayed through the MCP server):")
 	fmt.Println(string(timestampRaw))
 
-	// 9. Introspect the exchanged token: the act chain (RFC 8693 §4.4),
-	// the carried mcp_tools detail and the cnf.jkt key binding.
+	// 9. Negative probe: an exchange requesting a non-consented entry
+	// (timestamp:write) fails with invalid_authorization_details — the
+	// RFC 9396 section 6 subset rule; printed, not fatal.
+	probeAssertion, err := oidcClient.Assertion()
+	if err != nil {
+		return fmt.Errorf("unable to mint client assertion: %w", err)
+	}
+	probeProof, err := prover.Prove(http.MethodPost, md.TokenEndpoint)
+	if err != nil {
+		return fmt.Errorf("unable to mint DPoP proof: %w", err)
+	}
+	if _, errProbe := probeExchange(ctx, md, probeAssertion, probeProof, subjectRes.AccessToken, actorRes.AccessToken); errProbe != nil {
+		fmt.Println("← negative probe rejected (RFC 9396 §6 subset):", errProbe)
+	}
+
+	// 10. Introspect T3: the act chain (RFC 8693 §4.4), the may_act
+	// re-delegator listing and the cnf.jkt key binding.
 	introspectionAssertion, err := oidcClient.Assertion()
 	if err != nil {
 		return fmt.Errorf("unable to mint client assertion: %w", err)
 	}
 	it, err := oidcClient.Introspect(ctx, introspectionAssertion, exRes.AccessToken)
 	if err != nil {
-		return fmt.Errorf("unable to introspect exchanged token: %w", err)
+		return fmt.Errorf("unable to introspect delegated token: %w", err)
 	}
-	fmt.Printf("← introspection: client_id=%s status=%s\n", it.Metadata.GetClientId(), it.Status)
+	fmt.Printf("← T3 introspection: client_id=%s status=%s\n", it.Metadata.GetClientId(), it.Status)
+	for i, a := range it.Actor {
+		fmt.Printf("←   act[%d] = %s\n", i, a.Subject)
+	}
 
 	// No error
 	return nil
@@ -349,15 +383,17 @@ func run() error {
 // HTTP legs
 
 // pushAuthorizationRequest POSTs the signed request object to the PAR
-// endpoint (RFC 9126): the request object rides the URL query, the client
-// assertion and DPoP proof the form body/headers.
+// endpoint (RFC 9126 §2.1): every parameter — the request object included —
+// rides the application/x-www-form-urlencoded body, keeping the signed
+// object (state, nonce, code_challenge, dpop_jkt) out of URLs, access logs
+// and browser history (RFC 9700 §2 exposure class).
 func pushAuthorizationRequest(ctx context.Context, issuer, assertion, proof, requestObject string) (string, error) {
 	params := url.Values{}
 	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
 	params.Add("client_assertion", assertion)
+	params.Add("request", requestObject)
 
-	parURL := issuer + "/par?" + url.Values{"request": {requestObject}}.Encode()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, parURL, strings.NewReader(params.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, issuer+"/par", strings.NewReader(params.Encode()))
 	if err != nil {
 		return "", err
 	}
@@ -503,16 +539,16 @@ func clientCredentials(ctx context.Context, md *discoveryv1.ServerMetadata, asse
 	params := url.Values{}
 	params.Add("grant_type", oidc.GrantTypeClientCredentials)
 	params.Add("scope", "openid")
-	params.Add("resource", resourceURI)
+	params.Add("resource", mcpServerURI)
 	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
 	params.Add("client_assertion", assertion)
 	return postToken(ctx, md.TokenEndpoint, params, "")
 }
 
-// tokenExchange performs the RFC 8693 exchange: the user's token as
-// subject, the agent's token as actor, the MCP resource as target, and
-// the RFC 9396 mcp_tools authorization detail the resource server
-// evaluates (the AS carries it verbatim — mocked processing).
+// tokenExchange performs the first RFC 8693 hop: the user's token as
+// subject, the agent's token as actor, the MCP tool server as target,
+// and both consented mcp_tools authorization details — the MCP server's
+// re-delegation requests the backend entry as a subset.
 func tokenExchange(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, proof, subjectToken, actorToken string) (*tokenResponse, error) {
 	params := url.Values{}
 	params.Add("grant_type", oidc.GrantTypeTokenExchange)
@@ -521,18 +557,38 @@ func tokenExchange(ctx context.Context, md *discoveryv1.ServerMetadata, assertio
 	params.Add("subject_token_type", oidc.TokenExchangeAccessTokenType)
 	params.Add("actor_token", actorToken)
 	params.Add("actor_token_type", oidc.TokenExchangeAccessTokenType)
-	params.Add("resource", resourceURI)
+	params.Add("resource", mcpServerURI)
 	params.Add("scope", "timestamp:read")
-	params.Add("authorization_details", "["+toolDetail+"]")
+	params.Add("authorization_details", "["+mcpToolDetail+","+backendToolDetail+"]")
 	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
 	params.Add("client_assertion", assertion)
 	return postToken(ctx, md.TokenEndpoint, params, proof)
 }
 
-// callResourceServer invokes the signed-timestamp resource with the
-// exchanged token (DPoP scheme: the token is key-bound, RFC 9449 section 7).
-func callResourceServer(ctx context.Context, accessToken, proof string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, resourceURI+"/", http.NoBody)
+// probeExchange requests a non-consented mcp_tools entry
+// (timestamp:write): the RFC 9396 section 6 subset rule must reject it
+// with invalid_authorization_details.
+func probeExchange(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, proof, subjectToken, actorToken string) (*tokenResponse, error) {
+	params := url.Values{}
+	params.Add("grant_type", oidc.GrantTypeTokenExchange)
+	params.Add("requested_token_type", oidc.TokenExchangeAccessTokenType)
+	params.Add("subject_token", subjectToken)
+	params.Add("subject_token_type", oidc.TokenExchangeAccessTokenType)
+	params.Add("actor_token", actorToken)
+	params.Add("actor_token_type", oidc.TokenExchangeAccessTokenType)
+	params.Add("resource", mcpServerURI)
+	params.Add("scope", "timestamp:read")
+	params.Add("authorization_details", `[{"type":"mcp_tools","locations":["http://127.0.0.1:8085"],"actions":["timestamp:write"]}]`)
+	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
+	params.Add("client_assertion", assertion)
+	return postToken(ctx, md.TokenEndpoint, params, proof)
+}
+
+// invokeTool calls the get_signed_timestamp tool on the MCP server with
+// the delegated token (DPoP scheme: the token is key-bound, RFC 9449
+// section 7); the response body is the relayed signed timestamp.
+func invokeTool(ctx context.Context, accessToken, proof string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, mcpServerURI+"/tools/get_signed_timestamp/invoke", http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -541,7 +597,7 @@ func callResourceServer(ctx context.Context, accessToken, proof string) ([]byte,
 
 	resp, err := flowlogClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to reach the resource server: %w", err)
+		return nil, fmt.Errorf("unable to reach the mcp server: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -550,7 +606,7 @@ func callResourceServer(ctx context.Context, accessToken, proof string) ([]byte,
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("resource server rejected the token (HTTP %d): %s", resp.StatusCode, string(raw))
+		return nil, fmt.Errorf("mcp server rejected the token (HTTP %d): %s", resp.StatusCode, string(raw))
 	}
 	return raw, nil
 }
@@ -561,9 +617,10 @@ func callResourceServer(ctx context.Context, accessToken, proof string) ([]byte,
 // signedRequest builds the ML-DSA-65-signed request object (RFC 9101):
 // iss = the agent client id, aud = the issuer, exp/iat/nbf/jti mandatory,
 // the authorization request parameters as claims, and the DPoP key
-// thumbprint as dpop_jkt (RFC 9449 section 10 binding). No
-// authorization_details here: the MCP tool grant is requested at exchange
-// time and evaluated by the resource server, not consented at PAR time.
+// thumbprint as dpop_jkt (RFC 9449 section 10 binding). The two
+// mcp_tools entries are consented here (RFC 9396): the tool invocation
+// on the MCP server and the backend timestamp read the MCP server
+// re-delegates with — each exchange hop requests a subset of this set.
 func signedRequest(expectedIssuer, state, nonce, challenge, jkt string) (string, error) {
 	keySet, err := jwk.Parse([]byte(fmt.Sprintf(`{"alg":"ML-DSA-65","d":%q,"kid":%q,"kty":"AKP","pub":%q}`,
 		base64.RawURLEncoding.EncodeToString(mustAgentSeed()), cimddemo.AgentClientIdentifierURL, cimddemo.AgentClientPubB64)))
@@ -602,8 +659,12 @@ func signedRequest(expectedIssuer, state, nonce, challenge, jkt string) (string,
 		ResponseMode:        new("query.jwt"), // JARM (RFC 9447)
 		CodeChallenge:       challenge,
 		CodeChallengeMethod: "S256",
-		Audience:            resourceURI,
+		Audience:            mcpServerURI,
 		DpopJkt:             new(jkt),
+		AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+			{Type: "mcp_tools", Locations: []string{mcpServerURI}, Actions: []string{"get_signed_timestamp"}},
+			{Type: "mcp_tools", Locations: []string{backendResourceURI}, Actions: []string{"timestamp:read"}},
+		},
 	})
 }
 

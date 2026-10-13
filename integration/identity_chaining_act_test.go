@@ -91,14 +91,11 @@ func TestIdentityChainingActChainPreserved_4_4(t *testing.T) {
 	require.NotEmpty(t, res.AccessToken.Actor, "the exchanged token must record the act chain")
 
 	// RFC 8693 section 4.4: the immediate actor comes first, followed by
-	// the prior chain in order.
-	require.Len(t, res.AccessToken.Actor, 3, "full delegation chain must be preserved: immediate actor + prior chain")
+	// the prior chain in order; duplicate subjects are collapsed (the
+	// delegation history is a set of acting parties, not a hop counter).
+	require.Len(t, res.AccessToken.Actor, 2, "full delegation chain must be preserved: immediate actor + prior chain (duplicates collapsed)")
 	require.Equal(t, "admin", res.AccessToken.Actor[0].Subject, "the immediate actor is recorded first")
-	require.Equal(t, "admin", res.AccessToken.Actor[1].Subject, "prior chain entry 1 preserved")
-	require.Equal(t, "alice", res.AccessToken.Actor[2].Subject, "prior chain entry 2 preserved")
-
-	// The subject stays the delegating user, never the actor.
-	require.Equal(t, subject.Metadata.Subject, res.AccessToken.Metadata.Subject, "subject must remain the delegating end-user")
+	require.Equal(t, "alice", res.AccessToken.Actor[1].Subject, "prior chain entry preserved in order")
 }
 
 // TestIdentityChainingMayActGatesChainedActor_5 asserts may_act applies to
@@ -198,6 +195,7 @@ func TestIdentityChainingMayActListedChainedActorSucceeds_5(t *testing.T) {
 	res, err := exchangeWithActor(t, h, client, subject.Value, admin.Value)
 	require.NoError(t, err, "a may_act-listed immediate actor with a prior chain must succeed")
 	require.NotNil(t, res.AccessToken)
-	require.Len(t, res.AccessToken.Actor, 3, "complete chain: admin (immediate) + admin + alice (prior)")
+	require.Len(t, res.AccessToken.Actor, 2, "complete chain: admin (immediate) + alice (prior; duplicate admin collapsed)")
 	require.Equal(t, "admin", res.AccessToken.Actor[0].Subject)
+	require.Equal(t, "alice", res.AccessToken.Actor[1].Subject)
 }

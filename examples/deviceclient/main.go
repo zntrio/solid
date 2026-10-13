@@ -81,13 +81,13 @@ func main() {
 
 	// The access token is DPoP-bound: mint a fresh proof carrying the token
 	// value and present it with the DPoP authorization scheme.
-	resourceProof, err := prover.Prove("POST", "http://127.0.0.1:8085/", dpop.WithTokenValue(t.AccessToken))
+	resourceProof, err := prover.Prove("POST", "http://127.0.0.1:8085/machine", dpop.WithTokenValue(t.AccessToken))
 	if err != nil {
 		panic(err)
 	}
 
 	// Call the timestamp service
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://127.0.0.1:8085", http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://127.0.0.1:8085/machine", http.NoBody)
 	if err != nil {
 		panic(err)
 	}

@@ -29,9 +29,38 @@ sequenceDiagram
     T->>T: verify attestation signature + PoP signature vs cnf.jwk
     T->>T: mint access token (Bearer, introspection authorized)
     T-->>C: access_token
-    C->>R: Authorization: Bearer <token>
+    C->>R: Authorization: Bearer <token> (POST /machine)
     R->>T: introspect (scope timestamp:read)
     R-->>C: signed timestamp response
+```
+
+## Sample run (captured live)
+
+```text
+→ POST http://127.0.0.1:8087/attestations/sign
+  {"clientId":"attestation-client","clientPublicKey":{"alg":"ML-DSA-65","kty":"AKP","pub":"D9jZffOb…"}}
+← HTTP 200
+  Content-Type: application/client-attestation+jwt; charset=utf-8
+  eyJhbGciOiJNTC1EU0EtNjUiLCJqd2siOnsiYWxnIjoiTUwtRFNBLTY1Iiwia2lkIjoi…
+
+→ POST http://127.0.0.1:8080/token
+  Content-Type: application/x-www-form-urlencoded
+  Oauth-Client-Attestation: eyJhbGciOiJNTC1EU0EtNjUiLCJqd2siOnsiYWxnIjoi…
+  Oauth-Client-Attestation-Pop: eyJhbGciOiJNTC1EU0EtNjUiLCJraWQiOiJXaHdu…
+  client_id=attestation-client
+  grant_type=client_credentials
+  resource=http://127.0.0.1:8085
+  scope=timestamp:read
+← HTTP 200
+  "access_token": "eyJhbGciOiJIUEtFLTciLCJraWQiOiJnLXZSSFdxdHVsb2J…(+6591 bytes)
+  "expires_in": 3600
+  "scope": "timestamp:read"
+  "token_type": "Bearer"
+
+→ POST http://127.0.0.1:8085/machine
+  Authorization: Bearer eyJhbGciOiJIUEtFLTciLCJraWQiOiJnLXZSSFd…(+6596 bytes)
+← HTTP 200
+  SignedTimestamp JSON (issuer, timestamp, signature)
 ```
 
 ## What it proves
@@ -53,4 +82,5 @@ sequenceDiagram
   `http://127.0.0.1:8080`); the token endpoint is derived as
   `<issuer>/token` and doubles as the PoP `aud`.
 * `SOLID_EXAMPLE_RESOURCE` — the timestamp resource server URL
-  (default `http://localhost:8085`).
+  (default `http://127.0.0.1:8085/machine`, the client-credentials
+  surface; `/` requires an end-user ACR per RFC 9470).

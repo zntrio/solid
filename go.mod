@@ -9,7 +9,7 @@ require (
 	buf.build/go/protovalidate v1.4.0
 	github.com/daixiang0/gci v0.14.0
 	github.com/frapposelli/wwhrd v0.4.0
-	github.com/fxamacker/cbor/v2 v2.9.4
+	github.com/fxamacker/cbor/v2 v2.9.6
 	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golangci/golangci-lint/v2 v2.14.0

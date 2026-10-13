@@ -35,7 +35,7 @@ import (
 // registerCIBAClient registers a confidential client restricted to the CIBA
 // grant, authenticated via private_key_jwt with the shared ES256 JWKS
 // fixture.
-func (h *harness) registerCIBAClient(t *testing.T) *clientv1.Client {
+func (h *harness) registerCIBAClient(t testing.TB) *clientv1.Client {
 	t.Helper()
 
 	c := &clientv1.Client{

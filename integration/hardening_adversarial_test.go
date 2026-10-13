@@ -37,6 +37,7 @@ import (
 // exactly once across all racing verifications (RFC 9449 section 4.3).
 func TestAdversarial_ConcurrentProofBurn(t *testing.T) {
 	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 	key := "concurrent-burn-jti"
 
 	var (
@@ -67,6 +68,7 @@ func TestAdversarial_ConcurrentProofBurn(t *testing.T) {
 // the same proof is a replay.
 func TestAdversarial_SequentialProofBurnReplay(t *testing.T) {
 	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 
 	first, err := proofs.RegisterIfAbsent(context.Background(), "sequential-burn-jti")
 	require.NoError(t, err)

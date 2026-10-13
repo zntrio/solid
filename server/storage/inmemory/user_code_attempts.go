@@ -48,7 +48,13 @@ func (s *userCodeAttemptsStorage) Failures(ctx context.Context, key string) uint
 	defer s.mu.Unlock()
 
 	entry, ok := s.entries[key]
-	if !ok || time.Now().After(entry.expiresAt) {
+	if !ok {
+		return 0
+	}
+	if time.Now().After(entry.expiresAt) {
+		// Lazily purge the expired entry so distinct keys cannot grow
+		// the map unboundedly (same strategy as ttlCache.Get).
+		delete(s.entries, key)
 		return 0
 	}
 	return entry.count

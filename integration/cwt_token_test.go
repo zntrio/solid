@@ -94,6 +94,7 @@ func TestCWTTokensRoundTripThroughTokenService(t *testing.T) {
 	authSessions := inmemory.AuthorizationCodeSessions(storageKey)
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
+	cleanupStores(t, authSessions, deviceSessions, backchannelSessions)
 	tokenz := token.New(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources)
 
 	// Register a confidential client_credentials client.
@@ -165,6 +166,7 @@ func TestCWTRefreshTokenIssuedAsCWT(t *testing.T) {
 	authSessions := inmemory.AuthorizationCodeSessions(storageKey)
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
+	cleanupStores(t, authSessions, deviceSessions, backchannelSessions)
 	tokenz := token.New(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources)
 
 	clientID, err := clients.Register(ctx, &clientv1.Client{

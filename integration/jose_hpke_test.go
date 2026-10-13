@@ -67,7 +67,7 @@ type hpkeHarness struct {
 
 // newHPKEHarness builds a service stack whose token service issues
 // HPKE-encrypted JWT access and refresh tokens.
-func newHPKEHarness(t *testing.T) *hpkeHarness {
+func newHPKEHarness(t testing.TB) *hpkeHarness {
 	t.Helper()
 
 	storageKey := []byte("hpke-integration-storage-key-0123")
@@ -122,6 +122,7 @@ func newHPKEHarness(t *testing.T) *hpkeHarness {
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 	userCodeAttempts := inmemory.UserCodeAttempts()
+	cleanupStores(t, authRequests, authSessions, deviceSessions, backchannelSessions, proofs)
 
 	// Services
 	authz := authorization.New(clients, authRequests, authSessions, generator.DefaultAuthorizationCode(), generator.DefaultRequestURI(),

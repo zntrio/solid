@@ -308,7 +308,7 @@ func TestABC11_TokenGrantEndToEnd_7_5(t *testing.T) {
 		spiffe.NewStaticBundleSource(nil),
 		h.proofs,
 		profile.Strict(),
-	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(), profile.Strict())))
+	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(t), profile.Strict())))
 	defer ts.Close()
 
 	res, body := postABC11TokenRequest(t, ts, attestedID, attestation, pop)

@@ -20,11 +20,9 @@ package inmemory
 import (
 	"context"
 	"time"
-
-	"zntr.io/solid/server/storage"
 )
 
-type proofCache struct {
+type DPoPProofStorage struct {
 	backend *ttlCache
 }
 
@@ -33,25 +31,31 @@ type proofCache struct {
 // authenticators (10 minutes for private_key_jwt) with margin, otherwise a
 // burned jti becomes reusable while the assertion it came from is still
 // acceptable — a replay window.
-func DPoPProofs() storage.DPoP {
+func DPoPProofs() *DPoPProofStorage {
 	// Initialize in-memory caches
 	backendCache := newTTLCache(15 * time.Minute)
 
-	return &proofCache{
+	return &DPoPProofStorage{
 		backend: backendCache,
 	}
 }
 
+// Stop terminates the background janitor goroutine. Calling Stop more than
+// once is safe and cheap.
+func (s *DPoPProofStorage) Stop() {
+	s.backend.Stop()
+}
+
 // -----------------------------------------------------------------------------
 
-func (s *proofCache) Register(ctx context.Context, id string) error {
+func (s *DPoPProofStorage) Register(ctx context.Context, id string) error {
 	// Insert in cache
 	s.backend.Set(id, id)
 	// No error
 	return nil
 }
 
-func (s *proofCache) Exists(ctx context.Context, id string) (bool, error) {
+func (s *DPoPProofStorage) Exists(ctx context.Context, id string) (bool, error) {
 	// Retrieve from cache
 	if _, found := s.backend.Get(id); found {
 		return found, nil
@@ -64,7 +68,7 @@ func (s *proofCache) Exists(ctx context.Context, id string) (bool, error) {
 // concurrent calls for the same id cannot both report true — the property
 // the DPoP proof / client-assertion jti single-use burn requires
 // (sdk/dpop/api.go ProofStore contract).
-func (s *proofCache) RegisterIfAbsent(ctx context.Context, id string) (bool, error) {
+func (s *DPoPProofStorage) RegisterIfAbsent(ctx context.Context, id string) (bool, error) {
 	if s.backend.SetIfAbsent(id, id) {
 		return true, nil
 	}

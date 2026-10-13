@@ -280,6 +280,7 @@ func Test_spiffeJWTAuthentication_Authenticate(t *testing.T) {
 			clients := storagemock.NewMockClientReader(ctrl)
 			bundles := spiffemock.NewMockBundleSource(ctrl)
 			proofs := inmemory.DPoPProofs()
+			t.Cleanup(proofs.Stop)
 
 			if tt.prepare != nil {
 				tt.prepare(clients, bundles)

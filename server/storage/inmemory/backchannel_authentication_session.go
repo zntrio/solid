@@ -28,29 +28,35 @@ import (
 	"zntr.io/solid/server/storage"
 )
 
-type backchannelAuthenticationSessionStorage struct {
+type BackchannelAuthenticationSessionStorage struct {
 	authReqIDIndex *ttlCache
 	secretKey      []byte
 }
 
 // BackchannelAuthenticationSessions returns a backchannel authentication
 // session manager (OpenID CIBA Core 1.0).
-func BackchannelAuthenticationSessions(secretKey []byte) storage.BackchannelAuthenticationSession {
+func BackchannelAuthenticationSessions(secretKey []byte) *BackchannelAuthenticationSessionStorage {
 	// The cache TTL only bounds storage residency: it must outlive the
 	// protocol-level expiry (session.ExpiresAt) so the token grant can
 	// distinguish an expired session (expired_token, CIBA section 11)
 	// from a purged one.
 	authReqIDCache := newTTLCache(10 * time.Minute)
 
-	return &backchannelAuthenticationSessionStorage{
+	return &BackchannelAuthenticationSessionStorage{
 		authReqIDIndex: authReqIDCache,
 		secretKey:      secretKey,
 	}
 }
 
+// Stop terminates the background janitor goroutine. Calling Stop more than
+// once is safe and cheap.
+func (s *BackchannelAuthenticationSessionStorage) Stop() {
+	s.authReqIDIndex.Stop()
+}
+
 // -----------------------------------------------------------------------------
 
-func (s *backchannelAuthenticationSessionStorage) Register(ctx context.Context, issuer, authReqID string, req *sessionv1.BackchannelAuthenticationSession) (uint64, error) {
+func (s *BackchannelAuthenticationSessionStorage) Register(ctx context.Context, issuer, authReqID string, req *sessionv1.BackchannelAuthenticationSession) (uint64, error) {
 	// Insert in cache
 	s.authReqIDIndex.Set(s.deriveAuthReqID(req.Issuer, authReqID), req)
 
@@ -63,12 +69,12 @@ func (s *backchannelAuthenticationSessionStorage) Register(ctx context.Context, 
 // resolve and consume the session (mirroring the device storage, where the
 // user-code index is dropped but the device-code index persists until the
 // grant consumes it).
-func (s *backchannelAuthenticationSessionStorage) Delete(ctx context.Context, issuer, authReqID string) error {
+func (s *BackchannelAuthenticationSessionStorage) Delete(ctx context.Context, issuer, authReqID string) error {
 	// No error
 	return nil
 }
 
-func (s *backchannelAuthenticationSessionStorage) GetByAuthReqID(ctx context.Context, issuer, authReqID string) (*sessionv1.BackchannelAuthenticationSession, error) {
+func (s *BackchannelAuthenticationSessionStorage) GetByAuthReqID(ctx context.Context, issuer, authReqID string) (*sessionv1.BackchannelAuthenticationSession, error) {
 	// Retrieve from cache
 	if x, found := s.authReqIDIndex.Get(s.deriveAuthReqID(issuer, authReqID)); found {
 		req := x.(*sessionv1.BackchannelAuthenticationSession)
@@ -78,7 +84,7 @@ func (s *backchannelAuthenticationSessionStorage) GetByAuthReqID(ctx context.Con
 	return nil, storage.ErrNotFound
 }
 
-func (s *backchannelAuthenticationSessionStorage) Validate(ctx context.Context, issuer, authReqID string, req *sessionv1.BackchannelAuthenticationSession) error {
+func (s *BackchannelAuthenticationSessionStorage) Validate(ctx context.Context, issuer, authReqID string, req *sessionv1.BackchannelAuthenticationSession) error {
 	// Insert in cache
 	s.authReqIDIndex.Set(s.deriveAuthReqID(req.Issuer, authReqID), req)
 
@@ -88,14 +94,14 @@ func (s *backchannelAuthenticationSessionStorage) Validate(ctx context.Context, 
 
 // UpdateByAuthReqID persists a mutated backchannel authentication session
 // (poll timing state).
-func (s *backchannelAuthenticationSessionStorage) UpdateByAuthReqID(ctx context.Context, issuer, authReqID string, r *sessionv1.BackchannelAuthenticationSession) error {
+func (s *BackchannelAuthenticationSessionStorage) UpdateByAuthReqID(ctx context.Context, issuer, authReqID string, r *sessionv1.BackchannelAuthenticationSession) error {
 	s.authReqIDIndex.Set(s.deriveAuthReqID(issuer, authReqID), r)
 	return nil
 }
 
 // DeleteAndGetByAuthReqID atomically consumes a validated backchannel
 // authentication session, enforcing one-time use of the auth_req_id.
-func (s *backchannelAuthenticationSessionStorage) DeleteAndGetByAuthReqID(ctx context.Context, issuer, authReqID string) (*sessionv1.BackchannelAuthenticationSession, error) {
+func (s *BackchannelAuthenticationSessionStorage) DeleteAndGetByAuthReqID(ctx context.Context, issuer, authReqID string) (*sessionv1.BackchannelAuthenticationSession, error) {
 	if x, ok := s.authReqIDIndex.DeleteAndGet(s.deriveAuthReqID(issuer, authReqID)); ok {
 		return x.(*sessionv1.BackchannelAuthenticationSession), nil
 	}
@@ -104,7 +110,7 @@ func (s *backchannelAuthenticationSessionStorage) DeleteAndGetByAuthReqID(ctx co
 
 // -----------------------------------------------------------------------------
 
-func (s *backchannelAuthenticationSessionStorage) deriveAuthReqID(issuer, authReqID string) string {
+func (s *BackchannelAuthenticationSessionStorage) deriveAuthReqID(issuer, authReqID string) string {
 	// Create hasher
 	h, err := blake2b.New256(s.secretKey)
 	if err != nil {

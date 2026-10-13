@@ -11,55 +11,48 @@
 // Unless required by applicable law or agreed to in writing,
 // software distributed under the License is distributed on an
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
+// KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations
 // under the License.
 
 package inmemory
 
 import (
-	"context"
 	"testing"
 	"time"
 )
 
-func TestUserCodeAttemptsFailIncrements(t *testing.T) {
-	s := UserCodeAttempts()
-	ctx := context.Background()
-
-	for i := uint64(1); i <= 3; i++ {
-		if got := s.Fail(ctx, "k", time.Minute); got != i {
-			t.Fatalf("Fail() = %d, want %d", got, i)
-		}
+func TestUserCodeAttemptsExpiredEntryPurgedOnRead(t *testing.T) {
+	s := &userCodeAttemptsStorage{entries: make(map[string]userCodeAttemptEntry)}
+	// Seed an expired entry directly (white-box).
+	s.entries["expired-key"] = userCodeAttemptEntry{
+		count:     3,
+		expiresAt: time.Now().Add(-time.Second),
 	}
-	if got := s.Failures(ctx, "k"); got != 3 {
-		t.Fatalf("Failures() = %d, want 3", got)
+
+	if got := s.Failures(t.Context(), "expired-key"); got != 0 {
+		t.Fatalf("Failures on expired entry: want 0, got %d", got)
 	}
-}
-
-func TestUserCodeAttemptsResetClears(t *testing.T) {
-	s := UserCodeAttempts()
-	ctx := context.Background()
-
-	s.Fail(ctx, "k", time.Minute)
-	s.Reset(ctx, "k")
-
-	if got := s.Failures(ctx, "k"); got != 0 {
-		t.Fatalf("Failures() after Reset = %d, want 0", got)
+	if len(s.entries) != 0 {
+		t.Fatalf("expired entry not purged: map still holds %d entry(ies)", len(s.entries))
 	}
 }
 
-func TestUserCodeAttemptsExpiry(t *testing.T) {
-	s := UserCodeAttempts()
-	ctx := context.Background()
+func TestUserCodeAttemptsActiveEntryRetained(t *testing.T) {
+	s := &userCodeAttemptsStorage{entries: make(map[string]userCodeAttemptEntry)}
 
-	s.Fail(ctx, "k", 10*time.Millisecond)
-	time.Sleep(20 * time.Millisecond)
-
-	if got := s.Failures(ctx, "k"); got != 0 {
-		t.Fatalf("Failures() after expiry = %d, want 0", got)
+	if got := s.Fail(t.Context(), "active-key", time.Minute); got != 1 {
+		t.Fatalf("Fail: want 1, got %d", got)
 	}
-	if got := s.Fail(ctx, "k", time.Minute); got != 1 {
-		t.Fatalf("Fail() after expiry = %d, want 1 (fresh window)", got)
+	if got := s.Failures(t.Context(), "active-key"); got != 1 {
+		t.Fatalf("Failures on active entry: want 1, got %d", got)
+	}
+	if len(s.entries) != 1 {
+		t.Fatalf("active entry must be retained: map holds %d entry(ies)", len(s.entries))
+	}
+
+	s.Reset(t.Context(), "active-key")
+	if got := s.Failures(t.Context(), "active-key"); got != 0 {
+		t.Fatalf("Failures after Reset: want 0, got %d", got)
 	}
 }

@@ -449,7 +449,9 @@ func TestSpiffeCIMDClientAuth(t *testing.T) {
 	bundles := spiffe.NewStaticBundleSource(map[string]jwk.Set{
 		spiffeTrustDomain: publicBundleSet(t, jwtKey),
 	})
-	authenticator := clientauthentication.SPIFFEJWT(clients, bundles, inmemory.DPoPProofs(), testIssuer, []string{"ES256"})
+	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
+	authenticator := clientauthentication.SPIFFEJWT(clients, bundles, proofs, testIssuer, []string{"ES256"})
 
 	// The CIMD client identifier URL is NOT the SPIFFE ID: the SVID sub
 	// resolves the client through the client_id fallback binding.

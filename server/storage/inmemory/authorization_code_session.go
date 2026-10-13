@@ -29,25 +29,31 @@ import (
 	"zntr.io/solid/server/storage"
 )
 
-type sessionStorage struct {
+type AuthorizationCodeSessionStorage struct {
 	backend   *ttlCache
 	secretKey []byte
 }
 
 // AuthorizationCodeSessions returns an authorization session manager.
-func AuthorizationCodeSessions(secretKey []byte) storage.AuthorizationCodeSession {
+func AuthorizationCodeSessions(secretKey []byte) *AuthorizationCodeSessionStorage {
 	// Initialize in-memory caches
 	backendCache := newTTLCache(1 * time.Minute)
 
-	return &sessionStorage{
+	return &AuthorizationCodeSessionStorage{
 		backend:   backendCache,
 		secretKey: secretKey,
 	}
 }
 
+// Stop terminates the background janitor goroutine. Calling Stop more than
+// once is safe and cheap.
+func (s *AuthorizationCodeSessionStorage) Stop() {
+	s.backend.Stop()
+}
+
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) Register(ctx context.Context, issuer, code string, req *sessionv1.AuthorizationCodeSession) (uint64, error) {
+func (s *AuthorizationCodeSessionStorage) Register(ctx context.Context, issuer, code string, req *sessionv1.AuthorizationCodeSession) (uint64, error) {
 	// Insert in cache
 	s.backend.Set(s.deriveKey(issuer, code), req)
 
@@ -55,13 +61,13 @@ func (s *sessionStorage) Register(ctx context.Context, issuer, code string, req 
 	return uint64(60), nil
 }
 
-func (s *sessionStorage) Delete(ctx context.Context, issuer, code string) error {
+func (s *AuthorizationCodeSessionStorage) Delete(ctx context.Context, issuer, code string) error {
 	s.backend.Delete(s.deriveKey(issuer, code))
 	// No error
 	return nil
 }
 
-func (s *sessionStorage) Get(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error) {
+func (s *AuthorizationCodeSessionStorage) Get(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error) {
 	// Retrieve from cache
 	if x, found := s.backend.Get(s.deriveKey(issuer, code)); found {
 		req := x.(*sessionv1.AuthorizationCodeSession)
@@ -71,7 +77,7 @@ func (s *sessionStorage) Get(ctx context.Context, issuer, code string) (*session
 	return nil, storage.ErrNotFound
 }
 
-func (s *sessionStorage) DeleteAndGet(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error) {
+func (s *AuthorizationCodeSessionStorage) DeleteAndGet(ctx context.Context, issuer, code string) (*sessionv1.AuthorizationCodeSession, error) {
 	// Atomically consume the code session from cache. The returned session is
 	// a detached clone stamped with the terminal CONSUMED status (defense in
 	// depth on top of the sdk/session state machine: a CONSUMED session can
@@ -87,7 +93,7 @@ func (s *sessionStorage) DeleteAndGet(ctx context.Context, issuer, code string) 
 
 // -----------------------------------------------------------------------------
 
-func (s *sessionStorage) deriveKey(issuer, code string) string {
+func (s *AuthorizationCodeSessionStorage) deriveKey(issuer, code string) string {
 	// Create hasher
 	h, err := blake2b.New256(s.secretKey)
 	if err != nil {

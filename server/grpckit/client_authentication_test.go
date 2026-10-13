@@ -39,12 +39,14 @@ func newAuthnService(t *testing.T) (clientv1.ClientAuthenticationServiceServer, 
 	t.Helper()
 
 	clients := inmemory.Clients()
+	proofs := inmemory.DPoPProofs()
+	t.Cleanup(proofs.Stop)
 	return ClientAuthentication(
 		clients,
 		testIssuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
 	), clients
 }

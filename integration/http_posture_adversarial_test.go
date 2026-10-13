@@ -46,15 +46,17 @@ import (
 // httpPostureTokenServer wires the real token handler (with the
 // client-authentication middleware) over the harness stack, mirroring the
 // example assembly.
-func httpPostureTokenServer(h *harness) *httptest.Server {
+func httpPostureTokenServer(t testing.TB, h *harness) *httptest.Server {
+	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 	return httptest.NewServer(httpkit.ClientAuthentication(
 		h.clients,
 		h.issuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
-	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(), profile.Strict())))
+	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(t), profile.Strict())))
 }
 
 // httpPostureAuthorizationServer wires the real authorization handler
@@ -75,7 +77,7 @@ func httpPostureAuthorizationServer(h *harness) *httptest.Server {
 // and this pin moves with it.
 func TestHTTPPosture_NoCORSAutogen(t *testing.T) {
 	h := newHarness(t)
-	ts := httpPostureTokenServer(h)
+	ts := httpPostureTokenServer(t, h)
 	defer ts.Close()
 
 	for _, method := range []string{http.MethodOptions, http.MethodPost} {
@@ -104,7 +106,7 @@ func TestHTTPPosture_NoCORSAutogen(t *testing.T) {
 func TestHTTPPosture_NoTokenValueInResponses(t *testing.T) {
 	h := newHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeRefreshToken})
-	ts := httpPostureTokenServer(h)
+	ts := httpPostureTokenServer(t, h)
 	defer ts.Close()
 
 	const (
@@ -165,7 +167,7 @@ func TestHTTPPosture_NoTokenValueInResponses(t *testing.T) {
 func TestHTTPPosture_CacheControlNoStore(t *testing.T) {
 	h := newHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeClientCredentials})
-	ts := httpPostureTokenServer(h)
+	ts := httpPostureTokenServer(t, h)
 	defer ts.Close()
 
 	// Error path (WithError).

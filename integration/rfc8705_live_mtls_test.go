@@ -92,12 +92,14 @@ func newLiveMTLSServer(t *testing.T, client *clientv1.Client) (baseURL string, c
 		t.Fatalf("unable to register client: %v", err)
 	}
 
+	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 	srv := httptest.NewUnstartedServer(httpkit.ClientAuthentication(
 		clients,
 		"https://as.example.org",
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
 	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -20,6 +20,7 @@ require (
 	github.com/plgd-dev/go-coap/v3 v3.5.4
 	github.com/stretchr/testify v1.12.1
 	github.com/veraison/go-cose v1.3.0
+	go.uber.org/goleak v1.3.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/vuln v1.8.0

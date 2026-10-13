@@ -126,7 +126,7 @@ func (p *selfSignedTLSClientAuthentication) Authenticate(ctx context.Context, re
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("client has no registered jwks for %s", oidc.AuthMethodSelfSignedTLSClientAuth)
 	}
-	registered, err := jwk.Parse(client.Jwks)
+	registered, err := jwk.ParseCached(client.Jwks)
 	if err != nil {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("unable to parse client registered jwks: %w", err)

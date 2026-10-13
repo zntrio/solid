@@ -339,7 +339,7 @@ func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.
 	}
 
 	// Parse JWKS (strict: a malformed attester JWKS fails)
-	jwks, err := jwk.Parse(client.Jwks)
+	jwks, err := jwk.ParseCached(client.Jwks)
 	if err != nil {
 		return nil, "", fmt.Errorf("attester jwks is invalid: %w", err)
 	}

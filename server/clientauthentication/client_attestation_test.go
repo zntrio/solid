@@ -406,6 +406,7 @@ func Test_clientAttestationAuthentication_Authenticate(t *testing.T) {
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
 			proofs := inmemory.DPoPProofs()
+			t.Cleanup(proofs.Stop)
 			f := newAttestationFixture()
 
 			// Prepare them

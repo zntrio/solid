@@ -216,8 +216,10 @@ func (p *privateKeyJWTAuthentication) Authenticate(ctx context.Context, req *cli
 		return res, fmt.Errorf("client jwks is nil")
 	}
 
-	// Parse JWKS (strict: a malformed client JWKS fails as invalid client)
-	jwks, err := jwk.Parse(client.Jwks)
+	// Parse JWKS (strict: a malformed client JWKS fails as invalid client).
+	// The parse is memoized on the JWKS bytes: identical documents hit the
+	// cache, a rotation (different bytes) re-parses — no staleness window.
+	jwks, err := jwk.ParseCached(client.Jwks)
 	if err != nil {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("client jwks is invalid: %w", err)

@@ -63,7 +63,7 @@ import (
 // SD-JWT ID-token generator (id+jwt, IDTokenProfile), mirroring
 // newSDATHarness. The AS access/refresh generators are plain mocks of
 // the stack shape; the focus is the id_token mint.
-func newSDIDTokenHarness(t *testing.T) (*sdidtHarness, jwk.Set) {
+func newSDIDTokenHarness(t testing.TB) (*sdidtHarness, jwk.Set) {
 	t.Helper()
 
 	storageKey := []byte("integration-storage-key-0123456789ab")
@@ -111,6 +111,7 @@ func newSDIDTokenHarness(t *testing.T) (*sdidtHarness, jwk.Set) {
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 	userCodeAttempts := inmemory.UserCodeAttempts()
+	cleanupStores(t, authRequests, authSessions, deviceSessions, backchannelSessions, proofs)
 
 	accessTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("integration-at-mac-key"))
 	refreshTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("integration-rt-mac-key"))
@@ -247,15 +248,17 @@ func (h *sdidtHarness) seedAuthorizationPairwise(t *testing.T, client *clientv1.
 
 // sdidtHTTPServer wires the real Token handler (client-authentication
 // middleware + the shared DPoP verifier) over the SD ID-token harness.
-func sdidtHTTPServer(h *harness) *sdidtServer {
+func sdidtHTTPServer(t testing.TB, h *harness) *sdidtServer {
+	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 	ts := httptest.NewServer(httpkit.ClientAuthentication(
 		h.clients,
 		h.issuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
-	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(), profile.Strict())))
+	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(t), profile.Strict())))
 	return &sdidtServer{ts: ts}
 }
 
@@ -328,7 +331,7 @@ func TestSDIDTokenHTTPResponse(t *testing.T) {
 	h, asPubSet := newSDIDTokenHarness(t)
 	client := h.registerPairwiseClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
-	s := sdidtHTTPServer(h.harness)
+	s := sdidtHTTPServer(t, h.harness)
 	defer s.close()
 
 	res, body, pairwiseSub := redeemCode(t, h, s, client)
@@ -440,7 +443,7 @@ func TestSDIDTokenDefaultOff(t *testing.T) {
 	h, _ := newSDIDTokenHarnessDefaultOff(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
-	s := sdidtHTTPServer(h.harness)
+	s := sdidtHTTPServer(t, h.harness)
 	defer s.close()
 
 	res, body, _ := redeemCode(t, h, s, client)

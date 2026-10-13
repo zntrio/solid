@@ -53,21 +53,23 @@ const resourceMetadataURI = "http://127.0.0.1:8085"
 var permissions = map[string]map[string]types.StringArray{
 	"timestamp:read": {
 		"t8p9duw4n2klximkv3kagaud796ul67g": {
-			"", // Allow client itself
+			"", // No subject restriction (see can())
 		},
 		"attestation-client": {
 			"",
 		},
-		// The AI-agent client (examples/agentclient): authorized through
-		// its exchanged token; the mcpToolAccess gate below evaluates the
-		// carried mcp_tools authorization detail before access is granted.
-		"https://agent.example.org/ai-agent": {
+		// The MCP tool server (examples/mcpserver): calls through its
+		// second-hop exchanged token (T5, client_id = the MCP server,
+		// RFC 8693 section 4.3); the mcpToolAccess gate below evaluates
+		// the carried mcp_tools authorization detail before access is
+		// granted.
+		"https://mcp.example.org/server": {
 			"",
 		},
 	},
 }
 
-// mcpToolAccess pins the AI-agent client's tool-grant requirement: the
+// mcpToolAccess pins the MCP tool server's tool-grant requirement: the
 // presented token must carry an mcp_tools authorization detail for this
 // resource whose actions include the requested intent (RFC 9396 section 5,
 // evaluated by the resource server — the remote MCP service makes the
@@ -77,7 +79,7 @@ var mcpToolAccess = map[string]struct {
 	Type      string
 	Locations []string
 }{
-	"https://agent.example.org/ai-agent": {Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}},
+	"https://mcp.example.org/server": {Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}},
 }
 
 // hasToolGrant reports whether the identity's token carries the matching
@@ -106,12 +108,17 @@ func can(id *identity, intent string) bool {
 		return false
 	}
 
-	// Check subject permission
+	// Check subject permission. An empty entry ("") is the demo's
+	// wildcard: no subject restriction — the client allowlist plus the
+	// tool-grant, audience and scope gates below carry the authorization
+	// decision. Delegated tokens carry the end-user subject (RFC 8693
+	// section 4.1 sub), self-acting machine tokens the client id; a
+	// fixed subject list cannot express either with pairwise subjects.
 	subjects, ok := clients[id.ClientID]
 	if !ok {
 		return false
 	}
-	if !subjects.Contains(id.Subject) {
+	if !subjects.Contains("") && !subjects.Contains(id.Subject) {
 		return false
 	}
 

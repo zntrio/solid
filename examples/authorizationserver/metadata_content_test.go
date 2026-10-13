@@ -36,12 +36,13 @@ func TestMetadataDocumentAdvertisesCIMDSupport(t *testing.T) {
 
 // TestMetadataDocumentAdvertisesAuthorizationDetailsTypes asserts the
 // example's discovery document advertises
-// authorization_details_types_supported with the registered type
-// (RFC 9396 section 10).
+// authorization_details_types_supported with the registered types
+// (RFC 9396 section 10): payment initiation, and the MCP tool grant
+// consumed by the agentclient / resourceserver demos.
 func TestMetadataDocumentAdvertisesAuthorizationDetailsTypes(t *testing.T) {
 	md := metadataDocument("https://as.example.org")
-	require.Equal(t, []string{"payment_initiation"}, md.AuthorizationDetailsTypesSupported,
-		"authorization_details_types_supported must advertise the example's registered type")
+	require.Equal(t, authDetailsTypes, md.AuthorizationDetailsTypesSupported,
+		"authorization_details_types_supported must advertise the example's registered types")
 }
 
 // TestMetadataDocumentAdvertisesClientAttestationAlgorithms asserts the

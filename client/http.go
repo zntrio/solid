@@ -288,8 +288,23 @@ func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*
 		tokenStatus = tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE
 	}
 
+	// Decode the RFC 7662 member names the AS emits ("sub", "aud",
+	// "client_id", "scope", "exp", "iat", "nbf", "acr", "auth_time",
+	// "authorization_details") into the token metadata: protojson field
+	// names ("subject", "audience") would not match the wire names.
 	var meta tokenv1.TokenMeta
-	if err := json.Unmarshal(rawBody, &meta); err != nil {
+	if err := json.Unmarshal(rawBody, &introspectionMetadata{
+		Subject:              &meta.Subject,
+		Audience:             &meta.Audience,
+		ClientId:             &meta.ClientId,
+		Scope:                &meta.Scope,
+		ExpiresAt:            &meta.ExpiresAt,
+		IssuedAt:             &meta.IssuedAt,
+		NotBefore:            &meta.NotBefore,
+		Acr:                  &meta.Acr,
+		AuthTime:             &meta.AuthTime,
+		AuthorizationDetails: &meta.AuthorizationDetails,
+	}); err != nil {
 		return nil, fmt.Errorf("unable to decode json response: %w", err)
 	}
 	var confirmationWrapper struct {
@@ -298,11 +313,24 @@ func (c *httpClient) Introspect(ctx context.Context, assertion, token string) (*
 	if err := json.Unmarshal(rawBody, &confirmationWrapper); err != nil {
 		return nil, fmt.Errorf("unable to decode json response: %w", err)
 	}
+	// RFC 8693 section 4.4: the act member carries the nested delegation
+	// chain; flatten it into the proto actor list (immediate actor first).
+	var actWrapper struct {
+		Act *jsonIntrospectionActor `json:"act"`
+	}
+	if err := json.Unmarshal(rawBody, &actWrapper); err != nil {
+		return nil, fmt.Errorf("unable to decode json response: %w", err)
+	}
+	var actors []*tokenv1.Actor
+	for entry := actWrapper.Act; entry != nil; entry = entry.Act {
+		actors = append(actors, &tokenv1.Actor{Subject: entry.Sub})
+	}
 	// Return token info
 	return &tokenv1.Token{
 		Issuer:       c.issuer,
 		Status:       tokenStatus,
 		Confirmation: confirmationWrapper.Confirmation,
+		Actor:        actors,
 		Metadata:     &meta,
 		Value:        token,
 	}, nil

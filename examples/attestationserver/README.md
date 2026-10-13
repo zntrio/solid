@@ -19,12 +19,25 @@ sequenceDiagram
     Note over S: boot: ML-DSA-65 key from fixture seed
     C->>S: POST /attestations/sign { clientPublicKey, clientId }
     S->>S: build attestation: iss=urn:solid:attestation-server, sub=clientId, cnf.jwk=clientPublicKey
-    S->>S: sign with fixture key (typ client-attestation+jwt, jwk header)
+    S->>S: sign with fixture key (typ oauth-client-attestation+jwt, jwk header)
     S-->>C: attestation JWT (1h validity)
     AS->>S: GET /attestations/jwks (at first verification)
     S-->>AS: signing public JWKS
     Note over AS: verifies every attestation against this JWKS,<br/>then checks the client's PoP against cnf.jwk
 ```
+
+## Sample run (captured live, via `attestationclient`)
+
+```text
+→ POST http://127.0.0.1:8087/attestations/sign
+  {"clientId":"attestation-client","clientPublicKey":{"alg":"ML-DSA-65","kty":"AKP","pub":"D9jZffOb…"}}
+← HTTP 200
+  Content-Type: application/client-attestation+jwt; charset=utf-8
+  eyJhbGciOiJNTC1EU0EtNjUiLCJqd2siOnsiYWxnIjoiTUwtRFNBLTY1Iiwia2lkIjoi…
+```
+
+The AS fetches `/attestations/jwks` (served from the same fixture key) on
+first attestation verification.
 
 ## What it proves
 

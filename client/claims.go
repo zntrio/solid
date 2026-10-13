@@ -18,6 +18,7 @@
 package client
 
 import (
+	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/jwk"
 )
 
@@ -43,4 +44,30 @@ type jsonJWKSResponse struct {
 
 type jsonTokenIntrospectionResponse struct {
 	Active bool `json:"active"`
+}
+
+// jsonIntrospectionActor is the RFC 8693 section 4.4 nested act member of
+// an introspection response: the acting party subject with its prior
+// delegation chain.
+type jsonIntrospectionActor struct {
+	Sub string                  `json:"sub"`
+	Act *jsonIntrospectionActor `json:"act,omitempty"`
+}
+
+// introspectionMetadata decodes the RFC 7662 section 2.2 member names of
+// an introspection response into the token metadata fields (the wire
+// names "sub"/"aud" differ from the proto field names). The optional
+// members use pointer-to-pointer fields so decoding writes through to
+// the target proto optional fields.
+type introspectionMetadata struct {
+	Subject              *string                         `json:"sub"`
+	Audience             *string                         `json:"aud"`
+	ClientId             *string                         `json:"client_id"`
+	Scope                *string                         `json:"scope"`
+	ExpiresAt            *uint64                         `json:"exp"`
+	IssuedAt             *uint64                         `json:"iat"`
+	NotBefore            *uint64                         `json:"nbf"`
+	Acr                  **string                        `json:"acr"`
+	AuthTime             **uint64                        `json:"auth_time"`
+	AuthorizationDetails *[]*tokenv1.AuthorizationDetail `json:"authorization_details"`
 }

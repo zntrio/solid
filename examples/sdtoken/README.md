@@ -43,6 +43,34 @@ sequenceDiagram
     RS-->>C: Processed payload: disclosed claims only
 ```
 
+## Sample run (captured live)
+
+```text
+== access token (DPoP-bound, cnf.jkt = n5fNflpxW0ks...) ==
+RS-verified processed payload: email=alice@example.com name=<nil>
+
+== id token (profile generalization, typ id+jwt / application/id+cwt) ==
+client-verified claims: nonce=n-0S6_WzA2Mj auth_time=1.791881307e+09 email=alice@example.com name=<nil>
+
+== raw token payloads (digests only) ==
+  JWT payload: {
+    "_sd": [
+      "OuvzPY2nCCtVmG5h98Mu0HR-DKnl77KBpfxjb5Goka8",
+      "elsqQx0mx21n4pFh5Qcg0jGm3zykLtUmF8QTNd1gdKg"
+    ],
+    "_sd_alg": "sha-256",
+    "aud": "https://rs.example.com",
+    "cnf": { "jkt": "n5fNflpxW0ksfQ01OWKlI-RAcrrpVBkyEtx3MR-tT6s" },
+    "exp": 1791884937, "iat": 1791881337,
+    "iss": "https://as.example.com", "jti": "at-raw-1", "sub": "user-42"
+  }
+
+flow verified end-to-end: digests in the token, values only in the disclosures.
+```
+
+The holder disclosed `email` and withheld `name` — the RS-verified payload
+shows only the disclosed claim.
+
 ## Running
 
 ```sh

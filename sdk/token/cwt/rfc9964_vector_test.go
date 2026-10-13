@@ -3,10 +3,10 @@ package cwt
 import (
 	"bytes"
 	"context"
+	"crypto/mldsa"
 	"encoding/hex"
 	"testing"
 
-	"crypto/mldsa"
 	"github.com/veraison/go-cose"
 
 	"zntr.io/solid/sdk/jwk"

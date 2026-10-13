@@ -85,7 +85,10 @@ module solid {
 
   type TokenKind = Access | Refresh
   type TokenVia = FromCode | FromRefresh
-  type TokenStatus = Active | Revoked
+  // CONSUMED models the atomic consume-first rotation (RFC 9700 §4.14.2):
+  // a presented RT is burned before any check; the winner of a concurrent
+  // pair observes ACTIVE, the loser observes CONSUMED (a replay).
+  type TokenStatus = Active | Consumed | Revoked
 
   type Token = {
     id: int,                 // jti; token value == id (abstract lookup key)
@@ -250,9 +253,11 @@ module solid {
   action redeem(code: int, client: str, verifier: int, redirect: str, proofJkt: int): bool = {
     val cl = if (clients.keys().contains(client)) clients.get(client) else NO_CLIENT
     val s = if (sessions.keys().contains(code)) sessions.get(code) else NO_SESSION
-    // RFC 9449 §10: a code bound to a DPoP key can only be redeemed with a
-    // proof from that same key (grant_authorization_code.go:123-138).
-    val dpopOk = s.jkt == 0 or s.jkt == proofJkt
+    // RFC 9449 §10 (enforceSenderBinding, grants.go:87): code redemption
+    // ALWAYS presents a DPoP confirmation — the strict profile binds every
+    // code at PAR/authorize time, so an absent proof (jkt 0) can never
+    // redeem; a bound code additionally requires the same key.
+    val dpopOk = proofJkt != 0 and (s.jkt == 0 or s.jkt == proofJkt)
     val checksOk =
       client == s.client
       and redirect == s.redirect
@@ -289,16 +294,31 @@ module solid {
   }
 
   // Token endpoint, refresh_token grant (grant_refresh_token.go).
-  // Guard order: client refresh capability (validateGrantPreamble) BEFORE
-  // lookup. Then: REVOKED status ⇒ replay ⇒ revoke the ENTIRE GrantId family
-  // (lines 66-77, fires regardless of token kind, before the ownership
-  // check); ACTIVE + Refresh kind + owner client ⇒ mint new AT + RT
-  // (via FromRefresh, same family metadata), revoke the presented RT.
-  action refresh(rtId: int, client: str): bool = {
+  // FAITHFUL ORDERING (7b68fc2 →): client refresh capability
+  // (validateGrantPreamble) BEFORE lookup. The presented RT is then
+  // consumed ATOMICALLY and UNCONDITIONALLY (ConsumeIfActive, line 69):
+  // ACTIVE→CONSUMED in one compare-and-set, no interleaving window, so
+  // two concurrent refreshes with the same token cannot both win.
+  // The pre-transition status then drives the branch:
+  //   - ACTIVE (winner): owner + DPoP-continuity checks, mint new
+  //     AT+RT via FromRefresh, same family metadata, narrowed scope.
+  //   - CONSUMED (lost the race / sequential replay) or REVOKED:
+  //     replay ⇒ revoke the ENTIRE GrantId family (theft response),
+  //     EXPIRED is exempt from the theft signal (line 86 guard).
+  action refresh(rtId: int, client: str, proofJkt: int, narrowedScopes: Set[str]): bool = {
     val cl = if (clients.keys().contains(client)) clients.get(client) else NO_CLIENT
     val t = if (tokens.keys().contains(rtId)) tokens.get(rtId) else NO_TOKEN
-    val replay = t.status == Revoked
-    val valid = t.status == Active and t.kind == Refresh and t.client == client
+    val replay = t.status == Revoked or t.status == Consumed
+    // RFC 9449 §8: a DPoP-bound RT refreshes only with a proof from the
+    // same key (grant_refresh_token.go:130-143).
+    val dpopOk = t.jkt == 0 or t.jkt == proofJkt
+    // RFC 6749 §6: requested scope ⊆ granted scope (narrowing only).
+    val scopeOk = narrowedScopes.forall(s => t.scopes.contains(s))
+    val valid = t.status == Active and t.kind == Refresh and t.client == client and dpopOk and scopeOk
+    // Failed checks burn the RT too (ConsumeIfActive runs before every
+    // check): wrong client, wrong key or scope escalation consume the
+    // presented token without minting.
+    val burn = t.status == Active and t.kind == Refresh
     all {
       tokens.keys().contains(rtId),
       cl.grants.contains("refresh_token"),
@@ -312,9 +332,11 @@ module solid {
             else
               tokens.get(k))
         else if (valid)
-          tokens.put(rtId, { ...t, status: Revoked })
-                .put(counter, mkToken(counter, Access, FromRefresh, t.client, t.user, t.subject, t.grantId, t.scopes, t.jkt))
-                .put(counter + 1, mkToken(counter + 1, Refresh, FromRefresh, t.client, t.user, t.subject, t.grantId, t.scopes, t.jkt))
+          tokens.put(rtId, { ...t, status: Consumed })
+                .put(counter, mkToken(counter, Access, FromRefresh, t.client, t.user, t.subject, t.grantId, narrowedScopes, t.jkt))
+                .put(counter + 1, mkToken(counter + 1, Refresh, FromRefresh, t.client, t.user, t.subject, t.grantId, narrowedScopes, t.jkt))
+        else if (burn)
+          tokens.put(rtId, { ...t, status: Consumed })
         else
           tokens,
       counter' = if (valid) counter + 2 else counter,
@@ -387,7 +409,9 @@ module solid {
   action refreshStep: bool = {
     nondet rtId = 0.to(MAX_IDS - 1).oneOf()
     nondet client = CLIENTS.oneOf()
-    refresh(rtId, client)
+    nondet proofJkt = JKTS.oneOf()
+    nondet narrowedScopes = SCOPE_SETS.oneOf()
+    refresh(rtId, client, proofJkt, narrowedScopes)
   }
 
   action revokeStep: bool = {

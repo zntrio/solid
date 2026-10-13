@@ -40,6 +40,7 @@ type service struct {
 	deviceCodeSessions        storage.DeviceCodeSession
 	backchannelSessions       storage.BackchannelAuthenticationSession
 	tokens                    storage.Token
+	delegationPolicy          DelegationPolicy
 	resources                 storage.ResourceReader
 	idjagVerifier             idjag.Verifier
 	idjagSigner               idjag.Signer
@@ -99,6 +100,24 @@ func WithIDJAGVerifier(v idjag.Verifier) Option {
 func WithIDTokenGenerator(gen token.Generator) Option {
 	return func(s *service) {
 		s.idTokenGen = gen
+	}
+}
+
+// DelegationPolicy resolves, for a target resource URI, the client IDs
+// allowed to re-delegate tokens for that resource through RFC 8693 token
+// exchange (may_act issuance). An error must be treated as fail-closed
+// by the caller: no token is minted.
+type DelegationPolicy interface {
+	MayRedelegate(ctx context.Context, resourceURI string) ([]string, error)
+}
+
+// WithDelegationPolicy wires the delegation policy consulted by the
+// token-exchange grant when minting tokens that carry a may_act list.
+// Without it, no may_act is issued on exchanged tokens (no re-delegation
+// is authorized anywhere) and the strict subject-confirmation rules apply.
+func WithDelegationPolicy(p DelegationPolicy) Option {
+	return func(s *service) {
+		s.delegationPolicy = p
 	}
 }
 

@@ -28,13 +28,18 @@ type resourceStorage struct {
 	backend map[string]*resourcev1.Resource
 }
 
-// mcpResourceURI is the RFC 8707 resource indicator of the example
-// remote MCP-style resource server (examples/resourceserver).
-const mcpResourceURI = "http://127.0.0.1:8085"
+// mcpServerResourceURI is the RFC 8707 resource indicator of the example
+// MCP tool server (examples/mcpserver): the first token-exchange hop's
+// audience, ahead of its re-delegation to the backend resource server.
+const mcpServerResourceURI = "http://127.0.0.1:8090"
 
 // cwtResourceURI is the RFC 8707 resource indicator of the example CWT
 // resource server: audience of the client_credentials fixtures.
 const cwtResourceURI = "https://rs.example.org"
+
+// mcpResourceURI is the RFC 8707 resource indicator of the example
+// remote MCP-style resource server (examples/resourceserver).
+const mcpResourceURI = "http://127.0.0.1:8085"
 
 // Resources returns a resource reader.
 func Resources() storage.Resource {
@@ -65,6 +70,15 @@ func Resources() storage.Resource {
 				Urn:         mcpResourceURI,
 				Description: "Example remote MCP-style resource server",
 				Urls:        []string{mcpResourceURI},
+			},
+
+			// The example MCP tool server (examples/mcpserver): the
+			// first token-exchange hop's audience, delegating onward
+			// to the backend resource server through may_act.
+			mcpServerResourceURI: {
+				Urn:         mcpServerResourceURI,
+				Description: "Example MCP tool server",
+				Urls:        []string{mcpServerResourceURI},
 			},
 			// The cross-application-access Resource Authorization Server
 			// (integration/idjag_adversarial_test): audience of the

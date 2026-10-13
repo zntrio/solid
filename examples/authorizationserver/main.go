@@ -18,6 +18,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"log"
@@ -64,9 +65,22 @@ var clientAssertionAlgorithms = []string{es256Alg, jwk.MLDSA65}
 // reference posture accepts the post-quantum ML-DSA-65 only.
 var requestObjectAlgorithms = []string{jwk.MLDSA65}
 
-// authDetailsType is the RFC 9396 authorization details type the example
-// AS registers and validates (payment initiation).
-const authDetailsType = "payment_initiation"
+// authDetailsTypes are the RFC 9396 authorization details types the example
+// AS registers and validates: payment initiation, and the MCP tool grant
+// consumed by the agentclient / resourceserver demos.
+var authDetailsTypes = []string{"payment_initiation", "mcp_tools"}
+
+// authDetailsValidator is the details-type validator built from the
+// registered types above.
+var authDetailsValidator = authzdetails.NewStaticValidator(sliceToSet(authDetailsTypes))
+
+func sliceToSet(values []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(values))
+	for _, v := range values {
+		set[v] = struct{}{}
+	}
+	return set
+}
 
 //nolint:funlen // example assembly: linear wiring of the reference stack
 func main() {
@@ -105,6 +119,8 @@ func main() {
 		// remote host.
 		cimddemo.ClientIdentifierURL,
 		cimddemo.AgentClientIdentifierURL,
+		cimddemo.McpServerClientIdentifierURL,
+		cimddemo.ResourceServerClientIdentifierURL,
 	)
 	clients := inmemory.NewClientReader(inmemory.Clients(), cimdResolver)
 	proofs := inmemory.DPoPProofs()
@@ -145,15 +161,22 @@ func main() {
 
 	// Prepare services
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs,
-		authzdetails.NewStaticValidator(map[string]struct{}{authDetailsType: {}}))
+		authDetailsValidator)
 
 	// Cross-App Access (ID-JAG) roles: static trust configuration from
 	// SOLID_EXAMPLE_XAA_CONFIG; absent configuration disables both roles.
 	issuer := exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
 	xaaOpts := mustXAAOptions(issuer)
-	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources, append(xaaOpts, token.WithIDTokenGenerator(idTokens))...)
-	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts(), authzdetails.NewStaticValidator(map[string]struct{}{authDetailsType: {}}))
-	backchannelz := backchannel.New(clients, backchannelSessions, authReqIDs, backchannel.LoginHintResolver(), authzdetails.NewStaticValidator(map[string]struct{}{authDetailsType: {}}), clientAssertionAlgorithms)
+	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources, append(xaaOpts,
+		// RFC 8693 may_act delegation posture for the demo topology: the
+		// MCP server may re-delegate user tokens minted for it
+		// (examples/mcpserver → examples/resourceserver second hop).
+		token.WithDelegationPolicy(staticDelegationPolicy{
+			"http://127.0.0.1:8090": {cimddemo.McpServerClientIdentifierURL},
+		}),
+		token.WithIDTokenGenerator(idTokens))...)
+	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts(), authDetailsValidator)
+	backchannelz := backchannel.New(clients, backchannelSessions, authReqIDs, backchannel.LoginHintResolver(), authDetailsValidator, clientAssertionAlgorithms)
 
 	// SPIFFE trust bundles (draft-ietf-oauth-spiffe-client-auth-02 section 6):
 	// the example.org trust domain keys are pre-configured statically; the
@@ -245,4 +268,15 @@ func examplePairwiseSalt() []byte {
 	}
 	log.Println("WARNING: SOLID_EXAMPLE_PAIRWISE_SALT is not set; using an ephemeral salt. Pairwise subject identifiers will not survive a restart; set the variable for anything beyond local testing.")
 	return salt
+}
+
+// staticDelegationPolicy is the fixed demo delegation policy (RFC 8693
+// may_act issuance): a resource URI → re-delegator client IDs map. It
+// answers the token-exchange grant when minting tokens for a target
+// resource, listing the clients authorized to re-delegate them.
+type staticDelegationPolicy map[string][]string
+
+// MayRedelegate implements token.DelegationPolicy.
+func (p staticDelegationPolicy) MayRedelegate(_ context.Context, resourceURI string) ([]string, error) {
+	return p[resourceURI], nil
 }

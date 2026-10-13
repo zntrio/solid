@@ -26,6 +26,25 @@ sequenceDiagram
     T-->>C: access_token
 ```
 
+## Sample run (captured live)
+
+```text
+JWT-SVID: eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwOi8vMTI3LjAuMC4xOjgwODAvdG9rZW4iLCJleHAiOjE3OTE4ODExNjcsImlhdCI6MTc5MTg4MDg2NywiaXNzIjoic3BpZmZlOi8vZXhhbXBsZS5vcmcvbXktb2F1dGgtY2xpZW50IiwianRpIjoiV2RxS2RCemVlZWd6VkttSSIsInN1YiI6InNwaWZmZTovL2V4YW1wbGUub3JnL215LW9hdXRoLWNsaWVudCJ9.4jy8sQFqgz6T4qLBtrsHs2Zg8smSgq1fhU6B6JOe-NsSyCDEehniTLGth27DU0ksDLxY1xslDrU4qAy-haeEhw
+
+→ POST http://127.0.0.1:8080/token
+  Content-Type: application/x-www-form-urlencoded
+  client_assertion=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJ…(+324 bytes)
+  client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-spiffe
+  grant_type=client_credentials
+  resource=http://127.0.0.1:8085
+  scope=timestamp:read
+← HTTP 200
+  "access_token": "eyJhbGciOiJIUEtFLTciLCJraWQiOiJnLXZSSFdxdHVsb2J…(+6655 bytes)
+  "expires_in": 3600
+  "scope": "timestamp:read"
+  "token_type": "Bearer"
+```
+
 ## What it proves
 
 * Client identity is the workload identity: no per-client key registration

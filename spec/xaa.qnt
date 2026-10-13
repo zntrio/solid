@@ -5,29 +5,67 @@
  *   draft-ietf-oauth-identity-chaining-17 + RFC 7521/7523 ).
  *
  * COVERS
- *   - IdP role: token exchange with requested_token_type=id-jag, subject
- *     refresh token validation (active, client-bound, unexpired), trusted
- *     audience resolution with client-ID mapping, pairwise subject
- *     transcription, DPoP cnf.jkt minting ( grant_token_exchange_idjag.go )
- *   - Resource AS role: jwt-bearer redemption — typ/issuer-trust/audience/
- *     temporal/REQUIRED-claim validation, client continuity (client_id ==
- *     authenticated client), cnf.jkt ↔ DPoP proof binding, scope and
- *     authorization_details narrowing, no refresh token issuance
- *     ( grant_jwt_bearer.go + sdk/idjag/verifier.go )
+ *   - IdP role: token exchange with requested_token_type=id-jag,
+ *     subject_token_type dispatch (refresh_token only — id_token and any
+ *     other type fail closed), subject refresh token validation (active,
+ *     client-bound, unexpired), trusted audience resolution with
+ *     PER-AUDIENCE client-ID mapping (mapped at B does not imply mapped
+ *     at C), pairwise subject transcription, RFC 8707 resource indicator
+ *     transcribed verbatim from the request (validated at redemption),
+ *     empty-scope-request-carries-context semantics, DPoP cnf.jkt minting
+ *     ( grant_token_exchange_idjag.go )
+ *   - Resource AS role: jwt-bearer redemption — grant capability
+ *     (unauthorized_client), sender-binding policy (DPoP-bound clients
+ *     must present a proof), typ/issuer-trust/audience/temporal/
+ *     REQUIRED-claim validation, self-issued-grant rejection (draft §9.3),
+ *     assertion lifetime cap (10-minute maximum), RFC 8707 resource and
+ *     audience registry validation with resource-wins-over-audience,
+ *     client continuity (client_id == authenticated client), cnf.jkt ↔
+ *     DPoP proof binding, scope and authorization_details narrowing, no
+ *     refresh token issuance ( grant_jwt_bearer.go + sdk/idjag/verifier.go )
  *   - Attacker actions: foreign-key signatures, untrusted issuers, grant
- *     laundering (aud=B replayed at C), expired/nbf/not-yet-valid
- *     assertions, scope escalation, client impersonation
+ *     laundering (aud=B replayed at C), expired/not-yet-valid/over-long-
+ *     lived assertions, unregistered resource indicators, scope
+ *     escalation, authorization_details widening, client impersonation
  *
  * DOES NOT COVER (deliberate abstractions)
  *   - Cryptography: EC/ML-DSA signatures are abstract — a token verifies
  *     iff its issuer is trusted AND it was minted by that issuer (the
  *     attacker cannot forge a trusted issuer's signature, matching the
  *     threat model of the adversarial integration tests).
- *   - JWT structure: typ/alg allowlists are folded into "well-formed ID-JAG".
- *   - Wall-clock: exp/iat/nbf are integer stamps against a discrete clock.
+ *   - JWT structure: typ/alg allowlists are folded into "well-formed
+ *     ID-JAG". Multi-element aud arrays (rejected in code,
+ *     sdk/idjag/verifier.go:230-240) and multi-value resource indicators
+ *     (rejected in code, grant_jwt_bearer.go:91-94) collapse to the
+ *     single-value record fields.
+ *   - Wall-clock: exp/iat/nbf are integer stamps against a discrete clock
+ *     (1 tick = 1 minute): idjagLifetime 5 min and maxAssertionLifetime
+ *     10 min become 5 and 10 ticks.
  *   - Client authentication (private_key_jwt etc.): modeled as the closed
  *     client registry of the AS, like solid.qnt.
+ *   - Auth-event transcription (auth_time/acr/amr,
+ *     grant_token_exchange_idjag.go:157-165): pure claim copying with no
+ *     guard — the fields ride the token but never gate a transition.
+ *   - Access-token mint metadata (NotBefore = now+1, ExpiresAt = now+1h,
+ *     generator.go:56-58): model access tokens are observed only through
+ *     the safety invariants; their own validity window is never consumed,
+ *     so nbf/exp are not carried on the record.
  *   - Token introspection / revocation: out of the XAA loop.
+ *
+ * KNOWN SPEC/CODE DIVERGENCE (flagged 2026-10-13 — the spec keeps the
+ *   RFC-strict boundary and does NOT relax to match the code; the code
+ *   owner must decide whether each laxer comparison is a bug):
+ *   - exp boundary: the spec requires j.exp > now (RFC 7523 §3: exp MUST
+ *     be in the future); the code's validateTemporal rejects only
+ *     exp < now, so a grant with exp == now is ACCEPTED by the code
+ *     ( sdk/idjag/verifier.go:249 ).
+ *   - refresh-token expiry boundary: the spec requires
+ *     rt.expiresAt > clock; the code rejects only ExpiresAt < now, so
+ *     equality is ACCEPTED ( grant_token_exchange_idjag.go:215 ).
+ *   - future iat: the spec rejects iat > now (iat doubles for nbf, see
+ *     temporallyValid); the code checks iat only for presence, so a
+ *     future-iat grant with valid exp/nbf is ACCEPTED by the code
+ *     ( sdk/idjag/verifier.go:134,248 ).
  *
  * WHEN TO UPDATE: re-verify this spec before changing
  *   server/services/token/grant_token_exchange_idjag.go,
@@ -47,7 +85,13 @@ module xaa {
   pure val AS_B = "https://resource-as.example/" // trust domain B (audience)
   pure val AS_C = "https://third-as.example/"    // trust domain C (laundering)
 
-  pure val CLIENTS: Set[str] = Set("wiki", "chat") // clients at the IdP
+  // Capability and token-type identifiers ( oidc/const.go ).
+  pure val GRANT_TOKEN_EXCHANGE: str = "urn:ietf:params:oauth:grant-type:token-exchange"
+  pure val GRANT_JWT_BEARER: str = "urn:ietf:params:oauth:grant-type:jwt-bearer"
+  pure val REFRESH_TOKEN_TYPE: str = "urn:ietf:params:oauth:token-type:refresh_token"
+  pure val ID_TOKEN_TYPE: str = "urn:ietf:params:oauth:token-type:id_token"
+
+  pure val CLIENTS: Set[str] = Set("wiki", "chat", "calendar") // clients at the IdP
   pure val RAS_CLIENTS: Set[str] = Set("wiki-at-b", "chat-at-b") // clients at AS B
   pure val USERS: Set[int] = Set(1, 2)
   pure val SCOPES: Set[str] = Set("chat.read", "chat.history", "admin.write")
@@ -55,15 +99,28 @@ module xaa {
     Set("chat.read"),
     Set("chat.read", "chat.history"),
   )
+  // Request scope domain: an EMPTY scope request is meaningful — it
+  // carries the full granted context ( grant_token_exchange_idjag.go:100-110
+  // grantedScope = subject.Scope; grant_jwt_bearer.go scopeOf/narrow ).
+  pure val REQUEST_SCOPES: Set[Set[str]] = SCOPE_SETS.union(Set(Set()))
   pure val JKTS: Set[int] = Set(0, 1, 2) // DPoP key thumbprints; 0 = unbound
+
+  // RFC 9396 authorization_details tokens (symbolic).
+  pure val DETAIL_SETS: Set[Set[str]] = Set(Set(), Set("payment:init"))
+
+  // RFC 8707 resource indicators: "" = absent. backend-api is registered
+  // at the Resource AS; urn:evil:resource is attacker-named and NOT
+  // registered ( the IdP transcribes the request value verbatim,
+  // grant_token_exchange_idjag.go:154-156 — validation is redemption-side ).
+  pure val RESOURCE_PARAMS: Set[str] = Set("", "urn:example:backend-api", "urn:evil:resource")
 
   // ------------------------------------------------------------------
   // Types
   // ------------------------------------------------------------------
 
   type Client = {
-    grants: Set[str],       // "token_exchange" | "jwt_bearer" etc.
-    tokenExchange: bool,    // may request ID-JAGs at the IdP (IdP role check)
+    grants: Set[str],       // grant-type URNs registered for the client
+    dpopBound: bool,        // DpopBoundAccessTokens: sender-binding policy
   }
 
   type RefreshToken = {     // subject token at the IdP; map presence = ACTIVE
@@ -77,11 +134,14 @@ module xaa {
     iss: str,               // issuing IdP
     sub: int,               // pairwise subject for the target AS
     aud: str,               // target Resource AS issuer
-    clientAtTarget: str,     // client_id claim: the client at the AS
+    resource: str,          // RFC 8707 resource indicator; "" = absent
+    clientAtTarget: str,    // client_id claim: the client at the AS
     jti: int,
     exp: int,
     iat: int,
     scopes: Set[str],       // granted scope set
+    details: Set[str],      // RFC 9396 authorization_details; issuance
+                            // fails closed, so honest grants carry none
     jkt: int,               // cnf.jkt DPoP binding; 0 = unbound (bearer)
     authentic: bool,        // true iff genuinely signed by iss (crypto abstraction)
   }
@@ -90,6 +150,8 @@ module xaa {
     id: int,                // fresh token id (unique per mint)
     subject: int,           // transcribed pairwise sub
     client: str,            // the authenticated RAS client
+    aud: str,               // resource indicator when present, else the
+                            // grant aud ( grant_jwt_bearer.go:126-128 )
     scopes: Set[str],       // granted (possibly narrowed) scopes
     jkt: int,               // DPoP binding carried to the AT
     grantJti: int,          // the ID-JAG jti it derives from
@@ -107,17 +169,19 @@ module xaa {
   // Resource AS (trust domain B) — the properties are about this state
   var rasClients: str -> Client
   var trustedIssuers: Set[str]             // issuer allowlist of the RAS
-  var clientMapping: str -> str            // IdP-local client -> RAS client
+  var clientMapping: str -> str -> str    // audience -> IdP client -> RAS client
+  var resources: Set[str]                  // RFC 8707 registry of the RAS
   var issuedAccessTokens: Set[AccessToken]
 
   var clock: int                           // discrete time
   var counter: int                         // fresh jti/id source
 
   // Sentinel defaults so guarded actions never .get() a missing key.
-  pure val NO_CLIENT: Client = { grants: Set(), tokenExchange: false }
+  pure val NO_CLIENT: Client = { grants: Set(), dpopBound: false }
   pure val NO_RT: RefreshToken = { client: "", user: 0, scopes: Set(), expiresAt: 0 }
-  pure val NO_JAG: IdJag = { iss: "", sub: 0, aud: "", clientAtTarget: "", jti: -1,
-    exp: 0, iat: 0, scopes: Set(), jkt: 0, authentic: false }
+  pure val NO_CLIENT_MAP: str -> str = Map()
+  pure val NO_JAG: IdJag = { iss: "", sub: 0, aud: "", resource: "", clientAtTarget: "",
+    jti: -1, exp: 0, iat: 0, scopes: Set(), details: Set(), jkt: 0, authentic: false }
 
   // ------------------------------------------------------------------
   // Functional layer (pure)
@@ -143,9 +207,22 @@ module xaa {
     // checks exp and nbf; here iat doubles for nbf to keep the record small.
     and j.iat <= now
 
+  // RFC 7523 §3 posture ( grant_jwt_bearer.go:39 maxAssertionLifetime ):
+  // the self-contained grant assertion may not outlive 10 minutes — the
+  // cap bounds the replay window of the multi-use assertion.
+  pure def lifetimeBounded(j: IdJag): bool =
+    j.exp <= j.iat + 10
+
   // draft §4.4.1 audience check: aud must be exactly the local AS issuer.
   pure def audienceFor(j: IdJag, localAS: str): bool =
     j.aud == localAS
+
+  // RFC 8707 §2/§3 ( grant_jwt_bearer.go:91-114 ): the resource indicator
+  // (when present) and otherwise the audience must be a registered
+  // resource of the local AS — an attacker-named indicator never mints.
+  pure def resourceRegistered(j: IdJag, registry: Set[str]): bool =
+    (j.resource == "" and registry.contains(j.aud))
+      or (j.resource != "" and registry.contains(j.resource))
 
   // draft §4.4.1 client continuity: the ID-JAG client_id claim must equal
   // the authenticated client at the AS.
@@ -162,18 +239,29 @@ module xaa {
 
   action init: bool = all {
     idpClients' = Map(
-      "wiki" -> { grants: Set("authorization_code", "refresh_token", "urn:ietf:params:oauth:grant-type:token-exchange"),
-                  tokenExchange: true },
-      "chat" -> { grants: Set("authorization_code"), tokenExchange: false },
+      "wiki" -> { grants: Set("authorization_code", "refresh_token", GRANT_TOKEN_EXCHANGE),
+                  dpopBound: false },
+      "chat" -> { grants: Set("authorization_code"), dpopBound: false },
+      "calendar" -> { grants: Set("authorization_code", "refresh_token", GRANT_TOKEN_EXCHANGE),
+                  dpopBound: false },
     ),
     refreshTokens' = Map(),
     mintedJags' = Set(),
     rasClients' = Map(
-      "wiki-at-b" -> { grants: Set("urn:ietf:params:oauth:grant-type:jwt-bearer"), tokenExchange: false },
-      "chat-at-b" -> { grants: Set("urn:ietf:params:oauth:grant-type:jwt-bearer"), tokenExchange: false },
+      "wiki-at-b" -> { grants: Set(GRANT_JWT_BEARER), dpopBound: false },
+      "chat-at-b" -> { grants: Set(GRANT_JWT_BEARER), dpopBound: true },
     ),
     trustedIssuers' = Set(IDP),
-    clientMapping' = Map("wiki" -> "wiki-at-b", "chat" -> "chat-at-b"),
+    // Per-audience client-ID mapping ( XAAAudience.ClientIDMapping,
+    // targetClientID ): "calendar" is mapped at AS_B but NOT at AS_C;
+    // "chat" is unmapped at both (it holds no exchange capability anyway).
+    clientMapping' = Map(
+      AS_B -> Map("wiki" -> "wiki-at-b", "calendar" -> "chat-at-b"),
+      AS_C -> Map("wiki" -> "wiki-at-c"),
+    ),
+    // RFC 8707 registry of the Resource AS ( inmemory.Resources() ): the
+    // local issuer is itself a registered resource, plus one more.
+    resources' = Set(AS_B, "urn:example:backend-api"),
     issuedAccessTokens' = Set(),
     clock' = 0,
     counter' = 0,
@@ -181,27 +269,27 @@ module xaa {
 
   // SSO step output (abstracted): a client obtains an active refresh token
   // for a user with a scope context. This is the subject_token source.
-  action ssoLogin(client: str, user: int, scopes: Set[str]): bool = {
-    val cl = if (idpClients.keys().contains(client)) idpClients.get(client) else NO_CLIENT
-    all {
-      idpClients.keys().contains(client),
-      cl.tokenExchange,                // only IdP clients may hold RTs here
-      counter < MAX_IDS,
-      refreshTokens' = refreshTokens.put(counter, {
-        client: client,
-        user: user,
-        scopes: scopes,
-        expiresAt: clock + 10,          // generous TTL vs the discrete clock
-      }),
-      mintedJags' = mintedJags,
-      rasClients' = rasClients,
-      trustedIssuers' = trustedIssuers,
-      clientMapping' = clientMapping,
-      issuedAccessTokens' = issuedAccessTokens,
-      idpClients' = idpClients,
-      clock' = clock,
-      counter' = counter + 1,
-    }
+  // RT possession follows the authorization_code + refresh consent — it is
+  // NOT conditioned on the token-exchange capability, which is enforced at
+  // exchange time ( grant_token_exchange.go:51 validateGrantPreamble ).
+  action ssoLogin(client: str, user: int, scopes: Set[str]): bool = all {
+    idpClients.keys().contains(client),
+    counter < MAX_IDS,
+    refreshTokens' = refreshTokens.put(counter, {
+      client: client,
+      user: user,
+      scopes: scopes,
+      expiresAt: clock + 10,          // generous TTL vs the discrete clock
+    }),
+    mintedJags' = mintedJags,
+    rasClients' = rasClients,
+    trustedIssuers' = trustedIssuers,
+    clientMapping' = clientMapping,
+    resources' = resources,
+    issuedAccessTokens' = issuedAccessTokens,
+    idpClients' = idpClients,
+    clock' = clock,
+    counter' = counter + 1,
   }
 
   // Time passage: the discrete clock advances (enables expiry checks).
@@ -212,22 +300,30 @@ module xaa {
     rasClients' = rasClients,
     trustedIssuers' = trustedIssuers,
     clientMapping' = clientMapping,
+    resources' = resources,
     issuedAccessTokens' = issuedAccessTokens,
     idpClients' = idpClients,
     counter' = counter,
   }
 
   // IdP role — token exchange for an ID-JAG ( grant_token_exchange_idjag.go ):
-  // subject refresh token validation, audience trust, client mapping,
-  // pairwise subject, scope narrowing, cnf.jkt minting from the DPoP proof.
+  // subject token type dispatch, subject refresh token validation, audience
+  // trust, per-audience client mapping, pairwise subject, scope narrowing,
+  // resource transcription, cnf.jkt minting from the DPoP proof.
   action exchangeForJag(client: str, rtId: int, audience: str,
+                       subjectTokenType: str, resource: str,
                        requestedScopes: Set[str], proofJkt: int): bool = {
     val cl = if (idpClients.keys().contains(client)) idpClients.get(client) else NO_CLIENT
     val rt = if (refreshTokens.keys().contains(rtId)) refreshTokens.get(rtId) else NO_RT
-    val mapped = if (clientMapping.keys().contains(client)) clientMapping.get(client) else ""
+    val targetMap = if (clientMapping.keys().contains(audience)) clientMapping.get(audience) else NO_CLIENT_MAP
+    val mapped = if (targetMap.keys().contains(client)) targetMap.get(client) else ""
     all {
       // validateGrantPreamble: capability
-      cl.grants.contains("urn:ietf:params:oauth:grant-type:token-exchange"),
+      cl.grants.contains(GRANT_TOKEN_EXCHANGE),
+      // subject_token_type dispatch (§4.3.1/§4.3.2): only refresh tokens;
+      // id_token fails closed in this profile iteration
+      // ( idjagSubjectFromIDToken )
+      subjectTokenType == REFRESH_TOKEN_TYPE,
       // subject token: present, active, unexpired, client-bound (§4.3.3)
       refreshTokens.keys().contains(rtId),
       rt.client == client,
@@ -236,18 +332,24 @@ module xaa {
       audience == AS_B or audience == AS_C,
       // scope narrowing never widens (chain §2.5)
       scopeWithin(requestedScopes, rt.scopes),
-      // client MUST be mapped at the target (§3.1/§5) — fail-closed
+      // client MUST be mapped at the target (§3.1/§5) — fail-closed, and
+      // PER-AUDIENCE: mapped at B does not imply mapped at C
+      // ( targetClientID, XAAAudience.ClientIDMapping )
       mapped != "",
       counter < MAX_IDS,
       mintedJags' = mintedJags.union(Set({
         iss: IDP,
         sub: pairwiseSub(audience, rt.user),
         aud: audience,
+        resource: resource,          // RFC 8707: verbatim from the request
         clientAtTarget: mapped,
         jti: counter,
-        exp: clock + 5,             // idjagLifetime
+        exp: clock + 5,              // idjagLifetime
         iat: clock,
-        scopes: requestedScopes,
+        // an empty scope request carries the full granted context, not an
+        // empty artifact ( grantedScope = subject.Scope )
+        scopes: if (requestedScopes.size() == 0) rt.scopes else requestedScopes,
+        details: Set(),              // RFC 9396: issuance fails closed
         jkt: proofJkt,              // §9.8.1.1: cnf.jkt from the DPoP proof
         authentic: true,
       })),
@@ -255,6 +357,7 @@ module xaa {
       rasClients' = rasClients,
       trustedIssuers' = trustedIssuers,
       clientMapping' = clientMapping,
+      resources' = resources,
       issuedAccessTokens' = issuedAccessTokens,
       idpClients' = idpClients,
       clock' = clock,
@@ -265,17 +368,19 @@ module xaa {
   // Attacker: forges an ID-JAG claim set under a trusted issuer identity,
   // but the signature does not verify (authentic: false).
   action forgeJag(audience: str, subject: int, clientAtTarget: str,
-                 scopes: Set[str], expOffset: int): bool = all {
+                 scopes: Set[str], resource: str, expOffset: int): bool = all {
     counter < MAX_IDS,
     mintedJags' = mintedJags.union(Set({
       iss: IDP,
       sub: subject,
       aud: audience,
+      resource: resource,
       clientAtTarget: clientAtTarget,
       jti: counter,
       exp: clock + expOffset,
       iat: clock,
       scopes: scopes,
+      details: Set(),
       jkt: 0,
       authentic: false,            // forged signature
     })),
@@ -283,6 +388,7 @@ module xaa {
     rasClients' = rasClients,
     trustedIssuers' = trustedIssuers,
     clientMapping' = clientMapping,
+    resources' = resources,
     issuedAccessTokens' = issuedAccessTokens,
     idpClients' = idpClients,
     clock' = clock,
@@ -299,11 +405,13 @@ module xaa {
       iss: "https://evil-idp.example/",
       sub: subject,
       aud: audience,
+      resource: "",
       clientAtTarget: clientAtTarget,
       jti: counter,
       exp: clock + 5,
       iat: clock,
       scopes: scopes,
+      details: Set(),
       jkt: 0,
       authentic: true,             // valid signature, untrusted issuer
     })),
@@ -311,6 +419,7 @@ module xaa {
     rasClients' = rasClients,
     trustedIssuers' = trustedIssuers,
     clientMapping' = clientMapping,
+    resources' = resources,
     issuedAccessTokens' = issuedAccessTokens,
     idpClients' = idpClients,
     clock' = clock,
@@ -321,7 +430,7 @@ module xaa {
   // full §4.4.1 chain. The attacker picks ANY minted/forged ID-JAG and ANY
   // RAS client + DPoP proof; the guards are the implementation's checks.
   action redeemJag(jti: int, rasClient: str, requestedScopes: Set[str],
-                  proofJkt: int, atAS: str): bool = {
+                  requestedDetails: Set[str], proofJkt: int, atAS: str): bool = {
     val cl = if (rasClients.keys().contains(rasClient)) rasClients.get(rasClient) else NO_CLIENT
     val jag = mintedJags.filter(j => j.jti == jti)
       .fold(NO_JAG, (acc, j) => j)
@@ -330,26 +439,51 @@ module xaa {
       // registry and mapping are this state. A redemption "at" another
       // AS issuer would be a different stack, not this action.
       atAS == AS_B,
+      // draft §9.3: an AS never honors an ID-JAG issued by itself —
+      // pinned explicitly ( verifier.go:91-94 ), even though the issuer
+      // allowlist already excludes the local issuer today.
+      jag.iss != atAS,
+      // validateGrantPreamble: grant capability — unauthorized_client
+      // when the RAS client holds no jwt-bearer registration
+      // ( grants.go:62-65 ). Encoded contract: every registered client
+      // in init holds the grant, so this never fires alone.
+      cl.grants.contains(GRANT_JWT_BEARER),
+      // sender-binding policy ( enforceSenderBinding, grants.go:91-94 ):
+      // a DPoP-bound client MUST present a proof (RFC 9449 / RFC 10027
+      // §6.1.12); the TLS x5t#S256 branch is abstracted into the same
+      // proof-presence flag.
+      not(cl.dpopBound) or proofJkt != 0,
       signatureVerifies(jag, trustedIssuers),
       // aud == local AS issuer (§4.4.1; anti-laundering)
       audienceFor(jag, atAS),
       // temporal validity: exp future, iat/nbf past (RFC 7523 §3)
       temporallyValid(jag, clock),
+      // assertion lifetime cap: 10-minute maximum (RFC 7523 §3 posture)
+      lifetimeBounded(jag),
       // REQUIRED claims present
       jag.sub != 0 and jag.clientAtTarget != "" and jag.jti != -1,
       // client continuity (§4.4.1)
       clientContinuity(jag, rasClient),
       // cnf.jkt ↔ DPoP proof binding (§9.8.1.2)
       jag.jkt == 0 or jag.jkt == proofJkt,
+      // RFC 8707 §2/§3: resource/audience registry validation
+      // ( invalid_target on unknown indicators )
+      resourceRegistered(jag, resources),
       // scope narrowing never widens
       scopeWithin(requestedScopes, jag.scopes),
+      // RFC 9396 §6: requested authorization_details narrow, never widen
+      // ( narrowIDJAGAuthorization / validateAuthorizationDetailsSubset )
+      requestedDetails.subseteq(jag.details),
       // no refresh token is ever issued for a jwt-bearer redemption (§4.4.3)
       counter < MAX_IDS,
       issuedAccessTokens' = issuedAccessTokens.union(Set({
         id: counter,
         subject: jag.sub,
         client: rasClient,
-        scopes: requestedScopes,
+        // RFC 8707: the resource indicator wins over the audience claim
+        aud: if (jag.resource != "") jag.resource else jag.aud,
+        // an empty scope request carries the grant's full scope
+        scopes: if (requestedScopes.size() == 0) jag.scopes else requestedScopes,
         jkt: if (jag.jkt != 0) jag.jkt else proofJkt,
         grantJti: jag.jti,
       })),
@@ -358,6 +492,7 @@ module xaa {
       rasClients' = rasClients,
       trustedIssuers' = trustedIssuers,
       clientMapping' = clientMapping,
+      resources' = resources,
       idpClients' = idpClients,
       clock' = clock,
       counter' = counter + 1,
@@ -379,9 +514,11 @@ module xaa {
     nondet client = CLIENTS.oneOf()
     nondet rtId = 0.to(MAX_IDS - 1).oneOf()
     nondet audience = Set(AS_B, AS_C).oneOf()
-    nondet scopes = SCOPE_SETS.oneOf()
+    nondet subjectTokenType = Set(REFRESH_TOKEN_TYPE, ID_TOKEN_TYPE).oneOf()
+    nondet resource = RESOURCE_PARAMS.oneOf()
+    nondet scopes = REQUEST_SCOPES.oneOf()
     nondet jkt = JKTS.oneOf()
-    exchangeForJag(client, rtId, audience, scopes, jkt)
+    exchangeForJag(client, rtId, audience, subjectTokenType, resource, scopes, jkt)
   }
 
   action forgeStep: bool = {
@@ -389,8 +526,9 @@ module xaa {
     nondet subject = Set(1001, 1002, 2001, 42).oneOf()
     nondet rasClient = RAS_CLIENTS.oneOf()
     nondet scopes = SCOPE_SETS.union(Set(Set("admin.write"))).oneOf()
-    nondet expOffset = Set(5, -1, 0).oneOf()
-    forgeJag(audience, subject, rasClient, scopes, expOffset)
+    nondet resource = RESOURCE_PARAMS.oneOf()
+    nondet expOffset = Set(5, 15, -1, 0).oneOf()
+    forgeJag(audience, subject, rasClient, scopes, resource, expOffset)
   }
 
   action foreignStep: bool = {
@@ -404,10 +542,11 @@ module xaa {
   action redeemStep: bool = {
     nondet jti = 0.to(MAX_IDS - 1).oneOf()
     nondet rasClient = RAS_CLIENTS.oneOf()
-    nondet scopes = SCOPE_SETS.union(Set(Set("admin.write"))).oneOf()
+    nondet scopes = SCOPE_SETS.union(Set(Set("admin.write"), Set())).oneOf()
+    nondet details = DETAIL_SETS.oneOf()
     nondet jkt = JKTS.oneOf()
     nondet atAS = Set(AS_B, AS_C).oneOf()
-    redeemJag(jti, rasClient, scopes, jkt, atAS)
+    redeemJag(jti, rasClient, scopes, details, jkt, atAS)
   }
 
   action step: bool = any {
@@ -479,7 +618,7 @@ module xaa {
     issuedAccessTokens.forall(at =>
       mintedJags.exists(j =>
         j.jti == at.grantJti
-        implies ((j.jkt != 0) implies (at.jkt == j.jkt))))
+        and ((j.jkt != 0) implies (at.jkt == j.jkt))))
 
   // J7 — no refresh token from jwt-bearer (draft §4.4.3, chain §5.4): the
   // Resource AS never issues refresh tokens for assertion grants. The

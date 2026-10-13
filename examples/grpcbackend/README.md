@@ -53,17 +53,29 @@ The server listens on gRPC `:9090` and exposes:
 | `oidc.client.v1.ClientRegistrationService` | `Register` (RFC 7591, gated) |
 | `oidc.client.v1.ClientRegistrationManagementService` | `Read`, `Update`, `Delete` (RFC 7592, same gate) |
 | `oidc.token.v1.IntrospectionService` | `Introspect` |
-| `oidc.token.v1.RevocotonService` | `Revoke` |
+| `oidc.token.v1.RevocationService` | `Revoke` |
 
 Protocol errors ride the response payload (`res.error`), not the gRPC
 status, so the presentation layer can map them to RFC-compliant HTTP
 responses.
 
+## Sample run (captured live)
+
+```text
+$ go run ./examples/grpcbackend
+2026/10/13 10:49:02 WARNING: gRPC backend without transport authentication; trusted-network deployment only — do not expose beyond loopback.
+2026/10/13 10:49:02 gRPC authorization backend listening on 127.0.0.1:9090
+```
+
+The server is a daemon — there is no request/response transcript to print;
+the RPC surface is the table above (protocol errors ride `res.error` in the
+response payload, not the gRPC status).
+
 ### Environment variables
 
 | Variable | Default | Description |
 |---|---|---|
-| `SOLID_EXAMPLE_GRPC_LISTEN_ADDR` | `:9090` | gRPC listen address (private surface) |
+| `SOLID_EXAMPLE_GRPC_LISTEN_ADDR` | `127.0.0.1:9090` | gRPC listen address (private surface) |
 | `SOLID_EXAMPLE_ISSUER` | `http://127.0.0.1:8080` | public AS issuer of the presentation layer in front of the backend |
 | `SOLID_EXAMPLE_DCR_ENABLED` | `false` | enable RFC 7591 dynamic client registration (deny by default) |
 

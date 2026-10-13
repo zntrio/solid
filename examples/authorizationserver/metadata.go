@@ -87,7 +87,7 @@ func metadataDocument(issuer string) *discoveryv1.ServerMetadata {
 		RequestParameterSupported:              true,
 		ClientIdMetadataDocumentSupported:      true,
 		RequestObjectSigningAlgValuesSupported: []string{mldsaAlg},
-		AuthorizationDetailsTypesSupported:     []string{authDetailsType},
+		AuthorizationDetailsTypesSupported:     authDetailsTypes,
 		// RFC 9470 section 7: advertise the authentication context class
 		// references this AS understands and honors in authorization requests
 		// (acr_values / max_age support signal).

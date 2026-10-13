@@ -22,6 +22,30 @@ sequenceDiagram
     RS-->>C: 2.05 Content {"temperature":22.5,"unit":"C"}
 ```
 
+## Sample run (captured live)
+
+```text
+=== SolID ACE-OAuth (RFC 9200) over mutual DTLS 1.2 demo ===
+--- Authorization Server (coaps://127.0.0.1:5684, ES256/P-256, tls_client_auth) ---
+as: token endpoint /token, introspection endpoint /introspect
+as: registered demo client o6Z2XwPrnUt9vXGs (SAN URI urn:coap:ace:client:demo)
+    and RS eCu0EGNwUIjwLVPb (SAN URI urn:coap:ace:rs:demo)
+--- Resource Server (coaps://127.0.0.1:5685, introspection at the AS) ---
+rs: authz-info endpoint /authz-info, protected resource /temperature
+--- Client (token → authz-info → resource) ---
+client: dialing the AS at coaps://127.0.0.1:5684 (mutual DTLS 1.2, ES256/P-256)
+client: POST /token (application/ace+cbor, grant client_credentials,
+        audience coaps://127.0.0.1:5685, scope temperature:read)
+client: access token received (88 bytes, expires in 3600s, token_type=2 PoP,
+        ace_profile=1 coap_dtls, cnf kid=eFFYR3Q2MV9Kb3FXOE95QVFPSzNneFdha0ZjajQzSUVWOF9naERFa080cw)
+client: dialing the RS at coaps://127.0.0.1:5685 (mutual DTLS 1.2, ES256/P-256)
+client: POST /authz-info (raw token payload)
+client: token accepted by the RS (2.01 Created)
+client: GET /temperature
+client: resource response (2.05 Content, application/json): {"temperature":22.5,"unit":"C"}
+=== demo complete: resource payload {"temperature":22.5,"unit":"C"} ===
+```
+
 ## What it demonstrates
 
 | Step | Mechanism | RFC |

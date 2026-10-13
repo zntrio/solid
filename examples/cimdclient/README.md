@@ -31,6 +31,43 @@ sequenceDiagram
     T-->>C: active, client_id=https://cimd.example.org/client
 ```
 
+## Sample run (captured live)
+
+```text
+→ POST http://127.0.0.1:8080/token
+  Content-Type: application/x-www-form-urlencoded
+  client_assertion=eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJKV1QifQ.eyJhd…(+4624 bytes)
+  client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+  grant_type=client_credentials
+  resource=http://127.0.0.1:8085
+  scope=timestamp:read
+← HTTP 200
+  "access_token": "eyJhbGciOiJIUEtFLTciLCJraWQiOiJnLXZSSFdxdHVsb2J…(+6638 bytes)
+  "expires_in": 3600
+  "scope": "timestamp:read"
+  "token_type": "Bearer"
+
+→ POST http://127.0.0.1:8080/token/introspect
+  Content-Type: application/x-www-form-urlencoded
+  client_assertion=eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJKV1QifQ.eyJhd…(+4624 bytes)
+  client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
+  token=eyJhbGciOiJIUEtFLTciLCJraWQiOiJnLXZSSFdxdHVsb2JZ…(+6636 bytes)
+← HTTP 200
+  "active": true
+  "aud": "http://127.0.0.1:8085"
+  "client_id": "https://cimd.example.org/client"
+  "exp": 1791884467
+  "iat": 1791880867
+  "iss": "http://127.0.0.1:8080"
+  "jti": "wmH7691uSzYATwtR"
+  "nbf": 1791880868
+  "scope": "timestamp:read"
+  "sub": "https://cimd.example.org/client"
+  "token_type": "Bearer"
+
+Introspection: client_id=https://cimd.example.org/client status=TOKEN_STATUS_ACTIVE
+```
+
 ## What it proves
 
 * Client registration moves to the document: the AS trust decision is

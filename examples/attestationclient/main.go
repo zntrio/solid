@@ -218,7 +218,7 @@ func run() error {
 	time.Sleep(1000 * time.Millisecond)
 
 	// Call the timestamp service
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, exampleenv.Or("SOLID_EXAMPLE_RESOURCE", "http://127.0.0.1:8085"), http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, exampleenv.Or("SOLID_EXAMPLE_RESOURCE", "http://127.0.0.1:8085/machine"), http.NoBody)
 	if err != nil {
 		panic(err)
 	}

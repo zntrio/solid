@@ -340,6 +340,8 @@ func Test_service_tokenExchangeIDJAG_coverage(t *testing.T) {
 		req := idjagIssuanceRequest("")
 		req.AuthorizationDetails = []*tokenv1.AuthorizationDetail{{Type: "payment_initiation"}}
 
+		h.tokens.EXPECT().GetByValue(gomock.Any(), idjagTestIssuer, "refresh-token-value").Return(idjagRefreshToken(now), nil)
+
 		res, err := h.service.tokenExchange(context.Background(), idjagClient(), req)
 		if err == nil {
 			t.Fatal("expected error, got none")

@@ -31,8 +31,9 @@ independent building block with a small interface, assembled by the consumer
    only), no implicit or hybrid flow, `response_type=code` only.
 3. **Privacy-first** — access/refresh tokens are hybrid: protocol-validation
    claims only; the subject is referenced by a `jti`-addressed, AS-only record
-   and exposed as a pairwise subject identifier. No `id_token` in the
-   authorization code flow; user details come from `user_info` at consent time.
+   and exposed as a pairwise subject identifier. No `id_token` by default; an
+   assembly MAY opt into a selectively disclosable (RFC 9901) `id_token`
+   (D-12.1). User details otherwise come from `user_info` at consent time.
 4. **Modular and composable** — small packages, narrow interfaces, dependency
    injection via constructor options; blocks must remain usable in isolation.
    Resist coupling an `sdk/` mechanism to a specific storage, transport, or

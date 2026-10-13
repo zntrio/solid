@@ -92,16 +92,24 @@ func TestRFC9101_NestedRequestUri(t *testing.T) {
 	}
 }
 
-// TestRFC9101_AudArrayAccepted asserts the array form of the aud claim is
-// accepted when it contains the AS issuer (RFC 9101 section 5 with RFC 7519
-// aud array semantics).
-func TestRFC9101_AudArrayAccepted(t *testing.T) {
-	raw := signedRequestObject(t, jarClaims(map[string]any{
+// TestRFC9101_AudArraySemantics pins the strict audience posture: the
+// single-element array form is accepted (RFC 7519 aud array semantics),
+// while a multi-valued aud — the request object addressed to additional
+// audiences beyond the AS — is rejected (security-topics 2.1.2 parity with
+// client assertions).
+func TestRFC9101_AudArraySemantics(t *testing.T) {
+	single := signedRequestObject(t, jarClaims(map[string]any{
+		"aud": []any{testIssuer},
+	}))
+	req, err := jarDecoder().Decode(t.Context(), single)
+	require.NoError(t, err, "single-element array aud must decode")
+	require.NotNil(t, req)
+
+	multi := signedRequestObject(t, jarClaims(map[string]any{
 		"aud": []any{testIssuer, "https://other.example"},
 	}))
-	req, err := jarDecoder().Decode(t.Context(), raw)
-	require.NoError(t, err, "array aud containing the issuer must decode")
-	require.NotNil(t, req)
+	_, err = jarDecoder().Decode(t.Context(), multi)
+	require.Error(t, err, "multi-valued aud must be rejected")
 }
 
 func TestRFC9101_AlgConfusion(t *testing.T) {

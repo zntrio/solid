@@ -165,3 +165,47 @@ func TestTokenIntrospectionRendersX5tS256Cnf(t *testing.T) {
 	require.Contains(t, string(rawBody), `"token_type":"Bearer"`)
 	require.NotContains(t, string(rawBody), `"token_type":"DPoP"`)
 }
+
+// TestTokenIntrospectionIncludesActChain asserts the introspection response
+// of an exchanged token (RFC 8693 section 4.4) carries the nested act chain
+// member: the immediate acting party, then prior delegations.
+func TestTokenIntrospectionIncludesActChain(t *testing.T) {
+	fake := &fakeIntrospectToken{
+		res: &tokenv1.IntrospectResponse{
+			Token: &tokenv1.Token{
+				TokenId: "tid-3",
+				Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+				Metadata: &tokenv1.TokenMeta{
+					Issuer:    "https://as.example.org",
+					Subject:   "user-1",
+					ClientId:  "client-1",
+					Audience:  "aud",
+					NotBefore: 1,
+					ExpiresAt: 4102444800,
+				},
+				Actor: []*tokenv1.Actor{
+					{Subject: "https://agent.example.org/ai-agent"},
+					{Subject: "https://delegator.example.org/service"},
+				},
+			},
+		},
+	}
+
+	inner := httpkit.TokenIntrospection("https://as.example.org", fake)
+	wrapped := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = r.WithContext(clientauthentication.Inject(r.Context(), &clientv1.Client{ClientId: "client-1"}))
+		inner.ServeHTTP(w, r)
+	})
+
+	srv := httptest.NewServer(wrapped)
+	defer srv.Close()
+
+	resp, err := srv.Client().PostForm(srv.URL, url.Values{"token": {"opaque-token-value"}})
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	rawBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Contains(t, string(rawBody), `"act":{"sub":"https://agent.example.org/ai-agent","act":{"sub":"https://delegator.example.org/service"}}`)
+}

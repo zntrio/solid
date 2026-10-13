@@ -22,8 +22,6 @@ import (
 	"strings"
 	"sync"
 
-	"google.golang.org/protobuf/proto"
-
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
 	random "zntr.io/solid/sdk/random"
@@ -251,7 +249,7 @@ func (s *clientStorage) Get(ctx context.Context, id string) (*clientv1.Client, e
 
 	// Return a deep copy: callers must not mutate the shared registration
 	// record through the reader path.
-	return proto.Clone(client).(*clientv1.Client), nil //nolint:forcetypeassert // map values are *clientv1.Client
+	return client.CloneVT(), nil
 }
 
 func (s *clientStorage) GetByName(ctx context.Context, name string) (*clientv1.Client, error) {
@@ -268,7 +266,7 @@ func (s *clientStorage) GetByName(ctx context.Context, name string) (*clientv1.C
 		return nil, storage.ErrNotFound
 	}
 
-	return proto.Clone(found).(*clientv1.Client), nil //nolint:forcetypeassert // map values are *clientv1.Client
+	return found.CloneVT(), nil
 }
 
 // -----------------------------------------------------------------------------

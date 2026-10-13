@@ -56,7 +56,8 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				},
 			},
 			args: args{
-				subject: "    ",
+				subject:  "    ",
+				sectorID: "http://sector.example.com",
 			},
 			wantErr: true,
 		},
@@ -69,7 +70,22 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				},
 			},
 			args: args{
-				subject: "",
+				subject:  "",
+				sectorID: "http://sector.example.com",
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty sector identifier",
+			fields: fields{
+				salt: []byte{
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				},
+			},
+			args: args{
+				subject:  "test",
+				sectorID: "   ",
 			},
 			wantErr: true,
 		},
@@ -82,9 +98,10 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				},
 			},
 			args: args{
-				subject: "test",
+				subject:  "test",
+				sectorID: "http://sector.example.com",
 			},
-			want:    "B1Rgoyp3WChu145vxTBiczt8blE1Z2JFAmAO_vLTd_g",
+			want:    "VG7iILmCp1tyVWYMFAzn_9c-NAFnJkiHGKR8S5msp1I",
 			wantErr: false,
 		},
 		{
@@ -98,9 +115,10 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				},
 			},
 			args: args{
-				subject: "test",
+				subject:  "test",
+				sectorID: "http://sector.example.com",
 			},
-			want:    "m9C5Rbk-7DJw7B34_QhnBk1bIrjFzHt2S-XWEA4k8UM",
+			want:    "Kf54rf4gf1sbCm0SbWULnihsGyAtsskkiIwZQhbH1TM",
 			wantErr: false,
 		},
 		{
@@ -118,9 +136,10 @@ func Test_hashEncoder_Encode(t *testing.T) {
 				},
 			},
 			args: args{
-				subject: "test",
+				subject:  "test",
+				sectorID: "http://sector.example.com",
 			},
-			want:    "yRERMm_YJ0cNphNgEa9P-QbXW1zL8CEDwfApDkOepyU",
+			want:    "r5EHQv7i1nKJNrwzl_6OUBBaO-wTQTwhOr6lm73OPsI",
 			wantErr: false,
 		},
 		{

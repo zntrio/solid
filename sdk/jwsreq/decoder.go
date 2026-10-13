@@ -70,43 +70,8 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*flowv1.Author
 		return nil, fmt.Errorf("unable to decode request claims: %w", err)
 	}
 
-	// RFC 9101 section 5: the exp claim is REQUIRED in a request object.
-	if _, ok := claims["exp"]; !ok {
-		return nil, fmt.Errorf("request object 'exp' claim is mandatory")
-	}
-
-	// RFC 9101 section 5: the request object MUST NOT contain nested
-	// request or request_uri parameters.
-	if _, ok := claims["request"]; ok {
-		return nil, fmt.Errorf("request object must not contain request or request_uri claims")
-	}
-	if _, ok := claims["request_uri"]; ok {
-		return nil, fmt.Errorf("request object must not contain request or request_uri claims")
-	}
-
-	// RFC 9101 section 5: the exp claim MUST be in the future at decode
-	// time; the nbf claim, when present, must have elapsed.
-	now := time.Now()
-	if exp, ok := claims["exp"].(float64); !ok || exp <= float64(now.Unix()) {
-		return nil, fmt.Errorf("request object is expired")
-	}
-	if nbfRaw, ok := claims["nbf"]; ok {
-		nbf, isNumber := nbfRaw.(float64)
-		if !isNumber {
-			// Fail closed: a non-numeric nbf claim is malformed and
-			// MUST NOT be silently ignored.
-			return nil, fmt.Errorf("request object 'nbf' claim must be a numeric date")
-		}
-		if nbf > float64(now.Unix()) {
-			return nil, fmt.Errorf("request object not yet valid")
-		}
-	}
-
-	// RFC 9101 section 5: the aud claim MUST identify the authorization
-	// server as the intended audience of the request object; the JSON Web
-	// Token profile permits the array form.
-	if !audClaimContains(claims["aud"], d.expectedIssuer) {
-		return nil, fmt.Errorf("request object 'aud' claim must equal '%s'", d.expectedIssuer)
+	if err := d.validateEnvelopeClaims(claims); err != nil {
+		return nil, err
 	}
 
 	// Re-encode to json, dropping the JOSE envelope claims that have no
@@ -125,6 +90,70 @@ func (d *tokenDecoder) Decode(ctx context.Context, value string) (*flowv1.Author
 
 	// No error
 	return &req, nil
+}
+
+// validateEnvelopeClaims enforces the RFC 9101 section 5 request-object
+// envelope semantics on the decoded claims: REQUIRED exp (in the future),
+// nbf elapsed when present (numeric, fail closed), no nested
+// request/request_uri, single-valued aud equal to the issuer, and iss —
+// when present — equal to the request's client_id.
+func (d *tokenDecoder) validateEnvelopeClaims(claims map[string]any) error {
+	// RFC 9101 section 5: the exp claim is REQUIRED in a request object.
+	if _, ok := claims["exp"]; !ok {
+		return fmt.Errorf("request object 'exp' claim is mandatory")
+	}
+
+	// RFC 9101 section 5: the request object MUST NOT contain nested
+	// request or request_uri parameters.
+	if _, ok := claims["request"]; ok {
+		return fmt.Errorf("request object must not contain request or request_uri claims")
+	}
+	if _, ok := claims["request_uri"]; ok {
+		return fmt.Errorf("request object must not contain request or request_uri claims")
+	}
+
+	// RFC 9101 section 5: the exp claim MUST be in the future at decode
+	// time; the nbf claim, when present, must have elapsed.
+	now := time.Now()
+	if exp, ok := claims["exp"].(float64); !ok || exp <= float64(now.Unix()) {
+		return fmt.Errorf("request object is expired")
+	}
+	if nbfRaw, ok := claims["nbf"]; ok {
+		nbf, isNumber := nbfRaw.(float64)
+		if !isNumber {
+			// Fail closed: a non-numeric nbf claim is malformed and
+			// MUST NOT be silently ignored.
+			return fmt.Errorf("request object 'nbf' claim must be a numeric date")
+		}
+		if nbf > float64(now.Unix()) {
+			return fmt.Errorf("request object not yet valid")
+		}
+	}
+
+	// RFC 9101 section 5: the aud claim MUST identify the authorization
+	// server as the intended audience of the request object; the JSON Web
+	// Token profile permits the array form. Solid stricter posture
+	// (security-topics 2.1.2 parity with client assertions): a
+	// multi-valued aud array is rejected — exactly-one audience, matching
+	// the issuer.
+	if !audClaimIsSingle(claims["aud"], d.expectedIssuer) {
+		return fmt.Errorf("request object 'aud' claim must equal '%s'", d.expectedIssuer)
+	}
+
+	// RFC 9101 section 5: the iss claim identifies the client that
+	// presented the request object. When present it MUST match the
+	// request's client_id (the caller resolves and re-checks the client
+	// binding; this gate closes the claim-level mismatch).
+	if issRaw, ok := claims["iss"]; ok {
+		iss, isStr := issRaw.(string)
+		if !isStr {
+			return fmt.Errorf("request object 'iss' claim must be a string")
+		}
+		if cid, ok := claims["client_id"].(string); ok && cid != "" && !types.SecureCompareString(iss, cid) {
+			return fmt.Errorf("request object 'iss' claim must equal 'client_id'")
+		}
+	}
+	return nil
 }
 
 // checkTyp verifies the JOSE header 'typ' of the compact-encoded request
@@ -162,17 +191,20 @@ func stripEnvelopeClaims(claims map[string]any) map[string]any {
 	return claims
 }
 
-// audClaimContains reports whether the aud claim value — a string or, per
-// the JSON Web Token profile, an array of strings — contains the expected
-// issuer (RFC 9101 section 5).
-func audClaimContains(aud any, expected string) bool {
+// audClaimIsSingle reports whether the aud claim — a string, or per the
+// JSON Web Token profile an array of strings — is exactly the expected
+// issuer (RFC 9101 section 5; multi-valued audiences are rejected).
+func audClaimIsSingle(aud any, expected string) bool {
 	switch v := aud.(type) {
 	case string:
 		return types.SecureCompareString(v, expected)
 	case []any:
-		for _, item := range v {
-			if s, ok := item.(string); ok && types.SecureCompareString(s, expected) {
-				return true
+		// Single-element array form is accepted; a multi-valued aud is
+		// rejected (the request object is addressed to exactly one
+		// authorization server).
+		if len(v) == 1 {
+			if s, ok := v[0].(string); ok {
+				return types.SecureCompareString(s, expected)
 			}
 		}
 	}

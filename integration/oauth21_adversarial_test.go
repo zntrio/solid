@@ -301,13 +301,15 @@ func TestOAuth21_ErrorRedirectCarriesStateAndIssuer_4_1_2_1(t *testing.T) {
 
 // oauth21HTTPServer wires the real example Token handler behind the real
 // client-authentication middleware and the harness service stack.
-func oauth21HTTPServer(h *harness, dpopVerifier dpop.Verifier) *httptest.Server {
+func oauth21HTTPServer(t testing.TB, h *harness, dpopVerifier dpop.Verifier) *httptest.Server {
+	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 	return httptest.NewServer(httpkit.ClientAuthentication(
 		h.clients,
 		h.issuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
 	)(httpkit.Token(h.issuer, h.tokenz, dpopVerifier, profile.Strict())))
 }
@@ -355,7 +357,7 @@ func postTokenWithDPoP(t *testing.T, ts *httptest.Server, assertion, proof, gran
 func TestOAuth21_TokenEndpointHTTPPresentation_3_2_3_3_2_4(t *testing.T) {
 	h := newHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
-	ts := oauth21HTTPServer(h, buildDPoPVerifier())
+	ts := oauth21HTTPServer(t, h, buildDPoPVerifier(t))
 	t.Cleanup(ts.Close)
 
 	verifier, _ := newPKCEPair(t)
@@ -394,7 +396,7 @@ func TestOAuth21_TokenEndpointHTTPPresentation_3_2_3_3_2_4(t *testing.T) {
 func TestOAuth21_TokenEndpointDPoPTokenType_3_2(t *testing.T) {
 	h := newHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
-	ts := oauth21HTTPServer(h, buildDPoPVerifier())
+	ts := oauth21HTTPServer(t, h, buildDPoPVerifier(t))
 	t.Cleanup(ts.Close)
 
 	// Mint a DPoP-bound code: authorization request carries dpop_jkt
@@ -403,7 +405,7 @@ func TestOAuth21_TokenEndpointDPoPTokenType_3_2(t *testing.T) {
 	htu := h.issuer + "/resource"
 	probeProof, err := prover.Prove("GET", htu)
 	require.NoError(t, err)
-	jkt, err := buildDPoPVerifier().Verify(t.Context(), "GET", htu, probeProof)
+	jkt, err := buildDPoPVerifier(t).Verify(t.Context(), "GET", htu, probeProof)
 	require.NoError(t, err)
 
 	verifier, _ := newPKCEPair(t)

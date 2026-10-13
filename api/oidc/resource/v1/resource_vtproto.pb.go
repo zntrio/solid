@@ -7,6 +7,7 @@ package resourcev1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -17,6 +18,29 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *Resource) CloneVT() *Resource {
+	if m == nil {
+		return (*Resource)(nil)
+	}
+	r := new(Resource)
+	r.Urn = m.Urn
+	r.Description = m.Description
+	if rhs := m.Urls; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Urls = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *Resource) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *Resource) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

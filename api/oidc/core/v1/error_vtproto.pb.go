@@ -7,6 +7,7 @@ package corev1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -17,6 +18,36 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *Error) CloneVT() *Error {
+	if m == nil {
+		return (*Error)(nil)
+	}
+	r := new(Error)
+	r.Error = m.Error
+	r.ErrorDescription = m.ErrorDescription
+	if rhs := m.ErrorUri; rhs != nil {
+		tmpVal := *rhs
+		r.ErrorUri = &tmpVal
+	}
+	if rhs := m.State; rhs != nil {
+		tmpVal := *rhs
+		r.State = &tmpVal
+	}
+	if rhs := m.Resource; rhs != nil {
+		tmpVal := *rhs
+		r.Resource = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *Error) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *Error) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

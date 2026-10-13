@@ -67,7 +67,7 @@ type hpkeHarness struct {
 
 // newHPKEHarness builds a service stack whose token service issues
 // HPKE-encrypted JWT access and refresh tokens.
-func newHPKEHarness(t *testing.T) *hpkeHarness {
+func newHPKEHarness(t testing.TB) *hpkeHarness {
 	t.Helper()
 
 	storageKey := []byte("hpke-integration-storage-key-0123")
@@ -122,13 +122,14 @@ func newHPKEHarness(t *testing.T) *hpkeHarness {
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 	userCodeAttempts := inmemory.UserCodeAttempts()
+	cleanupStores(t, authRequests, authSessions, deviceSessions, backchannelSessions, proofs)
 
 	// Services
 	authz := authorization.New(clients, authRequests, authSessions, generator.DefaultAuthorizationCode(), generator.DefaultRequestURI(),
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	tokenz := token.New(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources)
 	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(), backchannel.LoginHintResolver(), authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
-	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts)
+	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})
 
 	return &hpkeHarness{
@@ -148,6 +149,7 @@ func newHPKEHarness(t *testing.T) *hpkeHarness {
 			devicez:             devicez,
 			backchannelz:        backchannelz,
 			clientAuth:          clientAuth,
+			sig:                 es256Profile{},
 		},
 		signingPrivateKey:    signingPrivateKey,
 		signingSet:           signingSet,

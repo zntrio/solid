@@ -48,7 +48,7 @@ func TestRFC9449_JktVsCnfMismatch(t *testing.T) {
 	require.NotNil(t, res.AccessToken)
 
 	prover := buildDPoPProver(t)
-	dpopVerifier := buildDPoPVerifier()
+	dpopVerifier := buildDPoPVerifier(t)
 
 	htu := testIssuer + "/resource"
 
@@ -77,7 +77,7 @@ func TestRFC9449_DpopJktBinding_10(t *testing.T) {
 	htu := testIssuer + "/resource"
 	probeProof, err := prover.Prove("GET", htu)
 	require.NoError(t, err)
-	k2Jkt, err := buildDPoPVerifier().Verify(t.Context(), "GET", htu, probeProof)
+	k2Jkt, err := buildDPoPVerifier(t).Verify(t.Context(), "GET", htu, probeProof)
 	require.NoError(t, err)
 	require.NotEmpty(t, k2Jkt)
 
@@ -134,7 +134,7 @@ func TestRFC9449_TypHeaderHardening(t *testing.T) {
 	raw, err := tok.SignedString(rawKey)
 	require.NoError(t, err)
 
-	_, err = buildDPoPVerifier().Verify(t.Context(), "GET", testIssuer+"/resource", raw)
+	_, err = buildDPoPVerifier(t).Verify(t.Context(), "GET", testIssuer+"/resource", raw)
 	require.Error(t, err, "proof with typ=JWT must be rejected")
 }
 
@@ -148,7 +148,7 @@ func TestRFC9449_DpopJktBinding_Match(t *testing.T) {
 	htu := testIssuer + "/resource"
 	probeProof, err := prover.Prove("GET", htu)
 	require.NoError(t, err)
-	jkt, err := buildDPoPVerifier().Verify(t.Context(), "GET", htu, probeProof)
+	jkt, err := buildDPoPVerifier(t).Verify(t.Context(), "GET", htu, probeProof)
 	require.NoError(t, err)
 
 	verifier, _ := newPKCEPair(t)

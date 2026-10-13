@@ -160,15 +160,15 @@ subject path; the ID-JAG sub-path is covered by `xaa.qnt`).
 | T5 | act chain == [actor.subject] ++ actor chain, depth ≤ 3 fail-closed | 8693 §4.4 | ✔ |
 | T6 | cnf continuity: exchange cannot strip or swap the subject token's DPoP binding | 9449 §8 | ✔ |
 | T7 | audience only ever a registry-resolved URN, never a verbatim request value | 8707 §2 | ✔ |
-| T8 | no RT, no authorization_details from exchange (fail-closed) | 9396 | ✔ |
+| T8 | no RT from exchange; authorization_details carried verbatim from the exchange request (mocked processing — RS evaluates) | 9396 §6/§7 | ✔ |
 
 Verification: `quint run` (500-trace sweep at 30 steps, no violations; witnesses
 39–100%) and exhaustive bounded model checking (`quint verify` / Apalache,
 depth 5 — `The outcome is: NoError`). Deterministic tests: 20/20 passing
 (plain/actor exchanges, may_act listed vs non-listed vs required, jkt
 carried/swapped/stripped, scope narrowing vs escalation, unknown audience,
-chain depth 3-OK / 4-rejected, details smuggling, capability, requested
-type, RT never).
+chain depth 3-OK / 4-rejected, details carried verbatim, capability,
+requested type, RT never).
 
 ### CIBA ( `ciba.qnt` )
 

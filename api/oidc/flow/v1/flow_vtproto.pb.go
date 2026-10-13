@@ -20,6 +20,105 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *AuthorizationRequest) CloneVT() *AuthorizationRequest {
+	if m == nil {
+		return (*AuthorizationRequest)(nil)
+	}
+	r := new(AuthorizationRequest)
+	r.Scope = m.Scope
+	r.ResponseType = m.ResponseType
+	r.ClientId = m.ClientId
+	r.RedirectUri = m.RedirectUri
+	r.State = m.State
+	r.Nonce = m.Nonce
+	r.CodeChallenge = m.CodeChallenge
+	r.CodeChallengeMethod = m.CodeChallengeMethod
+	r.Audience = m.Audience
+	if rhs := m.ResponseMode; rhs != nil {
+		tmpVal := *rhs
+		r.ResponseMode = &tmpVal
+	}
+	if rhs := m.Display; rhs != nil {
+		tmpVal := *rhs
+		r.Display = &tmpVal
+	}
+	if rhs := m.Prompt; rhs != nil {
+		tmpVal := *rhs
+		r.Prompt = &tmpVal
+	}
+	if rhs := m.MaxAge; rhs != nil {
+		tmpVal := *rhs
+		r.MaxAge = &tmpVal
+	}
+	if rhs := m.UiLocales; rhs != nil {
+		tmpVal := *rhs
+		r.UiLocales = &tmpVal
+	}
+	if rhs := m.IdTokenHint; rhs != nil {
+		tmpVal := *rhs
+		r.IdTokenHint = &tmpVal
+	}
+	if rhs := m.AcrValues; rhs != nil {
+		tmpVal := *rhs
+		r.AcrValues = &tmpVal
+	}
+	if rhs := m.Request; rhs != nil {
+		tmpVal := *rhs
+		r.Request = &tmpVal
+	}
+	if rhs := m.RequestUri; rhs != nil {
+		tmpVal := *rhs
+		r.RequestUri = &tmpVal
+	}
+	if rhs := m.DpopProof; rhs != nil {
+		tmpVal := *rhs
+		r.DpopProof = &tmpVal
+	}
+	if rhs := m.DpopJkt; rhs != nil {
+		tmpVal := *rhs
+		r.DpopJkt = &tmpVal
+	}
+	if rhs := m.Resource; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Resource = tmpContainer
+	}
+	if rhs := m.Iss; rhs != nil {
+		tmpVal := *rhs
+		r.Iss = &tmpVal
+	}
+	if rhs := m.LoginHintToken; rhs != nil {
+		tmpVal := *rhs
+		r.LoginHintToken = &tmpVal
+	}
+	if rhs := m.LoginHint; rhs != nil {
+		tmpVal := *rhs
+		r.LoginHint = &tmpVal
+	}
+	if rhs := m.AuthorizationDetails; rhs != nil {
+		tmpContainer := make([]*v1.AuthorizationDetail, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface {
+				CloneVT() *v1.AuthorizationDetail
+			}); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v1.AuthorizationDetail)
+			}
+		}
+		r.AuthorizationDetails = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AuthorizationRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *AuthorizationRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil

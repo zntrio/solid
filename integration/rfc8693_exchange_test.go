@@ -214,7 +214,7 @@ func TestRFC8693_ConfirmationMismatch(t *testing.T) {
 	htu := testIssuer + "/token"
 	proof, err := prover.Prove("POST", htu)
 	require.NoError(t, err)
-	jkt, err := buildDPoPVerifier().Verify(t.Context(), "POST", htu, proof)
+	jkt, err := buildDPoPVerifier(t).Verify(t.Context(), "POST", htu, proof)
 	require.NoError(t, err)
 
 	// Mint a DPoP-bound access token.

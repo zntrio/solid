@@ -32,6 +32,7 @@ import (
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/sdtoken"
 	"zntr.io/solid/sdk/token"
+	"zntr.io/solid/sdk/token/cwt"
 	"zntr.io/solid/sdk/types"
 )
 
@@ -521,6 +522,12 @@ func (a *verifierAdapter) Verify(ctx context.Context, tokenString string, disclo
 		if errAlg != nil {
 			return nil, fmt.Errorf("%w: kbt carries no algorithm header", sdtoken.ErrInvalidKeyBinding)
 		}
+		// Enforce the signing-algorithm allowlist on the KBT header too:
+		// the alg is attacker-influenced input, and the strict posture
+		// (EC / ML-DSA only) must hold for every COSE verification.
+		if errAllowed := cwt.EnforceAlgorithmAllowlist(kbtAlg); errAllowed != nil {
+			return nil, fmt.Errorf("%w: %w", sdtoken.ErrInvalidKeyBinding, errAllowed)
+		}
 		dpopPub, errPub := materializePublicKey(dpopProofJWK)
 		if errPub != nil {
 			return nil, fmt.Errorf("%w: unable to materialize dpop key: %w", sdtoken.ErrInvalidKeyBinding, errPub)
@@ -686,13 +693,23 @@ func checkDPoPThumbprintCWT(processedClaims map[any]any, dpopProofJWK jwk.Key) e
 // with the given leeway (seconds).
 func checkTemporalClaims(claims map[any]any, leeway int64) error {
 	now := timeNowUnix()
+	// Malformed temporal claims fail closed: a non-decodable exp/nbf cannot
+	// be evaluated and must not be treated as absent (unlimited validity).
 	if expAny := lookupClaim(claims, 4); expAny != nil {
-		if exp, ok := numericClaim(expAny); ok && now > exp+leeway {
+		exp, ok := numericClaim(expAny)
+		if !ok {
+			return fmt.Errorf("%w: exp claim is not numeric", sdtoken.ErrInvalidToken)
+		}
+		if now > exp+leeway {
 			return fmt.Errorf("%w: token is expired", sdtoken.ErrInvalidToken)
 		}
 	}
 	if nbfAny := lookupClaim(claims, 5); nbfAny != nil {
-		if nbf, ok := numericClaim(nbfAny); ok && now < nbf-leeway {
+		nbf, ok := numericClaim(nbfAny)
+		if !ok {
+			return fmt.Errorf("%w: nbf claim is not numeric", sdtoken.ErrInvalidToken)
+		}
+		if now < nbf-leeway {
 			return fmt.Errorf("%w: token is not yet valid", sdtoken.ErrInvalidToken)
 		}
 	}

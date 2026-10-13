@@ -242,6 +242,7 @@ func Test_spiffeWITAuthentication_Authenticate(t *testing.T) {
 			clients := storagemock.NewMockClientReader(ctrl)
 			bundles := spiffemock.NewMockBundleSource(ctrl)
 			proofs := inmemory.DPoPProofs()
+			t.Cleanup(proofs.Stop)
 			fixture := newWITFixture()
 
 			if tt.prepare != nil {

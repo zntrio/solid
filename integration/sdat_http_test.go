@@ -62,7 +62,7 @@ import (
 // selectively disclosable access-token generator (JWT kind, DPoP
 // confirmation required per draft-forten section 6), mirroring
 // newHarness.
-func newSDATHarness(t *testing.T) *harness {
+func newSDATHarness(t testing.TB) *harness {
 	t.Helper()
 
 	storageKey := []byte("integration-storage-key-0123456789ab")
@@ -100,6 +100,7 @@ func newSDATHarness(t *testing.T) *harness {
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 	userCodeAttempts := inmemory.UserCodeAttempts()
+	cleanupStores(t, authRequests, authSessions, deviceSessions, backchannelSessions, proofs)
 
 	refreshTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("integration-rt-mac-key"))
 
@@ -109,7 +110,7 @@ func newSDATHarness(t *testing.T) *harness {
 	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(),
 		backchannel.HintResolverFunc(func(context.Context, *flowv1.BackchannelAuthenticationRequest) (string, error) { return "", nil }),
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
-	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts)
+	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})
 
 	return &harness{
@@ -128,20 +129,23 @@ func newSDATHarness(t *testing.T) *harness {
 		devicez:             devicez,
 		backchannelz:        backchannelz,
 		clientAuth:          clientAuth,
+		sig:                 es256Profile{},
 	}
 }
 
 // sdatHTTPServer wires the real Token handler (client-authentication
 // middleware + the shared DPoP verifier) over the SD harness.
-func sdatHTTPServer(h *harness) *httptest.Server {
+func sdatHTTPServer(t testing.TB, h *harness) *httptest.Server {
+	proofs := inmemory.DPoPProofs()
+	cleanupStores(t, proofs)
 	return httptest.NewServer(httpkit.ClientAuthentication(
 		h.clients,
 		h.issuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
-	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(), profile.Strict())))
+	)(httpkit.Token(h.issuer, h.tokenz, buildDPoPVerifier(t), profile.Strict())))
 }
 
 // sdatPostTokenRequest posts the authorization-code grant with a DPoP
@@ -191,7 +195,7 @@ func TestSDATHTTPResponseCarriesDisclosures(t *testing.T) {
 	h := newSDATHarness(t)
 	client := h.registerConfidentialClient(t, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
-	ts := sdatHTTPServer(h)
+	ts := sdatHTTPServer(t, h)
 	defer ts.Close()
 
 	verifier, _ := newPKCEPair(t)

@@ -18,34 +18,24 @@
 package token
 
 import (
+	"errors"
 	"net/url"
-
-	"github.com/go-ozzo/ozzo-validation/v4"
 )
 
-// ErrValidateURI is the error returned by the ValidateURI rule.
-var ErrValidateURI = validation.NewError("validation_is_uri", "must be a valid URI")
+// ErrValidateURI is the sentinel error returned by ValidateURI; every URI
+// rejection wraps it with the failing field via *ErrValidation.
+var ErrValidateURI = errors.New("must be a valid URI")
 
 // ValidateURI is a validation rule asserting an absolute URI with a scheme
-// and an authority (RFC 3986 generic syntax). It replaces is.URL for issuer
-// and audience identifiers: the OAuth ecosystem registers non-HTTP scheme
-// identifiers (coaps:// for ACE over CoAP/DTLS, RFC 9200 section 5.2;
-// device: and tag: URNs), which an HTTP-centric URL allowlist would wrongly
-// reject while a transport-agnostic SDK must accept them.
-var ValidateURI = validation.NewStringRuleWithError(validateAbsoluteURI, ErrValidateURI)
-
-// validateAbsoluteURI reports whether str parses as an absolute URI with
-// both a scheme and a host component and no fragment.
-func validateAbsoluteURI(str string) bool {
+// and an authority (RFC 3986 generic syntax). It replaces an HTTP-centric
+// URL allowlist for issuer and audience identifiers: the OAuth ecosystem
+// registers non-HTTP scheme identifiers (coaps:// for ACE over CoAP/DTLS,
+// RFC 9200 section 5.2; device: and tag: URNs), which an HTTP-centric URL
+// rule would wrongly reject while a transport-agnostic SDK must accept them.
+func ValidateURI(str string) error {
 	u, err := url.Parse(str)
-	if err != nil {
-		return false
+	if err != nil || u.Scheme == "" || u.Host == "" || u.Fragment != "" {
+		return &ErrValidation{Field: FieldURI, Rule: "uri", Reason: ErrValidateURI.Error()}
 	}
-	if u.Scheme == "" || u.Host == "" {
-		return false
-	}
-	if u.Fragment != "" {
-		return false
-	}
-	return true
+	return nil
 }

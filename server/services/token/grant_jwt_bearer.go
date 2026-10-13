@@ -19,8 +19,10 @@ package token
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -28,12 +30,20 @@ import (
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
+	"zntr.io/solid/server/storage"
 )
+
+// maxAssertionLifetime bounds the ID-JAG grant assertion validity window
+// (RFC 7523 section 3 posture; the same 10-minute maximum as the
+// client-authentication assertions in server/clientauthentication).
+const maxAssertionLifetime = 10 * time.Minute
 
 // jwtBearer handles the JWT Bearer grant (RFC 7523 section 2.1) as
 // profiled by draft-ietf-oauth-identity-assertion-authz-grant-04 section
 // 4.4: the assertion MUST be an ID-JAG issued by a trusted external IdP
 // Authorization Server.
+//
+//nolint:gocyclo,funlen // linear RFC-ordered validation chain; each guard is a protocol requirement
 func (s *service) jwtBearer(ctx context.Context, client *clientv1.Client, req *flowv1.TokenRequest) (*flowv1.TokenResponse, error) {
 	res := &flowv1.TokenResponse{}
 	grant := req.GetJwtBearer()
@@ -72,6 +82,35 @@ func (s *service) jwtBearer(ctx context.Context, client *clientv1.Client, req *f
 			res.Error = rfcerrors.InvalidGrant().Build()
 		}
 		return res, err
+	}
+
+	// RFC 8707 section 2: the ID-JAG audience and resource indicators are
+	// validated against the resource registry before they reach the
+	// minted token — an attacker-controlled aud/resource claim (or a
+	// multi-audience grant, section 3) never lands verbatim in the token.
+	if len(claims.Resource) > 1 {
+		res.Error = rfcerrors.InvalidTarget().Build()
+		return res, fmt.Errorf("multiple resource indicators are not supported (RFC 8707 section 3)")
+	}
+	for _, resourceURI := range claims.Resource {
+		if _, errRes := s.resources.GetByURI(ctx, resourceURI); errRes != nil {
+			if errors.Is(errRes, storage.ErrNotFound) {
+				res.Error = rfcerrors.InvalidTarget().Build()
+				return res, fmt.Errorf("unknown resource indicator '%s'", resourceURI)
+			}
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("unable to validate resource indicator '%s': %w", resourceURI, errRes)
+		}
+	}
+	if len(claims.Resource) == 0 && claims.Aud != "" {
+		if _, errAud := s.resources.GetByURI(ctx, claims.Aud); errAud != nil {
+			if errors.Is(errAud, storage.ErrNotFound) {
+				res.Error = rfcerrors.InvalidTarget().Build()
+				return res, fmt.Errorf("unknown audience '%s'", claims.Aud)
+			}
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("unable to validate audience '%s': %w", claims.Aud, errAud)
+		}
 	}
 
 	// RFC 9396 / draft section 4.4.1: requested authorization must not
@@ -168,6 +207,20 @@ func (s *service) verifyIDJAGAssertion(ctx context.Context, client *clientv1.Cli
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID-JAG assertion: %w", err)
 	}
+
+	// Lifetime cap (RFC 7523 section 3 posture shared by every assertion
+	// mechanism): a long-lived grant assertion extends the replay window
+	// of the self-contained credential; the cap bounds it to the same
+	// 10-minute maximum as client-authentication assertions.
+	if claims.Exp > claims.Iat+uint64(maxAssertionLifetime.Seconds()) {
+		return nil, fmt.Errorf("ID-JAG assertion lifetime exceeds the maximum of %s", maxAssertionLifetime)
+	}
+
+	// Replay note (draft section 4.4.3): the ID-JAG is deliberately
+	// multi-use until exp — the draft defines re-submission as valid, so
+	// no single-use jti burn is performed (unlike the
+	// client-authentication assertions). The lifetime cap above bounds
+	// the replay window.
 
 	// draft section 4.4.1: the client_id claim MUST identify the same
 	// client as the client authentication of the request.

@@ -124,7 +124,7 @@ func dpopProver(keySet jwk.Set) dpop.Prover {
 func fetchAccessToken(ctx context.Context, assertion, proof string) client.Token {
 	params := url.Values{}
 	params.Add("grant_type", "client_credentials")
-	params.Add("resource", "http://localhost:8085") // RFC 8707 resource indicator: the timestamp service
+	params.Add("resource", "http://127.0.0.1:8085") // RFC 8707 resource indicator: the timestamp service (registered as such in inmemory.Resources)
 	params.Add("scope", "timestamp:read openid")
 	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
 	params.Add("client_assertion", assertion)

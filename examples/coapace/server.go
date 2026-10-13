@@ -80,8 +80,10 @@ type authorizationServer struct {
 // startAS assembles the AS services and starts the DTLS listener. It
 // returns after client registration so the caller can thread the
 // identifiers (the demo client token carries AuthorizedIntrospectionClients
-// = [rsID], RFC 7662 section 2.1).
-func startAS(pki *settings, asAddr string) (*authorizationServer, error) {
+// = [rsID], RFC 7662 section 2.1). The RS address registers the RFC 8707
+// resource indicator of the demo RS so client_credentials audiences
+// resolve (audience validation is enforced at the token service).
+func startAS(pki *settings, asAddr, rsAddr string) (*authorizationServer, error) {
 	issuer := "coaps://" + asAddr
 	ctx := context.Background()
 
@@ -97,8 +99,7 @@ func startAS(pki *settings, asAddr string) (*authorizationServer, error) {
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
 	tokensStorage := inmemory.Tokens(storageKey)
-	resources := inmemory.Resources()
-
+	resources := inmemory.ResourcesWith("coaps://" + rsAddr)
 	// Token generators. SOLID_EXAMPLE_TOKEN_FORMAT selects the
 	// serialization format of issued tokens (default "opaque"):
 	//   - opaque: verifiable (signed UUIDv7) reference tokens — the
@@ -230,7 +231,24 @@ func (a *authorizationServer) handleToken(w mux.ResponseWriter, r *mux.Message) 
 		writeACEError(w, codes.Unauthorized, ace.ErrInvalidClient, "no client certificate on the DTLS channel")
 		return
 	}
+	// RFC 9200 section 5.8.3: grant_type is either absent (the
+	// client_credentials default) or the client_credentials abbreviation;
+	// anything else is unsupported_grant_type (error 5) — an explicit
+	// foreign grant must not be silently processed as client_credentials.
+	if req.GrantType != 0 && req.GrantType != ace.GrantTypeClientCredentials {
+		writeACEError(w, codes.BadRequest, ace.ErrUnsupportedGrantType, "only the client_credentials grant is supported")
+		return
+	}
 
+	// RFC 8747 / RFC 9200 section 5.8.1: req_cnf key material is not
+	// validated or bound by this AS (the confirmation is always the DTLS
+	// certificate thumbprint, RFC 8705 x5t#S256). A client presenting
+	// req_cnf requests a binding mode the AS does not offer: answer
+	// unsupported_pop_key (error 7) rather than silently ignoring it.
+	if req.ReqCnf != nil {
+		writeACEError(w, codes.BadRequest, ace.ErrUnsupportedPopKey, "req_cnf is not supported; the token is certificate-bound")
+		return
+	}
 	// RFC 8705 tls_client_auth through the presentation-agnostic processor.
 	pemCert := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: peerCert.Raw})
 	pemStr := string(pemCert)

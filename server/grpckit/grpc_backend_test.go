@@ -84,6 +84,13 @@ func newBackend(t *testing.T) *backend {
 	authSessions := inmemory.AuthorizationCodeSessions(storageKey)
 	deviceSessions := inmemory.DeviceCodeSessions(storageKey)
 	backchannelSessions := inmemory.BackchannelAuthenticationSessions(storageKey)
+	t.Cleanup(func() {
+		authRequests.Stop()
+		authSessions.Stop()
+		deviceSessions.Stop()
+		backchannelSessions.Stop()
+		proofs.Stop()
+	})
 
 	// Token generators
 	accessTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("grpckit-at-mac-key"))

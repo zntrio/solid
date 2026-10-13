@@ -80,19 +80,21 @@ func (s *service) Revoke(ctx context.Context, req *tokenv1.RevokeRequest) (*toke
 		if errors.Is(err, storage.ErrNotFound) {
 			return res, nil
 		}
-		return res, fmt.Errorf("unable to retrieve token '%s': %w", req.Token, err)
+		return res, fmt.Errorf("unable to retrieve token from storage: %w", err)
 	}
 
 	// RFC 7009 section 2.1: verify the token was issued to the client making
-	// the revocation request; refuse otherwise.
-	if t.Metadata != nil && t.Metadata.ClientId != req.Client.ClientId {
+	// the revocation request; refuse otherwise. A token without metadata
+	// fails closed: no issuer-client binding can be established, so the
+	// ownership rule cannot be satisfied.
+	if t.Metadata == nil || t.Metadata.ClientId != req.Client.ClientId {
 		res.Error = rfcerrors.InvalidClient().Build()
 		return res, fmt.Errorf("token was not issued to client '%s'", req.Client.ClientId)
 	}
 
 	// Update token status
 	if err := s.tokens.Revoke(ctx, req.Issuer, t.TokenId); err != nil {
-		return res, fmt.Errorf("unable to revoke token '%s': %w", t.TokenId, err)
+		return res, fmt.Errorf("unable to revoke token: %w", err)
 	}
 
 	// RFC 7009 section 2.1: revoking a refresh token revokes the entire

@@ -271,19 +271,18 @@ func (p *spiffeWITAuthentication) Authenticate(ctx context.Context, req *clientv
 	}
 
 	// Prevent PoP replay: the jti must be single-use. Burn it only after
-	// full validation of the proof.
+	// full validation of the proof. The burn is a single atomic claim:
+	// concurrent presentations of the same PoP cannot both succeed.
 	jtiHash := blake2b.Sum256([]byte("spiffe-wit:" + claims.Subject + ":" + popClaims.JTI))
 	jtiKey := base64.RawURLEncoding.EncodeToString(jtiHash[:])
-	if exists, errExists := p.proofs.Exists(ctx, jtiKey); errExists != nil {
+	claimed, errClaim := p.proofs.RegisterIfAbsent(ctx, jtiKey)
+	if errClaim != nil {
 		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to verify pop uniqueness: %w", errExists)
-	} else if exists {
+		return res, fmt.Errorf("unable to register pop jti: %w", errClaim)
+	}
+	if !claimed {
 		res.Error = rfcerrors.InvalidRequest().Build()
 		return res, fmt.Errorf("pop jti has already been used")
-	}
-	if err := p.proofs.Register(ctx, jtiKey); err != nil {
-		res.Error = rfcerrors.ServerError().Build()
-		return res, fmt.Errorf("unable to register pop jti: %w", err)
 	}
 
 	// Assign client to result

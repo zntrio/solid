@@ -256,6 +256,9 @@ func Test_service_Revoke(t *testing.T) {
 					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenId: "123456789",
 					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId: "s6BhdRkqt3",
+					},
 				}, nil)
 				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "123456789").Return(fmt.Errorf("foo"))
 			},
@@ -282,6 +285,9 @@ func Test_service_Revoke(t *testing.T) {
 					Status:  tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
 					TokenId: "123456789",
 					Value:   "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
+					Metadata: &tokenv1.TokenMeta{
+						ClientId: "s6BhdRkqt3",
+					},
 				}, nil)
 				tokens.EXPECT().Revoke(gomock.Any(), "https://honest.as.example.com", "123456789").Return(nil)
 			},

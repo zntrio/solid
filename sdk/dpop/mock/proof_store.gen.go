@@ -68,3 +68,18 @@ func (mr *MockProofStoreMockRecorder) Register(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Register", reflect.TypeOf((*MockProofStore)(nil).Register), ctx, id)
 }
+
+// RegisterIfAbsent mocks base method.
+func (m *MockProofStore) RegisterIfAbsent(ctx context.Context, id string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterIfAbsent", ctx, id)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RegisterIfAbsent indicates an expected call of RegisterIfAbsent.
+func (mr *MockProofStoreMockRecorder) RegisterIfAbsent(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterIfAbsent", reflect.TypeOf((*MockProofStore)(nil).RegisterIfAbsent), ctx, id)
+}

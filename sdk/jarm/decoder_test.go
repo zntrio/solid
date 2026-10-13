@@ -198,7 +198,7 @@ func Test_jwtDecoder_Decode(t *testing.T) {
 							Audience:  "https://example.com",
 							Code:      "AZERTYUIOP",
 							State:     "QSDFGHJKLM",
-							ExpiresAt: uint64(time.Now().Add(-60 * time.Second).Unix()),
+							ExpiresAt: uint64(time.Now().Add(-180 * time.Second).Unix()),
 						}
 					}
 				}).Return(nil)

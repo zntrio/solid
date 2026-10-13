@@ -20,6 +20,271 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *AuthenticateRequest) CloneVT() *AuthenticateRequest {
+	if m == nil {
+		return (*AuthenticateRequest)(nil)
+	}
+	r := new(AuthenticateRequest)
+	if rhs := m.ClientId; rhs != nil {
+		tmpVal := *rhs
+		r.ClientId = &tmpVal
+	}
+	if rhs := m.ClientSecret; rhs != nil {
+		tmpVal := *rhs
+		r.ClientSecret = &tmpVal
+	}
+	if rhs := m.ClientAssertionType; rhs != nil {
+		tmpVal := *rhs
+		r.ClientAssertionType = &tmpVal
+	}
+	if rhs := m.ClientAssertion; rhs != nil {
+		tmpVal := *rhs
+		r.ClientAssertion = &tmpVal
+	}
+	if rhs := m.TlsClientCert; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientCert = &tmpVal
+	}
+	if rhs := m.ClientAttestation; rhs != nil {
+		tmpVal := *rhs
+		r.ClientAttestation = &tmpVal
+	}
+	if rhs := m.ClientAttestationPop; rhs != nil {
+		tmpVal := *rhs
+		r.ClientAttestationPop = &tmpVal
+	}
+	if rhs := m.Endpoint; rhs != nil {
+		tmpVal := *rhs
+		r.Endpoint = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AuthenticateRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *AuthenticateResponse) CloneVT() *AuthenticateResponse {
+	if m == nil {
+		return (*AuthenticateResponse)(nil)
+	}
+	r := new(AuthenticateResponse)
+	r.Client = m.Client.CloneVT()
+	if rhs := m.Error; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Error }); ok {
+			r.Error = vtpb.CloneVT()
+		} else {
+			r.Error = proto.Clone(rhs).(*v1.Error)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AuthenticateResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RegisterRequest) CloneVT() *RegisterRequest {
+	if m == nil {
+		return (*RegisterRequest)(nil)
+	}
+	r := new(RegisterRequest)
+	r.Metadata = m.Metadata.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegisterRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *RegisterResponse) CloneVT() *RegisterResponse {
+	if m == nil {
+		return (*RegisterResponse)(nil)
+	}
+	r := new(RegisterResponse)
+	r.Client = m.Client.CloneVT()
+	if rhs := m.Error; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Error }); ok {
+			r.Error = vtpb.CloneVT()
+		} else {
+			r.Error = proto.Clone(rhs).(*v1.Error)
+		}
+	}
+	if rhs := m.RegistrationAccessToken; rhs != nil {
+		tmpVal := *rhs
+		r.RegistrationAccessToken = &tmpVal
+	}
+	if rhs := m.RegistrationClientUri; rhs != nil {
+		tmpVal := *rhs
+		r.RegistrationClientUri = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *RegisterResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ReadRequest) CloneVT() *ReadRequest {
+	if m == nil {
+		return (*ReadRequest)(nil)
+	}
+	r := new(ReadRequest)
+	if rhs := m.RegistrationAccessToken; rhs != nil {
+		tmpVal := *rhs
+		r.RegistrationAccessToken = &tmpVal
+	}
+	if rhs := m.ClientId; rhs != nil {
+		tmpVal := *rhs
+		r.ClientId = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *UpdateRequest) CloneVT() *UpdateRequest {
+	if m == nil {
+		return (*UpdateRequest)(nil)
+	}
+	r := new(UpdateRequest)
+	r.Metadata = m.Metadata.CloneVT()
+	if rhs := m.RegistrationAccessToken; rhs != nil {
+		tmpVal := *rhs
+		r.RegistrationAccessToken = &tmpVal
+	}
+	if rhs := m.ClientId; rhs != nil {
+		tmpVal := *rhs
+		r.ClientId = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *UpdateRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *DeleteRequest) CloneVT() *DeleteRequest {
+	if m == nil {
+		return (*DeleteRequest)(nil)
+	}
+	r := new(DeleteRequest)
+	if rhs := m.RegistrationAccessToken; rhs != nil {
+		tmpVal := *rhs
+		r.RegistrationAccessToken = &tmpVal
+	}
+	if rhs := m.ClientId; rhs != nil {
+		tmpVal := *rhs
+		r.ClientId = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeleteRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ReadResponse) CloneVT() *ReadResponse {
+	if m == nil {
+		return (*ReadResponse)(nil)
+	}
+	r := new(ReadResponse)
+	r.Client = m.Client.CloneVT()
+	if rhs := m.Error; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Error }); ok {
+			r.Error = vtpb.CloneVT()
+		} else {
+			r.Error = proto.Clone(rhs).(*v1.Error)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ReadResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *UpdateResponse) CloneVT() *UpdateResponse {
+	if m == nil {
+		return (*UpdateResponse)(nil)
+	}
+	r := new(UpdateResponse)
+	r.Client = m.Client.CloneVT()
+	if rhs := m.Error; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Error }); ok {
+			r.Error = vtpb.CloneVT()
+		} else {
+			r.Error = proto.Clone(rhs).(*v1.Error)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *UpdateResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *DeleteResponse) CloneVT() *DeleteResponse {
+	if m == nil {
+		return (*DeleteResponse)(nil)
+	}
+	r := new(DeleteResponse)
+	if rhs := m.Error; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Error }); ok {
+			r.Error = vtpb.CloneVT()
+		} else {
+			r.Error = proto.Clone(rhs).(*v1.Error)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeleteResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *AuthenticateRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil

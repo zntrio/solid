@@ -113,22 +113,19 @@ func TestHTTP_AttackerTokenEndpointDoesNotHijackAssertionAudience(t *testing.T) 
 	honestASTokenEndpoint := "https://honest.example/token"
 
 	// Attacker server: metadata without issuer, token_endpoint redirected
-	// to the honest AS (the section 2.1.1 metadata attack).
+	// to the honest AS (the section 2.1.1 metadata attack). An issuer-less
+	// metadata document cannot anchor issuer validation: its endpoint URLs
+	// (token, introspection, JWKS) would steer the client's credential and
+	// key traffic to attacker-chosen URLs. Construction fails closed.
 	srv := metadataServer(t, "", honestASTokenEndpoint)
 	defer srv.Close()
 
-	c, err := HTTP(t.Context(), srv.URL, &Options{
+	_, err := HTTP(t.Context(), srv.URL, &Options{
 		ClientID: "test-client",
 		JWK:      []byte(clientJWK),
 	})
-	require.NoError(t, err, "construction with an issuer-less metadata document must be tolerated (older honest ASes omit it)")
-
-	assertion, err := c.Assertion()
-	require.NoError(t, err)
-
-	aud := assertionAudClaim(t, assertion)
-	require.Equal(t, srv.URL, aud,
-		"the assertion aud must be the expected issuer identifier, never the discovered (possibly hijacked) token_endpoint")
+	require.Error(t, err, "construction with an issuer-less metadata document must fail closed (no issuer to anchor the endpoint URLs)")
+	require.Contains(t, err.Error(), "issuer")
 }
 
 // TestHTTP_HonestMetadataAssertionAudienceIsIssuerIdentifier asserts the

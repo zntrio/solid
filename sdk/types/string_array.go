@@ -38,10 +38,14 @@ func Contains(list []string, value string) bool {
 	return false
 }
 
-// Contains checks if item is in collection
+// Contains checks if item is in collection. The comparison is exact:
+// OAuth protocol tokens — scopes (RFC 6749 section 3.3: "scope tokens are
+// case-sensitive"), grant types, response modes, audience URIs — are
+// case-sensitive strings; a case-insensitive match would let a registered
+// "Admin" satisfy a requested "admin" (or vice versa).
 func (s StringArray) Contains(item string) bool {
 	for _, v := range s {
-		if strings.EqualFold(item, v) {
+		if item == v {
 			return true
 		}
 	}

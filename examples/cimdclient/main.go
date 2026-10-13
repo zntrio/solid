@@ -68,7 +68,7 @@ func run() error {
 		// Request an access token for the introspection demo: the resource
 		// indicator is the token audience (RFC 8707), the scope the
 		// permission carried by the token.
-		Resource: "http://localhost:8085",
+		Resource: "http://127.0.0.1:8085",
 		Scope:    "timestamp:read",
 
 		// Print the protocol flow (metadata, token, introspection).

@@ -44,7 +44,7 @@ func inactiveEnvelope(h *harness, tokenValue string) *tokenv1.Token {
 }
 
 // mintTokens mints an AT+RT pair via the authorization code flow.
-func mintTokens(t *testing.T, h *harness, client *clientv1.Client) (*tokenv1.Token, *tokenv1.Token) {
+func mintTokens(t testing.TB, h *harness, client *clientv1.Client) (*tokenv1.Token, *tokenv1.Token) {
 	t.Helper()
 
 	verifier, _ := newPKCEPair(t)
@@ -59,7 +59,7 @@ func mintTokens(t *testing.T, h *harness, client *clientv1.Client) (*tokenv1.Tok
 
 // craftStoredToken inserts a hand-crafted token in storage; used for states
 // the flows cannot produce on demand (expired-but-stored, may_act chains).
-func craftStoredToken(t *testing.T, h *harness, mutate func(*tokenv1.Token)) *tokenv1.Token {
+func craftStoredToken(t testing.TB, h *harness, mutate func(*tokenv1.Token)) *tokenv1.Token {
 	t.Helper()
 
 	now := time.Now()

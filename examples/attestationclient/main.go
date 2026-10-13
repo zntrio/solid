@@ -135,7 +135,7 @@ func getToken(ctx context.Context, attestation, pop string) (*client.Token, erro
 	params.Add("client_id", "attestation-client")
 	// RFC 8707 resource indicator + the timestamp service scope, mirroring
 	// the deviceclient example (the token meta requires both).
-	params.Add("resource", "http://localhost:8085")
+	params.Add("resource", "http://127.0.0.1:8085")
 	params.Add("scope", "timestamp:read")
 
 	// Query token endpoint
@@ -218,7 +218,7 @@ func run() error {
 	time.Sleep(1000 * time.Millisecond)
 
 	// Call the timestamp service
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, exampleenv.Or("SOLID_EXAMPLE_RESOURCE", "http://localhost:8085"), http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, exampleenv.Or("SOLID_EXAMPLE_RESOURCE", "http://127.0.0.1:8085"), http.NoBody)
 	if err != nil {
 		panic(err)
 	}

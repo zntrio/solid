@@ -7,6 +7,7 @@ package clientv1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -17,6 +18,459 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *Client) CloneVT() *Client {
+	if m == nil {
+		return (*Client)(nil)
+	}
+	r := new(Client)
+	r.ClientId = m.ClientId
+	r.ClientType = m.ClientType
+	r.ApplicationType = m.ApplicationType
+	r.ClientName = m.ClientName
+	r.LogoUri = m.LogoUri
+	r.ClientUri = m.ClientUri
+	r.PolicyUri = m.PolicyUri
+	r.TosUri = m.TosUri
+	r.JwksUri = m.JwksUri
+	r.SubjectType = m.SubjectType
+	r.SectorIdentifier = m.SectorIdentifier
+	r.TokenEndpointAuthMethod = m.TokenEndpointAuthMethod
+	r.TlsClientAuthSubjectDn = m.TlsClientAuthSubjectDn
+	r.TlsClientAuthSanDns = m.TlsClientAuthSanDns
+	r.TlsClientAuthSanUri = m.TlsClientAuthSanUri
+	r.TlsClientAuthSanIp = m.TlsClientAuthSanIp
+	r.TlsClientAuthSanEmail = m.TlsClientAuthSanEmail
+	r.TlsClientCertificateBoundAccessTokens = m.TlsClientCertificateBoundAccessTokens
+	r.RequirePushedAuthorizationRequests = m.RequirePushedAuthorizationRequests
+	r.RequireSignedRequestObject = m.RequireSignedRequestObject
+	r.DpopBoundAccessTokens = m.DpopBoundAccessTokens
+	r.SpiffeId = m.SpiffeId
+	r.SpiffeBundleEndpoint = m.SpiffeBundleEndpoint
+	if rhs := m.RedirectUris; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RedirectUris = tmpContainer
+	}
+	if rhs := m.ResponseTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseTypes = tmpContainer
+	}
+	if rhs := m.ResponseModes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseModes = tmpContainer
+	}
+	if rhs := m.GrantTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.GrantTypes = tmpContainer
+	}
+	if rhs := m.Contacts; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Contacts = tmpContainer
+	}
+	if rhs := m.Jwks; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Jwks = tmpBytes
+	}
+	if rhs := m.ClientSecret; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.ClientSecret = tmpBytes
+	}
+	if rhs := m.SpiffeBundle; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.SpiffeBundle = tmpBytes
+	}
+	if rhs := m.AuthorizedIntrospectionClients; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizedIntrospectionClients = tmpContainer
+	}
+	if rhs := m.RegistrationAccessToken; rhs != nil {
+		tmpVal := *rhs
+		r.RegistrationAccessToken = &tmpVal
+	}
+	if rhs := m.Scope; rhs != nil {
+		tmpVal := *rhs
+		r.Scope = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *Client) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClientMeta) CloneVT() *ClientMeta {
+	if m == nil {
+		return (*ClientMeta)(nil)
+	}
+	r := new(ClientMeta)
+	if rhs := m.ApplicationType; rhs != nil {
+		tmpVal := *rhs
+		r.ApplicationType = &tmpVal
+	}
+	if rhs := m.RedirectUris; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RedirectUris = tmpContainer
+	}
+	if rhs := m.TokenEndpointAuthMethod; rhs != nil {
+		tmpVal := *rhs
+		r.TokenEndpointAuthMethod = &tmpVal
+	}
+	if rhs := m.GrantTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.GrantTypes = tmpContainer
+	}
+	if rhs := m.ResponseTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseTypes = tmpContainer
+	}
+	if rhs := m.ClientName; rhs != nil {
+		tmpVal := *rhs
+		r.ClientName = &tmpVal
+	}
+	if rhs := m.ClientNameI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.ClientNameI18N = tmpContainer
+	}
+	if rhs := m.ClientUri; rhs != nil {
+		tmpVal := *rhs
+		r.ClientUri = &tmpVal
+	}
+	if rhs := m.LogoUri; rhs != nil {
+		tmpVal := *rhs
+		r.LogoUri = &tmpVal
+	}
+	if rhs := m.LogoUriI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.LogoUriI18N = tmpContainer
+	}
+	if rhs := m.Scope; rhs != nil {
+		tmpVal := *rhs
+		r.Scope = &tmpVal
+	}
+	if rhs := m.Contacts; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Contacts = tmpContainer
+	}
+	if rhs := m.TosUri; rhs != nil {
+		tmpVal := *rhs
+		r.TosUri = &tmpVal
+	}
+	if rhs := m.TosUriI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.TosUriI18N = tmpContainer
+	}
+	if rhs := m.PolicyUri; rhs != nil {
+		tmpVal := *rhs
+		r.PolicyUri = &tmpVal
+	}
+	if rhs := m.PolicyUriI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.PolicyUriI18N = tmpContainer
+	}
+	if rhs := m.JwksUri; rhs != nil {
+		tmpVal := *rhs
+		r.JwksUri = &tmpVal
+	}
+	if rhs := m.Jwks; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Jwks = tmpBytes
+	}
+	if rhs := m.SoftwareId; rhs != nil {
+		tmpVal := *rhs
+		r.SoftwareId = &tmpVal
+	}
+	if rhs := m.SoftwareVersion; rhs != nil {
+		tmpVal := *rhs
+		r.SoftwareVersion = &tmpVal
+	}
+	if rhs := m.SoftwareStatement; rhs != nil {
+		tmpVal := *rhs
+		r.SoftwareStatement = &tmpVal
+	}
+	if rhs := m.SubjectType; rhs != nil {
+		tmpVal := *rhs
+		r.SubjectType = &tmpVal
+	}
+	if rhs := m.SectorIdentifier; rhs != nil {
+		tmpVal := *rhs
+		r.SectorIdentifier = &tmpVal
+	}
+	if rhs := m.TlsClientAuthSubjectDn; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientAuthSubjectDn = &tmpVal
+	}
+	if rhs := m.TlsClientAuthSanDns; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientAuthSanDns = &tmpVal
+	}
+	if rhs := m.TlsClientAuthSanUri; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientAuthSanUri = &tmpVal
+	}
+	if rhs := m.TlsClientAuthSanIp; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientAuthSanIp = &tmpVal
+	}
+	if rhs := m.TlsClientAuthSanEmail; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientAuthSanEmail = &tmpVal
+	}
+	if rhs := m.TlsClientCertificateBoundAccessTokens; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientCertificateBoundAccessTokens = &tmpVal
+	}
+	if rhs := m.IntrospectionSignedResponseAlg; rhs != nil {
+		tmpVal := *rhs
+		r.IntrospectionSignedResponseAlg = &tmpVal
+	}
+	if rhs := m.IntrospectionEncryptedResponseAlg; rhs != nil {
+		tmpVal := *rhs
+		r.IntrospectionEncryptedResponseAlg = &tmpVal
+	}
+	if rhs := m.IntrospectionEncryptedResponseEnc; rhs != nil {
+		tmpVal := *rhs
+		r.IntrospectionEncryptedResponseEnc = &tmpVal
+	}
+	if rhs := m.ResponseModes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseModes = tmpContainer
+	}
+	if rhs := m.RequirePushedAuthorizationRequests; rhs != nil {
+		tmpVal := *rhs
+		r.RequirePushedAuthorizationRequests = &tmpVal
+	}
+	if rhs := m.RequireSignedRequestObject; rhs != nil {
+		tmpVal := *rhs
+		r.RequireSignedRequestObject = &tmpVal
+	}
+	if rhs := m.DpopBoundAccessTokens; rhs != nil {
+		tmpVal := *rhs
+		r.DpopBoundAccessTokens = &tmpVal
+	}
+	if rhs := m.SpiffeId; rhs != nil {
+		tmpVal := *rhs
+		r.SpiffeId = &tmpVal
+	}
+	if rhs := m.SpiffeBundleEndpoint; rhs != nil {
+		tmpVal := *rhs
+		r.SpiffeBundleEndpoint = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClientMeta) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *ClientIDMetadataDocument) CloneVT() *ClientIDMetadataDocument {
+	if m == nil {
+		return (*ClientIDMetadataDocument)(nil)
+	}
+	r := new(ClientIDMetadataDocument)
+	if rhs := m.ClientId; rhs != nil {
+		tmpVal := *rhs
+		r.ClientId = &tmpVal
+	}
+	if rhs := m.RedirectUris; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RedirectUris = tmpContainer
+	}
+	if rhs := m.TokenEndpointAuthMethod; rhs != nil {
+		tmpVal := *rhs
+		r.TokenEndpointAuthMethod = &tmpVal
+	}
+	if rhs := m.GrantTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.GrantTypes = tmpContainer
+	}
+	if rhs := m.ResponseTypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseTypes = tmpContainer
+	}
+	if rhs := m.ClientName; rhs != nil {
+		tmpVal := *rhs
+		r.ClientName = &tmpVal
+	}
+	if rhs := m.ClientNameI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.ClientNameI18N = tmpContainer
+	}
+	if rhs := m.ClientUri; rhs != nil {
+		tmpVal := *rhs
+		r.ClientUri = &tmpVal
+	}
+	if rhs := m.LogoUri; rhs != nil {
+		tmpVal := *rhs
+		r.LogoUri = &tmpVal
+	}
+	if rhs := m.LogoUriI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.LogoUriI18N = tmpContainer
+	}
+	if rhs := m.Scope; rhs != nil {
+		tmpVal := *rhs
+		r.Scope = &tmpVal
+	}
+	if rhs := m.Contacts; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Contacts = tmpContainer
+	}
+	if rhs := m.TosUri; rhs != nil {
+		tmpVal := *rhs
+		r.TosUri = &tmpVal
+	}
+	if rhs := m.TosUriI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.TosUriI18N = tmpContainer
+	}
+	if rhs := m.PolicyUri; rhs != nil {
+		tmpVal := *rhs
+		r.PolicyUri = &tmpVal
+	}
+	if rhs := m.PolicyUriI18N; rhs != nil {
+		tmpContainer := make(map[string]string, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v
+		}
+		r.PolicyUriI18N = tmpContainer
+	}
+	if rhs := m.JwksUri; rhs != nil {
+		tmpVal := *rhs
+		r.JwksUri = &tmpVal
+	}
+	if rhs := m.Jwks; rhs != nil {
+		tmpBytes := make([]byte, len(rhs))
+		copy(tmpBytes, rhs)
+		r.Jwks = tmpBytes
+	}
+	if rhs := m.SoftwareId; rhs != nil {
+		tmpVal := *rhs
+		r.SoftwareId = &tmpVal
+	}
+	if rhs := m.SoftwareVersion; rhs != nil {
+		tmpVal := *rhs
+		r.SoftwareVersion = &tmpVal
+	}
+	if rhs := m.SoftwareStatement; rhs != nil {
+		tmpVal := *rhs
+		r.SoftwareStatement = &tmpVal
+	}
+	if rhs := m.SubjectType; rhs != nil {
+		tmpVal := *rhs
+		r.SubjectType = &tmpVal
+	}
+	if rhs := m.SectorIdentifier; rhs != nil {
+		tmpVal := *rhs
+		r.SectorIdentifier = &tmpVal
+	}
+	if rhs := m.ResponseModes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseModes = tmpContainer
+	}
+	if rhs := m.RequirePushedAuthorizationRequests; rhs != nil {
+		tmpVal := *rhs
+		r.RequirePushedAuthorizationRequests = &tmpVal
+	}
+	if rhs := m.RequireSignedRequestObject; rhs != nil {
+		tmpVal := *rhs
+		r.RequireSignedRequestObject = &tmpVal
+	}
+	if rhs := m.DpopBoundAccessTokens; rhs != nil {
+		tmpVal := *rhs
+		r.DpopBoundAccessTokens = &tmpVal
+	}
+	if rhs := m.SpiffeId; rhs != nil {
+		tmpVal := *rhs
+		r.SpiffeId = &tmpVal
+	}
+	if rhs := m.SpiffeBundleEndpoint; rhs != nil {
+		tmpVal := *rhs
+		r.SpiffeBundleEndpoint = &tmpVal
+	}
+	if rhs := m.ClientSecret; rhs != nil {
+		tmpVal := *rhs
+		r.ClientSecret = &tmpVal
+	}
+	if rhs := m.ClientSecretExpiresAt; rhs != nil {
+		tmpVal := *rhs
+		r.ClientSecretExpiresAt = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ClientIDMetadataDocument) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *SoftwareStatement) CloneVT() *SoftwareStatement {
+	if m == nil {
+		return (*SoftwareStatement)(nil)
+	}
+	r := new(SoftwareStatement)
+	r.SoftwareId = m.SoftwareId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *SoftwareStatement) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *Client) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
@@ -47,6 +501,15 @@ func (m *Client) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 	if m.unknownFields != nil {
 		i -= len(m.unknownFields)
 		copy(dAtA[i:], m.unknownFields)
+	}
+	if m.Scope != nil {
+		i -= len(*m.Scope)
+		copy(dAtA[i:], *m.Scope)
+		i = protohelpers.EncodeVarint(dAtA, i, uint64(len(*m.Scope)))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0x92
 	}
 	if m.RegistrationAccessToken != nil {
 		i -= len(*m.RegistrationAccessToken)
@@ -1285,6 +1748,10 @@ func (m *Client) SizeVT() (n int) {
 	}
 	if m.RegistrationAccessToken != nil {
 		l = len(*m.RegistrationAccessToken)
+		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
+	}
+	if m.Scope != nil {
+		l = len(*m.Scope)
 		n += 2 + l + protohelpers.SizeOfVarint(uint64(l))
 	}
 	n += len(m.unknownFields)
@@ -2675,6 +3142,39 @@ func (m *Client) UnmarshalVT(dAtA []byte) error {
 			}
 			s := string(dAtA[iNdEx:postIndex])
 			m.RegistrationAccessToken = &s
+			iNdEx = postIndex
+		case 34:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Scope", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return protohelpers.ErrIntOverflow
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return protohelpers.ErrInvalidLength
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.Scope = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

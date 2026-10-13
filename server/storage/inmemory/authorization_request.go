@@ -19,34 +19,37 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"golang.org/x/crypto/blake2b"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/server/storage"
 )
 
-type authorizationRequestStorage struct {
-	backend   *ttlCache
-	secretKey []byte
+type AuthorizationRequestStorage struct {
+	backend *ttlCache
+	derive  *deriveHasher
 }
 
 // AuthorizationRequests returns an authorization request manager.
-func AuthorizationRequests(secretKey []byte) storage.AuthorizationRequest {
+func AuthorizationRequests(secretKey []byte) *AuthorizationRequestStorage {
 	// Initialize in-memory caches
 	backendCache := newTTLCache(1 * time.Minute)
 
-	return &authorizationRequestStorage{
-		backend:   backendCache,
-		secretKey: secretKey,
+	return &AuthorizationRequestStorage{
+		backend: backendCache,
+		derive:  newDeriveHasher(secretKey),
 	}
+}
+
+// Stop terminates the background janitor goroutine. Calling Stop more than
+// once is safe and cheap.
+func (s *AuthorizationRequestStorage) Stop() {
+	s.backend.Stop()
 }
 
 // -----------------------------------------------------------------------------
 
-func (s *authorizationRequestStorage) Register(ctx context.Context, issuer, requestURI string, req *flowv1.AuthorizationRequest) (uint64, error) {
+func (s *AuthorizationRequestStorage) Register(ctx context.Context, issuer, requestURI string, req *flowv1.AuthorizationRequest) (uint64, error) {
 	// Insert in cache
 	s.backend.Set(s.deriveKey(issuer, requestURI), req)
 
@@ -54,7 +57,7 @@ func (s *authorizationRequestStorage) Register(ctx context.Context, issuer, requ
 	return 60, nil
 }
 
-func (s *authorizationRequestStorage) DeleteAndGet(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
+func (s *AuthorizationRequestStorage) DeleteAndGet(ctx context.Context, issuer, requestURI string) (*flowv1.AuthorizationRequest, error) {
 	// Atomic burn-after-read: a concurrent second consume of the same
 	// request_uri observes a missing entry (ttlCache.DeleteAndGet is a
 	// single critical section).
@@ -68,16 +71,6 @@ func (s *authorizationRequestStorage) DeleteAndGet(ctx context.Context, issuer, 
 
 // -----------------------------------------------------------------------------
 
-func (s *authorizationRequestStorage) deriveKey(issuer, requestURI string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:authorization-requests:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(requestURI))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (s *AuthorizationRequestStorage) deriveKey(issuer, requestURI string) string {
+	return s.derive.deriveHex("solid:authorization-requests:v1", issuer, requestURI)
 }

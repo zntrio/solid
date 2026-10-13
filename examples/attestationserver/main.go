@@ -30,6 +30,7 @@ import (
 
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
+	exampleenv "zntr.io/solid/examples/internal/exampleenv"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token/jwt"
 )
@@ -144,7 +145,11 @@ func main() {
 	http.Handle("/attestations/jwks", publicKeyHandler(pub))
 
 	server := &http.Server{
-		Addr:              ":8087",
+		// Loopback by default: this example is an UNAUTHENTICATED signing
+		// oracle by design (demo); binding all interfaces would let any
+		// network peer mint attestations. Production attestation servers
+		// authenticate callers and derive keys from hardware.
+		Addr:              exampleenv.Or("SOLID_EXAMPLE_LISTEN_ADDR", "127.0.0.1:8087"),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	log.Fatal(server.ListenAndServe())

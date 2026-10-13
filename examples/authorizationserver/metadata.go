@@ -97,6 +97,9 @@ func metadataDocument(issuer string) *discoveryv1.ServerMetadata {
 		// exchange, and the ID-JAG grant profile it can process as a
 		// Resource Authorization Server.
 		IdentityChainingRequestedTokenTypesSupported: []string{oidc.IDJAGTokenType},
+		// D-12.1: the opt-in id_token (SD id+jwt) is signed with the
+		// default signing algorithm of this assembly.
+		IdTokenSigningAlgValuesSupported: []string{mldsaAlg},
 		// OpenID CIBA Core 1.0 section 4: poll mode only (no OP->client
 		// callback surface), signed authentication requests with
 		// elliptic-curve algorithms.

@@ -62,7 +62,10 @@ func TestStringArray_Contains(t *testing.T) {
 			name: "not empty / not same case",
 			s:    []string{"azerty"},
 			args: "AzErTy",
-			want: true,
+			// RFC 6749 section 3.3: protocol tokens (scopes, grant types,
+			// audience URIs) are case-sensitive — a case-different value
+			// must NOT match.
+			want: false,
 		},
 	}
 	for _, tt := range tests {

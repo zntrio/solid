@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 
@@ -41,40 +42,55 @@ const signingKeyEnvVar = "SOLID_EXAMPLE_SIGNING_KEY"
 // algorithm: post-quantum ML-DSA-65 (FIPS 204).
 const defaultSigningAlgorithm = jwk.MLDSA65
 
+// keyCache holds the per-env-var resolved keys: all key providers built
+// from the same environment variable (the access/refresh signers, the
+// JARM signer, the JWKS endpoint) must share one key instance — an
+// ephemeral key generated per provider would leave the published JWKS
+// unable to verify the tokens and responses the others sign.
+var keyCache sync.Map // env var name -> jwk.Key
+
 // loadKey returns a key provider reading its key from the given environment
 // variable (a JWK JSON document); when the variable is unset or empty, gen
-// generates an ephemeral key at boot with a loud warning, since an ephemeral
-// key invalidates previously issued tokens on every restart. The generation
-// closure prepares the key (algorithm/usage/kid) before returning it.
+// generates an ephemeral key at boot with a loud warning, since an
+// ephemeral key invalidates previously issued tokens on every restart.
+// The generation closure prepares the key (algorithm/usage/kid) before
+// returning it. The resolved key is memoized per environment variable and
+// shared by every provider built from it.
 func loadKey(envVar string, gen func() (jwk.Key, error)) jwk.KeyProviderFunc {
-	var key jwk.Key
-
-	if raw, ok := os.LookupEnv(envVar); ok && raw != "" {
-		keySet, err := jwk.Parse([]byte(raw))
-		if err != nil {
-			panic(fmt.Errorf("unable to decode %s: %w", envVar, err))
-		}
-		k, ok := keySet.Key(0)
-		if !ok {
-			panic(fmt.Errorf("%s does not contain a key", envVar))
-		}
-		if err := k.Validate(); err != nil {
-			panic(fmt.Errorf("%s does not contain a valid JWK", envVar))
-		}
-		key = k
-	} else {
-		log.Printf("WARNING: %s is not set; using an ephemeral key. Tokens will not survive a restart; set the variable with a stable JWK for anything beyond local testing.", envVar)
-
-		k, err := gen()
-		if err != nil {
-			panic(fmt.Errorf("unable to generate ephemeral key for %s: %w", envVar, err))
-		}
-		key = k
-	}
-
 	return func(_ context.Context) (jwk.Key, error) {
-		// No error
-		return key, nil
+		// Fast path: the key is already resolved for this env var.
+		if cached, ok := keyCache.Load(envVar); ok {
+			return cached.(jwk.Key), nil
+		}
+
+		var key jwk.Key
+		if raw, ok := os.LookupEnv(envVar); ok && raw != "" {
+			keySet, err := jwk.Parse([]byte(raw))
+			if err != nil {
+				return nil, fmt.Errorf("unable to decode %s: %w", envVar, err)
+			}
+			k, ok := keySet.Key(0)
+			if !ok {
+				return nil, fmt.Errorf("%s does not contain a key", envVar)
+			}
+			if err := k.Validate(); err != nil {
+				return nil, fmt.Errorf("%s does not contain a valid JWK: %w", envVar, err)
+			}
+			key = k
+		} else {
+			log.Printf("WARNING: %s is not set; using an ephemeral key. Tokens will not survive a restart; set the variable with a stable JWK for anything beyond local testing.", envVar)
+
+			k, err := gen()
+			if err != nil {
+				return nil, fmt.Errorf("unable to generate ephemeral key for %s: %w", envVar, err)
+			}
+			key = k
+		}
+
+		// LoadOrStore: under concurrent first calls every provider shares
+		// the same instance.
+		actual, _ := keyCache.LoadOrStore(envVar, key)
+		return actual.(jwk.Key), nil
 	}
 }
 

@@ -42,6 +42,23 @@ const (
 	// arrayElementKey is the redacted-array-element marker key ("...",
 	// RFC 9901 section 4.2.4.2).
 	arrayElementKey = "..."
+
+	// minSaltLength is the RFC 9901 section 9.3 disclosure salt minimum:
+	// 128 bits. A shorter salt is rejected at decode (the CBOR codec
+	// enforces the same 16-byte minimum).
+	minSaltLength = 16
+
+	// maxDisclosures bounds the number of disclosure components a single
+	// presentation may carry. Each one is base64-decoded, JSON-parsed and
+	// SHA-256-digested before the unreferenced-disclosure rejection — a
+	// holder-controlled count is an asymmetric-DoS surface, so the bound
+	// is enforced before any per-disclosure work (the CBOR side caps
+	// claim counts and depth alike).
+	maxDisclosures = 256
+
+	// maxJSONDepth bounds claim-tree recursion when walking the payload
+	// for digest arrays (mirrors the sdcwt maxClaimsDepth bound of 16).
+	maxJSONDepth = 16
 )
 
 // HashAlgorithm names a disclosure digest hash algorithm. Only sha-256
@@ -76,6 +93,13 @@ func Parse(raw string) (SDJWT, error) {
 	// Split on tildes.
 	parts := splitTilde(raw)
 	if len(parts) < 2 {
+		return SDJWT{}, ErrInvalidSDJWT
+	}
+
+	// Bound the disclosure count before any per-disclosure work: each
+	// component is base64-decoded, JSON-parsed and digested downstream, so
+	// a holder-controlled count is an asymmetric-DoS surface.
+	if len(parts)-2 > maxDisclosures {
 		return SDJWT{}, ErrInvalidSDJWT
 	}
 

@@ -44,7 +44,7 @@ import (
 
 // Authorization handles authorization HTTP requests.
 //
-//nolint:gocyclo // linear RFC 6749-ordered presentation dispatch
+//nolint:gocyclo,funlen // linear RFC 6749-ordered presentation dispatch
 func Authorization(issuer string, authz services.Authorization, clients storage.ClientReader, jarmEncoder jarm.ResponseEncoder, pairwiseEncoder pairwise.Encoder, requestObjectAlgorithms []string, profiles profile.Server) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// The authorization endpoint accepts GET and POST with
@@ -81,6 +81,15 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		}
 		clientID := param("client_id")
 		requestRaw := param("request")
+		requestURI := param("request_uri")
+
+		// RFC 9101 section 5: the request and request_uri parameters are
+		// mutually exclusive; an authorization request carrying both is
+		// malformed.
+		if requestRaw != "" && requestURI != "" {
+			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+			return
+		}
 
 		// Retrieve subject from context
 		sub, ok := Subject(ctx)
@@ -111,23 +120,40 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 				return
 			}
 		}
+		// The authorization request arrives either by reference (a PAR
+		// request_uri, RFC 9126) or by value (a signed request object,
+		// RFC 9101); the service resolves the stored request in the
+		// former case and the presentation layer decodes it in the
+		// latter.
+		var ar *flowv1.AuthorizationRequest
 
-		// Prepare client request decoder
-		clientRequestDecoder := clientRequestDecoder(client, issuer, requestObjectAlgorithms)
+		if requestURI != "" {
+			// RFC 9126: the authorization request is resolved from the
+			// pushed authorization request the request_uri references.
+			// The response type is unknown until the service resolves
+			// the stored request object — the PAR endpoint already
+			// enforced the profile gate at registration time — so the
+			// profile check is skipped on this path and the by-value
+			// JAR decoding below does not apply.
+			ar = &flowv1.AuthorizationRequest{RequestUri: &requestURI}
+		} else {
+			// Prepare client request decoder
+			clientRequestDecoder := clientRequestDecoder(client, issuer, requestObjectAlgorithms)
 
-		// Decode the request object; on failure, RFC 6749 §4.1.2.1
-		// redirects the error when a redirect URI is known.
-		ar, err := decodeAuthorizationRequest(w, r, clientRequestDecoder, ctx, requestRaw, issuer)
-		if err != nil {
-			return
-		}
+			// Decode the request object; on failure, RFC 6749 §4.1.2.1
+			// redirects the error when a redirect URI is known.
+			ar, err = decodeAuthorizationRequest(w, r, clientRequestDecoder, ctx, requestRaw, issuer)
+			if err != nil {
+				return
+			}
 
-		// Enforce the application-type profile, when the client carries a
-		// known application type: response types outside the profile are
-		// rejected by redirect per RFC 6749 section 4.1.2.1.
-		if !profile.AllowsResponseType(profiles, client.ApplicationType, ar.ResponseType) {
-			redirectAuthorizationError(w, r, ar.RedirectUri, issuer, rfcerrors.InvalidRequest().Build(), ar.State)
-			return
+			// Enforce the application-type profile, when the client carries a
+			// known application type: response types outside the profile are
+			// rejected by redirect per RFC 6749 section 4.1.2.1.
+			if !profile.AllowsResponseType(profiles, client.ApplicationType, ar.ResponseType) {
+				redirectAuthorizationError(w, r, ar.RedirectUri, issuer, rfcerrors.InvalidRequest().Build(), ar.State)
+				return
+			}
 		}
 
 		// Send request to reactor

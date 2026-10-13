@@ -7,9 +7,10 @@ package tokenv1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
-	structpb "github.com/planetscale/vtprotobuf/types/known/structpb"
+	structpb1 "github.com/planetscale/vtprotobuf/types/known/structpb"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	structpb1 "google.golang.org/protobuf/types/known/structpb"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	io "io"
 )
 
@@ -19,6 +20,54 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *AuthorizationDetail) CloneVT() *AuthorizationDetail {
+	if m == nil {
+		return (*AuthorizationDetail)(nil)
+	}
+	r := new(AuthorizationDetail)
+	r.Type = m.Type
+	if rhs := m.Locations; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Locations = tmpContainer
+	}
+	if rhs := m.Actions; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Actions = tmpContainer
+	}
+	if rhs := m.Datatypes; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Datatypes = tmpContainer
+	}
+	if rhs := m.Identifier; rhs != nil {
+		tmpVal := *rhs
+		r.Identifier = &tmpVal
+	}
+	if rhs := m.Privileges; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Privileges = tmpContainer
+	}
+	if rhs := m.Extensions; rhs != nil {
+		tmpContainer := make(map[string]*structpb.Value, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = (*structpb.Value)((*structpb1.Value)(v).CloneVT())
+		}
+		r.Extensions = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AuthorizationDetail) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *AuthorizationDetail) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
@@ -54,7 +103,7 @@ func (m *AuthorizationDetail) MarshalToSizedBufferVT(dAtA []byte) (int, error) {
 		for k := range m.Extensions {
 			v := m.Extensions[k]
 			baseI := i
-			size, err := (*structpb.Value)(v).MarshalToSizedBufferVT(dAtA[:i])
+			size, err := (*structpb1.Value)(v).MarshalToSizedBufferVT(dAtA[:i])
 			if err != nil {
 				return 0, err
 			}
@@ -169,7 +218,7 @@ func (m *AuthorizationDetail) SizeVT() (n int) {
 			_ = v
 			l = 0
 			if v != nil {
-				l = (*structpb.Value)(v).SizeVT()
+				l = (*structpb1.Value)(v).SizeVT()
 			}
 			l += 1 + protohelpers.SizeOfVarint(uint64(l))
 			mapEntrySize := 1 + len(k) + protohelpers.SizeOfVarint(uint64(len(k))) + l
@@ -432,10 +481,10 @@ func (m *AuthorizationDetail) UnmarshalVT(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Extensions == nil {
-				m.Extensions = make(map[string]*structpb1.Value)
+				m.Extensions = make(map[string]*structpb.Value)
 			}
 			var mapkey string
-			var mapvalue *structpb1.Value
+			var mapvalue *structpb.Value
 			for iNdEx < postIndex {
 				entryPreIndex := iNdEx
 				var wire uint64
@@ -509,8 +558,8 @@ func (m *AuthorizationDetail) UnmarshalVT(dAtA []byte) error {
 					if postmsgIndex > l {
 						return io.ErrUnexpectedEOF
 					}
-					mapvalue = &structpb1.Value{}
-					if err := (*structpb.Value)(mapvalue).UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
+					mapvalue = &structpb.Value{}
+					if err := (*structpb1.Value)(mapvalue).UnmarshalVT(dAtA[iNdEx:postmsgIndex]); err != nil {
 						return err
 					}
 					iNdEx = postmsgIndex

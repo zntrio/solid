@@ -64,6 +64,8 @@ func newClientAuthHarness(t *testing.T) *clientAuthHarness {
 	t.Helper()
 
 	clients := inmemory.Clients()
+	proofs := inmemory.DPoPProofs()
+	t.Cleanup(proofs.Stop)
 
 	gotClientID := ""
 	inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -79,7 +81,7 @@ func newClientAuthHarness(t *testing.T) *clientAuthHarness {
 		clientAuthTestIssuer,
 		[]string{"ES256"},
 		spiffe.NewStaticBundleSource(nil),
-		inmemory.DPoPProofs(),
+		proofs,
 		profile.Strict(),
 	)
 	ts := httptest.NewServer(mw(inner))

@@ -19,23 +19,20 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"golang.org/x/crypto/blake2b"
 
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/server/storage"
 )
 
-type deviceCodeSessionStorage struct {
+type DeviceCodeSessionStorage struct {
 	userCodeIndex   *ttlCache
 	deviceCodeIndex *ttlCache
-	secretKey       []byte
+	derive          *deriveHasher
 }
 
 // DeviceCodeSessions returns a device authorization session manager.
-func DeviceCodeSessions(secretKey []byte) storage.DeviceCodeSession {
+func DeviceCodeSessions(secretKey []byte) *DeviceCodeSessionStorage {
 	// The cache TTL only bounds storage residency: it must outlive the
 	// protocol-level expiry (session.ExpiresAt) so the token grant can
 	// distinguish an expired session (expired_token, RFC 8628 section
@@ -43,16 +40,23 @@ func DeviceCodeSessions(secretKey []byte) storage.DeviceCodeSession {
 	userCodeCache := newTTLCache(10 * time.Minute)
 	deviceCodeCache := newTTLCache(10 * time.Minute)
 
-	return &deviceCodeSessionStorage{
+	return &DeviceCodeSessionStorage{
 		userCodeIndex:   userCodeCache,
 		deviceCodeIndex: deviceCodeCache,
-		secretKey:       secretKey,
+		derive:          newDeriveHasher(secretKey),
 	}
+}
+
+// Stop terminates the background janitor goroutines. Calling Stop more than
+// once is safe and cheap.
+func (s *DeviceCodeSessionStorage) Stop() {
+	s.userCodeIndex.Stop()
+	s.deviceCodeIndex.Stop()
 }
 
 // -----------------------------------------------------------------------------
 
-func (s *deviceCodeSessionStorage) Register(ctx context.Context, issuer, userCode string, req *sessionv1.DeviceCodeSession) (uint64, error) {
+func (s *DeviceCodeSessionStorage) Register(ctx context.Context, issuer, userCode string, req *sessionv1.DeviceCodeSession) (uint64, error) {
 	// Insert in cache
 	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req)
 	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req)
@@ -61,13 +65,13 @@ func (s *deviceCodeSessionStorage) Register(ctx context.Context, issuer, userCod
 	return uint64(120), nil
 }
 
-func (s *deviceCodeSessionStorage) Delete(ctx context.Context, issuer, code string) error {
+func (s *DeviceCodeSessionStorage) Delete(ctx context.Context, issuer, code string) error {
 	s.userCodeIndex.Delete(s.deriveUserCode(issuer, code))
 	// No error
 	return nil
 }
 
-func (s *deviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*sessionv1.DeviceCodeSession, error) {
+func (s *DeviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*sessionv1.DeviceCodeSession, error) {
 	// Retrieve from cache
 	if x, found := s.deviceCodeIndex.Get(s.deriveDeviceCode(issuer, deviceCode)); found {
 		req := x.(*sessionv1.DeviceCodeSession)
@@ -77,7 +81,7 @@ func (s *deviceCodeSessionStorage) GetByDeviceCode(ctx context.Context, issuer, 
 	return nil, storage.ErrNotFound
 }
 
-func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, issuer, userCode string) (*sessionv1.DeviceCodeSession, error) {
+func (s *DeviceCodeSessionStorage) GetByUserCode(ctx context.Context, issuer, userCode string) (*sessionv1.DeviceCodeSession, error) {
 	// Retrieve from cache
 	if x, found := s.userCodeIndex.Get(s.deriveUserCode(issuer, userCode)); found {
 		req := x.(*sessionv1.DeviceCodeSession)
@@ -87,7 +91,7 @@ func (s *deviceCodeSessionStorage) GetByUserCode(ctx context.Context, issuer, us
 	return nil, storage.ErrNotFound
 }
 
-func (s *deviceCodeSessionStorage) Validate(ctx context.Context, issuer, userCode string, req *sessionv1.DeviceCodeSession) error {
+func (s *DeviceCodeSessionStorage) Validate(ctx context.Context, issuer, userCode string, req *sessionv1.DeviceCodeSession) error {
 	// Insert in cache
 	s.userCodeIndex.Set(s.deriveUserCode(req.Issuer, userCode), req)
 	s.deviceCodeIndex.Set(s.deriveDeviceCode(req.Issuer, req.DeviceCode), req)
@@ -97,7 +101,7 @@ func (s *deviceCodeSessionStorage) Validate(ctx context.Context, issuer, userCod
 }
 
 // UpdateByDeviceCode persists a mutated device code session (poll timing state).
-func (s *deviceCodeSessionStorage) UpdateByDeviceCode(ctx context.Context, issuer, deviceCode string, r *sessionv1.DeviceCodeSession) error {
+func (s *DeviceCodeSessionStorage) UpdateByDeviceCode(ctx context.Context, issuer, deviceCode string, r *sessionv1.DeviceCodeSession) error {
 	// Both indexes hold the same *sessionv1.DeviceCodeSession pointer; the
 	// user-code index sees the mutation through the shared pointer. The
 	// user-code index key is not recoverable from the session, so only the
@@ -108,7 +112,7 @@ func (s *deviceCodeSessionStorage) UpdateByDeviceCode(ctx context.Context, issue
 
 // DeleteAndGetByDeviceCode atomically consumes a validated device code session,
 // enforcing one-time use (RFC 10027 section 6.1.3).
-func (s *deviceCodeSessionStorage) DeleteAndGetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*sessionv1.DeviceCodeSession, error) {
+func (s *DeviceCodeSessionStorage) DeleteAndGetByDeviceCode(ctx context.Context, issuer, deviceCode string) (*sessionv1.DeviceCodeSession, error) {
 	if x, ok := s.deviceCodeIndex.DeleteAndGet(s.deriveDeviceCode(issuer, deviceCode)); ok {
 		return x.(*sessionv1.DeviceCodeSession), nil
 	}
@@ -117,30 +121,10 @@ func (s *deviceCodeSessionStorage) DeleteAndGetByDeviceCode(ctx context.Context,
 
 // -----------------------------------------------------------------------------
 
-func (s *deviceCodeSessionStorage) deriveUserCode(issuer, code string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:device-authorization-user-code:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(code))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (s *DeviceCodeSessionStorage) deriveUserCode(issuer, code string) string {
+	return s.derive.deriveHex("solid:device-authorization-user-code:v1", issuer, code)
 }
 
-func (s *deviceCodeSessionStorage) deriveDeviceCode(issuer, code string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:device-authorization-device-code:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(code))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+func (s *DeviceCodeSessionStorage) deriveDeviceCode(issuer, code string) string {
+	return s.derive.deriveHex("solid:device-authorization-device-code:v1", issuer, code)
 }

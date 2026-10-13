@@ -131,10 +131,19 @@ func (v *defaultVerifier) Claims(ctx context.Context, raw string, claims any) er
 		return fmt.Errorf("unable to retrieve KeySet: %w", err)
 	}
 
-	// Resolve candidate signing keys, honoring kid routing when the
-	// token carries one present in the key set.
+	// Resolve candidate signing keys, honoring kid routing. Solid stronger
+	// posture (header-injection defense, mirroring the JWT verifier): with
+	// a kid-addressed key set, a token whose header carries a kid that is
+	// NOT in the set is rejected outright instead of falling back to every
+	// signing key — an unknown kid is a header attack, not a legitimate
+	// rotation (rotation publishes the new key under its kid before tokens
+	// reference it).
 	keys := candidateSigningKeys(jwks)
-	if routed := routeOnKid(msg, jwks); len(routed) > 0 {
+	routed, hasKid := routeOnKid(msg, jwks)
+	switch {
+	case hasKid && len(routed) == 0 && jwk.KeySetIsKidded(jwks):
+		return token.ErrInvalidTokenSignature
+	case len(routed) > 0:
 		keys = routed
 	}
 
@@ -202,9 +211,9 @@ func verifyWithAnyKey(msg *cose.Sign1Message, keys []jwk.Key, alg cose.Algorithm
 }
 
 // routeOnKid syntactically resolves the token kid header against the key
-// set; an absent or unknown kid yields no candidates (the caller then uses
-// every signing key).
-func routeOnKid(msg *cose.Sign1Message, jwks jwk.Set) []jwk.Key {
+// set. The boolean reports whether the header carried a kid at all; when
+// true, an empty routed result means the kid is unknown to the key set.
+func routeOnKid(msg *cose.Sign1Message, jwks jwk.Set) (routed []jwk.Key, hasKid bool) {
 	// Read kid from the protected header, falling back to the unprotected
 	// one. kid values are never trusted beyond key selection.
 	var kid []byte
@@ -221,13 +230,13 @@ func routeOnKid(msg *cose.Sign1Message, jwks jwk.Set) []jwk.Key {
 		}
 	}
 	if len(kid) == 0 {
-		return nil
+		return nil, false
 	}
 	k, found := jwks.LookupKeyID(string(kid))
 	if !found {
-		return nil
+		return nil, true
 	}
-	return []jwk.Key{k}
+	return []jwk.Key{k}, true
 }
 
 // materializePublicKey converts a jwk key into a native Go public key

@@ -353,7 +353,7 @@ func signedRequest(expectedIssuer, jkt string) (string, error) {
 		// RFC 8707: the target resource identifier becomes the audience of
 		// the minted access token; the demo targets the example resource
 		// server.
-		Audience: "http://localhost:8085",
+		Audience: "http://127.0.0.1:8085",
 	})
 }
 

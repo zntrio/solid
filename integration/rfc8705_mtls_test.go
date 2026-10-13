@@ -436,7 +436,7 @@ func TestRFC8705_RefreshTokenCertificateBinding(t *testing.T) {
 	refreshReq := func(x5t string) *flowv1.TokenRequest {
 		r := refreshGrantRequest(h.issuer, client.ClientId, minted.RefreshToken.Value)
 		if x5t != "" {
-			r.TokenConfirmation = &tokenv1.TokenConfirmation{X5TS256: x5t}
+			r.TokenConfirmation = &tokenv1.TokenConfirmation{Jkt: integrationDPoPJkt, X5TS256: x5t}
 		}
 		return r
 	}

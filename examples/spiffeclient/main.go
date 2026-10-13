@@ -60,7 +60,7 @@ const (
 	// The demo requests an access token for the example resource server,
 	// carrying the resource-server demo scope: the resource indicator is
 	// the audience of the minted token, the scope the permission granted.
-	resource = "http://localhost:8085"
+	resource = "http://127.0.0.1:8085"
 	scope    = "timestamp:read"
 )
 

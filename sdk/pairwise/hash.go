@@ -53,6 +53,13 @@ func (t *hashEncoder) Encode(sectorID, subject string) (string, error) {
 	if subject == "" {
 		return "", errors.New("subject can't be blank or empty")
 	}
+	// OIDC Core section 8.1: every pairwise client MUST have a sector
+	// identifier; an absent one must not silently collapse all sector-less
+	// clients into one shared pseudonym domain (defeating unlinkability).
+	sectorID = strings.TrimSpace(sectorID)
+	if sectorID == "" {
+		return "", errors.New("sector identifier can't be blank or empty")
+	}
 
 	// Initialize hasher
 	h, err := blake2b.New256(t.salt)

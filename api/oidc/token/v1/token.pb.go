@@ -105,6 +105,12 @@ const (
 	TokenStatus_TOKEN_STATUS_ACTIVE      TokenStatus = 2
 	TokenStatus_TOKEN_STATUS_EXPIRED     TokenStatus = 3
 	TokenStatus_TOKEN_STATUS_REVOKED     TokenStatus = 4
+	// RFC 9700 section 4.14.2: a refresh token rotated away by a successful
+	// redemption is consumed — single-use by atomic compare-and-set. A
+	// presented CONSUMED token is a replay signal (distinct from REVOKED:
+	// revocation cascades the grant family, consumption is the honest
+	// rotation outcome).
+	TokenStatus_TOKEN_STATUS_CONSUMED TokenStatus = 5
 )
 
 // Enum value maps for TokenStatus.
@@ -115,6 +121,7 @@ var (
 		2: "TOKEN_STATUS_ACTIVE",
 		3: "TOKEN_STATUS_EXPIRED",
 		4: "TOKEN_STATUS_REVOKED",
+		5: "TOKEN_STATUS_CONSUMED",
 	}
 	TokenStatus_value = map[string]int32{
 		"TOKEN_STATUS_UNSPECIFIED": 0,
@@ -122,6 +129,7 @@ var (
 		"TOKEN_STATUS_ACTIVE":      2,
 		"TOKEN_STATUS_EXPIRED":     3,
 		"TOKEN_STATUS_REVOKED":     4,
+		"TOKEN_STATUS_CONSUMED":    5,
 	}
 )
 
@@ -248,8 +256,12 @@ type TokenMeta struct {
 	// (section 9.2).
 	// https://www.rfc-editor.org/rfc/rfc9396#section-9
 	AuthorizationDetails []*AuthorizationDetail `protobuf:"bytes,12,rep,name=authorization_details,json=authorizationDetails,proto3" json:"authorization_details,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// OPTIONAL. The nonce of the authorization request this token derives
+	// from (OIDC Core section 2; RFC 9700 section 4.5.3.2 replay defense).
+	// Set on ID tokens minted from the authorization code flow.
+	Nonce         *string `protobuf:"bytes,13,opt,name=nonce,proto3,oneof" json:"nonce,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TokenMeta) Reset() {
@@ -364,6 +376,13 @@ func (x *TokenMeta) GetAuthorizationDetails() []*AuthorizationDetail {
 		return x.AuthorizationDetails
 	}
 	return nil
+}
+
+func (x *TokenMeta) GetNonce() string {
+	if x != nil && x.Nonce != nil {
+		return *x.Nonce
+	}
+	return ""
 }
 
 type Actor struct {
@@ -641,7 +660,7 @@ const file_oidc_token_v1_token_proto_rawDesc = "" +
 	"\tauth_time\x18\x02 \x01(\x06H\x01R\bauthTime\x88\x01\x01B\x06\n" +
 	"\x04_acrB\f\n" +
 	"\n" +
-	"_auth_time\"\xaa\x03\n" +
+	"_auth_time\"\xcf\x03\n" +
 	"\tTokenMeta\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -657,10 +676,12 @@ const file_oidc_token_v1_token_proto_rawDesc = "" +
 	"\tauth_time\x18\n" +
 	" \x01(\x06H\x01R\bauthTime\x88\x01\x01\x12\x19\n" +
 	"\bgrant_id\x18\v \x01(\tR\agrantId\x12W\n" +
-	"\x15authorization_details\x18\f \x03(\v2\".oidc.token.v1.AuthorizationDetailR\x14authorizationDetailsB\x06\n" +
+	"\x15authorization_details\x18\f \x03(\v2\".oidc.token.v1.AuthorizationDetailR\x14authorizationDetails\x12\x19\n" +
+	"\x05nonce\x18\r \x01(\tH\x02R\x05nonce\x88\x01\x01B\x06\n" +
 	"\x04_acrB\f\n" +
 	"\n" +
-	"_auth_time\"~\n" +
+	"_auth_timeB\b\n" +
+	"\x06_nonce\"~\n" +
 	"\x05Actor\x12\x16\n" +
 	"\x06issuer\x18\x01 \x01(\tR\x06issuer\x12\x18\n" +
 	"\asubject\x18\x02 \x01(\tR\asubject\x12\x1b\n" +
@@ -691,13 +712,14 @@ const file_oidc_token_v1_token_proto_rawDesc = "" +
 	"\x17TOKEN_TYPE_ACCESS_TOKEN\x10\x02\x12\x1c\n" +
 	"\x18TOKEN_TYPE_REFRESH_TOKEN\x10\x03\x12\x17\n" +
 	"\x13TOKEN_TYPE_ID_TOKEN\x10\x04\x12\x1c\n" +
-	"\x18TOKEN_TYPE_PHANTOM_TOKEN\x10\x05*\x92\x01\n" +
+	"\x18TOKEN_TYPE_PHANTOM_TOKEN\x10\x05*\xad\x01\n" +
 	"\vTokenStatus\x12\x1c\n" +
 	"\x18TOKEN_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14TOKEN_STATUS_UNKNOWN\x10\x01\x12\x17\n" +
 	"\x13TOKEN_STATUS_ACTIVE\x10\x02\x12\x18\n" +
 	"\x14TOKEN_STATUS_EXPIRED\x10\x03\x12\x18\n" +
-	"\x14TOKEN_STATUS_REVOKED\x10\x04B)Z'zntr.io/solid/api/oidc/token/v1;tokenv1b\x06proto3"
+	"\x14TOKEN_STATUS_REVOKED\x10\x04\x12\x19\n" +
+	"\x15TOKEN_STATUS_CONSUMED\x10\x05B)Z'zntr.io/solid/api/oidc/token/v1;tokenv1b\x06proto3"
 
 var (
 	file_oidc_token_v1_token_proto_rawDescOnce sync.Once

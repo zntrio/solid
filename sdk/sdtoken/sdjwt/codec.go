@@ -93,7 +93,9 @@ func decodeDisclosure(d string) (sdtoken.DecodedDisclosure, error) {
 	}
 
 	// Salt is the first element: a base64url string decoding to the raw
-	// 128-bit salt.
+	// 128-bit salt. RFC 9901 section 9.3 requires at least 128 bits of
+	// entropy; a shorter salt fails closed (the CBOR codec enforces
+	// exactly 16 bytes).
 	saltString, ok := arr[0].(string)
 	if !ok {
 		return sdtoken.DecodedDisclosure{}, fmt.Errorf("%w: disclosure salt is not a string", sdtoken.ErrInvalidDisclosure)
@@ -101,6 +103,9 @@ func decodeDisclosure(d string) (sdtoken.DecodedDisclosure, error) {
 	salt, err := base64.RawURLEncoding.DecodeString(saltString)
 	if err != nil {
 		return sdtoken.DecodedDisclosure{}, fmt.Errorf("%w: disclosure salt is not base64url", sdtoken.ErrInvalidDisclosure)
+	}
+	if len(salt) < minSaltLength {
+		return sdtoken.DecodedDisclosure{}, fmt.Errorf("%w: disclosure salt is shorter than 128 bits", sdtoken.ErrInvalidDisclosure)
 	}
 
 	out := sdtoken.DecodedDisclosure{
@@ -143,8 +148,18 @@ func (jsonAdapter) ClaimTreeDigestSites(root any) ([]sdtoken.RedactionSite, erro
 
 // walkJSONTree visits every redaction site in the tree. KindMap sites
 // report the map owning the _sd key; KindElement sites report the array
-// containing the {"...": digest} element.
+// containing the {"...": digest} element. The recursion depth is bounded:
+// the payload is holder-influenced input and an unbounded tree would
+// exhaust stack on adversarial presentations (mirrors the sdcwt depth
+// bound of 16).
 func walkJSONTree(node any, visit func(container any, index int, kind sdtoken.SiteKind, digest string)) {
+	walkJSONTreeDepth(node, visit, maxJSONDepth)
+}
+
+func walkJSONTreeDepth(node any, visit func(container any, index int, kind sdtoken.SiteKind, digest string), depth int) {
+	if depth < 0 {
+		return
+	}
 	switch typed := node.(type) {
 	case map[string]any:
 		for k, v := range typed {
@@ -157,7 +172,7 @@ func walkJSONTree(node any, visit func(container any, index int, kind sdtoken.Si
 					}
 				}
 			}
-			walkJSONTree(v, visit)
+			walkJSONTreeDepth(v, visit, depth-1)
 		}
 	case []any:
 		for i, elem := range typed {
@@ -168,7 +183,7 @@ func walkJSONTree(node any, visit func(container any, index int, kind sdtoken.Si
 					}
 				}
 			}
-			walkJSONTree(elem, visit)
+			walkJSONTreeDepth(elem, visit, depth-1)
 		}
 	}
 }

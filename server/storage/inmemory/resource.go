@@ -28,6 +28,14 @@ type resourceStorage struct {
 	backend map[string]*resourcev1.Resource
 }
 
+// mcpResourceURI is the RFC 8707 resource indicator of the example
+// remote MCP-style resource server (examples/resourceserver).
+const mcpResourceURI = "http://127.0.0.1:8085"
+
+// cwtResourceURI is the RFC 8707 resource indicator of the example CWT
+// resource server: audience of the client_credentials fixtures.
+const cwtResourceURI = "https://rs.example.org"
+
 // Resources returns a resource reader.
 func Resources() storage.Resource {
 	return &resourceStorage{
@@ -43,8 +51,48 @@ func Resources() storage.Resource {
 					"https://backend.example.com/api",
 				},
 			},
+			// The example CWT resource server (integration/cwt_token_test):
+			// audience of the client_credentials fixtures.
+			cwtResourceURI: {
+				Urn:         cwtResourceURI,
+				Description: "Example CWT resource server",
+				Urls:        []string{cwtResourceURI},
+			},
+			// The example remote MCP-style resource server
+			// (examples/resourceserver): resolves the RFC 8707 resource
+			// indicator of token-exchange requests targeting it.
+			mcpResourceURI: {
+				Urn:         mcpResourceURI,
+				Description: "Example remote MCP-style resource server",
+				Urls:        []string{mcpResourceURI},
+			},
+			// The cross-application-access Resource Authorization Server
+			// (integration/idjag_adversarial_test): audience of the
+			// ID-JAG fixtures redeemed through the jwt_bearer grant.
+			"http://resource-as.example/": {
+				Urn:         "http://resource-as.example/",
+				Description: "Cross-application-access Resource AS",
+			},
 		},
 	}
+}
+
+// ResourcesWith returns a resource reader pre-registered with the given
+// additional resource indicators (deployments whose resource servers are
+// identified by dynamically assigned addresses, e.g. the CoAP/ACE example).
+func ResourcesWith(indicators ...string) storage.Resource {
+	base := Resources().(*resourceStorage) //nolint:forcetypeassert // Resources returns *resourceStorage
+	backend := make(map[string]*resourcev1.Resource, len(base.backend)+len(indicators))
+	for urn, r := range base.backend {
+		backend[urn] = r
+	}
+	for _, urn := range indicators {
+		if urn == "" {
+			continue
+		}
+		backend[urn] = &resourcev1.Resource{Urn: urn, Description: "Deployment resource server"}
+	}
+	return &resourceStorage{backend: backend}
 }
 
 // -----------------------------------------------------------------------------

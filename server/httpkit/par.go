@@ -47,10 +47,18 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 
 		var (
 			ctx        = r.Context()
-			q          = r.URL.Query()
 			dpopProof  = r.Header.Get("DPoP")
-			requestRaw = q.Get("request")
+			requestRaw = ""
 		)
+
+		// RFC 9126 section 2.1: the request parameter is carried in the
+		// application/x-www-form-urlencoded POST body. Reading it from the
+		// URL query would leak the signed request object (state, nonce,
+		// code_challenge, dpop_jkt) into access logs and browser history —
+		// the RFC 9700 section 2 exposure class.
+		if err := r.ParseForm(); err == nil {
+			requestRaw = r.PostFormValue("request")
+		}
 
 		// Retrieve client front context. An unauthenticated caller is
 		// an invalid_client per RFC 9126 §2.3 (RFC 6749 §5.2): 401

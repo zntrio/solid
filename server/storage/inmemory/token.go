@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"sync"
 
-	"golang.org/x/crypto/blake2b"
-	"google.golang.org/protobuf/proto"
-
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/server/storage"
 )
@@ -32,7 +29,7 @@ import (
 type tokenStorage struct {
 	idIndex    sync.Map
 	valueIndex sync.Map
-	secretKey  []byte
+	derive     *deriveHasher
 }
 
 // Tokens returns a token manager.
@@ -42,7 +39,7 @@ func Tokens(secretKey []byte) storage.Token {
 	return &tokenStorage{
 		idIndex:    sync.Map{},
 		valueIndex: sync.Map{},
-		secretKey:  secretKey,
+		derive:     newDeriveHasher(secretKey),
 	}
 }
 
@@ -55,7 +52,7 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *tokenv1.Tok
 	}
 
 	// Clone the token object
-	tCopy := proto.Clone(t).(*tokenv1.Token)
+	tCopy := t.CloneVT()
 
 	// Compute token value hash
 	tCopy.Value = s.deriveValue(issuer, tCopy.Value)
@@ -110,7 +107,13 @@ func (s *tokenStorage) GetByClientID(ctx context.Context, clientID string) []*to
 	return result
 }
 
+// Revoke marks the token addressed by id as REVOKED. Stored tokens are
+// immutable: the transition stores a fresh clone, never a mutation of the
+// shared object (concurrent readers clone stored values without a lock).
 func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
+	consumeMu.Lock()
+	defer consumeMu.Unlock()
+
 	// Retrieve token
 	x, ok := s.idIndex.Load(id)
 	if !ok {
@@ -121,29 +124,64 @@ func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 		return storage.ErrNotFound
 	}
 
-	// Set as revoked
-	t.Status = tokenv1.TokenStatus_TOKEN_STATUS_REVOKED
+	// Set as revoked on a detached copy
+	revoked := t.CloneVT()
+	revoked.Status = tokenv1.TokenStatus_TOKEN_STATUS_REVOKED
 
 	// Update maps
-	s.idIndex.Store(t.TokenId, t)
-	s.valueIndex.Store(t.Value, t)
+	s.idIndex.Store(revoked.TokenId, revoked)
+	s.valueIndex.Store(revoked.Value, revoked)
 
 	// No error
 	return nil
 }
 
+// consumeMu serializes refresh-token consumption: the compare-and-set on
+// the two sync.Maps must be a single critical section (the sync.Map
+// LoadOrStore primitive alone cannot guard the value→id pair transition).
+var consumeMu sync.Mutex
+
+// ConsumeIfActive atomically transitions the refresh token addressed by
+// value from ACTIVE to CONSUMED (RFC 9700 section 4.14.2): a single
+// critical-section compare-and-set over the value and id indexes, so two
+// concurrent refresh requests presenting the same token cannot both win —
+// the loser observes the CONSUMED state and reports a replay.
+func (s *tokenStorage) ConsumeIfActive(ctx context.Context, issuer, value string) (*tokenv1.Token, error) {
+	derived := s.deriveValue(issuer, value)
+
+	consumeMu.Lock()
+	defer consumeMu.Unlock()
+
+	// Resolve by value.
+	x, ok := s.valueIndex.Load(derived)
+	if !ok {
+		return nil, storage.ErrNotFound
+	}
+	t, ok := x.(*tokenv1.Token)
+	if !ok {
+		return nil, storage.ErrNotFound
+	}
+
+	// Snapshot the pre-transition state for the caller: ACTIVE means this
+	// call won the race and may rotate the family.
+	snapshot := t.CloneVT()
+
+	// Compare-and-set: only an ACTIVE token transitions. An already
+	// CONSUMED or REVOKED token is returned as-is (the caller reports the
+	// replay / revocation outcome). The stored object is replaced by a
+	// detached clone: stored tokens are never mutated in place.
+	if t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
+		consumed := t.CloneVT()
+		consumed.Status = tokenv1.TokenStatus_TOKEN_STATUS_CONSUMED
+		s.idIndex.Store(consumed.TokenId, consumed)
+		s.valueIndex.Store(derived, consumed)
+	}
+
+	return snapshot, nil
+}
+
 // -----------------------------------------------------------------------------
 
 func (s *tokenStorage) deriveValue(issuer, value string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:token:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(value))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:token:v1", issuer, value)
 }

@@ -237,8 +237,15 @@ type Client struct {
 	// RFC 7592 section 2: registration access token bound to this client
 	// (server-side record; never returned outside the registration surface).
 	RegistrationAccessToken *string `protobuf:"bytes,33,opt,name=registration_access_token,json=registrationAccessToken,proto3,oneof" json:"registration_access_token,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// RFC 6749 section 2.3 / RFC 7591 section 2: the scope values the
+	// client may request (registered set). Empty or absent means the
+	// registration is open-ended; when set, the authorization endpoint
+	// enforces requested scope ⊆ registered scope (invalid_scope
+	// otherwise) — the AS never grants scope beyond what the client is
+	// entitled to (RFC 6749 section 3.3 / F.1.1).
+	Scope         *string `protobuf:"bytes,34,opt,name=scope,proto3,oneof" json:"scope,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Client) Reset() {
@@ -498,6 +505,13 @@ func (x *Client) GetAuthorizedIntrospectionClients() []string {
 func (x *Client) GetRegistrationAccessToken() string {
 	if x != nil && x.RegistrationAccessToken != nil {
 		return *x.RegistrationAccessToken
+	}
+	return ""
+}
+
+func (x *Client) GetScope() string {
+	if x != nil && x.Scope != nil {
+		return *x.Scope
 	}
 	return ""
 }
@@ -1193,7 +1207,7 @@ var File_oidc_client_v1_client_proto protoreflect.FileDescriptor
 
 const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"\n" +
-	"\x1boidc/client/v1/client.proto\x12\x0eoidc.client.v1\"\x92\f\n" +
+	"\x1boidc/client/v1/client.proto\x12\x0eoidc.client.v1\"\xb7\f\n" +
 	"\x06Client\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12;\n" +
 	"\vclient_type\x18\x02 \x01(\x0e2\x1a.oidc.client.v1.ClientTypeR\n" +
@@ -1233,8 +1247,10 @@ const file_oidc_client_v1_client_proto_rawDesc = "" +
 	"\x16spiffe_bundle_endpoint\x18\x1e \x01(\tR\x14spiffeBundleEndpoint\x12#\n" +
 	"\rspiffe_bundle\x18\x1f \x01(\fR\fspiffeBundle\x12H\n" +
 	" authorized_introspection_clients\x18  \x03(\tR\x1eauthorizedIntrospectionClients\x12?\n" +
-	"\x19registration_access_token\x18! \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01B\x1c\n" +
-	"\x1a_registration_access_token\"\xf3\x17\n" +
+	"\x19registration_access_token\x18! \x01(\tH\x00R\x17registrationAccessToken\x88\x01\x01\x12\x19\n" +
+	"\x05scope\x18\" \x01(\tH\x01R\x05scope\x88\x01\x01B\x1c\n" +
+	"\x1a_registration_access_tokenB\b\n" +
+	"\x06_scope\"\xf3\x17\n" +
 	"\n" +
 	"ClientMeta\x12.\n" +
 	"\x10application_type\x18\x01 \x01(\tH\x00R\x0fapplicationType\x88\x01\x01\x12#\n" +

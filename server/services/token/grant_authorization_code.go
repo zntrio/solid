@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
@@ -31,6 +32,7 @@ import (
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
+	random "zntr.io/solid/sdk/random"
 	"zntr.io/solid/sdk/rfcerrors"
 	"zntr.io/solid/sdk/types"
 	"zntr.io/solid/server/services"
@@ -167,7 +169,7 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 	if grant.RedirectUri != "" {
 		if ar.Request.RedirectUri != grant.RedirectUri {
 			res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
-			return res, fmt.Errorf("invalid authorization request: request_uri from request '%s' and token '%s' must be identic", ar.Request.RedirectUri, grant.RedirectUri)
+			return res, fmt.Errorf("invalid authorization request: redirect_uri from authorization request '%s' and redemption '%s' must be identic", ar.Request.RedirectUri, grant.RedirectUri)
 		}
 		if !services.RedirectURIMatchesRegistered(client.RedirectUris, grant.RedirectUri) {
 			res.Error = rfcerrors.InvalidGrant().State(ar.Request.State).Build()
@@ -204,11 +206,15 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 		return res, fmt.Errorf("invalid authorization request: %w", err)
 	}
 
-	// RFC 8707 section 2: resource indicators requested at authorization
-	// time are validated against the registered resource registry; an
-	// unknown indicator is an invalid_target. The validated audience is
-	// what gets minted into the token — never a verbatim copy of the
-	// request parameter.
+	// RFC 8707 section 3 (solid stronger posture): multiple resource
+	// parameters are rejected with invalid_target — the RFC only
+	// "encourages" a single resource, but a multi-audience bearer token
+	// is valid at every listed resource and each can access all others;
+	// no such trust expansion is offered here.
+	if len(ar.Request.Resource) > 1 {
+		res.Error = rfcerrors.InvalidTarget().State(ar.Request.State).Build()
+		return res, fmt.Errorf("multiple resource indicators are not supported (RFC 8707 section 3)")
+	}
 	for _, resourceURI := range ar.Request.Resource {
 		if _, errRes := s.resources.GetByURI(ctx, resourceURI); errRes != nil {
 			if errors.Is(errRes, storage.ErrNotFound) {
@@ -219,6 +225,28 @@ func (s *service) authorizationCode(ctx context.Context, client *clientv1.Client
 			return res, fmt.Errorf("unable to validate resource indicator '%s': %w", resourceURI, errRes)
 		}
 	}
+
+	// RFC 8707 section 2: the audience parameter is attacker-influencable at
+	// authorization time; before it reaches the minted token it MUST be
+	// validated against the resource registry exactly like a resource
+	// indicator — an unknown audience is an invalid_target, never a
+	// verbatim copy of the request parameter.
+	if len(ar.Request.Resource) == 0 && ar.Request.Audience != "" {
+		if _, errAud := s.resources.GetByURI(ctx, ar.Request.Audience); errAud != nil {
+			if errors.Is(errAud, storage.ErrNotFound) {
+				res.Error = rfcerrors.InvalidTarget().State(ar.Request.State).Build()
+				return res, fmt.Errorf("unknown audience '%s'", ar.Request.Audience)
+			}
+			res.Error = rfcerrors.ServerError().State(ar.Request.State).Build()
+			return res, fmt.Errorf("unable to validate audience '%s': %w", ar.Request.Audience, errAud)
+		}
+	}
+
+	// RFC 8707 section 2 ("The authorization server SHOULD
+	// audience-restrict issued access tokens to the resource(s) indicated
+	// by the resource parameter"): mintAuthorizationCodeTokens resolves the
+	// effective audience — the validated resource indicator when one was
+	// requested, the validated audience parameter otherwise.
 
 	// Validate scopes
 	scopes := types.StringArray(strings.Fields(ar.Request.Scope))
@@ -250,11 +278,16 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 	if ar.AuthEvent != nil {
 		loginACR, loginAuthTime = ar.AuthEvent.Acr, ar.AuthEvent.AuthTime
 	}
+	// RFC 8707 section 2: the effective audience resolved and validated
+	// during Grant — the resource indicator when one was requested, the
+	// validated audience otherwise — is what gets minted; never a
+	// verbatim copy of the request parameter.
+	audience := effectiveAudienceOf(ar)
 	// Generate access token
 	at, err := s.generateAccessToken(ctx, client, &tokenv1.TokenMeta{
 		Issuer:               req.Issuer,
 		Subject:              ar.Subject,
-		Audience:             ar.Request.Audience,
+		Audience:             audience,
 		Scope:                ar.Request.Scope,
 		GrantId:              ar.GrantId,
 		AuthorizationDetails: grantedDetails,
@@ -276,7 +309,7 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 		rt, err := s.generateRefreshToken(ctx, client, &tokenv1.TokenMeta{
 			Issuer:               req.Issuer,
 			Subject:              ar.Subject,
-			Audience:             ar.Request.Audience,
+			Audience:             audience,
 			Scope:                ar.Request.Scope,
 			GrantId:              ar.GrantId,
 			AuthorizationDetails: grantedDetails,
@@ -293,9 +326,63 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 		res.RefreshToken = rt
 	}
 
+	// D-12.1: opt-in id_token from the code flow — selectively
+	// disclosable (digests only in the token; values in the response
+	// disclosures). nil generator = default posture, no id_token.
+	// The spec is deliberately NOT persisted in token storage: it is a
+	// one-shot authentication assertion, nothing server-side consumes
+	// it, and keeping it out of the store guarantees introspection can
+	// never surface its disclosures.
+	if s.idTokenGen != nil {
+		now := timeFunc()
+		idt := &tokenv1.Token{
+			TokenType: tokenv1.TokenType_TOKEN_TYPE_ID_TOKEN,
+			TokenId:   random.String(jtiLength),
+			Metadata: &tokenv1.TokenMeta{
+				Issuer:    req.Issuer,
+				Subject:   ar.Subject, // already pairwise-encoded at authorization time
+				ClientId:  client.ClientId,
+				IssuedAt:  uint64(now.Unix()),                    //nolint:gosec // unix time is non-negative
+				NotBefore: uint64(now.Unix() + 1),                //nolint:gosec // unix time is non-negative
+				ExpiresAt: uint64(now.Add(1 * time.Hour).Unix()), //nolint:gosec // unix time is non-negative
+				Scope:     ar.Request.Scope,
+				// OIDC Core section 2: aud of an id_token is the client_id.
+				Audience: client.ClientId,
+				GrantId:  ar.GrantId,
+				// RFC 9470 section 6: propagate the login authentication event
+				// captured at code issuance.
+				Acr:      loginACR,
+				AuthTime: loginAuthTime,
+				Nonce:    &ar.Request.Nonce,
+			},
+			Status: tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+		}
+		v, err := s.idTokenGen.Generate(ctx, idt)
+		if err != nil {
+			return fmt.Errorf("unable to generate the id token: %w", err)
+		}
+		if v == "" {
+			return fmt.Errorf("idTokenGenerator generated an empty value")
+		}
+		idt.Value = v
+		res.IdToken = idt
+	}
+
 	res.AccessToken = at
 	res.AuthorizationDetails = grantedDetails
 
 	// No error
 	return nil
+}
+
+// effectiveAudienceOf resolves the RFC 8707 effective audience of a code
+// session: the validated resource indicator when the authorization request
+// carried one, otherwise the audience parameter (validated against the
+// resource registry by Grant). An empty string is preserved — no audience
+// requested means aud stays omitted from the minted tokens.
+func effectiveAudienceOf(ar *sessionv1.AuthorizationCodeSession) string {
+	if len(ar.Request.Resource) > 0 {
+		return ar.Request.Resource[0]
+	}
+	return ar.Request.Audience
 }

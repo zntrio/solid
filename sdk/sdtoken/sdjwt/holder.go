@@ -184,13 +184,25 @@ func checkSDAlg(payload map[string]any) error {
 // checkTemporal validates exp/nbf of the processed payload with the
 // given leeway (RFC 9901 section 7.1 step 6).
 func checkTemporal(payload map[string]any, now time.Time, leeway int64) error {
+	// Malformed temporal claims fail closed: RFC 9901 section 7.1 step 6
+	// requires rejecting expired credentials, and a non-numeric exp/nbf
+	// cannot be evaluated — treating it as absent would grant unlimited
+	// validity to a signature-valid token.
 	if v, has := payload["exp"]; has {
-		if exp, ok := numeric(v); ok && now.After(time.Unix(exp+leeway, 0)) {
+		exp, ok := numeric(v)
+		if !ok {
+			return fmt.Errorf("%w: exp claim is not numeric", ErrInvalidSDJWT)
+		}
+		if now.After(time.Unix(exp+leeway, 0)) {
 			return fmt.Errorf("%w: token expired", ErrInvalidSDJWT)
 		}
 	}
 	if v, has := payload["nbf"]; has {
-		if nbf, ok := numeric(v); ok && now.Before(time.Unix(nbf-leeway, 0)) {
+		nbf, ok := numeric(v)
+		if !ok {
+			return fmt.Errorf("%w: nbf claim is not numeric", ErrInvalidSDJWT)
+		}
+		if now.Before(time.Unix(nbf-leeway, 0)) {
 			return fmt.Errorf("%w: token not yet valid", ErrInvalidSDJWT)
 		}
 	}

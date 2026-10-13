@@ -182,7 +182,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					}
 				}).Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("thumbprint", nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, fmt.Errorf("foo"))
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -209,7 +209,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					}
 				}).Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("thumbprint", nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, nil)
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
 			},
 			wantErr: true,
 		},
@@ -236,8 +236,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 					}
 				}).Return(nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("thumbprint", nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(fmt.Errorf("foo"))
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, fmt.Errorf("foo"))
 			},
 			wantErr: true,
 		},
@@ -381,8 +380,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: false,
@@ -410,8 +408,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: false,
@@ -444,8 +441,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: false,
@@ -478,8 +474,7 @@ func Test_defaultVerifier_Verify(t *testing.T) {
 						}
 					}
 				}).Return(nil)
-				proofs.EXPECT().Exists(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(false, nil)
-				proofs.EXPECT().Register(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(nil)
+				proofs.EXPECT().RegisterIfAbsent(gomock.Any(), "oeB2o7_-r7BslYpxZtbpMhlOJIGscF82i8E5LRBUkzk").Return(true, nil)
 				token.EXPECT().PublicKeyThumbPrint().Return("fake-confirmation", nil)
 			},
 			wantErr: false,

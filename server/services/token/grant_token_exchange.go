@@ -66,14 +66,6 @@ func (s *service) tokenExchange(ctx context.Context, client *clientv1.Client, re
 	// RFC 8705 section 3; DPoP key swaps are rejected below at the
 	// subject-confirmation comparison).
 
-	// RFC 9396: authorization_details require consent-bound grants; token
-	// exchange delegates an existing grant rather than establishing one.
-	// Fail closed rather than inventing a consent authority.
-	if len(req.AuthorizationDetails) > 0 {
-		res.Error = rfcerrors.InvalidAuthorizationDetails().Build()
-		return res, fmt.Errorf("authorization_details is not supported for this grant type")
-	}
-
 	// Check subject token
 	if grant.SubjectTokenType == "" {
 		res.Error = rfcerrors.InvalidRequest().Build()
@@ -140,7 +132,7 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 		} else {
 			res.Error = rfcerrors.InvalidRequest().Build()
 		}
-		return fmt.Errorf("unable to retrieve token '%s' from storage: %w", grant.SubjectToken, err)
+		return fmt.Errorf("unable to retrieve subject token from storage: %w", err)
 	}
 
 	// Check token
@@ -234,12 +226,22 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 		TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
 		TokenId:   random.String(jtiLength),
 		Metadata: &tokenv1.TokenMeta{
-			Issuer:    st.Metadata.Issuer,
-			Subject:   st.Metadata.Subject,
-			ClientId:  client.ClientId,
+			Issuer:   st.Metadata.Issuer,
+			Subject:  st.Metadata.Subject,
+			ClientId: client.ClientId,
+			// Grant-family linkage: the exchanged token inherits the subject
+			// token's grant id so revokeGrantFamily (RFC 9700 section 4.14.2)
+			// reaches derivatives — without it, revoking the source grant
+			// leaves the exchanged token alive for its lifetime.
+			GrantId:   st.Metadata.GrantId,
 			IssuedAt:  uint64(now.Unix()),                      //nolint:gosec // unix time is non-negative
+			NotBefore: uint64(now.Unix()),                      //nolint:gosec // unix time is non-negative
 			ExpiresAt: uint64(now.Add(1 * time.Minute).Unix()), //nolint:gosec // unix time is non-negative
 			Scope:     scope,
+			// Audience inheritance: absent an explicit audience request the
+			// derivative keeps the subject token's audience (RFC 9068
+			// section 3 requires a non-blank aud on JWT access tokens).
+			Audience: st.Metadata.Audience,
 		},
 		Confirmation: st.Confirmation,
 		Status:       tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
@@ -264,7 +266,15 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 		at.Actor = append(at.Actor, actor.Actor...)
 	}
 
-	// Add optional meta
+	// Add optional meta. RFC 8693 section 5: the new token's audience MUST
+	// NOT exceed the subject token's. Audience retargeting (a token for RS-A
+	// exchanged for RS-B) is the delegated-exchange use case: it is only
+	// permitted when an actor token proves the delegation — a bearer
+	// subject-token exchange cannot silently retarget its audience.
+	if req.Audience != nil && actor == nil && st.Metadata.Audience != "" && *req.Audience != st.Metadata.Audience {
+		res.Error = rfcerrors.InvalidTarget().Build()
+		return fmt.Errorf("audience '%s' exceeds the subject token's audience '%s' (retargeting requires a delegated actor token)", *req.Audience, st.Metadata.Audience)
+	}
 	if req.Audience != nil {
 		aud, errAud := s.resources.GetByURI(ctx, *req.Audience)
 		if errors.Is(errAud, storage.ErrNotFound) {
@@ -277,6 +287,19 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 
 		// Assign urn
 		at.Metadata.Audience = aud.Urn
+	}
+	if req.AuthorizationDetails != nil {
+		// RFC 9396 section 6 / RFC 8693 section 5: the exchanged token's
+		// authorization details MUST be a subset of the subject token's
+		// consented set — a caller cannot escalate privileges beyond the
+		// original grant through exchange (the same rule the
+		// authorization-code and refresh grants enforce).
+		if errDetails := validateAuthorizationDetailsSubset(req.AuthorizationDetails, st.Metadata.AuthorizationDetails); errDetails != nil {
+			res.Error = rfcerrors.InvalidAuthorizationDetails().Build()
+			return fmt.Errorf("authorization_details are invalid: %w", errDetails)
+		}
+		// Assign authorization_details
+		at.Metadata.AuthorizationDetails = req.AuthorizationDetails
 	}
 
 	// Generate an access token
@@ -299,6 +322,10 @@ func (s *service) tokenExchangeAccessToken(ctx context.Context, client *clientv1
 	res.Issuer = st.Metadata.Issuer
 	res.AccessToken = at
 	res.IssuedTokenType = new(oidc.TokenExchangeAccessTokenType)
+
+	// RFC 9396 section 7: the granted authorization_details are returned
+	// in the token response.
+	res.AuthorizationDetails = at.Metadata.AuthorizationDetails
 
 	// Assign scope if different
 	if st.Metadata.Scope != scope {

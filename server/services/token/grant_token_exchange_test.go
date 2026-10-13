@@ -50,6 +50,11 @@ func activeSubjectToken() *tokenv1.Token {
 			Subject:   "user-1",
 			Scope:     "openid profile email",
 			ExpiresAt: 3601,
+			// The consented authorization details the exchange may carry
+			// (RFC 9396 section 6: requested entries must be a subset).
+			AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+				{Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}, Actions: []string{"timestamp:read"}},
+			},
 		},
 	}
 }
@@ -250,6 +255,7 @@ func Test_service_tokenExchange(t *testing.T) {
 						ClientId:  "s6BhdRkqt3",
 						Scope:     "openid profile",
 						IssuedAt:  1,
+						NotBefore: 1,
 						ExpiresAt: 61,
 					},
 				},
@@ -275,10 +281,11 @@ func Test_service_tokenExchange(t *testing.T) {
 			},
 		},
 		{
-			name: "authorization_details is not supported",
+			name: "authorization_details are carried verbatim (mocked processing)",
 			args: args{
 				ctx: context.Background(),
 				client: &clientv1.Client{
+					ClientId:   "s6BhdRkqt3",
 					GrantTypes: []string{oidc.GrantTypeTokenExchange},
 				},
 				req: &flowv1.TokenRequest{
@@ -286,8 +293,10 @@ func Test_service_tokenExchange(t *testing.T) {
 					Client: &clientv1.Client{
 						ClientId: "s6BhdRkqt3",
 					},
-					GrantType:            oidc.GrantTypeTokenExchange,
-					AuthorizationDetails: []*tokenv1.AuthorizationDetail{{Type: "payment"}},
+					GrantType: oidc.GrantTypeTokenExchange,
+					AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+						{Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}, Actions: []string{"timestamp:read"}},
+					},
 					Grant: &flowv1.TokenRequest_TokenExchange{
 						TokenExchange: &flowv1.GrantTokenExchange{
 							SubjectToken:     "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo",
@@ -296,9 +305,38 @@ func Test_service_tokenExchange(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			prepare: func(tokens *storagemock.MockToken, _ *storagemock.MockResourceReader, at *tokenmock.MockGenerator) {
+				old := timeFunc
+				timeFunc = func() time.Time { return time.Unix(1, 0) }
+				t.Cleanup(func() { timeFunc = old })
+				tokens.EXPECT().GetByValue(gomock.Any(), "http://127.0.0.1:8080", "cwE.HcbVtkyQCyCUfjxYvjHNODfTbVpSlmyo").Return(activeSubjectToken(), nil)
+				at.EXPECT().Generate(gomock.Any(), gomock.Any()).Return("xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM", nil)
+				tokens.EXPECT().Create(gomock.Any(), "http://127.0.0.1:8080", gomock.Any()).Return(nil)
+			},
+			wantErr: false,
 			want: &flowv1.TokenResponse{
-				Error: rfcerrors.InvalidAuthorizationDetails().Build(),
+				Issuer:          "http://127.0.0.1:8080",
+				IssuedTokenType: new(oidc.TokenExchangeAccessTokenType),
+				AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+					{Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}, Actions: []string{"timestamp:read"}},
+				},
+				AccessToken: &tokenv1.Token{
+					Value:     "xtU.GvmXVrPVNqSnHjpZbEarIqOPAlfXfQpM",
+					TokenType: tokenv1.TokenType_TOKEN_TYPE_ACCESS_TOKEN,
+					Status:    tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE,
+					Metadata: &tokenv1.TokenMeta{
+						Issuer:    "http://127.0.0.1:8080",
+						ClientId:  "s6BhdRkqt3",
+						Subject:   "user-1",
+						Scope:     "openid profile email",
+						IssuedAt:  1,
+						NotBefore: 1,
+						ExpiresAt: 61,
+						AuthorizationDetails: []*tokenv1.AuthorizationDetail{
+							{Type: "mcp_tools", Locations: []string{"http://127.0.0.1:8085"}, Actions: []string{"timestamp:read"}},
+						},
+					},
+				},
 			},
 		},
 		{
@@ -746,6 +784,7 @@ func Test_service_tokenExchange(t *testing.T) {
 						ClientId:  "s6BhdRkqt3",
 						Scope:     "openid profile email",
 						IssuedAt:  1,
+						NotBefore: 1,
 						ExpiresAt: 61,
 					},
 				},

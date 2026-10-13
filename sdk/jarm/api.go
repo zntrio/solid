@@ -26,6 +26,11 @@ import (
 const (
 	// HeaderType defines typ claim value
 	HeaderType = "jarm+jwt"
+	// expirationLeeway is the clock-skew tolerance applied to the response
+	// expiry check: the encoder mints error responses with a 120-second
+	// lifetime, so a client clock ahead of the authorization server must
+	// still be able to decode them (mirrors the sdjwt/sdcwt 60s leeway).
+	expirationLeeway = 60
 )
 
 // ResponseDecoder describes Authorization Response Decoder contract.

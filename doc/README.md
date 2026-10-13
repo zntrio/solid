@@ -61,8 +61,11 @@ Standard changes:
   response integrity;
 * `access token` is a `sender-constrained token` linked to `DPoP` proof to
   prevent access token usage from alternative client;
-* No `id_token` will be emitted, `user_info` endpoint must be used to retrieve
-  user details that the user consents to share at the service consultation time;
+* No `id_token` is emitted by default; an assembly MAY opt into a selectively
+  disclosable SD-JWT `id_token` (D-12.1) — digests only in the token, values in
+  the `id_token_disclosures` response parameter; `user_info` endpoint otherwise
+  retrieves user details that the user consents to share at the service
+  consultation time;
 * `access_token` contains an anonymized form of the user identity reference which
   is related to `pairwise subject identifier`.
 

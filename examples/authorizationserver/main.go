@@ -35,10 +35,13 @@ import (
 	"zntr.io/solid/sdk/jarm"
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/pairwise"
+	"zntr.io/solid/sdk/sdtoken"
+	"zntr.io/solid/sdk/sdtoken/sdjwt"
 	"zntr.io/solid/sdk/spiffe"
 	sdktoken "zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/token/hpke"
 	"zntr.io/solid/sdk/token/jwt"
+	tokensd "zntr.io/solid/sdk/token/sd"
 	"zntr.io/solid/server/httpkit"
 	"zntr.io/solid/server/profile"
 	"zntr.io/solid/server/services/authorization"
@@ -101,6 +104,7 @@ func main() {
 		// resolution. Prefix entries (trailing slash) grant a whole
 		// remote host.
 		cimddemo.ClientIdentifierURL,
+		cimddemo.AgentClientIdentifierURL,
 	)
 	clients := inmemory.NewClientReader(inmemory.Clients(), cimdResolver)
 	proofs := inmemory.DPoPProofs()
@@ -122,6 +126,23 @@ func main() {
 	accessTokens := sdktoken.AccessToken(atSerializer)
 	refreshTokens := sdktoken.RefreshToken(rtSerializer)
 
+	// D-12.1 opt-in: selectively disclosable id_token (SD id+jwt) — digests
+	// in the token, values in the response id_token_disclosures.
+	idTokenIssuer, err := sdjwt.NewAccessTokenIssuer(sdtoken.IDTokenProfile, sdjwt.Deps{
+		Signer: jwt.RawTypedSigner("id+jwt", defaultSigningAlgorithm, keyProvider()),
+	})
+	if err != nil {
+		panic(fmt.Errorf("unable to build id_token issuer: %w", err))
+	}
+	idTokens := tokensd.IDTokenWithSelectiveDisclosure(
+		idTokenIssuer,
+		nil, // no extra protected claims
+		map[string]any{ // demo attributes of the single demo subject ("hello")
+			"email": "hello@example.org",
+			"name":  "Hello World",
+		},
+	)
+
 	// Prepare services
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs,
 		authzdetails.NewStaticValidator(map[string]struct{}{authDetailsType: {}}))
@@ -130,8 +151,8 @@ func main() {
 	// SOLID_EXAMPLE_XAA_CONFIG; absent configuration disables both roles.
 	issuer := exampleenv.Or("SOLID_EXAMPLE_ISSUER", "http://127.0.0.1:8080")
 	xaaOpts := mustXAAOptions(issuer)
-	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources, xaaOpts...)
-	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts())
+	tokenz := token.NewWithOptions(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources, append(xaaOpts, token.WithIDTokenGenerator(idTokens))...)
+	devicez := device.New(clients, deviceSessions, deviceCodes, deviceUserCodes, inmemory.UserCodeAttempts(), authzdetails.NewStaticValidator(map[string]struct{}{authDetailsType: {}}))
 	backchannelz := backchannel.New(clients, backchannelSessions, authReqIDs, backchannel.LoginHintResolver(), authzdetails.NewStaticValidator(map[string]struct{}{authDetailsType: {}}), clientAssertionAlgorithms)
 
 	// SPIFFE trust bundles (draft-ietf-oauth-spiffe-client-auth-02 section 6):
@@ -175,7 +196,7 @@ func main() {
 	keySet := keySetProvider()
 	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, clientAssertionAlgorithms))
 	jarmEncoder := jarm.Encoder(jwt.JARMSigner(jwk.MLDSA65, keys))
-	pairwiseEncoder := pairwise.Hash([]byte(exampleenv.Or("SOLID_EXAMPLE_PAIRWISE_SALT", "U|(vBPu45_Vkvv*Tr*8Y[^s?,$ka@bQziM5]9.+[{.n47]'zokA7-j8ypJ=W]WS")))
+	pairwiseEncoder := pairwise.Hash(examplePairwiseSalt())
 
 	// Create router
 	md := metadataDocument(issuer)
@@ -183,23 +204,45 @@ func main() {
 	http.Handle("/.well-known/openid-configuration", httpkit.Metadata(md, jwt.ServerMetadata(jwk.MLDSA65, keys)))
 	http.Handle("/keys", httpkit.JWKS(keySet))
 	http.Handle("/spiffe/bundle.json", httpkit.SpiffeBundle(spiffeBundleSet))
-	http.Handle("/par", httpkit.Adapt(httpkit.PushedAuthorizationRequest(issuer, authz, dpopVerifier, requestObjectAlgorithms, profiles), clientAuth))
-	http.Handle("/authorize", httpkit.Adapt(httpkit.Authorization(issuer, authz, clients, jarmEncoder, pairwiseEncoder, requestObjectAlgorithms, profiles), secHeaders, basicAuth))
-	http.Handle("/token", httpkit.Adapt(httpkit.Token(issuer, tokenz, dpopVerifier, profiles), clientAuth))
-	http.Handle("/token/introspect", httpkit.Adapt(httpkit.TokenIntrospection(issuer, tokenz), clientAuth))
-	http.Handle("/token/revoke", httpkit.Adapt(httpkit.TokenRevocation(issuer, tokenz), clientAuth))
-	http.Handle("/device/authorize", httpkit.Adapt(httpkit.DeviceAuthorization(issuer, devicez, fmt.Sprintf("%s/device", issuer)), clientAuth))
-	http.Handle("/device", httpkit.Adapt(httpkit.Device(issuer, devicez), secHeaders, basicAuth))
-	http.Handle("/bc-authorize", httpkit.Adapt(httpkit.BackchannelAuthorization(issuer, backchannelz), clientAuth))
-	http.Handle("/backchannel", httpkit.Adapt(httpkit.BackchannelValidation(issuer, backchannelz), secHeaders, basicAuth))
+	realm := httpkit.WithErrorIssuer(issuer)
+	http.Handle("/par", httpkit.Adapt(httpkit.PushedAuthorizationRequest(issuer, authz, dpopVerifier, requestObjectAlgorithms, profiles), clientAuth, realm))
+	http.Handle("/authorize", httpkit.Adapt(httpkit.Authorization(issuer, authz, clients, jarmEncoder, pairwiseEncoder, requestObjectAlgorithms, profiles), secHeaders, basicAuth, realm))
+	http.Handle("/token", httpkit.Adapt(httpkit.Token(issuer, tokenz, dpopVerifier, profiles), clientAuth, realm))
+	http.Handle("/token/introspect", httpkit.Adapt(httpkit.TokenIntrospection(issuer, tokenz), clientAuth, realm))
+	http.Handle("/token/revoke", httpkit.Adapt(httpkit.TokenRevocation(issuer, tokenz), clientAuth, realm))
+	http.Handle("/device/authorize", httpkit.Adapt(httpkit.DeviceAuthorization(issuer, devicez, fmt.Sprintf("%s/device", issuer)), clientAuth, realm))
+	http.Handle("/device", httpkit.Adapt(httpkit.Device(issuer, devicez), secHeaders, basicAuth, realm))
+	http.Handle("/bc-authorize", httpkit.Adapt(httpkit.BackchannelAuthorization(issuer, backchannelz), clientAuth, realm))
+	http.Handle("/backchannel", httpkit.Adapt(httpkit.BackchannelValidation(issuer, backchannelz), secHeaders, basicAuth, realm))
 
 	listenAddr := os.Getenv("SOLID_EXAMPLE_LISTEN_ADDR")
 	if listenAddr == "" {
-		listenAddr = ":8080"
+		// Loopback by default: the example serves plaintext HTTP — binding
+		// all interfaces would expose tokens, client assertions and Basic
+		// credentials to the network.
+		listenAddr = "127.0.0.1:8080"
 	}
 	server := &http.Server{
 		Addr:              listenAddr,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	log.Fatal(server.ListenAndServe())
+}
+
+// examplePairwiseSalt provisions the pairwise subject salt: an explicit
+// secret via SOLID_EXAMPLE_PAIRWISE_SALT, or an ephemeral random salt with
+// a loud warning. A committed default salt would be derivable by anyone
+// with repo access, defeating the pairwise unlinkability posture; an
+// ephemeral salt invalidates pairwise subjects across restarts, which is
+// the acceptable demo trade-off (mirroring the ephemeral signing key).
+func examplePairwiseSalt() []byte {
+	if v := os.Getenv("SOLID_EXAMPLE_PAIRWISE_SALT"); v != "" {
+		return []byte(v)
+	}
+	salt := make([]byte, 32)
+	if _, err := rand.Read(salt); err != nil {
+		panic(fmt.Errorf("unable to generate pairwise salt: %w", err))
+	}
+	log.Println("WARNING: SOLID_EXAMPLE_PAIRWISE_SALT is not set; using an ephemeral salt. Pairwise subject identifiers will not survive a restart; set the variable for anything beyond local testing.")
+	return salt
 }

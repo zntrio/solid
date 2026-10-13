@@ -34,7 +34,7 @@ import (
 // section 4.10.1).
 func TestRFC9700_DPoPJtiReplay_4_10_1(t *testing.T) {
 	prover := buildDPoPProver(t)
-	verifier := buildDPoPVerifier()
+	verifier := buildDPoPVerifier(t)
 
 	htu := testIssuer + "/resource"
 	proof, err := prover.Prove("GET", htu)
@@ -55,7 +55,7 @@ func TestRFC9700_DPoPJtiReplay_4_10_1(t *testing.T) {
 // fails (RFC 9449 section 4.3).
 func TestRFC9700_DPoPHtmHtuBinding_4_10_1(t *testing.T) {
 	prover := buildDPoPProver(t)
-	verifier := buildDPoPVerifier()
+	verifier := buildDPoPVerifier(t)
 
 	htu := testIssuer + "/resource"
 	proof, err := prover.Prove("POST", htu)
@@ -82,7 +82,7 @@ func TestRFC9700_DPoPHtmHtuBinding_4_10_1(t *testing.T) {
 // iat freshness; prevents pre-generated proof stockpiling).
 func TestRFC9700_DPoPIatWindow_4_10_1(t *testing.T) {
 	prover := buildDPoPProver(t)
-	verifier := buildDPoPVerifier()
+	verifier := buildDPoPVerifier(t)
 
 	htu := testIssuer + "/resource"
 	proof, err := prover.Prove("GET", htu)
@@ -111,7 +111,7 @@ func TestRFC9700_DPoPAthBinding_4_10_1(t *testing.T) {
 	require.NotNil(t, res.AccessToken)
 
 	prover := buildDPoPProver(t)
-	dpopVerifier := buildDPoPVerifier()
+	dpopVerifier := buildDPoPVerifier(t)
 
 	htu := testIssuer + "/resource"
 

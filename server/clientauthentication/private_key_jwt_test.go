@@ -696,6 +696,7 @@ func Test_privateKeyJWTAuthentication_Authenticate(t *testing.T) {
 			// Arm mocks
 			clients := storagemock.NewMockClientReader(ctrl)
 			proofs := inmemory.DPoPProofs()
+			t.Cleanup(proofs.Stop)
 
 			// Prepare them
 			if tt.prepare != nil {

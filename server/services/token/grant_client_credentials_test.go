@@ -28,6 +28,7 @@ import (
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
+	resourcev1 "zntr.io/solid/api/oidc/resource/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/oidc"
 	"zntr.io/solid/sdk/rfcerrors"
@@ -397,6 +398,14 @@ func Test_service_clientCredentials(t *testing.T) {
 			// Arm mocks
 			accessTokens := tokenmock.NewMockGenerator(ctrl)
 			tokens := storagemock.NewMockToken(ctrl)
+			resources := storagemock.NewMockResourceReader(ctrl)
+
+			// Default resource-registry expectation: the fixture audience
+			// "urn:x" is a registered resource (RFC 8707 audience
+			// validation runs on every request carrying an audience).
+			resources.EXPECT().GetByURI(gomock.Any(), "urn:x").Return(&resourcev1.Resource{
+				Urn: "urn:x",
+			}, nil).AnyTimes()
 
 			// Prepare them
 			if tt.prepare != nil {
@@ -406,6 +415,7 @@ func Test_service_clientCredentials(t *testing.T) {
 			s := &service{
 				tokens:         tokens,
 				accessTokenGen: accessTokens,
+				resources:      resources,
 			}
 			got, err := s.clientCredentials(tt.args.ctx, tt.args.client, tt.args.req)
 			if (err != nil) != tt.wantErr {

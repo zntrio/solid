@@ -19,10 +19,7 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"golang.org/x/crypto/blake2b"
 
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/server/storage"
@@ -30,7 +27,7 @@ import (
 
 type BackchannelAuthenticationSessionStorage struct {
 	authReqIDIndex *ttlCache
-	secretKey      []byte
+	derive         *deriveHasher
 }
 
 // BackchannelAuthenticationSessions returns a backchannel authentication
@@ -44,7 +41,7 @@ func BackchannelAuthenticationSessions(secretKey []byte) *BackchannelAuthenticat
 
 	return &BackchannelAuthenticationSessionStorage{
 		authReqIDIndex: authReqIDCache,
-		secretKey:      secretKey,
+		derive:         newDeriveHasher(secretKey),
 	}
 }
 
@@ -111,15 +108,5 @@ func (s *BackchannelAuthenticationSessionStorage) DeleteAndGetByAuthReqID(ctx co
 // -----------------------------------------------------------------------------
 
 func (s *BackchannelAuthenticationSessionStorage) deriveAuthReqID(issuer, authReqID string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:backchannel-authentication-auth-req-id:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(authReqID))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:backchannel-authentication-auth-req-id:v1", issuer, authReqID)
 }

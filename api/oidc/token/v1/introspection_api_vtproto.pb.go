@@ -21,6 +21,59 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *IntrospectRequest) CloneVT() *IntrospectRequest {
+	if m == nil {
+		return (*IntrospectRequest)(nil)
+	}
+	r := new(IntrospectRequest)
+	r.Issuer = m.Issuer
+	r.Token = m.Token
+	if rhs := m.Client; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Client }); ok {
+			r.Client = vtpb.CloneVT()
+		} else {
+			r.Client = proto.Clone(rhs).(*v1.Client)
+		}
+	}
+	if rhs := m.TokenTypeHint; rhs != nil {
+		tmpVal := *rhs
+		r.TokenTypeHint = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *IntrospectRequest) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *IntrospectResponse) CloneVT() *IntrospectResponse {
+	if m == nil {
+		return (*IntrospectResponse)(nil)
+	}
+	r := new(IntrospectResponse)
+	r.Token = m.Token.CloneVT()
+	if rhs := m.Error; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v11.Error }); ok {
+			r.Error = vtpb.CloneVT()
+		} else {
+			r.Error = proto.Clone(rhs).(*v11.Error)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *IntrospectResponse) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *IntrospectRequest) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil

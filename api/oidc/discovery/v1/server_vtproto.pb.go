@@ -7,6 +7,7 @@ package discoveryv1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -17,6 +18,276 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *ServerMetadata) CloneVT() *ServerMetadata {
+	if m == nil {
+		return (*ServerMetadata)(nil)
+	}
+	r := new(ServerMetadata)
+	r.Issuer = m.Issuer
+	r.AuthorizationEndpoint = m.AuthorizationEndpoint
+	r.TokenEndpoint = m.TokenEndpoint
+	r.JwksUri = m.JwksUri
+	r.UserinfoEndpoint = m.UserinfoEndpoint
+	r.RegistrationEndpoint = m.RegistrationEndpoint
+	r.ServiceDocumentation = m.ServiceDocumentation
+	r.ClaimsParameterSupported = m.ClaimsParameterSupported
+	r.RequestParameterSupported = m.RequestParameterSupported
+	r.RequestUriParameterSupported = m.RequestUriParameterSupported
+	r.RequireRequestUriRegistration = m.RequireRequestUriRegistration
+	r.OpPolicyUri = m.OpPolicyUri
+	r.OpTosUri = m.OpTosUri
+	r.RevocationEndpoint = m.RevocationEndpoint
+	r.IntrospectionEndpoint = m.IntrospectionEndpoint
+	r.PushedAuthorizationRequestEndpoint = m.PushedAuthorizationRequestEndpoint
+	r.MtlsEndpointAliases = m.MtlsEndpointAliases.CloneVT()
+	r.DeviceAuthorizationEndpoint = m.DeviceAuthorizationEndpoint
+	r.TlsClientCertificateBoundAccessTokens = m.TlsClientCertificateBoundAccessTokens
+	r.AuthorizationResponseIssParameterSupported = m.AuthorizationResponseIssParameterSupported
+	r.SignedMetadata = m.SignedMetadata
+	r.ClientIdMetadataDocumentSupported = m.ClientIdMetadataDocumentSupported
+	r.BackchannelAuthenticationEndpoint = m.BackchannelAuthenticationEndpoint
+	if rhs := m.ScopesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ScopesSupported = tmpContainer
+	}
+	if rhs := m.ResponseTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseTypesSupported = tmpContainer
+	}
+	if rhs := m.ResponseModesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResponseModesSupported = tmpContainer
+	}
+	if rhs := m.GrantTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.GrantTypesSupported = tmpContainer
+	}
+	if rhs := m.AcrValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AcrValuesSupported = tmpContainer
+	}
+	if rhs := m.SubjectTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.SubjectTypesSupported = tmpContainer
+	}
+	if rhs := m.IdTokenSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IdTokenSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.IdTokenEncryptionAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IdTokenEncryptionAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.IdTokenEncryptionEncValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IdTokenEncryptionEncValuesSupported = tmpContainer
+	}
+	if rhs := m.UserinfoSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.UserinfoSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.UserinfoEncryptionAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.UserinfoEncryptionAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.UserinfoEncryptionEncValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.UserinfoEncryptionEncValuesSupported = tmpContainer
+	}
+	if rhs := m.RequestObjectSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RequestObjectSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.RequestObjectEncryptionAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RequestObjectEncryptionAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.RequestObjectEncryptionEncValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RequestObjectEncryptionEncValuesSupported = tmpContainer
+	}
+	if rhs := m.TokenEndpointAuthMethodsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.TokenEndpointAuthMethodsSupported = tmpContainer
+	}
+	if rhs := m.TokenEndpointAuthSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.TokenEndpointAuthSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.DisplayValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DisplayValuesSupported = tmpContainer
+	}
+	if rhs := m.ClaimTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClaimTypesSupported = tmpContainer
+	}
+	if rhs := m.ClaimsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClaimsSupported = tmpContainer
+	}
+	if rhs := m.ClaimsLocalesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClaimsLocalesSupported = tmpContainer
+	}
+	if rhs := m.UiLocalesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.UiLocalesSupported = tmpContainer
+	}
+	if rhs := m.RevocationEndpointAuthMethodsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RevocationEndpointAuthMethodsSupported = tmpContainer
+	}
+	if rhs := m.RevocationEndpointAuthSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.RevocationEndpointAuthSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.IntrospectionEndpointAuthMethodsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IntrospectionEndpointAuthMethodsSupported = tmpContainer
+	}
+	if rhs := m.IntrospectionEndpointAuthSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IntrospectionEndpointAuthSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.CodeChallengeMethodsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.CodeChallengeMethodsSupported = tmpContainer
+	}
+	if rhs := m.PushedAuthorizationRequestEndpointAuthMethodsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.PushedAuthorizationRequestEndpointAuthMethodsSupported = tmpContainer
+	}
+	if rhs := m.DpopSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DpopSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.AuthorizationSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.AuthorizationEncryptionAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationEncryptionAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.AuthorizationEncryptionEncValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationEncryptionEncValuesSupported = tmpContainer
+	}
+	if rhs := m.IntrospectionSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IntrospectionSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.IntrospectionEncryptionAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IntrospectionEncryptionAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.IntrospectionEncryptionEncValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IntrospectionEncryptionEncValuesSupported = tmpContainer
+	}
+	if rhs := m.AuthorizationDetailsTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationDetailsTypesSupported = tmpContainer
+	}
+	if rhs := m.IdentityChainingRequestedTokenTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.IdentityChainingRequestedTokenTypesSupported = tmpContainer
+	}
+	if rhs := m.AuthorizationGrantProfilesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationGrantProfilesSupported = tmpContainer
+	}
+	if rhs := m.BackchannelTokenDeliveryModesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.BackchannelTokenDeliveryModesSupported = tmpContainer
+	}
+	if rhs := m.BackchannelAuthenticationRequestSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.BackchannelAuthenticationRequestSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.ClientAttestationSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClientAttestationSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.ClientAttestationPopSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ClientAttestationPopSigningAlgValuesSupported = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ServerMetadata) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *MTLSEndpoints) CloneVT() *MTLSEndpoints {
+	if m == nil {
+		return (*MTLSEndpoints)(nil)
+	}
+	r := new(MTLSEndpoints)
+	r.TokenEndpoint = m.TokenEndpoint
+	r.RevocationEndpoint = m.RevocationEndpoint
+	r.IntrospectionEndpoint = m.IntrospectionEndpoint
+	r.PushedAuthorizationRequestEndpoint = m.PushedAuthorizationRequestEndpoint
+	r.DeviceAuthorizationEndpoint = m.DeviceAuthorizationEndpoint
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *MTLSEndpoints) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *ServerMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

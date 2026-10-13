@@ -20,4 +20,4 @@ plugins:
     out: ../api
     opt:
       - paths=source_relative
-      - features=marshal+unmarshal+size+pool
+      - features=marshal+unmarshal+size+pool+clone

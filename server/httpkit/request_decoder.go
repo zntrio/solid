@@ -33,7 +33,7 @@ import (
 // the authorization and PAR endpoints.
 func clientRequestDecoder(client *clientv1.Client, issuer string, algorithms []string) jwsreq.AuthorizationDecoder {
 	return jwsreq.AuthorizationRequestDecoder(jwt.DefaultVerifier(func(ctx context.Context) (jwk.Set, error) {
-		parsed, parseErr := jwk.Parse(client.Jwks)
+		parsed, parseErr := jwk.ParseCached(client.Jwks)
 		if parseErr != nil {
 			return nil, fmt.Errorf("unable to decode client JWKS")
 		}

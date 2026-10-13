@@ -27,6 +27,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -101,6 +102,7 @@ type harness struct {
 	backchannelz        services.BackchannelAuthentication
 	clientAuth          clientauthentication.AuthenticationProcessor
 	registrz            services.ClientRegistration
+	sig                 sigProfile
 }
 
 // stopper is implemented by in-memory stores that own a background janitor.
@@ -116,8 +118,15 @@ func cleanupStores(tb testing.TB, stores ...stopper) {
 	})
 }
 
-// newHarness builds a fully wired service stack.
+// newHarness builds a fully wired service stack with the default ES256
+// client signature profile (the adversarial-test fixtures).
 func newHarness(t testing.TB) *harness {
+	return newHarnessWithProfile(t, es256Profile{})
+}
+
+// newHarnessWithProfile builds a fully wired service stack with the given
+// client signature profile (e.g. the ML-DSA-44 benchmark profile).
+func newHarnessWithProfile(t testing.TB, sig sigProfile) *harness {
 	t.Helper()
 
 	storageKey := []byte("integration-storage-key-0123456789ab")
@@ -149,12 +158,13 @@ func newHarness(t testing.TB) *harness {
 	refreshTokens := verifiable.Token(verifiable.UUIDv7Source(), []byte("integration-rt-mac-key"))
 
 	// Services
+	alg := sig.algorithm()
 	authz := authorization.New(clients, authRequests, authSessions, authorizationCodes, requestURIs,
 		authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
 	tokenz := token.New(accessTokens, refreshTokens, clients, authSessions, deviceSessions, backchannelSessions, tokens, resources)
-	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(), hintResolver, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{"ES256"})
+	backchannelz := backchannel.New(clients, backchannelSessions, generator.DefaultAuthReqID(), hintResolver, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}), []string{alg})
 	devicez := device.New(clients, deviceSessions, generator.DefaultDeviceCode(), generator.DefaultDeviceUserCode(), userCodeAttempts, authzdetails.NewStaticValidator(map[string]struct{}{"payment_initiation": {}}))
-	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{"ES256"})
+	clientAuth := clientauthentication.PrivateKeyJWT(clients, proofs, testIssuer, []string{alg})
 
 	return &harness{
 		issuer:              testIssuer,
@@ -173,6 +183,7 @@ func newHarness(t testing.TB) *harness {
 		backchannelz:        backchannelz,
 		clientAuth:          clientAuth,
 		registrz:            clientregistration.New(clients, tokens, allowAllRegistrationAuthorizer),
+		sig:                 sig,
 	}
 }
 
@@ -184,8 +195,204 @@ func allowAllRegistrationAuthorizer(context.Context, *clientv1.RegisterRequest) 
 	return true
 }
 
+// -----------------------------------------------------------------------------
+
+// sigProfile abstracts the client signature profile of a harness: the JOSE
+// algorithm, its client key fixtures, and how client assertions are minted.
+// The default ES256 profile pins the adversarial-test fixtures; benchmark
+// harnesses may select the post-quantum ML-DSA-44 profile (kty AKP,
+// draft-ietf-cose-dilithium) to measure the same flows under lattice
+// signatures.
+type sigProfile interface {
+	// algorithm returns the JOSE signing algorithm identifier.
+	algorithm() string
+	// clientJWKS returns the public JWKS registered for benchmark clients.
+	clientJWKS() []byte
+	// signAssertion signs the private_key_jwt claim set as a compact JWT.
+	signAssertion(t testing.TB, claims *privateJWTClaims) string
+	// signCIBARequestObject signs a CIBA request object claim set.
+	signCIBARequestObject(t testing.TB, claims map[string]any) string
+	// dpopSigner returns the DPoP proof signer of the profile.
+	dpopSigner() dpop.Prover
+}
+
+// -----------------------------------------------------------------------------
+
+// es256Profile is the classic elliptic-curve profile: the shared ES256
+// P-256 fixtures and gojwt signing path used across the adversarial suite.
+type es256Profile struct{}
+
+func (es256Profile) algorithm() string { return "ES256" }
+
+func (es256Profile) clientJWKS() []byte { return clientJWKSWithSIG }
+
+func (es256Profile) signAssertion(t testing.TB, claims *privateJWTClaims) string {
+	t.Helper()
+
+	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
+	if err != nil {
+		t.Fatalf("unable to decode client private key: %v", err)
+	}
+	var rawKey any
+	if err := jwxjwk.Export(privateKey, &rawKey); err != nil {
+		t.Fatalf("unable to materialize client private key: %v", err)
+	}
+
+	claimsMap := gojwt.MapClaims{
+		"jti": claims.JTI,
+		"sub": claims.Subject,
+		"iss": claims.Issuer,
+		"aud": claims.Audience,
+		"exp": claims.Expires,
+		"iat": claims.IssuedAt,
+	}
+	if claims.NotBefore > 0 {
+		claimsMap["nbf"] = claims.NotBefore
+	}
+	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, claimsMap)
+	tok.Header["typ"] = "JWT"
+	raw, err := tok.SignedString(rawKey)
+	if err != nil {
+		t.Fatalf("unable to serialize assertion: %v", err)
+	}
+	return raw
+}
+
+func (es256Profile) signCIBARequestObject(t testing.TB, claims map[string]any) string {
+	t.Helper()
+
+	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
+	if err != nil {
+		t.Fatalf("unable to decode client private key: %v", err)
+	}
+	var rawKey any
+	if err := jwxjwk.Export(privateKey, &rawKey); err != nil {
+		t.Fatalf("unable to materialize client private key: %v", err)
+	}
+	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, gojwt.MapClaims(claims))
+	tok.Header["typ"] = "JWT"
+	raw, err := tok.SignedString(rawKey)
+	if err != nil {
+		t.Fatalf("unable to serialize request object: %v", err)
+	}
+	return raw
+}
+
+func (es256Profile) dpopSigner() dpop.Prover {
+	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
+	if err != nil {
+		panic(err)
+	}
+	if err := privateKey.Set(jwxjwk.KeyIDKey, "integration-dpop-key"); err != nil {
+		panic(err)
+	}
+	return dpop.DefaultProver(jwt.DPoPSigner("ES256", func(_ context.Context) (jwk.Key, error) {
+		return privateKey, nil
+	}))
+}
+
+// -----------------------------------------------------------------------------
+
+// mldsa44Material holds the ML-DSA-44 key pair and its public JWKS derived
+// once from a fixed seed: deterministic, reproducible benchmarks. The
+// seed is public fixture data — the benchmarks measure the real FIPS 204
+// sign/verify pipeline, not key generation.
+var mldsa44Material = func() struct {
+	priv   *mldsa.PrivateKey
+	pubJWK jwk.Key
+	pubSet []byte
+} {
+	priv, err := mldsa.NewPrivateKey(mldsa.MLDSA44(), []byte{
+		0x53, 0x4f, 0x4c, 0x49, 0x44, 0x2d, 0x4d, 0x4c,
+		0x44, 0x53, 0x41, 0x2d, 0x34, 0x34, 0x2d, 0x42,
+		0x45, 0x4e, 0x43, 0x48, 0x2d, 0x53, 0x45, 0x45,
+		0x44, 0x2d, 0x30, 0x31, 0x00, 0x00, 0x00, 0x00,
+	})
+	if err != nil {
+		panic(err)
+	}
+	key, err := jwk.NewMLDSAKey(priv)
+	if err != nil {
+		panic(err)
+	}
+	if err := key.Set(jwxjwk.KeyUsageKey, "sig"); err != nil {
+		panic(err)
+	}
+	pub, err := key.PublicKey()
+	if err != nil {
+		panic(err)
+	}
+	pubSet, err := json.Marshal(map[string]any{"keys": []any{pub}})
+	if err != nil {
+		panic(err)
+	}
+	return struct {
+		priv   *mldsa.PrivateKey
+		pubJWK jwk.Key
+		pubSet []byte
+	}{priv: priv, pubJWK: pub, pubSet: pubSet}
+}()
+
+// mldsa44Profile is the post-quantum benchmark profile: ML-DSA-44 (FIPS 204,
+// RFC 9964) client keys and assertions, exercising the AKP key path
+// (kty "AKP", draft-ietf-cose-dilithium) through the same service stack.
+type mldsa44Profile struct{}
+
+func (mldsa44Profile) algorithm() string { return jwk.MLDSA44 }
+
+func (mldsa44Profile) clientJWKS() []byte { return mldsa44Material.pubSet }
+
+func (mldsa44Profile) signAssertion(t testing.TB, claims *privateJWTClaims) string {
+	t.Helper()
+
+	claimsMap := gojwt.MapClaims{
+		"jti": claims.JTI,
+		"sub": claims.Subject,
+		"iss": claims.Issuer,
+		"aud": claims.Audience,
+		"exp": claims.Expires,
+		"iat": claims.IssuedAt,
+	}
+	if claims.NotBefore > 0 {
+		claimsMap["nbf"] = claims.NotBefore
+	}
+	tok := gojwt.NewWithClaims(jwk.SigningMethodMLDSA44, claimsMap)
+	tok.Header["typ"] = "JWT"
+	raw, err := tok.SignedString(mldsa44Material.priv)
+	if err != nil {
+		t.Fatalf("unable to serialize assertion: %v", err)
+	}
+	return raw
+}
+
+func (mldsa44Profile) signCIBARequestObject(t testing.TB, claims map[string]any) string {
+	t.Helper()
+
+	tok := gojwt.NewWithClaims(jwk.SigningMethodMLDSA44, gojwt.MapClaims(claims))
+	tok.Header["typ"] = "JWT"
+	raw, err := tok.SignedString(mldsa44Material.priv)
+	if err != nil {
+		t.Fatalf("unable to serialize request object: %v", err)
+	}
+	return raw
+}
+
+func (mldsa44Profile) dpopSigner() dpop.Prover {
+	return dpop.DefaultProver(jwt.DPoPSigner(jwk.MLDSA44, func(_ context.Context) (jwk.Key, error) {
+		key, err := jwk.NewMLDSAKey(mldsa44Material.priv)
+		if err != nil {
+			return nil, err
+		}
+		if err := key.Set(jwxjwk.KeyIDKey, "mldsa44-dpop-key"); err != nil {
+			return nil, err
+		}
+		return key, nil
+	}))
+}
+
 // registerConfidentialClient registers a confidential client with the given
-// redirect URIs and grant types, sharing the ES256 signing JWKS fixture.
+// redirect URIs and grant types, sharing the harness signature profile's
+// JWKS.
 func (h *harness) registerConfidentialClient(t testing.TB, redirectURIs, grantTypes []string) *clientv1.Client {
 	t.Helper()
 
@@ -197,7 +404,7 @@ func (h *harness) registerConfidentialClient(t testing.TB, redirectURIs, grantTy
 		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 		RedirectUris:            redirectURIs,
 		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
-		Jwks:                    clientJWKSWithSIG,
+		Jwks:                    h.sig.clientJWKS(),
 	}
 
 	if _, err := h.clients.Register(context.Background(), c); err != nil {
@@ -253,7 +460,7 @@ func (h *harness) registerDeviceDPoPClient(t testing.TB) *clientv1.Client {
 		GrantTypes:              []string{oidc.GrantTypeDeviceCode},
 		ResponseTypes:           []string{oidc.ResponseTypeCode},
 		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
-		Jwks:                    clientJWKSWithSIG,
+		Jwks:                    h.sig.clientJWKS(),
 		DpopBoundAccessTokens:   true,
 	}
 
@@ -409,34 +616,15 @@ type privateJWTClaims struct {
 func generateClientAssertion(t testing.TB, claims *privateJWTClaims) string {
 	t.Helper()
 
-	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
-	if err != nil {
-		t.Fatalf("unable to decode client private key: %v", err)
-	}
+	return es256Profile{}.signAssertion(t, claims)
+}
 
-	var rawKey any
-	if err := jwxjwk.Export(privateKey, &rawKey); err != nil {
-		t.Fatalf("unable to materialize client private key: %v", err)
-	}
+// generateMLDSA44ClientAssertion signs a private_key_jwt client assertion
+// with the ML-DSA-44 benchmark key.
+func generateMLDSA44ClientAssertion(t testing.TB, claims *privateJWTClaims) string {
+	t.Helper()
 
-	claimsMap := gojwt.MapClaims{
-		"jti": claims.JTI,
-		"sub": claims.Subject,
-		"iss": claims.Issuer,
-		"aud": claims.Audience,
-		"exp": claims.Expires,
-		"iat": claims.IssuedAt,
-	}
-	if claims.NotBefore > 0 {
-		claimsMap["nbf"] = claims.NotBefore
-	}
-	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, claimsMap)
-	tok.Header["typ"] = "JWT"
-	raw, err := tok.SignedString(rawKey)
-	if err != nil {
-		t.Fatalf("unable to serialize assertion: %v", err)
-	}
-	return raw
+	return mldsa44Profile{}.signAssertion(t, claims)
 }
 
 // validClientAssertion mints a well-formed assertion for the given client id,
@@ -445,8 +633,15 @@ func generateClientAssertion(t testing.TB, claims *privateJWTClaims) string {
 func validClientAssertion(t testing.TB, clientID string) string {
 	t.Helper()
 
+	return es256Profile{}.signAssertion(t, validAssertionClaims(clientID))
+}
+
+// validAssertionClaims assembles the well-formed private_key_jwt claim set
+// for the given client id, with aud bound to the AS issuer identifier
+// (draft-ietf-oauth-security-topics-update-03 section 2.1.2.1).
+func validAssertionClaims(clientID string) *privateJWTClaims {
 	now := uint64(time.Now().Unix())
-	return generateClientAssertion(t, &privateJWTClaims{
+	return &privateJWTClaims{
 		JTI:       random.String(16),
 		Subject:   clientID,
 		Issuer:    clientID,
@@ -454,18 +649,34 @@ func validClientAssertion(t testing.TB, clientID string) string {
 		Expires:   now + 300,
 		IssuedAt:  now,
 		NotBefore: now,
-	})
+	}
+}
+
+// validMLDSA44ClientAssertion mints a well-formed ML-DSA-44 assertion for
+// the given client id.
+func validMLDSA44ClientAssertion(t testing.TB, clientID string) string {
+	t.Helper()
+
+	return mldsa44Profile{}.signAssertion(t, validAssertionClaims(clientID))
 }
 
 // authenticateClient resolves a full client through private_key_jwt auth.
 func (h *harness) authenticateClient(t testing.TB, clientID string) *clientv1.Client {
 	t.Helper()
 
-	res, err := h.authenticate(t, testTokenEndpoint, validClientAssertion(t, clientID))
+	res, err := h.authenticate(t, testTokenEndpoint, h.validClientAssertionFor(t, clientID))
 	require.NoError(t, err, "client authentication must succeed with valid assertion")
 	require.NotNil(t, res, "authentication response must not be nil")
 	require.NotNil(t, res.Client, "authenticated client must not be nil")
 	return res.Client
+}
+
+// validClientAssertionFor mints a well-formed assertion with the harness
+// signature profile.
+func (h *harness) validClientAssertionFor(t testing.TB, clientID string) string {
+	t.Helper()
+
+	return h.sig.signAssertion(t, validAssertionClaims(clientID))
 }
 
 // redeemCode authenticates the client then redeems the code at the token
@@ -498,18 +709,7 @@ func newPKCEPair(t testing.TB) (verifier, challenge string) {
 
 func buildDPoPProver(t testing.TB) dpop.Prover {
 	t.Helper()
-
-	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
-	if err != nil {
-		t.Fatalf("unable to decode DPoP private key: %v", err)
-	}
-	if err := privateKey.Set(jwxjwk.KeyIDKey, "integration-dpop-key"); err != nil {
-		t.Fatalf("unable to set DPoP key id: %v", err)
-	}
-
-	return dpop.DefaultProver(jwt.DPoPSigner("ES256", func(_ context.Context) (jwk.Key, error) {
-		return privateKey, nil
-	}))
+	return es256Profile{}.dpopSigner()
 }
 
 func buildDPoPVerifier(t testing.TB) dpop.Verifier {

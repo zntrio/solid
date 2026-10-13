@@ -129,6 +129,7 @@ func newSDATHarness(t testing.TB) *harness {
 		devicez:             devicez,
 		backchannelz:        backchannelz,
 		clientAuth:          clientAuth,
+		sig:                 es256Profile{},
 	}
 }
 

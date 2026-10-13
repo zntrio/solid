@@ -200,7 +200,7 @@ func appendPath(path []any) []any {
 	if path == nil {
 		return nil
 	}
-	out := make([]any, 0, len(path)+2)
+	out := make([]any, 0, len(path))
 	out = append(out, path...)
 	return out
 }

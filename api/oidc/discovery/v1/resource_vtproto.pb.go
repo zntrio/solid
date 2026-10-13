@@ -7,6 +7,7 @@ package discoveryv1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -17,6 +18,95 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *ProtectedResourceMetadata) CloneVT() *ProtectedResourceMetadata {
+	if m == nil {
+		return (*ProtectedResourceMetadata)(nil)
+	}
+	r := new(ProtectedResourceMetadata)
+	r.Resource = m.Resource
+	if rhs := m.AuthorizationServers; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationServers = tmpContainer
+	}
+	if rhs := m.JwksUri; rhs != nil {
+		tmpVal := *rhs
+		r.JwksUri = &tmpVal
+	}
+	if rhs := m.ScopesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ScopesSupported = tmpContainer
+	}
+	if rhs := m.BearerMethodsSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.BearerMethodsSupported = tmpContainer
+	}
+	if rhs := m.ResourceSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResourceSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.ResourceEncryptionAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResourceEncryptionAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.ResourceEncryptionEncValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.ResourceEncryptionEncValuesSupported = tmpContainer
+	}
+	if rhs := m.ResourceDocumentation; rhs != nil {
+		tmpVal := *rhs
+		r.ResourceDocumentation = &tmpVal
+	}
+	if rhs := m.ResourcePolicyUri; rhs != nil {
+		tmpVal := *rhs
+		r.ResourcePolicyUri = &tmpVal
+	}
+	if rhs := m.ResourceTosUri; rhs != nil {
+		tmpVal := *rhs
+		r.ResourceTosUri = &tmpVal
+	}
+	if rhs := m.SignedMetadata; rhs != nil {
+		tmpVal := *rhs
+		r.SignedMetadata = &tmpVal
+	}
+	if rhs := m.ResourceName; rhs != nil {
+		tmpVal := *rhs
+		r.ResourceName = &tmpVal
+	}
+	if rhs := m.TlsClientCertificateBoundAccessTokens; rhs != nil {
+		tmpVal := *rhs
+		r.TlsClientCertificateBoundAccessTokens = &tmpVal
+	}
+	if rhs := m.AuthorizationDetailsTypesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.AuthorizationDetailsTypesSupported = tmpContainer
+	}
+	if rhs := m.DpopSigningAlgValuesSupported; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.DpopSigningAlgValuesSupported = tmpContainer
+	}
+	if rhs := m.DpopBoundAccessTokensRequired; rhs != nil {
+		tmpVal := *rhs
+		r.DpopBoundAccessTokensRequired = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *ProtectedResourceMetadata) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *ProtectedResourceMetadata) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

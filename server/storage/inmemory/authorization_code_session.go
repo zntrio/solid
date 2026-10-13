@@ -19,10 +19,8 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"golang.org/x/crypto/blake2b"
 	"google.golang.org/protobuf/proto"
 
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
@@ -30,8 +28,8 @@ import (
 )
 
 type AuthorizationCodeSessionStorage struct {
-	backend   *ttlCache
-	secretKey []byte
+	backend *ttlCache
+	derive  *deriveHasher
 }
 
 // AuthorizationCodeSessions returns an authorization session manager.
@@ -40,8 +38,8 @@ func AuthorizationCodeSessions(secretKey []byte) *AuthorizationCodeSessionStorag
 	backendCache := newTTLCache(1 * time.Minute)
 
 	return &AuthorizationCodeSessionStorage{
-		backend:   backendCache,
-		secretKey: secretKey,
+		backend: backendCache,
+		derive:  newDeriveHasher(secretKey),
 	}
 }
 
@@ -94,15 +92,5 @@ func (s *AuthorizationCodeSessionStorage) DeleteAndGet(ctx context.Context, issu
 // -----------------------------------------------------------------------------
 
 func (s *AuthorizationCodeSessionStorage) deriveKey(issuer, code string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:authorization-code-sessions:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(code))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:authorization-code-sessions:v1", issuer, code)
 }

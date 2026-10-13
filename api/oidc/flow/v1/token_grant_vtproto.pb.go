@@ -7,6 +7,7 @@ package flowv1
 import (
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -17,6 +18,145 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *GrantAuthorizationCode) CloneVT() *GrantAuthorizationCode {
+	if m == nil {
+		return (*GrantAuthorizationCode)(nil)
+	}
+	r := new(GrantAuthorizationCode)
+	r.Code = m.Code
+	r.RedirectUri = m.RedirectUri
+	r.CodeVerifier = m.CodeVerifier
+	if rhs := m.DpopJkt; rhs != nil {
+		tmpVal := *rhs
+		r.DpopJkt = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantAuthorizationCode) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GrantRefreshToken) CloneVT() *GrantRefreshToken {
+	if m == nil {
+		return (*GrantRefreshToken)(nil)
+	}
+	r := new(GrantRefreshToken)
+	r.RefreshToken = m.RefreshToken
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantRefreshToken) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GrantDeviceCode) CloneVT() *GrantDeviceCode {
+	if m == nil {
+		return (*GrantDeviceCode)(nil)
+	}
+	r := new(GrantDeviceCode)
+	r.DeviceCode = m.DeviceCode
+	r.ClientId = m.ClientId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantDeviceCode) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GrantCIBA) CloneVT() *GrantCIBA {
+	if m == nil {
+		return (*GrantCIBA)(nil)
+	}
+	r := new(GrantCIBA)
+	r.AuthReqId = m.AuthReqId
+	r.ClientId = m.ClientId
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantCIBA) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GrantClientCredentials) CloneVT() *GrantClientCredentials {
+	if m == nil {
+		return (*GrantClientCredentials)(nil)
+	}
+	r := new(GrantClientCredentials)
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantClientCredentials) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GrantTokenExchange) CloneVT() *GrantTokenExchange {
+	if m == nil {
+		return (*GrantTokenExchange)(nil)
+	}
+	r := new(GrantTokenExchange)
+	r.SubjectToken = m.SubjectToken
+	r.SubjectTokenType = m.SubjectTokenType
+	if rhs := m.RequestedTokenType; rhs != nil {
+		tmpVal := *rhs
+		r.RequestedTokenType = &tmpVal
+	}
+	if rhs := m.ActorToken; rhs != nil {
+		tmpVal := *rhs
+		r.ActorToken = &tmpVal
+	}
+	if rhs := m.ActorTokenType; rhs != nil {
+		tmpVal := *rhs
+		r.ActorTokenType = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantTokenExchange) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *GrantJWTBearer) CloneVT() *GrantJWTBearer {
+	if m == nil {
+		return (*GrantJWTBearer)(nil)
+	}
+	r := new(GrantJWTBearer)
+	r.Assertion = m.Assertion
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *GrantJWTBearer) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *GrantAuthorizationCode) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

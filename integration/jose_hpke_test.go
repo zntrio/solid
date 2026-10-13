@@ -149,6 +149,7 @@ func newHPKEHarness(t testing.TB) *hpkeHarness {
 			devicez:             devicez,
 			backchannelz:        backchannelz,
 			clientAuth:          clientAuth,
+			sig:                 es256Profile{},
 		},
 		signingPrivateKey:    signingPrivateKey,
 		signingSet:           signingSet,

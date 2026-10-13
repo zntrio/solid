@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"sync"
 
-	"golang.org/x/crypto/blake2b"
-	"google.golang.org/protobuf/proto"
-
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/server/storage"
 )
@@ -32,7 +29,7 @@ import (
 type tokenStorage struct {
 	idIndex    sync.Map
 	valueIndex sync.Map
-	secretKey  []byte
+	derive     *deriveHasher
 }
 
 // Tokens returns a token manager.
@@ -42,7 +39,7 @@ func Tokens(secretKey []byte) storage.Token {
 	return &tokenStorage{
 		idIndex:    sync.Map{},
 		valueIndex: sync.Map{},
-		secretKey:  secretKey,
+		derive:     newDeriveHasher(secretKey),
 	}
 }
 
@@ -55,7 +52,7 @@ func (s *tokenStorage) Create(ctx context.Context, issuer string, t *tokenv1.Tok
 	}
 
 	// Clone the token object
-	tCopy := proto.Clone(t).(*tokenv1.Token)
+	tCopy := t.CloneVT()
 
 	// Compute token value hash
 	tCopy.Value = s.deriveValue(issuer, tCopy.Value)
@@ -160,7 +157,7 @@ func (s *tokenStorage) ConsumeIfActive(ctx context.Context, issuer, value string
 
 	// Snapshot the pre-transition state for the caller: ACTIVE means this
 	// call won the race and may rotate the family.
-	snapshot := proto.Clone(t).(*tokenv1.Token)
+	snapshot := t.CloneVT()
 
 	// Compare-and-set: only an ACTIVE token transitions. An already
 	// CONSUMED or REVOKED token is returned as-is (the caller reports the
@@ -177,15 +174,5 @@ func (s *tokenStorage) ConsumeIfActive(ctx context.Context, issuer, value string
 // -----------------------------------------------------------------------------
 
 func (s *tokenStorage) deriveValue(issuer, value string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:token:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(value))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:token:v1", issuer, value)
 }

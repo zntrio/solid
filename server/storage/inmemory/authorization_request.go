@@ -19,18 +19,15 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"golang.org/x/crypto/blake2b"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	"zntr.io/solid/server/storage"
 )
 
 type AuthorizationRequestStorage struct {
-	backend   *ttlCache
-	secretKey []byte
+	backend *ttlCache
+	derive  *deriveHasher
 }
 
 // AuthorizationRequests returns an authorization request manager.
@@ -39,8 +36,8 @@ func AuthorizationRequests(secretKey []byte) *AuthorizationRequestStorage {
 	backendCache := newTTLCache(1 * time.Minute)
 
 	return &AuthorizationRequestStorage{
-		backend:   backendCache,
-		secretKey: secretKey,
+		backend: backendCache,
+		derive:  newDeriveHasher(secretKey),
 	}
 }
 
@@ -75,15 +72,5 @@ func (s *AuthorizationRequestStorage) DeleteAndGet(ctx context.Context, issuer, 
 // -----------------------------------------------------------------------------
 
 func (s *AuthorizationRequestStorage) deriveKey(issuer, requestURI string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:authorization-requests:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(requestURI))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:authorization-requests:v1", issuer, requestURI)
 }

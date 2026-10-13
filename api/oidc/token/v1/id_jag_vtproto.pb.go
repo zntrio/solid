@@ -8,6 +8,7 @@ import (
 	binary "encoding/binary"
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -18,6 +19,78 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *IdentityAssertionJWTAuthorizationGrant) CloneVT() *IdentityAssertionJWTAuthorizationGrant {
+	if m == nil {
+		return (*IdentityAssertionJWTAuthorizationGrant)(nil)
+	}
+	r := new(IdentityAssertionJWTAuthorizationGrant)
+	r.Iss = m.Iss
+	r.Sub = m.Sub
+	r.Aud = m.Aud
+	r.ClientId = m.ClientId
+	r.Jti = m.Jti
+	r.Exp = m.Exp
+	r.Iat = m.Iat
+	if rhs := m.AuthTime; rhs != nil {
+		tmpVal := *rhs
+		r.AuthTime = &tmpVal
+	}
+	if rhs := m.Acr; rhs != nil {
+		tmpVal := *rhs
+		r.Acr = &tmpVal
+	}
+	if rhs := m.Amr; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Amr = tmpContainer
+	}
+	if rhs := m.Resource; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Resource = tmpContainer
+	}
+	if rhs := m.Scope; rhs != nil {
+		tmpVal := *rhs
+		r.Scope = &tmpVal
+	}
+	if rhs := m.AuthorizationDetails; rhs != nil {
+		tmpContainer := make([]*AuthorizationDetail, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.AuthorizationDetails = tmpContainer
+	}
+	if rhs := m.CnfJkt; rhs != nil {
+		tmpVal := *rhs
+		r.CnfJkt = &tmpVal
+	}
+	if rhs := m.Tenant; rhs != nil {
+		tmpVal := *rhs
+		r.Tenant = &tmpVal
+	}
+	if rhs := m.AudTenant; rhs != nil {
+		tmpVal := *rhs
+		r.AudTenant = &tmpVal
+	}
+	if rhs := m.AudSub; rhs != nil {
+		tmpVal := *rhs
+		r.AudSub = &tmpVal
+	}
+	if rhs := m.SubId; rhs != nil {
+		tmpVal := *rhs
+		r.SubId = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *IdentityAssertionJWTAuthorizationGrant) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *IdentityAssertionJWTAuthorizationGrant) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

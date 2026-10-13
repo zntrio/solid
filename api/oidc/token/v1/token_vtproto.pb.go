@@ -8,6 +8,7 @@ import (
 	binary "encoding/binary"
 	fmt "fmt"
 	protohelpers "github.com/planetscale/vtprotobuf/protohelpers"
+	proto "google.golang.org/protobuf/proto"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	io "io"
 )
@@ -18,6 +19,158 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+func (m *AuthEvent) CloneVT() *AuthEvent {
+	if m == nil {
+		return (*AuthEvent)(nil)
+	}
+	r := new(AuthEvent)
+	if rhs := m.Acr; rhs != nil {
+		tmpVal := *rhs
+		r.Acr = &tmpVal
+	}
+	if rhs := m.AuthTime; rhs != nil {
+		tmpVal := *rhs
+		r.AuthTime = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AuthEvent) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *TokenMeta) CloneVT() *TokenMeta {
+	if m == nil {
+		return (*TokenMeta)(nil)
+	}
+	r := new(TokenMeta)
+	r.Issuer = m.Issuer
+	r.Subject = m.Subject
+	r.IssuedAt = m.IssuedAt
+	r.NotBefore = m.NotBefore
+	r.ExpiresAt = m.ExpiresAt
+	r.ClientId = m.ClientId
+	r.Scope = m.Scope
+	r.Audience = m.Audience
+	r.GrantId = m.GrantId
+	if rhs := m.Acr; rhs != nil {
+		tmpVal := *rhs
+		r.Acr = &tmpVal
+	}
+	if rhs := m.AuthTime; rhs != nil {
+		tmpVal := *rhs
+		r.AuthTime = &tmpVal
+	}
+	if rhs := m.AuthorizationDetails; rhs != nil {
+		tmpContainer := make([]*AuthorizationDetail, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.AuthorizationDetails = tmpContainer
+	}
+	if rhs := m.Nonce; rhs != nil {
+		tmpVal := *rhs
+		r.Nonce = &tmpVal
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *TokenMeta) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *Actor) CloneVT() *Actor {
+	if m == nil {
+		return (*Actor)(nil)
+	}
+	r := new(Actor)
+	r.Issuer = m.Issuer
+	r.Subject = m.Subject
+	r.ClientId = m.ClientId
+	r.Act = m.Act.CloneVT()
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *Actor) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *Token) CloneVT() *Token {
+	if m == nil {
+		return (*Token)(nil)
+	}
+	r := new(Token)
+	r.Issuer = m.Issuer
+	r.TokenType = m.TokenType
+	r.TokenId = m.TokenId
+	r.Metadata = m.Metadata.CloneVT()
+	r.Status = m.Status
+	r.Value = m.Value
+	r.Confirmation = m.Confirmation.CloneVT()
+	if rhs := m.Phantom; rhs != nil {
+		tmpVal := *rhs
+		r.Phantom = &tmpVal
+	}
+	if rhs := m.Actor; rhs != nil {
+		tmpContainer := make([]*Actor, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.Actor = tmpContainer
+	}
+	if rhs := m.MayAct; rhs != nil {
+		tmpContainer := make([]*Actor, len(rhs))
+		for k, v := range rhs {
+			tmpContainer[k] = v.CloneVT()
+		}
+		r.MayAct = tmpContainer
+	}
+	if rhs := m.Disclosures; rhs != nil {
+		tmpContainer := make([]string, len(rhs))
+		copy(tmpContainer, rhs)
+		r.Disclosures = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *Token) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *TokenConfirmation) CloneVT() *TokenConfirmation {
+	if m == nil {
+		return (*TokenConfirmation)(nil)
+	}
+	r := new(TokenConfirmation)
+	r.Jkt = m.Jkt
+	r.X5TS256 = m.X5TS256
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *TokenConfirmation) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
 
 func (m *AuthEvent) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {

@@ -98,6 +98,38 @@ type clientAttestationPOPClaims struct {
 	JTI       string `json:"jti"`
 }
 
+// GetExpirationTime, GetNotBefore, GetIssuedAt, GetAudience, GetIssuer and
+// GetSubject implement gojwt.Claims so the PoP token can be parsed with
+// ParseWithClaims. Time-based claims are reported absent: freshness is
+// enforced by the caller's own draft-ordered windows, and the PoP aud/iss
+// semantics are validated explicitly against the issuer/endpoint policy.
+func (c *clientAttestationPOPClaims) GetExpirationTime() (*gojwt.NumericDate, error) {
+	return nil, nil
+}
+
+func (c *clientAttestationPOPClaims) GetNotBefore() (*gojwt.NumericDate, error) {
+	return nil, nil
+}
+
+func (c *clientAttestationPOPClaims) GetIssuedAt() (*gojwt.NumericDate, error) {
+	return nil, nil
+}
+
+func (c *clientAttestationPOPClaims) GetAudience() (gojwt.ClaimStrings, error) {
+	if c.Audience == "" {
+		return nil, nil
+	}
+	return gojwt.ClaimStrings{c.Audience}, nil
+}
+
+func (c *clientAttestationPOPClaims) GetIssuer() (string, error) {
+	return c.Issuer, nil
+}
+
+func (c *clientAttestationPOPClaims) GetSubject() (string, error) {
+	return "", nil
+}
+
 //nolint:funlen,gocyclo // linear draft-ordered validation chain; each guard is a protocol requirement
 func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req *clientv1.AuthenticateRequest) (*clientv1.AuthenticateResponse, error) {
 	res := &clientv1.AuthenticateResponse{}
@@ -134,38 +166,29 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 	}
 
 	// Validate the Client Attestation PoP JWT (draft section 7.2): parse
-	// without cryptographic verification first.
-	popToken, popParts, err := gojwt.NewParser().ParseUnverified(*req.ClientAttestationPop, gojwt.MapClaims{})
+	// with the signature verified against the key bound by the verified
+	// attestation (cnf.jwk). Header constraints — algorithm allowlist,
+	// typ — are enforced in the keyfunc before the signature check so an
+	// attacker-controlled header never influences key selection.
+	claims := clientAttestationPOPClaims{}
+	popParser := gojwt.NewParser(gojwt.WithValidMethods(p.supportedAlgorithms))
+	_, err = popParser.ParseWithClaims(*req.ClientAttestationPop, &claims, func(t *gojwt.Token) (any, error) {
+		if !types.Contains(p.supportedAlgorithms, t.Method.Alg()) {
+			return nil, fmt.Errorf("PoP algorithm %q is not supported", t.Method.Alg())
+		}
+		typ, _ := t.Header["typ"].(string)
+		if typ != oidc.TypClientAttestationPoPJWT {
+			return nil, fmt.Errorf("PoP typ header must be %s", oidc.TypClientAttestationPoPJWT)
+		}
+		return materializeVerificationKey(clientPublicKey)
+	})
 	if err != nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("client attestation pop is syntaxically invalid: %w", err)
-	}
-
-	// Enforce the algorithm allowlist before processing claims (draft
-	// section 7.2, rule 3).
-	if !types.Contains(p.supportedAlgorithms, popToken.Method.Alg()) {
+		if errors.Is(err, gojwt.ErrTokenMalformed) {
+			res.Error = rfcerrors.InvalidRequest().Build()
+			return res, fmt.Errorf("client attestation pop is syntaxically invalid: %w", err)
+		}
 		res.Error = rfcerrors.InvalidClientAttestation().Build()
-		return res, fmt.Errorf("PoP algorithm %q is not supported", popToken.Method.Alg())
-	}
-
-	// The typ header MUST be oauth-client-attestation-pop+jwt (draft
-	// section 5.1, rule 2; section 7.2, rule 2).
-	typ, _ := popToken.Header["typ"].(string)
-	if typ != oidc.TypClientAttestationPoPJWT {
-		res.Error = rfcerrors.InvalidClientAttestation().Build()
-		return res, fmt.Errorf("PoP typ header must be %s", oidc.TypClientAttestationPoPJWT)
-	}
-
-	// Retrieve PoP claims
-	var claims clientAttestationPOPClaims
-	payload, err := base64.RawURLEncoding.DecodeString(popParts[1])
-	if err != nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("unable to decode PoP claims: %w", err)
-	}
-	if err = json.Unmarshal(payload, &claims); err != nil {
-		res.Error = rfcerrors.InvalidRequest().Build()
-		return res, fmt.Errorf("unable to decode PoP claims: %w", err)
+		return res, fmt.Errorf("client attestation pop is invalid: %w", err)
 	}
 
 	// Required claims: aud, jti, iat (draft section 5.1, rule 4).
@@ -178,17 +201,8 @@ func (p *clientAttestationAuthentication) Authenticate(ctx context.Context, req 
 	// server runs no challenge infrastructure, so a client-provided value
 	// is accepted and ignored (unknown claims are ignored per rule 1).
 
-	// Materialize the attested public key and verify the PoP signature with
-	// the cnf-bound key (draft section 5.1, rule 3; section 7.2, rule 5).
-	publicKey, err := materializeVerificationKey(clientPublicKey)
-	if err != nil {
-		res.Error = rfcerrors.InvalidClientAttestation().Build()
-		return res, fmt.Errorf("unable to materialize attested client public key: %w", err)
-	}
-	if err = popToken.Method.Verify(popParts[0]+"."+popParts[1], popToken.Signature, publicKey); err != nil {
-		res.Error = rfcerrors.InvalidClientAttestation().Build()
-		return res, fmt.Errorf("client attestation PoP is invalid: %w", err)
-	}
+	// The signature has been verified by ParseWithClaims against the
+	// cnf-bound client key (draft section 5.1, rule 3; section 7.2, rule 5).
 
 	// PoP audience: draft-ietf-oauth-security-topics-update-03 section
 	// 2.1.2 (documented deviation): the aud MUST be the AS issuer

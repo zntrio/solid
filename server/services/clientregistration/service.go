@@ -30,8 +30,6 @@ import (
 	"net/url"
 	"strings"
 
-	"google.golang.org/protobuf/proto"
-
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	corev1 "zntr.io/solid/api/oidc/core/v1"
 	"zntr.io/solid/oidc"
@@ -291,7 +289,7 @@ func (s *clientRegistration) validatedClient(metadata *clientv1.ClientMeta) (*cl
 		return nil, fmt.Errorf("invalid_client_metadata: RFC 7591 section 2.3 metadata rejected")
 	}
 	if len(jwks) > 0 {
-		if _, err := jwk.Parse(jwks); err != nil {
+		if _, err := jwk.ParseCached(jwks); err != nil {
 			return nil, fmt.Errorf("invalid_client_metadata: RFC 7591 section 2.3 metadata rejected")
 		}
 	}
@@ -350,7 +348,7 @@ func (s *clientRegistration) authorizeRegistrationToken(ctx context.Context, cli
 	// itself is constant-time.
 	if token == "" || stored.GetRegistrationAccessToken() == "" || !types.SecureCompareString(token, stored.GetRegistrationAccessToken()) {
 		if stored.GetRegistrationAccessToken() != "" {
-			cleared := proto.Clone(stored).(*clientv1.Client)
+			cleared := stored.CloneVT()
 			cleared.RegistrationAccessToken = nil
 			_ = s.clients.Update(ctx, cleared)
 		}
@@ -363,7 +361,7 @@ func (s *clientRegistration) authorizeRegistrationToken(ctx context.Context, cli
 // withoutRegistrationToken returns a response-safe copy of the client: the
 // registration access token is a server-side record, never a read payload.
 func withoutRegistrationToken(c *clientv1.Client) *clientv1.Client {
-	public := proto.Clone(c).(*clientv1.Client)
+	public := c.CloneVT()
 	public.RegistrationAccessToken = nil
 	return public
 }

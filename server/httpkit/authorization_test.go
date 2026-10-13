@@ -116,6 +116,7 @@ func TestAuthorizationConsumesPARRequestURI(t *testing.T) {
 	client := srv.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusFound, resp.StatusCode)
 

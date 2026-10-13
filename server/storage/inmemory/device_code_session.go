@@ -19,10 +19,7 @@ package inmemory
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"golang.org/x/crypto/blake2b"
 
 	sessionv1 "zntr.io/solid/api/oidc/session/v1"
 	"zntr.io/solid/server/storage"
@@ -31,7 +28,7 @@ import (
 type DeviceCodeSessionStorage struct {
 	userCodeIndex   *ttlCache
 	deviceCodeIndex *ttlCache
-	secretKey       []byte
+	derive          *deriveHasher
 }
 
 // DeviceCodeSessions returns a device authorization session manager.
@@ -46,7 +43,7 @@ func DeviceCodeSessions(secretKey []byte) *DeviceCodeSessionStorage {
 	return &DeviceCodeSessionStorage{
 		userCodeIndex:   userCodeCache,
 		deviceCodeIndex: deviceCodeCache,
-		secretKey:       secretKey,
+		derive:          newDeriveHasher(secretKey),
 	}
 }
 
@@ -125,29 +122,9 @@ func (s *DeviceCodeSessionStorage) DeleteAndGetByDeviceCode(ctx context.Context,
 // -----------------------------------------------------------------------------
 
 func (s *DeviceCodeSessionStorage) deriveUserCode(issuer, code string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:device-authorization-user-code:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(code))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:device-authorization-user-code:v1", issuer, code)
 }
 
 func (s *DeviceCodeSessionStorage) deriveDeviceCode(issuer, code string) string {
-	// Create hasher
-	h, err := blake2b.New256(s.secretKey)
-	if err != nil {
-		panic(err)
-	}
-
-	h.Write([]byte("solid:device-authorization-device-code:v1"))
-	h.Write([]byte(issuer))
-	h.Write([]byte(code))
-
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return s.derive.deriveHex("solid:device-authorization-device-code:v1", issuer, code)
 }

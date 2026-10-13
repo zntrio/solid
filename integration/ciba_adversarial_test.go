@@ -45,7 +45,7 @@ func (h *harness) registerCIBAClient(t testing.TB) *clientv1.Client {
 		ResponseTypes:           []string{oidc.ResponseTypeCode},
 		ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 		TokenEndpointAuthMethod: oidc.AuthMethodPrivateKeyJWT,
-		Jwks:                    clientJWKSWithSIG,
+		Jwks:                    h.sig.clientJWKS(),
 	}
 
 	if _, err := h.clients.Register(context.Background(), c); err != nil {

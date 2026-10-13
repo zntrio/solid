@@ -11,7 +11,7 @@
 // Unless required by applicable law or agreed to in writing,
 // software distributed under the License is distributed on an
 // "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
+// KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations
 // under the License.
 
@@ -33,6 +33,11 @@ import (
 // registration) wired with in-memory storage, without any HTTP layer — the
 // numbers isolate the protocol cost from presentation concerns.
 //
+// Every flow runs under both signature profiles: the classic ES256 P-256
+// fixtures and the post-quantum ML-DSA-44 (FIPS 204 / RFC 9964, kty AKP)
+// profile, so the lattice-signature cost is measured through the same
+// service paths.
+//
 // Storage growth during a run (token records, TTL cache entries) is
 // by-design persistent state, not a leak: the token store keeps minted
 // tokens and the TTL windows outlive a benchmark run.
@@ -40,10 +45,19 @@ import (
 // benchCtx is the shared context for service calls in benchmarks.
 var benchCtx = context.Background()
 
-// BenchmarkAuthorizationRequestFlow measures a full authorization request
+// benchProfiles are the signature profiles under which every flow benchmark
+// runs. ES256 is the classical baseline; ML-DSA-44 is the post-quantum
+// profile the benchmarks migrate to.
+func benchProfiles() map[string]sigProfile {
+	return map[string]sigProfile{
+		"ES256":     es256Profile{},
+		"ML-DSA-44": mldsa44Profile{},
+	}
+}
+
+// benchmarkAuthorizationRequestFlow measures a full authorization request
 // registration (PAR-style) followed by the Authorize service call.
-func BenchmarkAuthorizationRequestFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkAuthorizationRequestFlow(b *testing.B, h *harness) {
 	ctx := benchCtx
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
@@ -75,11 +89,18 @@ func BenchmarkAuthorizationRequestFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkAuthorizationCodeGrantFlow measures the complete authorization
+func BenchmarkAuthorizationRequestFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkAuthorizationRequestFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkAuthorizationCodeGrantFlow measures the complete authorization
 // code grant: authorize (code issuance) + client authentication + code
 // redemption (access & refresh token mint).
-func BenchmarkAuthorizationCodeGrantFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkAuthorizationCodeGrantFlow(b *testing.B, h *harness) {
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
 	b.ResetTimer()
@@ -99,10 +120,17 @@ func BenchmarkAuthorizationCodeGrantFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkClientCredentialsGrantFlow measures private_key_jwt
+func BenchmarkAuthorizationCodeGrantFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkAuthorizationCodeGrantFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkClientCredentialsGrantFlow measures private_key_jwt
 // authentication followed by a client_credentials token issuance.
-func BenchmarkClientCredentialsGrantFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkClientCredentialsGrantFlow(b *testing.B, h *harness) {
 	ctx := benchCtx
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeClientCredentials})
 
@@ -122,13 +150,20 @@ func BenchmarkClientCredentialsGrantFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkRefreshTokenGrantFlow measures the refresh grant. The store
+func BenchmarkClientCredentialsGrantFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkClientCredentialsGrantFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkRefreshTokenGrantFlow measures the refresh grant. The store
 // rotates the refresh token on every use (RFC 9700 section 4.14.2), so the
 // benchmark chains the rotated refresh token from one iteration to the
 // next; only the first mint (before ResetTimer) is excluded from the
 // measurement.
-func BenchmarkRefreshTokenGrantFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkRefreshTokenGrantFlow(b *testing.B, h *harness) {
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
 	_, rt := mintTokens(b, h, client)
@@ -150,10 +185,17 @@ func BenchmarkRefreshTokenGrantFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkDeviceCodeGrantFlow measures the device authorization grant:
+func BenchmarkRefreshTokenGrantFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkRefreshTokenGrantFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkDeviceCodeGrantFlow measures the device authorization grant:
 // device authorization + user approval + DPoP-confirmed token poll.
-func BenchmarkDeviceCodeGrantFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkDeviceCodeGrantFlow(b *testing.B, h *harness) {
 	client := h.registerDeviceDPoPClient(b)
 
 	b.ResetTimer()
@@ -173,10 +215,17 @@ func BenchmarkDeviceCodeGrantFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkCIBAGrantFlow measures the CIBA grant: backchannel
+func BenchmarkDeviceCodeGrantFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkDeviceCodeGrantFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkCIBAGrantFlow measures the CIBA grant: backchannel
 // authentication start + end-user approval + token poll.
-func BenchmarkCIBAGrantFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkCIBAGrantFlow(b *testing.B, h *harness) {
 	client := h.registerCIBAClient(b)
 
 	b.ResetTimer()
@@ -196,11 +245,18 @@ func BenchmarkCIBAGrantFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkTokenExchangeGrantFlow measures the RFC 8693 token exchange
+func BenchmarkCIBAGrantFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkCIBAGrantFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkTokenExchangeGrantFlow measures the RFC 8693 token exchange
 // grant: client authentication + subject-token exchange without an actor
 // token.
-func BenchmarkTokenExchangeGrantFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkTokenExchangeGrantFlow(b *testing.B, h *harness) {
 	ctx := benchCtx
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken, oidc.GrantTypeTokenExchange})
 
@@ -237,11 +293,19 @@ func BenchmarkTokenExchangeGrantFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkClientRegistrationFlow measures dynamic client registration
+func BenchmarkTokenExchangeGrantFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkTokenExchangeGrantFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkClientRegistrationFlow measures dynamic client registration
 // (RFC 7591) against the open registration posture of the harness.
-func BenchmarkClientRegistrationFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkClientRegistrationFlow(b *testing.B, h *harness) {
 	ctx := benchCtx
+	jwks := h.sig.clientJWKS()
 
 	b.ResetTimer()
 	i := 0
@@ -254,7 +318,7 @@ func BenchmarkClientRegistrationFlow(b *testing.B) {
 				ResponseModes:           []string{oidc.ResponseModeQueryJWT},
 				RedirectUris:            []string{testRedirectURI},
 				TokenEndpointAuthMethod: new(oidc.AuthMethodPrivateKeyJWT),
-				Jwks:                    clientJWKSWithSIG,
+				Jwks:                    jwks,
 			},
 		})
 		if err != nil {
@@ -269,11 +333,18 @@ func BenchmarkClientRegistrationFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkIntrospectionFlow measures client authentication followed by an
+func BenchmarkClientRegistrationFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkClientRegistrationFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkIntrospectionFlow measures client authentication followed by an
 // RFC 7662 introspection of an active access token. Introspection does not
 // consume the token, so one pre-minted token serves every iteration.
-func BenchmarkIntrospectionFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkIntrospectionFlow(b *testing.B, h *harness) {
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
 	at, _ := mintTokens(b, h, client)
@@ -293,13 +364,20 @@ func BenchmarkIntrospectionFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkRevocationFlow measures client authentication followed by
+func BenchmarkIntrospectionFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkIntrospectionFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkRevocationFlow measures client authentication followed by
 // RFC 7009 revocation. Revocation burns the token, so each iteration
 // consumes a token minted on first use (b.Loop re-invokes the benchmark
 // function with a growing N, so pre-seeding b.N tokens upfront is not
 // possible); the mint is excluded from the measurement via StopTimer.
-func BenchmarkRevocationFlow(b *testing.B) {
-	h := newHarness(b)
+func benchmarkRevocationFlow(b *testing.B, h *harness) {
 	ctx := benchCtx
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
@@ -342,17 +420,33 @@ func BenchmarkRevocationFlow(b *testing.B) {
 	}
 }
 
-// BenchmarkClientAuthentication measures the private_key_jwt client
-// authentication in isolation: ES256 assertion signing (the client cost)
-// plus the full verification pipeline (the server cost).
-func BenchmarkClientAuthentication(b *testing.B) {
-	h := newHarness(b)
+func BenchmarkRevocationFlow(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkRevocationFlow(b, newHarnessWithProfile(b, profile))
+		})
+	}
+}
+
+// benchmarkClientAuthentication measures the private_key_jwt client
+// authentication in isolation: assertion signing (the client cost) plus
+// the full verification pipeline (the server cost), under the harness
+// signature profile.
+func benchmarkClientAuthentication(b *testing.B, h *harness) {
 	client := h.registerConfidentialClient(b, []string{testRedirectURI}, []string{oidc.GrantTypeAuthorizationCode, oidc.GrantTypeRefreshToken})
 
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := h.authenticate(b, testTokenEndpoint, validClientAssertion(b, client.ClientId)); err != nil {
+		if _, err := h.authenticate(b, testTokenEndpoint, h.validClientAssertionFor(b, client.ClientId)); err != nil {
 			b.Fatalf("client authentication failed: %v", err)
 		}
+	}
+}
+
+func BenchmarkClientAuthentication(b *testing.B) {
+	for name, profile := range benchProfiles() {
+		b.Run(name, func(b *testing.B) {
+			benchmarkClientAuthentication(b, newHarnessWithProfile(b, profile))
+		})
 	}
 }

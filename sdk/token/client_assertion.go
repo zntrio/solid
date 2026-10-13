@@ -23,9 +23,6 @@ import (
 	"fmt"
 	"time"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
-
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
 	"zntr.io/solid/sdk/types"
 )
@@ -96,22 +93,8 @@ func (c *clientAssertionGenerator) Generate(ctx context.Context, t *tokenv1.Toke
 // -----------------------------------------------------------------------------
 
 func (c *clientAssertionGenerator) validateMeta(meta *tokenv1.TokenMeta) error {
-	// Check arguments
-	if meta == nil {
-		return fmt.Errorf("token meta must not be nil")
-	}
-
-	now := uint64(time.Now().Unix())                                                      //nolint:gosec // Unix time is non-negative
-	maxExpiration := uint64(time.Unix(int64(meta.IssuedAt), 0).Add(2 * time.Hour).Unix()) //nolint:gosec // Unix time is non-negative
-
-	// Validate syntaxically
-	if err := validation.ValidateStruct(meta,
-		validation.Field(&meta.Audience, validation.Required, ValidateURI),
-		validation.Field(&meta.Issuer, validation.Required, is.PrintableASCII),
-		validation.Field(&meta.Subject, validation.Required, is.PrintableASCII),
-		validation.Field(&meta.IssuedAt, validation.Required, validation.Min(uint64(0)), validation.Max(now)),
-		validation.Field(&meta.ExpiresAt, validation.Required, validation.Min(meta.IssuedAt), validation.Max(maxExpiration)),
-	); err != nil {
+	now := uint64(time.Now().Unix()) //nolint:gosec // Unix time is non-negative
+	if err := validateAssertionMeta(meta, now, 2*time.Hour); err != nil {
 		return fmt.Errorf("unable to validate claims: %w", err)
 	}
 

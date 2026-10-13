@@ -508,7 +508,7 @@ func (s *service) applySignedRequest(ctx context.Context, client *clientv1.Clien
 	if len(client.Jwks) == 0 {
 		return fmt.Errorf("client jwks is nil")
 	}
-	jwks, err := jwk.Parse(client.Jwks)
+	jwks, err := jwk.ParseCached(client.Jwks)
 	if err != nil {
 		return fmt.Errorf("client jwks is invalid: %w", err)
 	}

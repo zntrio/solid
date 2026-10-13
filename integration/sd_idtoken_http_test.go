@@ -141,6 +141,7 @@ func newSDIDTokenHarness(t testing.TB) (*sdidtHarness, jwk.Set) {
 			devicez:             devicez,
 			backchannelz:        backchannelz,
 			clientAuth:          clientAuth,
+			sig:                 es256Profile{},
 		},
 		signingKey: asPrivKey,
 		verifySet:  asPubSet,

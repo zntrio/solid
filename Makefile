@@ -16,7 +16,15 @@ vulncheck: ## Run govulncheck on the whole module
 
 .PHONY: install-tools
 install-tools:
-	go generate ./tools.go
+	go build -o ./bin/gci github.com/daixiang0/gci
+	go build -o ./bin/gofumpt mvdan.cc/gofumpt
+	go build -o ./bin/golangci-lint github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+	go build -o ./bin/mockgen go.uber.org/mock/mockgen
+	go build -o ./bin/wwhrd github.com/frapposelli/wwhrd
+	go build -o ./bin/gotestsum gotest.tools/gotestsum
+	go build -o ./bin/govulncheck golang.org/x/vuln/cmd/govulncheck
+	go build -o ./bin/protoc-gen-go-grpc google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	go build -o ./bin/protoc-gen-go google.golang.org/protobuf/cmd/protoc-gen-go
 
 .PHONY: code-format
 code-format:

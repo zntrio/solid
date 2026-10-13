@@ -23,6 +23,190 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+func (m *AuthorizationCodeSession) CloneVT() *AuthorizationCodeSession {
+	if m == nil {
+		return (*AuthorizationCodeSession)(nil)
+	}
+	r := new(AuthorizationCodeSession)
+	r.Issuer = m.Issuer
+	r.Subject = m.Subject
+	r.GrantId = m.GrantId
+	r.Status = m.Status
+	if rhs := m.Client; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Client }); ok {
+			r.Client = vtpb.CloneVT()
+		} else {
+			r.Client = proto.Clone(rhs).(*v1.Client)
+		}
+	}
+	if rhs := m.Request; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *v11.AuthorizationRequest
+		}); ok {
+			r.Request = vtpb.CloneVT()
+		} else {
+			r.Request = proto.Clone(rhs).(*v11.AuthorizationRequest)
+		}
+	}
+	if rhs := m.Confirmation; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v12.TokenConfirmation }); ok {
+			r.Confirmation = vtpb.CloneVT()
+		} else {
+			r.Confirmation = proto.Clone(rhs).(*v12.TokenConfirmation)
+		}
+	}
+	if rhs := m.AuthEvent; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v12.AuthEvent }); ok {
+			r.AuthEvent = vtpb.CloneVT()
+		} else {
+			r.AuthEvent = proto.Clone(rhs).(*v12.AuthEvent)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *AuthorizationCodeSession) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *DeviceCodeSession) CloneVT() *DeviceCodeSession {
+	if m == nil {
+		return (*DeviceCodeSession)(nil)
+	}
+	r := new(DeviceCodeSession)
+	r.Issuer = m.Issuer
+	r.ExpiresAt = m.ExpiresAt
+	r.Status = m.Status
+	r.DeviceCode = m.DeviceCode
+	r.ConfirmationCode = m.ConfirmationCode
+	r.LastPolledAt = m.LastPolledAt
+	r.PollInterval = m.PollInterval
+	if rhs := m.Client; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Client }); ok {
+			r.Client = vtpb.CloneVT()
+		} else {
+			r.Client = proto.Clone(rhs).(*v1.Client)
+		}
+	}
+	if rhs := m.Request; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *v11.DeviceAuthorizationRequest
+		}); ok {
+			r.Request = vtpb.CloneVT()
+		} else {
+			r.Request = proto.Clone(rhs).(*v11.DeviceAuthorizationRequest)
+		}
+	}
+	if rhs := m.Subject; rhs != nil {
+		tmpVal := *rhs
+		r.Subject = &tmpVal
+	}
+	if rhs := m.Scope; rhs != nil {
+		tmpVal := *rhs
+		r.Scope = &tmpVal
+	}
+	if rhs := m.Audience; rhs != nil {
+		tmpVal := *rhs
+		r.Audience = &tmpVal
+	}
+	if rhs := m.AuthorizationDetails; rhs != nil {
+		tmpContainer := make([]*v12.AuthorizationDetail, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface {
+				CloneVT() *v12.AuthorizationDetail
+			}); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v12.AuthorizationDetail)
+			}
+		}
+		r.AuthorizationDetails = tmpContainer
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *DeviceCodeSession) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
+func (m *BackchannelAuthenticationSession) CloneVT() *BackchannelAuthenticationSession {
+	if m == nil {
+		return (*BackchannelAuthenticationSession)(nil)
+	}
+	r := new(BackchannelAuthenticationSession)
+	r.Issuer = m.Issuer
+	r.ExpiresAt = m.ExpiresAt
+	r.Status = m.Status
+	r.AuthReqId = m.AuthReqId
+	r.LastPolledAt = m.LastPolledAt
+	r.PollInterval = m.PollInterval
+	if rhs := m.Client; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v1.Client }); ok {
+			r.Client = vtpb.CloneVT()
+		} else {
+			r.Client = proto.Clone(rhs).(*v1.Client)
+		}
+	}
+	if rhs := m.Request; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface {
+			CloneVT() *v11.BackchannelAuthenticationRequest
+		}); ok {
+			r.Request = vtpb.CloneVT()
+		} else {
+			r.Request = proto.Clone(rhs).(*v11.BackchannelAuthenticationRequest)
+		}
+	}
+	if rhs := m.Subject; rhs != nil {
+		tmpVal := *rhs
+		r.Subject = &tmpVal
+	}
+	if rhs := m.Scope; rhs != nil {
+		tmpVal := *rhs
+		r.Scope = &tmpVal
+	}
+	if rhs := m.Audience; rhs != nil {
+		tmpVal := *rhs
+		r.Audience = &tmpVal
+	}
+	if rhs := m.AuthorizationDetails; rhs != nil {
+		tmpContainer := make([]*v12.AuthorizationDetail, len(rhs))
+		for k, v := range rhs {
+			if vtpb, ok := interface{}(v).(interface {
+				CloneVT() *v12.AuthorizationDetail
+			}); ok {
+				tmpContainer[k] = vtpb.CloneVT()
+			} else {
+				tmpContainer[k] = proto.Clone(v).(*v12.AuthorizationDetail)
+			}
+		}
+		r.AuthorizationDetails = tmpContainer
+	}
+	if rhs := m.Confirmation; rhs != nil {
+		if vtpb, ok := interface{}(rhs).(interface{ CloneVT() *v12.TokenConfirmation }); ok {
+			r.Confirmation = vtpb.CloneVT()
+		} else {
+			r.Confirmation = proto.Clone(rhs).(*v12.TokenConfirmation)
+		}
+	}
+	if len(m.unknownFields) > 0 {
+		r.unknownFields = make([]byte, len(m.unknownFields))
+		copy(r.unknownFields, m.unknownFields)
+	}
+	return r
+}
+
+func (m *BackchannelAuthenticationSession) CloneMessageVT() proto.Message {
+	return m.CloneVT()
+}
+
 func (m *AuthorizationCodeSession) MarshalVT() (dAtA []byte, err error) {
 	if m == nil {
 		return nil, nil

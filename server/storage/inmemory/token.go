@@ -107,7 +107,13 @@ func (s *tokenStorage) GetByClientID(ctx context.Context, clientID string) []*to
 	return result
 }
 
+// Revoke marks the token addressed by id as REVOKED. Stored tokens are
+// immutable: the transition stores a fresh clone, never a mutation of the
+// shared object (concurrent readers clone stored values without a lock).
 func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
+	consumeMu.Lock()
+	defer consumeMu.Unlock()
+
 	// Retrieve token
 	x, ok := s.idIndex.Load(id)
 	if !ok {
@@ -118,12 +124,13 @@ func (s *tokenStorage) Revoke(ctx context.Context, issuer, id string) error {
 		return storage.ErrNotFound
 	}
 
-	// Set as revoked
-	t.Status = tokenv1.TokenStatus_TOKEN_STATUS_REVOKED
+	// Set as revoked on a detached copy
+	revoked := t.CloneVT()
+	revoked.Status = tokenv1.TokenStatus_TOKEN_STATUS_REVOKED
 
 	// Update maps
-	s.idIndex.Store(t.TokenId, t)
-	s.valueIndex.Store(t.Value, t)
+	s.idIndex.Store(revoked.TokenId, revoked)
+	s.valueIndex.Store(revoked.Value, revoked)
 
 	// No error
 	return nil
@@ -161,11 +168,13 @@ func (s *tokenStorage) ConsumeIfActive(ctx context.Context, issuer, value string
 
 	// Compare-and-set: only an ACTIVE token transitions. An already
 	// CONSUMED or REVOKED token is returned as-is (the caller reports the
-	// replay / revocation outcome).
+	// replay / revocation outcome). The stored object is replaced by a
+	// detached clone: stored tokens are never mutated in place.
 	if t.Status == tokenv1.TokenStatus_TOKEN_STATUS_ACTIVE {
-		t.Status = tokenv1.TokenStatus_TOKEN_STATUS_CONSUMED
-		s.idIndex.Store(t.TokenId, t)
-		s.valueIndex.Store(derived, t)
+		consumed := t.CloneVT()
+		consumed.Status = tokenv1.TokenStatus_TOKEN_STATUS_CONSUMED
+		s.idIndex.Store(consumed.TokenId, consumed)
+		s.valueIndex.Store(derived, consumed)
 	}
 
 	return snapshot, nil

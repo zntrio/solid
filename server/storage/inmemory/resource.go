@@ -32,6 +32,10 @@ type resourceStorage struct {
 // remote MCP-style resource server (examples/resourceserver).
 const mcpResourceURI = "http://127.0.0.1:8085"
 
+// cwtResourceURI is the RFC 8707 resource indicator of the example CWT
+// resource server: audience of the client_credentials fixtures.
+const cwtResourceURI = "https://rs.example.org"
+
 // Resources returns a resource reader.
 func Resources() storage.Resource {
 	return &resourceStorage{
@@ -49,10 +53,10 @@ func Resources() storage.Resource {
 			},
 			// The example CWT resource server (integration/cwt_token_test):
 			// audience of the client_credentials fixtures.
-			"https://rs.example.org": {
-				Urn:         "https://rs.example.org",
+			cwtResourceURI: {
+				Urn:         cwtResourceURI,
 				Description: "Example CWT resource server",
-				Urls:        []string{"https://rs.example.org"},
+				Urls:        []string{cwtResourceURI},
 			},
 			// The example remote MCP-style resource server
 			// (examples/resourceserver): resolves the RFC 8707 resource

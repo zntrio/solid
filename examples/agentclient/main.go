@@ -249,7 +249,7 @@ func run() error {
 	// process the disclosures to recover the user claims (digests only
 	// in the token itself).
 	if subjectRes.IDToken != "" {
-		idVerifier, err := sdjwt.NewAccessTokenVerifier(sdtoken.IDTokenProfile, sdjwt.Deps{
+		idVerifier, errBuild := sdjwt.NewAccessTokenVerifier(sdtoken.IDTokenProfile, sdjwt.Deps{
 			IssuerKeys: func(context.Context) (jwk.Set, error) {
 				asKeys, _, errKeys := oidcClient.PublicKeys(ctx)
 				return asKeys, errKeys
@@ -261,12 +261,12 @@ func run() error {
 			// OIDC Core id_tokens carry no key binding.
 			sdtoken.WithOptionalKeyBinding(),
 		)
-		if err != nil {
-			return fmt.Errorf("unable to build id_token verifier: %w", err)
+		if errBuild != nil {
+			return fmt.Errorf("unable to build id_token verifier: %w", errBuild)
 		}
-		idClaims, err := idVerifier.Verify(ctx, subjectRes.IDToken, subjectRes.IDTokenDisclosures, "", nil)
-		if err != nil {
-			return fmt.Errorf("unable to verify the id_token: %w", err)
+		idClaims, errVerify := idVerifier.Verify(ctx, subjectRes.IDToken, subjectRes.IDTokenDisclosures, "", nil)
+		if errVerify != nil {
+			return fmt.Errorf("unable to verify the id_token: %w", errVerify)
 		}
 		if echo, _ := idClaims["nonce"].(string); echo != nonce {
 			return fmt.Errorf("id_token nonce mismatch: got %q, want %q", echo, nonce)

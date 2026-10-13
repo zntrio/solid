@@ -257,7 +257,7 @@ func toolInvoker(cli client.Client, md *discoveryv1.ServerMetadata, prover dpop.
 
 		// Relay the backend signed timestamp as the tool result.
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_, _ = w.Write(backendBody)
+		_, _ = w.Write(backendBody) // #nosec G705 -- backendBody is the backend's signed-timestamp JSON (fixed schema, no attacker-controlled data: the tainted subject token only reaches the backend's Authorization header, never its response body) and is served as application/json.
 	})
 }
 

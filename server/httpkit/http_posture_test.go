@@ -18,7 +18,9 @@
 package httpkit
 
 import (
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
@@ -92,5 +94,54 @@ func TestRespondErrorHeaderShape(t *testing.T) {
 	WithError(rec2, req, 401, rfcerrors.InvalidClient().Build())
 	if wa := rec2.Header().Get("WWW-Authenticate"); wa == "" {
 		t.Error("401 response must carry WWW-Authenticate")
+	}
+}
+
+// TestSecurityHeadersAssertions pins the RFC 9700 section 4.16
+// clickjacking countermeasures on every response crossing the
+// middleware stack: X-Frame-Options DENY plus Content-Security-Policy
+// (the BCP's two named countermeasures), the no-referrer posture of
+// section 4.2 (credential leakage via Referer), and nosniff.
+func TestSecurityHeadersAssertions(t *testing.T) {
+	inner := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := Adapt(inner, SecurityHeaders())
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest("GET", "https://as.example.com/authorize", nil))
+
+	// RFC 9700 section 4.16: X-Frame-Options and CSP level 2+.
+	if got := rec.Header().Get("X-Frame-Options"); got != "DENY" {
+		t.Errorf("X-Frame-Options = %q, want DENY", got)
+	}
+	csp := rec.Header().Get("Content-Security-Policy")
+	if csp == "" {
+		t.Error("Content-Security-Policy missing")
+	} else if !strings.Contains(csp, "default-src 'none'") {
+		t.Errorf("Content-Security-Policy = %q, want a default-src 'none' baseline", csp)
+	}
+	// RFC 9700 section 4.2 posture: no Referer leakage.
+	if got := rec.Header().Get("Referrer-Policy"); got != "no-referrer" {
+		t.Errorf("Referrer-Policy = %q, want no-referrer", got)
+	}
+	if got := rec.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q, want nosniff", got)
+	}
+
+	// The same middleware is what the example AS mounts (Adapt ordering
+	// verified by the authorization-endpoint server test below).
+	srv := httptest.NewServer(Adapt(inner, SecurityHeaders()))
+	defer srv.Close()
+	res, err := http.Get(srv.URL + "/authorize") //nolint:noctx // test
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if got := res.Header.Get("X-Frame-Options"); got != "DENY" {
+		t.Errorf("served X-Frame-Options = %q, want DENY", got)
+	}
+	if res.Header.Get("Content-Security-Policy") == "" {
+		t.Error("served response missing Content-Security-Policy")
 	}
 }

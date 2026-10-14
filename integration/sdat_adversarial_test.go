@@ -26,6 +26,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -421,6 +423,74 @@ func TestSDATAdversarial(t *testing.T) {
 				claims := verifyOKSDAT(t, f, parsed, kb, f.km.dpopPub)
 				if claims["email"] == nil || claims["name"] == nil {
 					t.Fatal("both disclosures must be processed")
+				}
+			})
+
+			t.Run("rs http field carriage", func(t *testing.T) {
+				f := newSDATFixture(t, jwtKind, sdtoken.AccessTokenProfile, nil)
+				// draft-forten section 5: an RS reads the
+				// SD-JWT-Disclosures / SD-JWT-Key-Binding
+				// fields off the actual HTTP request headers
+				// (RFC 9651 section 5.3: multiple field lines
+				// combined in order) — drive a real handler.
+				kb, err := f.holder.KeyBind(context.Background(), f.token, []string{f.emailD, f.nameD}, f.nonce, "https://rs.example.com", f.now)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var (
+					gotDisclosures []string
+					gotKB          string
+				)
+				rs := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					gotDisclosures, err = sdtoken.ParseDisclosuresField(r.Header.Values("SD-JWT-Disclosures"))
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					}
+					kbs := r.Header.Values("SD-JWT-Key-Binding")
+					if len(kbs) != 1 {
+						http.Error(w, "expected exactly one key-binding field", http.StatusBadRequest)
+						return
+					}
+					gotKB, err = sdtoken.ParseKeyBindingField(kbs[0])
+					if err != nil {
+						http.Error(w, err.Error(), http.StatusBadRequest)
+						return
+					}
+					w.WriteHeader(http.StatusOK)
+				}))
+				defer rs.Close()
+
+				// The client sends the token in the Authorization
+				// header (DPoP scheme per section 5.2) and the
+				// disclosures split across two field lines.
+				req, err := http.NewRequest(http.MethodGet, rs.URL+"/data", nil)
+				if err != nil {
+					t.Fatal(err)
+				}
+				req.Header.Set("Authorization", "DPoP "+f.token)
+				req.Header.Add("SD-JWT-Disclosures", sdtoken.FormatDisclosuresField([]string{f.emailD}))
+				req.Header.Add("SD-JWT-Disclosures", sdtoken.FormatDisclosuresField([]string{f.nameD}))
+				req.Header.Set("SD-JWT-Key-Binding", sdtoken.FormatKeyBindingField(kb))
+				res, err := http.DefaultClient.Do(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer res.Body.Close()
+				if res.StatusCode != http.StatusOK {
+					t.Fatalf("RS rejected the field carriage: %d", res.StatusCode)
+				}
+				if len(gotDisclosures) != 2 || gotDisclosures[0] != f.emailD || gotDisclosures[1] != f.nameD {
+					t.Fatalf("RS-parsed disclosures = %v", gotDisclosures)
+				}
+				if gotKB != kb {
+					t.Fatalf("RS-parsed key binding mismatch")
+				}
+				// The RS-side verification over the header-derived
+				// values must still succeed end-to-end.
+				claims := verifyOKSDAT(t, f, gotDisclosures, gotKB, f.km.dpopPub)
+				if claims["email"] == nil || claims["name"] == nil {
+					t.Fatal("both disclosures must be processed from the header carriage")
 				}
 			})
 

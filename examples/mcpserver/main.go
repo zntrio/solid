@@ -297,7 +297,15 @@ func redelegate(ctx context.Context, cli client.Client, md *discoveryv1.ServerMe
 	if err != nil {
 		return nil, fmt.Errorf("unable to mint client assertion: %w", err)
 	}
-	actorRes, err := clientCredentials(ctx, md, actorAssertion)
+	// DPoP proof for the client_credentials mint: the AS resolves this
+	// server's CIMD document through the metadata policy
+	// (dpop_bound_access_tokens defaulted per OpenID Federation 1.0
+	// section 6.1.3.1), so the actor token is sender-bound to K_M.
+	actorProof, err := prover.Prove(http.MethodPost, md.TokenEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("unable to mint DPoP proof: %w", err)
+	}
+	actorRes, err := clientCredentials(ctx, md, actorAssertion, actorProof)
 	if err != nil {
 		return nil, fmt.Errorf("unable to mint actor token: %w", err)
 	}
@@ -339,15 +347,19 @@ type tokenResponse struct {
 
 // clientCredentials mints the MCP server's own token (RFC 8693 section
 // 4.4 actor: the client is the resource owner of its client_credentials
-// token; the minted subject equals the client id).
-func clientCredentials(ctx context.Context, md *discoveryv1.ServerMetadata, assertion string) (*tokenResponse, error) {
+// token; the minted subject equals the client id). The DPoP proof is
+// mandatory: the AS resolves this server's CIMD document through the
+// metadata policy (dpop_bound_access_tokens defaulted per OpenID
+// Federation 1.0 section 6.1.3.1), so the actor token is sender-bound
+// to K_M.
+func clientCredentials(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, proof string) (*tokenResponse, error) {
 	params := url.Values{}
 	params.Add("grant_type", oidc.GrantTypeClientCredentials)
 	params.Add("scope", "openid")
 	params.Add("resource", backendResourceURI)
 	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
 	params.Add("client_assertion", assertion)
-	return postToken(ctx, md.TokenEndpoint, params, "")
+	return postToken(ctx, md.TokenEndpoint, params, proof)
 }
 
 // tokenExchange performs the RFC 8693 second hop: the delegated token as

@@ -300,7 +300,16 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to mint client assertion: %w", err)
 	}
-	actorRes, err := clientCredentials(ctx, md, actorAssertion)
+	// DPoP-proved like every other token request: the AS resolves the
+	// agent's CIMD document with the metadata policy defaulting
+	// dpop_bound_access_tokens (OpenID Federation 1.0 section 6.1.3.1
+	// default operator), so the client_credentials mint is sender-bound
+	// to the agent key.
+	actorProof, err := prover.Prove(http.MethodPost, md.TokenEndpoint)
+	if err != nil {
+		return fmt.Errorf("unable to mint DPoP proof: %w", err)
+	}
+	actorRes, err := clientCredentials(ctx, md, actorAssertion, actorProof)
 	if err != nil {
 		return err
 	}
@@ -534,15 +543,18 @@ func redeemCode(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, 
 
 // clientCredentials mints the agent's own token (RFC 8693 section 4.4
 // actor: the client is the resource owner of its client_credentials
-// token).
-func clientCredentials(ctx context.Context, md *discoveryv1.ServerMetadata, assertion string) (*tokenResponse, error) {
+// token). The DPoP proof is mandatory: the AS resolves the agent's CIMD
+// document through the metadata policy (dpop_bound_access_tokens
+// defaulted per OpenID Federation 1.0 section 6.1.3.1), so the minted
+// token is sender-constrained to the agent key.
+func clientCredentials(ctx context.Context, md *discoveryv1.ServerMetadata, assertion, proof string) (*tokenResponse, error) {
 	params := url.Values{}
 	params.Add("grant_type", oidc.GrantTypeClientCredentials)
 	params.Add("scope", "openid")
 	params.Add("resource", mcpServerURI)
 	params.Add("client_assertion_type", oidc.AssertionTypeJWTBearer)
 	params.Add("client_assertion", assertion)
-	return postToken(ctx, md.TokenEndpoint, params, "")
+	return postToken(ctx, md.TokenEndpoint, params, proof)
 }
 
 // tokenExchange performs the first RFC 8693 hop: the user's token as

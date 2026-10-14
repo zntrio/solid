@@ -234,11 +234,12 @@ func TestACEAdversarialCodecHints(t *testing.T) {
 	// never emit an empty map for a fully-specified hint set.
 	got := ace.EncodeASRequestCreationHints("coaps://as/token", "coaps://rs", "temperature:read")
 	require.NotEmpty(t, got)
-	// Wire shape: exactly the three members (16, 5, 9).
+	// Wire shape: exactly the three members (1, 5, 9) per RFC 9200
+	// Table 1 (AS=1, audience=5, scope=9).
 	decoded := map[int]any{}
 	err := cbor.Unmarshal(got, &decoded)
 	require.NoError(t, err)
-	for _, k := range []int{16, 5, 9} {
+	for _, k := range []int{1, 5, 9} {
 		_, ok := decoded[k]
 		assert.True(t, ok, "hints payload missing member %d", k)
 	}
@@ -281,7 +282,7 @@ func TestACEAdversarialKeyConstantDrift(t *testing.T) {
 		"rs_cnf":       {ace.KeyRsCnf, 41},
 		"cose_key":     {ace.CnfCoseKey, 1},
 		"cnf kid":      {ace.CnfKid, 3},
-		"as hints":     {ace.KeyAS, 16},
+		"as hints":     {ace.KeyAS, 1},
 	} {
 		assert.Equal(t, want.want, want.got, "%s constant drifted", k)
 	}

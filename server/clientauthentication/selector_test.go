@@ -131,6 +131,18 @@ func TestProcessorSetSelect(t *testing.T) {
 			wantOK:        true,
 		},
 		{
+			name:          "tls cert, client registered for self_signed_tls_client_auth",
+			tlsClientCert: "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
+			clientIDParam: "selfsigned-client",
+			storageClient: &clientv1.Client{
+				ClientId:                "selfsigned-client",
+				TokenEndpointAuthMethod: oidc.AuthMethodSelfSignedTLSClientAuth,
+			},
+			wantMethod:    oidc.AuthMethodSelfSignedTLSClientAuth,
+			wantProcessor: "SelfSignedTLSClientAuth",
+			wantOK:        true,
+		},
+		{
 			name:          "tls cert, no client_id parameter",
 			tlsClientCert: "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n",
 			wantMethod:    oidc.AuthMethodSPIFFEX509,
@@ -201,6 +213,8 @@ func processorName(set ProcessorSet, proc AuthenticationProcessor) string {
 		return "SPIFFEX509"
 	case set.TLSClientAuth:
 		return "TLSClientAuth"
+	case set.SelfSignedTLSClientAuth:
+		return "SelfSignedTLSClientAuth"
 	default:
 		return "unknown"
 	}

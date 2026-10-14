@@ -189,3 +189,16 @@ func TestToClient(t *testing.T) {
 		}
 	})
 }
+
+func TestToClientRejectsUserinfoRedirectURI(t *testing.T) {
+	// https://client.example.org@evil.com/cb — the userinfo form changes
+	// the effective host (evil.com) while displaying as the client's
+	// origin: rejected in both the CIMD gate and the registration gate.
+	doc := &Document{
+		ClientID:     "https://c.example.org/x",
+		RedirectUris: []string{"https://client.example.org@evil.com/cb"},
+	}
+	if _, err := doc.ToClient(); err == nil {
+		t.Fatal("userinfo redirect URI must be rejected")
+	}
+}

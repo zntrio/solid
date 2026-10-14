@@ -163,7 +163,11 @@ What each demo exercises:
   authorization_code redemption, then a first RFC 8693 token exchange
   toward the MCP tool server (`mcpserver`: the AS delegation policy mints
   `may_act=[the MCP server]` on the delegated token) and the
-  `get_signed_timestamp` tool invocation. The MCP server re-delegates
+  `get_signed_timestamp` tool invocation. Both the agent and the MCP
+  server are CIMD clients governed by the AS metadata policy (D-21:
+  OpenID Federation 1.0 §6.1.3.1 operators — `dpop_bound_access_tokens`
+  is defaulted, so their client_credentials actor tokens are
+  DPoP-proved and sender-bound). The MCP server re-delegates
   (second RFC 8693 exchange: `cnf` re-bound to its proof key, act chain
   `[mcp, agent]`) to the backend resource server, which evaluates the
   carried `mcp_tools` detail (introspection exposes the `act` chain, the

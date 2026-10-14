@@ -438,6 +438,23 @@ Every claim in this document has one of the four evidence kinds above. A claim w
 - Model: `spec/solid.qnt` I1-I7, `spec/xaa.qnt` J1-J7, `spec/clientcredentials.qnt` CC1-CC6, `spec/devicecode.qnt` D1-D7, `spec/tokenexchange.qnt` T1-T8, `spec/ciba.qnt` B1-B8 — verification runs recorded in `spec/README.md`.
 - Code: findings F1-F4 fixes cited in `spec/README.md`.
 
+### D-21 — CIMD documents are policy-governed before enforcement — **REPRESENTS + HARDENS**
+
+**Decision.** Client ID Metadata Documents fetched at resolution time pass through a client metadata policy (OpenID Federation 1.0 §6.1.3.1 standard operators: `value`, `add`, `default`, `one_of`, `subset_of`, `superset_of`, `essential`, applied in the spec's order) BEFORE the draft's §4.1 credential and key-material enforcement. The policy-applied document is what the restrictions validate. The policy is operator configuration at assembly level (`cimd.NewPolicyResolver`), one global JSON object per deployment, applied inside the operator-pinned allow-list. A violation fails the whole client — the same unknown-client error surface as an unfetchable document.
+
+**Relation.** OpenID Federation 1.0 Final (vendored, `docs/rfcs/openid-federation-1_0.txt`) defines the operators for Trust Chain metadata. SolID applies the vocabulary to a different transport (CIMD over the OAuth client role) without the federation trust machinery. Two hardenings: policy entries naming `client_id` are rejected outright (the identifier match of draft §4 is an invariant a policy must not rewrite — the Federation spec has no such rule); and the before-enforcement ordering itself (the spec has no equivalent because its enforcement point differs).
+
+**Override statement.** A fetched client's final metadata is the policy-applied document, never the raw fetch. The §4.1 restrictions (no shared-secret methods, no secrets, no private key material) MUST validate the final document. Redirect URIs in the final document (including policy-added ones) MUST be https or RFC 8252 loopback, fragment-free — the same rule the registration endpoint enforces.
+
+**Reason.** A fetched client should behave like a well-registered one: the operator defaults, constrains, and augments remote metadata instead of trusting it to self-declare a secure posture. The example AS policy defaults `dpop_bound_access_tokens` for CIMD clients — the AI-agent examples (`agentclient`, `mcpserver`) prove DPoP on every token request accordingly (actor tokens mint `token_type: DPoP` with `cnf.jkt`), and the pre-policy gap (a proof-less client_credentials mint for the agent) is closed by the policy, not by trusting the remote document.
+
+**Evidence.**
+- Code: `sdk/cimd/policy.go` — the seven operators, spec application order, Table 1 essential+subset matrix, scope space-list rule.
+- Code: `sdk/cimd/resolver.go` — `NewPolicyResolver` seam (policy between identifier match and `ToClient`), double client_id re-check.
+- Code: `sdk/cimd/document.go` — redirect-URI gate on the final document (gap closed).
+- Code: `examples/authorizationserver/main.go` — the demonstration policy inside the allow-list stack.
+- Tests: `sdk/cimd/policy_test.go` (16 operator cases incl. the smuggle-proof order), `policy_resolver_test.go` (9 e2e/adversarial incl. the AI-agent dpop default), `client_cimd_e2e_test.go` (+2 policy subtests). Live end-to-end run recorded in `docs/COMPLIANCE_REPORT.md` §2.52.
+
 ---
 
 ## 7. Decision index
@@ -464,6 +481,7 @@ Every claim in this document has one of the four evidence kinds above. A claim w
 | D-18 | Application-type strict profiles | RFC 7591 (beyond) | ENHANCES |
 | D-19 | Protovalidate-first three-level validation | none (architecture) | ENHANCES |
 | D-20 | Quint formal models as flow ground truth | none (beyond standards) | ENHANCES |
+| D-21 | CIMD documents are policy-governed before enforcement | OpenID Federation 1.0 §6.1.3.1, CIMD-02 | REPRESENTS + HARDENS |
 
 ---
 

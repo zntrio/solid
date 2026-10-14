@@ -197,7 +197,7 @@ func TestEncodeErrorGolden(t *testing.T) {
 
 func TestEncodeASRequestCreationHintsGolden(t *testing.T) {
 	got := EncodeASRequestCreationHints("coaps://127.0.0.1:5684/token", "coaps://127.0.0.1:5685", "temperature:read")
-	want := mustHex(t, "a30576636f6170733a2f2f3132372e302e302e313a35363835097074656d70657261747572653a7265616410781c636f6170733a2f2f3132372e302e302e313a353638342f746f6b656e")
+	want := mustHex(t, "a301781c636f6170733a2f2f3132372e302e302e313a353638342f746f6b656e0576636f6170733a2f2f3132372e302e302e313a35363835097074656d70657261747572653a72656164")
 	if !bytes.Equal(got, want) {
 		t.Errorf("EncodeASRequestCreationHints() = %x, want %x", got, want)
 	}

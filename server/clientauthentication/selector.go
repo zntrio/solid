@@ -33,12 +33,13 @@ import (
 // presentation-agnostic: HTTP, gRPC or any other transport feeds it the
 // same credential surface extracted from its own request encoding.
 type ProcessorSet struct {
-	PrivateKeyJWT     AuthenticationProcessor
-	ClientAttestation AuthenticationProcessor
-	SPIFFEJWT         AuthenticationProcessor
-	SPIFFEWIT         AuthenticationProcessor
-	SPIFFEX509        AuthenticationProcessor
-	TLSClientAuth     AuthenticationProcessor
+	PrivateKeyJWT           AuthenticationProcessor
+	ClientAttestation       AuthenticationProcessor
+	SPIFFEJWT               AuthenticationProcessor
+	SPIFFEWIT               AuthenticationProcessor
+	SPIFFEX509              AuthenticationProcessor
+	TLSClientAuth           AuthenticationProcessor
+	SelfSignedTLSClientAuth AuthenticationProcessor
 }
 
 // NewProcessorSet builds the processor set from the shared server
@@ -52,12 +53,13 @@ func NewProcessorSet(clients storage.ClientReader, issuer string,
 	dpopProofs storage.DPoP,
 ) ProcessorSet {
 	return ProcessorSet{
-		PrivateKeyJWT:     PrivateKeyJWT(clients, dpopProofs, issuer, supportedAlgorithms),
-		ClientAttestation: ClientAttestation(clients, dpopProofs, issuer, supportedAlgorithms),
-		SPIFFEJWT:         SPIFFEJWT(clients, spiffeBundles, dpopProofs, issuer, supportedAlgorithms),
-		SPIFFEWIT:         SPIFFEWIT(clients, spiffeBundles, dpopProofs, issuer, supportedAlgorithms),
-		SPIFFEX509:        SPIFFEX509(clients, spiffeBundles),
-		TLSClientAuth:     TLSClientAuth(clients),
+		PrivateKeyJWT:           PrivateKeyJWT(clients, dpopProofs, issuer, supportedAlgorithms),
+		ClientAttestation:       ClientAttestation(clients, dpopProofs, issuer, supportedAlgorithms),
+		SPIFFEJWT:               SPIFFEJWT(clients, spiffeBundles, dpopProofs, issuer, supportedAlgorithms),
+		SPIFFEWIT:               SPIFFEWIT(clients, spiffeBundles, dpopProofs, issuer, supportedAlgorithms),
+		SPIFFEX509:              SPIFFEX509(clients, spiffeBundles),
+		TLSClientAuth:           TLSClientAuth(clients),
+		SelfSignedTLSClientAuth: SelfSignedTLSClientAuth(clients),
 	}
 }
 
@@ -85,26 +87,33 @@ func (p *ProcessorSet) Select(ctx context.Context, clients storage.ClientReader,
 		}
 		return p.ClientAttestation, oidc.AuthMethodClientAttestationJWT, true
 	case authMethod == "" && tlsClientCertPEM != "":
-		// RFC 8705 section 2.1 takes precedence when the resolved
-		// client is registered for tls_client_auth; otherwise the
-		// certificate is an X.509-SVID candidate (SPIFFE draft
-		// section 3.2). A storage failure fails closed: the request is
-		// not silently re-routed to a different authentication method.
-		if clientIDParam != "" {
-			registered, err := clients.Get(ctx, clientIDParam)
-			switch {
-			case err == nil && registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth:
-				return p.TLSClientAuth, oidc.AuthMethodTLSClientAuth, true
-			case err != nil && !errors.Is(err, storage.ErrNotFound):
-				// Infrastructure failure: refuse to authenticate rather
-				// than degrading to the SPIFFE X.509-SVID path.
-				return nil, "", false
-			}
-		}
-		return p.SPIFFEX509, oidc.AuthMethodSPIFFEX509, true
+		return p.selectTLSMethod(ctx, clients, clientIDParam)
 	case authMethod == oidc.AssertionTypeJWTBearer:
 		return p.PrivateKeyJWT, oidc.AuthMethodPrivateKeyJWT, true
 	default:
 		return nil, "", false
 	}
+}
+
+// selectTLSMethod resolves a presented TLS client certificate to the
+// matching authentication method. RFC 8705 sections 2.1/2.2 take
+// precedence when the resolved client is registered for the matching
+// mTLS method; otherwise the certificate is an X.509-SVID candidate
+// (SPIFFE draft section 3.2). A storage failure fails closed: the
+// request is not silently re-routed to a different authentication method.
+func (p *ProcessorSet) selectTLSMethod(ctx context.Context, clients storage.ClientReader, clientIDParam string) (AuthenticationProcessor, string, bool) {
+	if clientIDParam != "" {
+		registered, err := clients.Get(ctx, clientIDParam)
+		switch {
+		case err == nil && registered.TokenEndpointAuthMethod == oidc.AuthMethodTLSClientAuth:
+			return p.TLSClientAuth, oidc.AuthMethodTLSClientAuth, true
+		case err == nil && registered.TokenEndpointAuthMethod == oidc.AuthMethodSelfSignedTLSClientAuth:
+			return p.SelfSignedTLSClientAuth, oidc.AuthMethodSelfSignedTLSClientAuth, true
+		case err != nil && !errors.Is(err, storage.ErrNotFound):
+			// Infrastructure failure: refuse to authenticate rather
+			// than degrading to the SPIFFE X.509-SVID path.
+			return nil, "", false
+		}
+	}
+	return p.SPIFFEX509, oidc.AuthMethodSPIFFEX509, true
 }

@@ -103,10 +103,10 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 		client, err := clients.Get(ctx, clientID)
 		if err != nil {
 			if errors.Is(err, storage.ErrNotFound) {
-				log.Println("unknown client on authorization endpoint:", err)
+				log.Printf("unknown client on authorization endpoint: %q", err)
 				WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			} else {
-				log.Println("unable to retrieve client:", err)
+				log.Printf("unable to retrieve client: %q", err)
 				WithError(w, r, http.StatusInternalServerError, rfcerrors.ServerError().Build())
 			}
 			return
@@ -171,7 +171,7 @@ func Authorization(issuer string, authz services.Authorization, clients storage.
 			AuthEvent: authEvent,
 		})
 		if err != nil {
-			log.Println("unable to process authorization request:", err)
+			log.Printf("unable to process authorization request: %q", err)
 			if res != nil && res.RedirectUri != "" {
 				redirectAuthorizationError(w, r, res.RedirectUri, issuer, res.Error, ar.State)
 				return
@@ -222,7 +222,7 @@ func decodeAuthorizationRequest(w http.ResponseWriter, r *http.Request, decoder 
 	if err == nil {
 		return ar, nil
 	}
-	log.Println("unable to decode request:", err)
+	log.Printf("unable to decode request: %q", err)
 	if uri := redirectURIFromRequest(ar); uri != "" {
 		redirectAuthorizationError(w, r, uri, issuer, rfcerrors.InvalidRequest().Build(), ar.State)
 		return nil, errRedirected

@@ -349,18 +349,54 @@ func rejectSpecialUseHost(rawURL string) error {
 
 // specialUseGuardingDialContext wraps the transport's dialer with one that
 // refuses special-use destinations, defending against DNS rebinding between
-// the pre-flight resolution and the actual connection.
+// the pre-flight resolution and the actual connection: the destination is
+// re-resolved here — hostnames included, since a rebound A/AAAA record would
+// otherwise resolve inside net.Dialer where this guard never sees it — and
+// every candidate address is checked before the dial proceeds.
 func specialUseGuardingDialContext(t *http.Transport, timeout time.Duration) func(ctx context.Context, network, addr string) (net.Conn, error) {
 	base := t.DialContext
 	if base == nil {
 		base = (&net.Dialer{Timeout: timeout}).DialContext
 	}
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		if host, _, err := net.SplitHostPort(addr); err == nil {
-			if ip, ipErr := netip.ParseAddr(host); ipErr == nil && isSpecialUseAddr(ip) {
+		host, port, err := net.SplitHostPort(addr)
+		if err != nil {
+			return nil, fmt.Errorf("httpfetch: unable to parse dial address %q: %w", addr, err)
+		}
+		if ip, ipErr := netip.ParseAddr(host); ipErr == nil {
+			// Literal IP destination: check and dial as-is.
+			if isSpecialUseAddr(ip) {
 				return nil, fmt.Errorf("httpfetch: refusing to dial special-use address %s", host)
 			}
+			return base(ctx, network, addr)
 		}
-		return base(ctx, network, addr)
+		// Hostname destination: resolve here so every address is visible
+		// to the special-use check — net.Dialer would resolve internally,
+		// hiding a rebound record from this guard. Dialing the resolved
+		// form pins the connection to a checked address (no second
+		// resolution window).
+		addrs, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
+		if err != nil {
+			return nil, fmt.Errorf("httpfetch: unable to resolve host %s: %w", host, err)
+		}
+		if len(addrs) == 0 {
+			return nil, fmt.Errorf("httpfetch: no address resolved for host %s", host)
+		}
+		var lastErr error
+		for _, a := range addrs {
+			if isSpecialUseAddr(a) {
+				return nil, fmt.Errorf("httpfetch: refusing to dial %s: resolves to special-use address %s", host, a)
+			}
+			conn, dialErr := base(ctx, network, net.JoinHostPort(a.String(), port))
+			if dialErr == nil {
+				return conn, nil
+			}
+			lastErr = dialErr
+			if ctx.Err() != nil {
+				return nil, dialErr
+			}
+		}
+		// Every checked candidate failed to connect.
+		return nil, fmt.Errorf("httpfetch: unable to connect to %s: %w", addr, lastErr)
 	}
 }

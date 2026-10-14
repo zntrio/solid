@@ -116,7 +116,7 @@ func Token(issuer string, tokenz services.Token, dpopVerifier dpop.Verifier, pro
 		// Send request to reactor
 		res, err := tokenz.Token(ctx, msg)
 		if err != nil {
-			log.Println("unable to process token request:", err)
+			log.Printf("unable to process token request: %q", err)
 			// res may be nil on infrastructure failure; WithError is
 			// nil-safe.
 			if res != nil {
@@ -241,7 +241,7 @@ func applyDPoPConfirmation(ctx context.Context, msg *flowv1.TokenRequest, r *htt
 	// Check dpop proof
 	jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
 	if err != nil {
-		log.Println("unable to validate dpop proof:", err)
+		log.Printf("unable to validate dpop proof: %q", err)
 		return rfcerrors.InvalidDPoPProof().Build()
 	}
 	// Add confirmation

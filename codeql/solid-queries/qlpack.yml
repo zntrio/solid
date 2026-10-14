@@ -1,0 +1,6 @@
+name: zntrio/solid-queries
+version: 0.1.0
+library: false
+dependencies:
+  codeql/go-all: ^8.0.0
+suites: suites

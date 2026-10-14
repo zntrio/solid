@@ -72,7 +72,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		// Check dpop proof
 		jkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), dpopProof)
 		if err != nil {
-			log.Println("unable to validate dpop proof:", err)
+			log.Printf("unable to validate dpop proof: %q", err)
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidDPoPProof().Build())
 			return
 		}
@@ -83,7 +83,7 @@ func PushedAuthorizationRequest(issuer string, authz services.Authorization, dpo
 		// Decode request
 		ar, err := clientRequestDecoder.Decode(ctx, requestRaw)
 		if err != nil {
-			log.Println("unable to decode request:", err)
+			log.Printf("unable to decode request: %q", err)
 			WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
 			return
 		}

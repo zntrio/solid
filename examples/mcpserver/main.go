@@ -193,7 +193,7 @@ func toolInvoker(cli client.Client, md *discoveryv1.ServerMetadata, prover dpop.
 		// ath binding the token value.
 		proofJkt, err := dpopVerifier.Verify(ctx, r.Method, dpop.CleanURL(r), r.Header.Get("DPoP"), dpop.WithTokenValue(parts[1]))
 		if err != nil {
-			log.Printf("dpop verification failed: %v", err)
+			log.Printf("dpop verification failed: %q", err)
 			challengeInvalidToken(w)
 			return
 		}

@@ -81,7 +81,7 @@ func BackchannelValidation(issuer string, backchannelz services.BackchannelAuthe
 			AuthReqId: r.PostFormValue("auth_req_id"),
 		})
 		if err != nil {
-			log.Println("unable to process backchannel validation request:", err)
+			log.Printf("unable to process backchannel validation request: %q", err)
 			// res may be nil on infrastructure failure; WithError is
 			// nil-safe.
 			if res != nil {

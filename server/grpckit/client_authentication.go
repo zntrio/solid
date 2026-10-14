@@ -88,7 +88,7 @@ func (s *clientAuthenticationService) Authenticate(ctx context.Context, req *cli
 		req.GetTlsClientCert() == "" {
 		client, err := s.clients.Get(ctx, req.GetClientId())
 		if err != nil {
-			log.Println("grpc client authentication: unable to retrieve client:", err)
+			log.Printf("grpc client authentication: unable to retrieve client: %q", err)
 			return &clientv1.AuthenticateResponse{
 				Error: rfcerrors.InvalidClient().Build(),
 			}, nil
@@ -116,7 +116,7 @@ func (s *clientAuthenticationService) Authenticate(ctx context.Context, req *cli
 
 	res, err := authenticator.Authenticate(ctx, req)
 	if err != nil {
-		log.Println("grpc client authentication:", err)
+		log.Printf("grpc client authentication: %q", err)
 	}
 	if res == nil {
 		return nil, status.Error(codes.Internal, "no response")

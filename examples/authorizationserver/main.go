@@ -227,7 +227,11 @@ func main() {
 	// Request encoders
 	keys := keyProvider()
 	keySet := keySetProvider()
-	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(keySet, clientAssertionAlgorithms))
+	// RFC 9449 section 4.2: DPoP proofs are self-asserted — their only
+	// trust anchor is the public key embedded in the proof's jwk header.
+	// They are NOT verified against the AS key set (which would reject
+	// every conforming client); the AS algorithms allowlist still applies.
+	dpopVerifier := dpop.DefaultVerifier(proofs, jwt.EmbeddedKeyVerifier(clientAssertionAlgorithms))
 	jarmEncoder := jarm.Encoder(jwt.JARMSigner(jwk.MLDSA65, keys))
 	pairwiseEncoder := pairwise.Hash(examplePairwiseSalt())
 

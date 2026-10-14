@@ -22,21 +22,31 @@
 // resolves to the cimddemo fixture document at authentication time. The
 // document declares the private_key_jwt method with an ML-DSA-65 key, so the
 // client builds a JWT assertion signed with the fixture seed and exchanges it
-// for an access token at the token endpoint, then presents the token to the
-// example resource server, which introspects it under the
+// for a DPoP-bound access token at the token endpoint (the example AS policy
+// applies dpop_bound_access_tokens to resolved documents, so the request also
+// carries a DPoP proof of the same key, RFC 9449 section 5), then presents
+// the token to the example resource server, which introspects it under the
 // authorized_introspection_clients grant declared in the document.
 package main
 
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"zntr.io/solid/client"
 	"zntr.io/solid/examples/authorizationserver/cimddemo"
 	exampleenv "zntr.io/solid/examples/internal/exampleenv"
 	"zntr.io/solid/examples/internal/flowlog"
+	"zntr.io/solid/sdk/dpop"
+	"zntr.io/solid/sdk/jwk"
+	"zntr.io/solid/sdk/token/jwt"
 )
 
 func main() {
@@ -78,6 +88,10 @@ func run() error {
 		return fmt.Errorf("unable to create oidc client: %w", err)
 	}
 
+	// The DPoP prover of the client key (AKP, ML-DSA-65): proofs for the
+	// token endpoint and any DPoP-bound resource access.
+	prover := dpopProver(jwkDoc)
+
 	// Build the private_key_jwt client assertion. The authorization server
 	// resolves the identifier through its Client ID Metadata Document
 	// (cimd.Resolver) and verifies the assertion with the JWKS the document
@@ -86,13 +100,21 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to build client assertion: %w", err)
 	}
-
-	// Exchange the assertion for an access token (client_credentials).
-	token, err := oidcClient.ClientCredentials(ctx, assertion)
+	// The example AS policy resolves CIMD documents with
+	// dpop_bound_access_tokens=true (authorizationserver main.go): the
+	// minted token is sender-constrained, so the token request MUST carry
+	// a DPoP proof of the client's key (RFC 9449 section 5). The proof is
+	// minted with the same ML-DSA key that signs the assertion; the
+	// derived token carries cnf.jkt and token_type=DPoP.
+	proof, err := prover.Prove(http.MethodPost, issuer+"/token")
+	if err != nil {
+		return fmt.Errorf("unable to mint dpop proof: %w", err)
+	}
+	token, err := fetchAccessToken(ctx, issuer, assertion, proof)
 	if err != nil {
 		return fmt.Errorf("unable to retrieve access token: %w", err)
 	}
-	fmt.Printf("Access Token: %s\n", token.AccessToken)
+	fmt.Printf("Access Token: %s (token_type=%s)\n", token.AccessToken, token.TokenType)
 
 	// Let the token become usable (nbf is iat+1 at the authorization
 	// server) and the storage indexes settle.
@@ -111,4 +133,48 @@ func run() error {
 	fmt.Printf("Introspection: client_id=%s status=%s\n", it.Metadata.GetClientId(), it.Status)
 
 	return nil
+}
+
+// dpopProver prepares the DPoP prover backed by the client ML-DSA key
+// (the same fixture key that signs the private_key_jwt assertion).
+func dpopProver(jwkDoc string) dpop.Prover {
+	keySet, err := jwk.Parse([]byte(jwkDoc))
+	if err != nil {
+		panic(err)
+	}
+	key, _ := keySet.Key(0)
+	return dpop.DefaultProver(jwt.DPoPSigner("ML-DSA-65", func(context.Context) (jwk.Key, error) {
+		return key, nil
+	}))
+}
+
+// fetchAccessToken drives the token endpoint with the client assertion and
+// the DPoP proof, and decodes the issued access token.
+func fetchAccessToken(ctx context.Context, issuer, assertion, proof string) (*client.Token, error) {
+	params := url.Values{}
+	params.Add("grant_type", "client_credentials")
+	params.Add("resource", "http://127.0.0.1:8085") // RFC 8707 resource indicator: the timestamp service
+	params.Add("scope", "timestamp:read")
+	params.Add("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	params.Add("client_assertion", assertion)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, issuer+"/token", strings.NewReader(params.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("unable to prepare token request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("DPoP", proof)
+	resp, err := flowlog.New().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to request token: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		return nil, fmt.Errorf("token request failed with %s: %s", resp.Status, body)
+	}
+	var token client.Token
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&token); err != nil {
+		return nil, fmt.Errorf("unable to decode token response: %w", err)
+	}
+	return &token, nil
 }

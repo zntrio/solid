@@ -20,10 +20,10 @@ package dpop
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 
 	"go.uber.org/mock/gomock"
-
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
 )
@@ -172,5 +172,16 @@ func Test_defaultProver_Prove(t *testing.T) {
 				t.Errorf("defaultProver.Prove() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// Test_defaultProver_JTIEntropy pins RFC 9449 section 4.2: the prover's
+// jti MUST encode at least 96 bits of pseudorandom data. The alphanumeric
+// alphabet carries log2(62) ≈ 5.954 bits per char, so JTICodeLength MUST
+// be at least ceil(96 / log2(62)) = 17.
+func Test_defaultProver_JTIEntropy(t *testing.T) {
+	if float64(JTICodeLength)*math.Log2(62) < 96 {
+		t.Fatalf("JTICodeLength = %d carries only %.1f bits, RFC 9449 section 4.2 requires at least 96",
+			JTICodeLength, float64(JTICodeLength)*math.Log2(62))
 	}
 }

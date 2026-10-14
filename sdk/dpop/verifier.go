@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"golang.org/x/crypto/blake2b"
-
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/types"
 )
@@ -263,6 +262,14 @@ func (v *defaultVerifier) validateProofClaims(htm, htu string, claims *proofClai
 	// identity.
 	if claims.JTI == "" {
 		return "", fmt.Errorf("invalid proof: jti must not be blank")
+	}
+
+	// RFC 9449 section 11.1: a server tracking jti values "should reject
+	// DPoP proof JWTs with unnecessarily large jti values". The store
+	// keeps only a hash, but the claim itself is unbounded request input;
+	// cap it well above any legitimate encoding of 96+ random bits.
+	if len(claims.JTI) > MaxJTILength {
+		return "", fmt.Errorf("invalid proof: jti is too long")
 	}
 
 	// Compute jti hash

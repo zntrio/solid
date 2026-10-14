@@ -18,5 +18,6 @@
 package ace
 
 // KeyAS is the "as" (AS Request Creation Hints) abbreviation from
-// RFC 9200 Table 1; KeyAudience and KeyScope above are shared.
-const KeyAS = 16
+// RFC 9200 Table 1 (registered CBOR key 1; see Figure 3: "01 # unsigned(1)
+// (=AS)"). KeyAudience and KeyScope above are shared Table-1 members.
+const KeyAS = 1

@@ -75,7 +75,7 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				// Retrieve client details
 				client, err := clients.Get(ctx, clientIDRaw)
 				if err != nil {
-					log.Println("unable to retrieve client:", err)
+					log.Printf("unable to retrieve client: %q", err)
 					WithError(w, r, http.StatusUnauthorized, rfcerrors.InvalidClient().Build())
 					return
 				}
@@ -166,7 +166,7 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				req.Endpoint = &receivingEndpoint
 				resAuth, err := authenticator.Authenticate(ctx, req)
 				if err != nil {
-					log.Println("unable to authenticate client:", err)
+					log.Printf("unable to authenticate client: %q", err)
 					status := http.StatusUnauthorized
 					e := rfcerrors.InvalidClient().Build()
 					if resAuth != nil && resAuth.GetError() != nil {

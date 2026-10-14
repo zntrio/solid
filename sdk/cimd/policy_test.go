@@ -308,3 +308,34 @@ func TestPolicyValueArrayForScope(t *testing.T) {
 	out := mustApply(t, p, `{"scope": "openid"}`)
 	assert.Contains(t, out, `"scope":"openid email"`)
 }
+
+func TestPolicyRejectsOversizedArray(t *testing.T) {
+	// A client-controlled metadata array must never size server-side
+	// merge allocations without a bound: an array longer than
+	// maxArrayEntries is a policy failure (the client is unknown).
+	tooMany := strings.Repeat(`"x",`, maxArrayEntries) + `"x"`
+	p := mustPolicy(t, `{"contacts": {"add": ["admin@example.com"]}}`)
+	_, err := applyTo(t, p, `{"contacts": [`+tooMany+`]}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds the maximum")
+}
+
+func TestPolicyAcceptsArrayAtCap(t *testing.T) {
+	// Exactly maxArrayEntries is the boundary: accepted, merged.
+	atCap := strings.Repeat(`"x",`, maxArrayEntries-1) + `"x"`
+	p := mustPolicy(t, `{"contacts": {"add": ["admin@example.com"]}}`)
+	out, err := applyTo(t, p, `{"contacts": [`+atCap+`]}`)
+	require.NoError(t, err)
+	assert.Contains(t, string(out["contacts"]), "admin@example.com")
+}
+
+func TestPolicyRejectsOversizedScopeTokenList(t *testing.T) {
+	// The scope special case merges a space-separated string (spec
+	// 6.1.3.1.8): the token count is capped like array entries so a
+	// hostile scope string cannot bypass the array bound.
+	toks := strings.Repeat("x ", maxArrayEntries) + "x"
+	p := mustPolicy(t, `{"scope": {"add": ["email"]}}`)
+	_, err := applyTo(t, p, `{"scope": "`+toks+`"}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds the maximum")
+}

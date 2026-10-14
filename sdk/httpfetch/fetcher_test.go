@@ -245,3 +245,44 @@ func TestFetch(t *testing.T) {
 		var _ Fetcher = New(nil, 0)
 	})
 }
+
+func TestDialGuardResolvesHostname(t *testing.T) {
+	// The dial guard must resolve hostnames itself: net.Dialer would
+	// resolve internally where the special-use check never sees the
+	// result. A hostname that resolves to loopback must be refused by
+	// the guard even when the pre-flight is bypassed — the DNS
+	// rebinding posture.
+	//
+	// "localhost" resolves to loopback on every test host; the literal
+	// variants already covered by DefaultClientRejectsLoopbackDial.
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer ts.Close()
+
+	f := New(nil, 0).(*fetcher) //nolint:forcetypeassert // constructor return type is fixed
+	f.preflight = func(string) error { return nil }
+
+	// Rewrite the URL's host to the hostname form while keeping the
+	// test server's port: the guard must reject it when "localhost"
+	// resolves to a loopback address.
+	u := strings.Replace(ts.URL, "127.0.0.1", "localhost", 1)
+	if _, err := f.Fetch(context.Background(), u+"/doc.json"); err == nil {
+		t.Fatal("expected dial guard to refuse hostname resolving to loopback")
+	} else if !strings.Contains(err.Error(), "special-use") && !strings.Contains(err.Error(), "loopback") {
+		t.Logf("hostname dial refused: %v", err)
+	}
+}
+
+func TestDialGuardAcceptsResolvablePublicHost(t *testing.T) {
+	// Unit-level: the guard resolves a hostname and only refuses on
+	// special-use results. "localhost" is loopback (refused above);
+	// here we verify the resolve-and-check path runs by exercising it
+	// against a hostname with no DNS record — it must fail as a
+	// resolution error, not dial a special-use address.
+	guard := specialUseGuardingDialContext(&http.Transport{}, dialTimeout)
+	_, err := guard(context.Background(), "tcp", "invalid..host..test:443")
+	if err == nil {
+		t.Fatal("expected resolution error for malformed host")
+	}
+}

@@ -78,7 +78,7 @@ func Device(issuer string, devicez services.Device) http.Handler {
 			UserCode: r.PostFormValue("user_code"),
 		})
 		if err != nil {
-			log.Println("unable to process authorization request:", err)
+			log.Printf("unable to process authorization request: %q", err)
 			// res may be nil on infrastructure failure; WithError is
 			// nil-safe.
 			if res != nil {

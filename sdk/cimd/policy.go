@@ -330,13 +330,25 @@ func isJSONNull(v json.RawMessage) bool {
 	return string(v) == jsonNull
 }
 
+// maxArrayEntries bounds how many elements a single metadata or operator
+// array may carry into a policy merge. Metadata documents are fetched
+// client-controlled JSON of at most DefaultMaxResponseBytes; this cap keeps
+// the merge memory deterministic (map/slice sizing in opAdd and the scope
+// list union) even if the upstream document size cap is ever raised.
+const maxArrayEntries = 512
+
 // asStringArray decodes a raw value that must be a JSON array of
 // strings (the mandatory operator shape for add/one_of/subset_of/
-// superset_of values, and the array side of metadata values).
+// superset_of values, and the array side of metadata values). Arrays
+// longer than maxArrayEntries are rejected: a client-controlled array
+// must never size server-side merge allocations without a bound.
 func asStringArray(v json.RawMessage) ([]string, error) {
 	var arr []string
 	if err := json.Unmarshal(v, &arr); err != nil {
 		return nil, fmt.Errorf("expected an array of strings, got %s", jsonType(v))
+	}
+	if len(arr) > maxArrayEntries {
+		return nil, fmt.Errorf("array of %d entries exceeds the maximum of %d", len(arr), maxArrayEntries)
 	}
 	return arr, nil
 }
@@ -421,9 +433,17 @@ func addSpaceList(current json.RawMessage, addVals []string) (json.RawMessage, e
 	if err := json.Unmarshal(current, &s); err != nil {
 		return nil, err
 	}
-	seen := make(map[string]struct{}, len(s)+len(addVals))
-	out := make([]string, 0, len(s)+len(addVals))
-	for _, tok := range strings.Fields(s) {
+	toks := strings.Fields(s)
+	total := len(toks) + len(addVals)
+	if total > maxArrayEntries {
+		return nil, fmt.Errorf("scope list of %d tokens exceeds the maximum of %d", total, maxArrayEntries)
+	}
+	// Size the allocations from the bounded token count alone: a sum
+	// in a make size is an allocation-overflow hazard under hostile
+	// input, and the cap above keeps growth negligible anyway.
+	seen := make(map[string]struct{}, len(toks))
+	out := make([]string, 0, len(toks))
+	for _, tok := range toks {
 		if _, ok := seen[tok]; !ok {
 			seen[tok] = struct{}{}
 			out = append(out, tok)

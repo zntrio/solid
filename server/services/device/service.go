@@ -249,7 +249,7 @@ func (s *service) Validate(ctx context.Context, req *flowv1.DeviceCodeValidation
 	attemptsKey := req.Issuer + "\x00" + req.Subject
 	if s.userCodeAttempts.Failures(ctx, attemptsKey) >= maxUserCodeAttempts {
 		res.Error = rfcerrors.AccessDenied().Build()
-		return res, fmt.Errorf("too many failed attempts for subject '%s'", req.Subject)
+		return res, fmt.Errorf("too many failed attempts for subject")
 	}
 
 	// Resolve device code

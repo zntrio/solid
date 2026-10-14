@@ -59,7 +59,7 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
 
 func roundTrip(req *http.Request) (*http.Response, error) {
-	fmt.Printf("→ %s %s\n", req.Method, req.URL)
+	fmt.Printf("→ %s %q\n", req.Method, req.URL)
 
 	// Request headers, redacting the cryptographic ones.
 	printHeaders(req.Header)
@@ -121,7 +121,7 @@ func printHeaders(headers http.Header) {
 	sort.Strings(names)
 	for _, name := range names {
 		for _, v := range headers[name] {
-			fmt.Printf("  %s: %s\n", name, redactHeaderValue(name, v))
+			fmt.Printf("  %s: %q\n", name, redactHeaderValue(name, v))
 		}
 	}
 }
@@ -145,9 +145,9 @@ func printRequestBody(req *http.Request, body []byte) {
 		for _, pair := range strings.Split(string(body), "&") {
 			k, v, _ := strings.Cut(pair, "=")
 			if isSecretParam(k) && len(v) > 48 {
-				fmt.Printf("  %s=%s…(+%d bytes)\n", k, v[:48], len(v)-48)
+				fmt.Printf("  %q=%q…(+%d bytes)\n", k, v[:48], len(v)-48)
 			} else {
-				fmt.Printf("  %s=%s\n", k, v)
+				fmt.Printf("  %q=%q\n", k, v)
 			}
 		}
 		return
@@ -155,7 +155,7 @@ func printRequestBody(req *http.Request, body []byte) {
 	if len(body) > 0 {
 		// Non-form bodies (JSON documents, CBOR payloads) can carry
 		// credentials or be arbitrarily large: clip like response bodies.
-		fmt.Printf("  %s\n", clip(body))
+		fmt.Printf("  %q\n", clip(body))
 	}
 }
 

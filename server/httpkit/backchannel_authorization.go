@@ -118,7 +118,7 @@ func BackchannelAuthorization(issuer string, backchannelz services.BackchannelAu
 		// Send to reactor
 		res, err := backchannelz.Authorize(r.Context(), req)
 		if err != nil {
-			log.Println("unable to process backchannel authentication request:", err)
+			log.Printf("unable to process backchannel authentication request: %q", err)
 			// res may be nil on infrastructure failure; WithError is
 			// nil-safe.
 			if res != nil {

@@ -54,7 +54,7 @@ func (s *authorizationService) Authorize(ctx context.Context, req *flowv1.Author
 
 	res, err := s.authz.Authorize(ctx, req)
 	if err != nil {
-		log.Println("grpc authorization:", err)
+		log.Printf("grpc authorization: %q", err)
 	}
 	if res == nil {
 		return nil, status.Error(codes.Internal, "no response")

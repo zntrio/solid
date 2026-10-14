@@ -145,7 +145,7 @@ func printRequestBody(req *http.Request, body []byte) {
 		for _, pair := range strings.Split(string(body), "&") {
 			k, v, _ := strings.Cut(pair, "=")
 			if isSecretParam(k) && len(v) > 48 {
-			fmt.Printf("  %q=%q…(+%d bytes)\n", k, v[:48], len(v)-48)
+				fmt.Printf("  %q=%q…(+%d bytes)\n", k, v[:48], len(v)-48)
 			} else {
 				fmt.Printf("  %q=%q\n", k, v)
 			}

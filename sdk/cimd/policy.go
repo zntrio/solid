@@ -434,11 +434,15 @@ func addSpaceList(current json.RawMessage, addVals []string) (json.RawMessage, e
 		return nil, err
 	}
 	toks := strings.Fields(s)
-	if len(toks)+len(addVals) > maxArrayEntries {
-		return nil, fmt.Errorf("scope list of %d tokens exceeds the maximum of %d", len(toks)+len(addVals), maxArrayEntries)
+	total := len(toks) + len(addVals)
+	if total > maxArrayEntries {
+		return nil, fmt.Errorf("scope list of %d tokens exceeds the maximum of %d", total, maxArrayEntries)
 	}
-	seen := make(map[string]struct{}, len(toks)+len(addVals))
-	out := make([]string, 0, len(toks)+len(addVals))
+	// Size the allocations from the bounded token count alone: a sum
+	// in a make size is an allocation-overflow hazard under hostile
+	// input, and the cap above keeps growth negligible anyway.
+	seen := make(map[string]struct{}, len(toks))
+	out := make([]string, 0, len(toks))
 	for _, tok := range toks {
 		if _, ok := seen[tok]; !ok {
 			seen[tok] = struct{}{}

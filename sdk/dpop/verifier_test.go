@@ -19,13 +19,15 @@ package dpop
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
 	"go.uber.org/mock/gomock"
-
+	"golang.org/x/crypto/blake2b"
 	proofmock "zntr.io/solid/sdk/dpop/mock"
 	"zntr.io/solid/sdk/token"
 	tokenmock "zntr.io/solid/sdk/token/mock"
@@ -829,6 +831,36 @@ func Test_defaultVerifier_validateProofClaims(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "jti too long",
+			args: args{
+				htm: http.MethodPost,
+				htu: "https://server.com/resource",
+				claims: &proofClaims{
+					HTTPMethod: http.MethodPost,
+					HTTPURL:    "https://server.com/resource",
+					IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+					JTI:        strings.Repeat("a", MaxJTILength+1),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "jti at the cap is accepted",
+			args: args{
+				htm: http.MethodPost,
+				htu: "https://server.com/resource",
+				claims: &proofClaims{
+					HTTPMethod: http.MethodPost,
+					HTTPURL:    "https://server.com/resource",
+					IssuedAt:   uint64(time.Now().Add(-1 * time.Second).Unix()),
+					JTI:        strings.Repeat("a", MaxJTILength),
+				},
+			},
+			want:    jtiStorageForTest(strings.Repeat("a", MaxJTILength)),
+			wantErr: false,
+		},
+
+		{
 			name: "valid",
 			args: args{
 				htm: http.MethodPost,
@@ -866,4 +898,11 @@ func Test_defaultVerifier_validateProofClaims(t *testing.T) {
 			}
 		})
 	}
+}
+
+// jtiStorageForTest mirrors the verifier's jti hashing (blake2b-256,
+// base64url) so table cases can assert the exact storage key.
+func jtiStorageForTest(jti string) string {
+	h := blake2b.Sum256([]byte(jti))
+	return base64.RawURLEncoding.EncodeToString(h[:])
 }

@@ -27,8 +27,16 @@ const (
 	HeaderType = "dpop+jwt"
 	// ExpirationTreshold defines clock swrew tolerance
 	ExpirationTreshold = 15 * time.Second
-	// JTICodeLength defines JTI claim string length
-	JTICodeLength = 16
+	// JTICodeLength defines JTI claim string length. RFC 9449 section 4.2
+	// requires encoding at least 96 bits of pseudorandom data: 17 chars
+	// over the 62-char alphanumeric alphabet yield 17*log2(62) ≈ 101.2
+	// bits (16 chars would be ≈ 95.4, below the stated bound).
+	JTICodeLength = 17
+	// MaxJTILength caps the jti claim accepted by the verifier (RFC 9449
+	// section 11.1: reject unnecessarily large jti values). 512 chars is
+	// far above any legitimate encoding of 96+ pseudorandom bits (UUIDv4
+	// 36, base64url of 12 bytes 16) while bounding unauthenticated input.
+	MaxJTILength = 512
 )
 
 // ProofStore describes jti one-time-use storage to prevent proof replay

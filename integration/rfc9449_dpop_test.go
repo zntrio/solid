@@ -18,13 +18,13 @@
 package integration
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/stretchr/testify/require"
-
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -172,4 +172,40 @@ func TestRFC9449_DpopJktBinding_Match(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, res.AccessToken)
+}
+
+// TestRFC9449_PrivateKeyJWKHeaderRejected asserts RFC 9449 section 4.3
+// check 7: a DPoP proof whose jwk header contains PRIVATE key material is
+// rejected explicitly by the verifier. The harm is the leak — a private
+// key in the header discloses the signer's key material to every server
+// it presents the proof to — so acceptance is a protocol violation even
+// when the signature itself verifies.
+func TestRFC9449_PrivateKeyJWKHeaderRejected(t *testing.T) {
+	privateKey, err := jwxjwk.ParseKey(dpopPrivateKey)
+	require.NoError(t, err)
+	require.NoError(t, privateKey.Set(jwxjwk.KeyIDKey, "integration-dpop-key"))
+
+	// The parsed fixture is a PRIVATE key; round-trip it through JSON to
+	// get the full private JWK document (kty, crv, x, y, d).
+	privateDoc, err := json.Marshal(privateKey)
+	require.NoError(t, err)
+
+	// Assemble a valid proof carrying the private JWK in the header.
+	now := time.Now().Unix()
+	claims := map[string]any{
+		"jti": "private-jwk-header-attacker",
+		"htm": "GET",
+		"htu": testIssuer + "/resource",
+		"iat": now,
+	}
+	tok := gojwt.NewWithClaims(gojwt.SigningMethodES256, gojwt.MapClaims(claims))
+	tok.Header["typ"] = "dpop+jwt"
+	tok.Header["jwk"] = json.RawMessage(privateDoc)
+	var rawKey any
+	require.NoError(t, jwxjwk.Export(privateKey, &rawKey))
+	raw, err := tok.SignedString(rawKey)
+	require.NoError(t, err)
+
+	_, err = buildDPoPVerifier(t).Verify(t.Context(), "GET", testIssuer+"/resource", raw)
+	require.Error(t, err, "proof whose jwk header carries private key material must be rejected (RFC 9449 section 4.3 check 7)")
 }

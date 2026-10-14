@@ -49,10 +49,27 @@ func embeddedKey(t *gojwt.Token) (jwxjwk.Key, error) {
 	if !ok {
 		return nil, errors.New("token has no embedded public key")
 	}
-
 	encoded, err := json.Marshal(raw)
 	if err != nil {
 		return nil, fmt.Errorf("unable to serialize embedded public key: %w", err)
+	}
+
+	// RFC 9449 section 4.3 check 7: the embedded jwk MUST NOT contain a
+	// private key. Reject on the raw members — every private JWK form
+	// carries at least one of "d" (EC/OKP/AKP/RSA private exponent) or
+	// "p"/"q" (RSA primes) — before any parser gets a chance to silently
+	// derive a public view of it. A private key in the header leaks the
+	// signer's key material to every verifier it talks to.
+	var probe struct {
+		D string `json:"d"`
+		P string `json:"p"`
+		Q string `json:"q"`
+	}
+	if err = json.Unmarshal(encoded, &probe); err != nil {
+		return nil, fmt.Errorf("unable to parse embedded public key: %w", err)
+	}
+	if probe.D != "" || probe.P != "" || probe.Q != "" {
+		return nil, errors.New("embedded jwk must not contain a private key")
 	}
 
 	// AKP (ML-DSA) keys are not supported by jwx: decode through the

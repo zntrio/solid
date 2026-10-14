@@ -27,7 +27,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -37,10 +36,10 @@ import (
 	"testing"
 	"time"
 
+	"crypto/mldsa"
 	gojwt "github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/stretchr/testify/require"
-
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	flowv1 "zntr.io/solid/api/oidc/flow/v1"
 	tokenv1 "zntr.io/solid/api/oidc/token/v1"
@@ -76,9 +75,16 @@ const (
 
 // clientPrivateKey / clientJWKSWithSIG are ES256 P-256 fixtures shared with
 // server/clientauthentication tests.
+//
+// dpopPrivateKey is a DPoP proof fixture key, DELIBERATELY distinct from the
+// client-assertion key: DPoP proofs are verified against the key embedded in
+// their own jwk header (RFC 9449 section 4.2), never against the client JWKS.
+// A distinct key pins that wiring — a verifier mistakenly anchored on the
+// client key set would reject every proof minted here.
 var (
 	clientPrivateKey  = []byte(`{"kty": "EC","d": "olYJLJ3aiTyP44YXs0R3g1qChRKnYnk7GDxffQhAgL8","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}`)
 	clientJWKSWithSIG = []byte(`{"keys": [{"kty": "EC","use": "sig","crv": "P-256","x": "h6jud8ozOJ93MvHZCxvGZnOVHLeTX-3K9LkAvKy1RSs","y": "yY0UQDLFPM8OAgkOYfotwzXCGXtBYinBk1EURJQ7ONk","alg": "ES256"}]}`)
+	dpopPrivateKey    = []byte(`{"kty": "EC","d": "vsm-iuysZa78KLD15gfAR4ue-vyUjLhvSSt79gjjYcs","use": "sig","crv": "P-256","x": "KppjNtlIsSmGCpZlZaOE82yTQv559C0zd5TU_KW_7Vg","y": "iZP1iw-e5EcQJ_KajZNnJtsiy8f49CI1MvKYYUPwxyk","alg": "ES256"}`)
 )
 
 // -----------------------------------------------------------------------------
@@ -279,7 +285,7 @@ func (es256Profile) signCIBARequestObject(t testing.TB, claims map[string]any) s
 }
 
 func (es256Profile) dpopSigner() dpop.Prover {
-	privateKey, err := jwxjwk.ParseKey(clientPrivateKey)
+	privateKey, err := jwxjwk.ParseKey(dpopPrivateKey)
 	if err != nil {
 		panic(err)
 	}
@@ -717,14 +723,12 @@ func buildDPoPVerifier(t testing.TB) dpop.Verifier {
 
 	proofs := inmemory.DPoPProofs()
 	cleanupStores(t, proofs)
-	keySet, err := jwk.Parse(clientJWKSWithSIG)
-	if err != nil {
-		panic(err)
-	}
 
-	return dpop.DefaultVerifier(proofs, jwt.DefaultVerifier(func(_ context.Context) (jwk.Set, error) {
-		return keySet, nil
-	}, []string{"ES256"}))
+	// RFC 9449 section 4.2: DPoP proofs are self-asserted — verified
+	// against the public key embedded in the proof's own jwk header, not
+	// against any server-side key set. The ES256 allowlist matches the
+	// harness signature profile.
+	return dpop.DefaultVerifier(proofs, jwt.EmbeddedKeyVerifier([]string{"ES256"}))
 }
 
 // -----------------------------------------------------------------------------

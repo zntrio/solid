@@ -25,6 +25,7 @@ import (
 
 	gojwt "github.com/golang-jwt/jwt/v5"
 	jwxjwk "github.com/lestrrat-go/jwx/v3/jwk"
+
 	"zntr.io/solid/sdk/jwk"
 	"zntr.io/solid/sdk/token"
 )
@@ -64,7 +65,7 @@ func embeddedKey(t *gojwt.Token) (jwxjwk.Key, error) {
 		P string `json:"p"`
 		Q string `json:"q"`
 	}
-	if err := json.Unmarshal(encoded, &probe); err != nil {
+	if err = json.Unmarshal(encoded, &probe); err != nil {
 		return nil, fmt.Errorf("unable to parse embedded public key: %w", err)
 	}
 	if probe.D != "" || probe.P != "" || probe.Q != "" {

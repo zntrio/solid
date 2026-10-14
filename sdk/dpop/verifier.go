@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/blake2b"
+
 	"zntr.io/solid/sdk/token"
 	"zntr.io/solid/sdk/types"
 )

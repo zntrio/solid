@@ -16,7 +16,7 @@ SolID is an open-source SDK for building an OIDC / OAuth 2.0 authorization serve
 | Machine-to-machine | `client_credentials` | Asymmetric client authentication only |
 | Constrained devices (IoT) | ACE over CoAP | DTLS profile, CBOR tokens, `device_code` grant |
 | Offline access | `refresh_token` | Rotation on every use, grant-family revocation |
-| Delegation | `token_exchange` | `may_act` gating, `act` chain depth cap |
+| Delegation / AI agents | `token_exchange` | `may_act` gating, `act` chain depth cap; AI-agent CIMD clients are metadata-policy-governed (D-21) — see `examples/agentclient` |
 
 ## Why this project exists
 
@@ -64,6 +64,7 @@ Each rule below is a design decision. The full record with evidence lives in [`d
 | Response types | Four registered types | `code` only. No implicit, no hybrid |
 | PKCE | Public clients, `plain` allowed | All clients, S256 only, constant-time compare |
 | Client authentication | Secrets permitted | Asymmetric only: `private_key_jwt`, mTLS, attestation, SPIFFE |
+| Dynamic CIMD clients | Draft: fetched document as-is | Operator metadata policy (Federation 1.0 §6.1.3.1 operators) applied before credential enforcement (D-21) |
 | JOSE algorithms | Full registry | Elliptic curves + ML-DSA. No HS, RS, PS, `none` |
 | Token content | Implementation choice | No PII. `jti`-addressed subject record, pairwise identifiers |
 | `id_token` in code flow | Required by OIDC Core | Opt-in: SD-JWT `id_token` (RFC 9901), digests only, values in `id_token_disclosures`; not issued by default (D-12.1) |
@@ -97,7 +98,7 @@ Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md
 | [RFC 9207](https://tools.ietf.org/html/rfc9207.html) — Issuer Identification | `iss` in every response mode |
 | [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) — Protected Resource Metadata | |
 | [RFC 9470](https://tools.ietf.org/html/rfc9470) — Step-Up Authentication | `acr_values`/`max_age`, `unmet_authentication_requirements` error |
-| [draft-ietf-oauth-client-id-metadata-document](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document) | |
+| [draft-ietf-oauth-client-id-metadata-document](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document) | Client ID Metadata Documents resolved at the AS behind the operator allow-list; [OpenID Federation 1.0](https://openid.net/specs/openid-federation-1_0.html) §6.1.3.1 metadata-policy operators (`value`, `add`, `default`, `one_of`, `subset_of`, `superset_of`, `essential`) applied between the identifier match and the credential enforcement (`cimd.NewPolicyResolver`); redirect URIs validated on the final document — the AI-agent examples run policy-governed |
 
 #### Authorization requests and responses
 

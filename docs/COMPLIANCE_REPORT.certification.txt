@@ -1,0 +1,18 @@
+Reference certification for docs/COMPLIANCE_REPORT.md
+Date: 2026-10-14  Tree: 16961af752a8a6e00b29593bbfea1e86fad7ebf1 (DIRTY)
+
+Procedure (per Appendix B of the report):
+ 1. every `file.go:line` reference -> tracked file, line within bounds, non-blank target lines
+ 2. every cited Go test name -> declared func TestXxx(...) in the tree's _test.go files
+    (a family citation TestX or TestX_ resolves against any declared TestX_* function)
+ 3. every cited Quint property/test name -> present in spec/*.qnt
+ 4. every quoted fragment (>=12 chars) -> verbatim (whitespace/quote/citation/line-wrap normalized) in the vendored docs/rfcs/*.txt (HTML-tag-stripped for the HTML-vendored JARM text), or in Go/Quint sources, _test.go name literals, or repo docs when it is a code string or test reference rather than RFC prose
+ 5. Appendix A checksums recomputed (see report Appendix A)
+
+RESULTS
+ code references checked :  644   failures: 0
+ Go test names checked   :  356   failures: 0   (family matches: 4)
+ Quint references checked:   84   failures: 0
+ quoted fragments checked:  793   failures: 0   (RFC-text: 611, Go/Quint-source: 105, _test.go literals: 0, file/test-refs: 4, repo docs: 73, narrative: 0)
+
+ALL REFERENCES CERTIFIED — zero failures.

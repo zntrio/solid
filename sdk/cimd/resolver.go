@@ -57,13 +57,23 @@ type Resolver interface {
 
 type resolver struct {
 	fetcher Fetcher
+	policy  Policy
 }
 
 // NewResolver builds a pure, cache-less Resolver over the given Fetcher.
 // Caching (draft section 5.2, MAY) and fetch policy belong to decorators at
 // assembly level, keeping the mechanism composable.
 func NewResolver(f Fetcher) Resolver {
-	return &resolver{fetcher: f}
+	return NewPolicyResolver(f, nil)
+}
+
+// NewPolicyResolver builds a Resolver that applies a client metadata
+// policy (OpenID Federation 1.0 section 6.1.3.1 standard operators) to
+// every fetched document between the client_id match and the section
+// 4.1 enforcement of ToClient — the restrictions validate the final,
+// policy-applied document. A nil policy is a no-op pass-through.
+func NewPolicyResolver(f Fetcher, p Policy) Resolver {
+	return &resolver{fetcher: f, policy: p}
 }
 
 // Resolve implements the Client Information Discovery flow (draft section 5):
@@ -95,6 +105,24 @@ func (r *resolver) Resolve(ctx context.Context, clientID string) (*clientv1.Clie
 	// simple string comparison (draft section 4).
 	if doc.ClientID != clientID {
 		return nil, fmt.Errorf("cimd: document client_id %q does not match client identifier url", doc.ClientID)
+	}
+	// Apply the client metadata policy to the fetched document (OpenID
+	// Federation 1.0 section 6.1.3.1 operators): defaults are filled,
+	// values constrained, arrays augmented — BEFORE the section 4.1
+	// enforcement below, so the credential and key-material
+	// restrictions validate the final document. A policy violation
+	// fails the resolution: the client is unknown, exactly like an
+	// unfetchable document.
+	if r.policy != nil {
+		doc, err = applyPolicyToDocument(b, r.policy)
+		if err != nil {
+			return nil, err
+		}
+		if doc.ClientID != clientID {
+			// The policy cannot rewrite client_id (Apply rejects such
+			// entries); the re-check keeps the invariant total.
+			return nil, fmt.Errorf("cimd: document client_id %q does not match client identifier url", doc.ClientID)
+		}
 	}
 
 	// Credential and key material restrictions (draft section 4.1) and

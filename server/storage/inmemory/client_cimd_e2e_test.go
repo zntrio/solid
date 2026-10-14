@@ -106,4 +106,55 @@ func TestClientReaderCIMDEndToEnd(t *testing.T) {
 			t.Errorf("expected storage.ErrNotFound, got %v", err)
 		}
 	})
+
+	t.Run("PolicyAppliedBeforeEnforcement", func(t *testing.T) {
+		// The full stack: fetch over TLS, policy applied between the
+		// client_id match and ToClient's section 4.1 enforcement. The
+		// policy defaults subject_type and adds a loopback redirect
+		// URI (the gate must accept it); the storage reader surfaces
+		// the policy-applied client.
+		ts := newCIMDServer(t, validDoc)
+		defer ts.Close()
+
+		policy, perr := cimd.DecodePolicy([]byte(
+			`{"subject_type": {"default": "pairwise"}, "redirect_uris": {"add": ["http://localhost:12345/redirect"]}}`))
+		if perr != nil {
+			t.Fatalf("policy decode: %v", perr)
+		}
+		resolver := cimd.NewPolicyResolver(httpfetch.NewTestFetcher(ts.Client(), 0), policy)
+		clients := inmemory.NewClientReader(inmemory.Clients(), resolver)
+
+		clientID := ts.URL + "/cimd.json"
+		c, err := clients.Get(context.Background(), clientID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if c.SubjectType != "pairwise" {
+			t.Errorf("subject_type = %q, want pairwise (policy default)", c.SubjectType)
+		}
+		if len(c.RedirectUris) != 1 || c.RedirectUris[0] != "http://localhost:12345/redirect" {
+			t.Errorf("redirect_uris = %v, want the policy-added loopback URI", c.RedirectUris)
+		}
+	})
+
+	t.Run("PolicyViolationIsNotFound", func(t *testing.T) {
+		// A one_of violation on the fetched document fails the whole
+		// client: the storage reader maps it to ErrNotFound, exactly
+		// like an unfetchable document (fail-closed).
+		ts := newCIMDServer(t, validDoc)
+		defer ts.Close()
+
+		policy, perr := cimd.DecodePolicy([]byte(
+			`{"token_endpoint_auth_method": {"one_of": ["none"]}}`))
+		if perr != nil {
+			t.Fatalf("policy decode: %v", perr)
+		}
+		resolver := cimd.NewPolicyResolver(httpfetch.NewTestFetcher(ts.Client(), 0), policy)
+		clients := inmemory.NewClientReader(inmemory.Clients(), resolver)
+
+		_, err := clients.Get(context.Background(), ts.URL+"/cimd.json")
+		if !errors.Is(err, storage.ErrNotFound) {
+			t.Errorf("expected storage.ErrNotFound, got %v", err)
+		}
+	})
 }

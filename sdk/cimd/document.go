@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
 	"zntr.io/solid/oidc"
@@ -123,6 +125,17 @@ func (d *Document) ToClient() (*clientv1.Client, error) {
 		}
 	}
 
+	// Redirect URIs must be https (RFC 8252 section 7.3 loopback excepted)
+	// and fragment-free — the same rule the registration endpoint
+	// enforces (clientregistration validRedirectURI). With metadata
+	// policies able to add URIs, the gate must validate the FINAL
+	// document, here, rather than trusting the fetched or policy-added
+	// values.
+	for _, uri := range d.RedirectUris {
+		if !validRedirectURI(uri) {
+			return nil, fmt.Errorf("cimd: redirect_uri %q is not https or RFC 8252 loopback", uri)
+		}
+	}
 	// Confidential when the client authenticates with key material, public
 	// otherwise.
 	clientType := clientv1.ClientType_CLIENT_TYPE_PUBLIC
@@ -200,4 +213,39 @@ func rejectPrivateJWKMaterial(jwks []byte) error {
 		}
 	}
 	return nil
+}
+
+// validRedirectURI enforces https redirect URIs with the RFC 8252
+// section 7.3 loopback exception (http allowed on localhost, 127.0.0.1,
+// ::1) and no fragment components — the same rule the registration
+// endpoint enforces. Duplicated here because sdk/cimd must not depend
+// on the server layer.
+func validRedirectURI(raw string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u.Fragment != "" || u.Host == "" {
+		return false
+	}
+	if u.Scheme == "https" {
+		return true
+	}
+	if u.Scheme == "http" && isLoopbackHost(u.Host) {
+		return true
+	}
+	return false
+}
+
+// isLoopbackHost reports whether the URI host is an RFC 8252 section 7.3
+// loopback address.
+func isLoopbackHost(host string) bool {
+	h := strings.ToLower(host)
+	// Strip the port, keeping IPv6 literals bracketed.
+	if i := strings.LastIndex(h, ":"); i > strings.LastIndex(h, "]") {
+		h = h[:i]
+	}
+	h = strings.Trim(h, "[]")
+	switch h {
+	case "localhost", "127.0.0.1", "::1":
+		return true
+	}
+	return false
 }

@@ -1,5 +1,5 @@
 Reference certification for docs/COMPLIANCE_REPORT.md
-Date: 2026-10-14  Tree: 16961af752a8a6e00b29593bbfea1e86fad7ebf1 (DIRTY)
+Date: 2026-10-14  Tree: 18f052d13bfc5054a7ea0a81a794b5883b781d0e (clean)
 
 Procedure (per Appendix B of the report):
  1. every `file.go:line` reference -> tracked file, line within bounds, non-blank target lines

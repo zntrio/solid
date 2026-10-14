@@ -91,21 +91,41 @@ type PolicyEntry struct {
 }
 
 // Policy is a client metadata policy: metadata parameter names
-// (RFC 7591 client-metadata JSON names) mapped to their policy entries.
-// The map form preserves the exact wire shape and rejects duplicate
-// JSON member names on decode, as the spec data structure requires
+// (RFC 7591 client-metadata JSON names) mapped to their policy entries
 // (single-level here: the Entity-Type layer of the spec is the AS's
-// oauth_client role, fixed by this application).
+// oauth_client role, fixed by this application). Validate enforces the
+// spec's allowed operator combinations (section 6.1.3) and the null
+// operator-value rules at decode time; duplicate JSON member names in
+// the raw body are last-wins per encoding/json and are NOT detected —
+// a strict token-walk would be needed if the policy ever becomes
+// remotely sourced.
 type Policy map[string]PolicyEntry
 
-// DecodePolicy parses a client metadata policy JSON object.
+// DecodePolicy parses a client metadata policy JSON object. A null or
+// non-object body is an error: a malformed policy must fail loud, not
+// silently resolve into a pass-through (the policy is the deployment's
+// security control).
 func DecodePolicy(b []byte) (Policy, error) {
+	trimmed := strings.TrimSpace(string(b))
+	if trimmed == "" || trimmed == jsonNull {
+		return nil, fmt.Errorf("cimd: policy body is empty or null")
+	}
 	var p Policy
 	if err := json.Unmarshal(b, &p); err != nil {
 		return nil, fmt.Errorf("cimd: unable to decode policy: %w", err)
 	}
+	if err := p.Validate(); err != nil {
+		return nil, err
+	}
 	return p, nil
 }
+
+// scopeParameter is the single metadata parameter whose value is a
+// space-separated string list processed as an array by policy
+// operators (spec 6.1.3.1.8).
+const scopeParameter = "scope"
+
+const jsonNull = "null"
 
 // empty reports whether the entry carries no operator at all.
 func (e PolicyEntry) empty() bool {
@@ -145,16 +165,25 @@ func (e PolicyEntry) apply(key string, current json.RawMessage) (json.RawMessage
 // 6.1.3.1: value First, add After value, default After add).
 func (e PolicyEntry) applyModifiers(key string, current json.RawMessage) (json.RawMessage, error) {
 	if len(e.Value) > 0 {
-		// value: assign; null removes (spec 6.1.3.1.1).
-		if isJSONNull(e.Value) {
+		// value: assign; null removes (spec 6.1.3.1.1). The scope
+		// parameter's array form is assigned as the space-separated
+		// string the Document expects (spec 6.1.3.1.8).
+		switch {
+		case isJSONNull(e.Value):
 			current = nil
-		} else {
+		case key == scopeParameter:
+			next, verr := scopeSpaceForm(e.Value)
+			if verr != nil {
+				return nil, fmt.Errorf("cimd: policy value on %q: %w", key, verr)
+			}
+			current = next
+		default:
 			current = e.Value
 		}
 	}
 
 	if e.Add != nil {
-		next, err := opAdd(current, *e.Add)
+		next, err := opAdd(key, current, *e.Add)
 		if err != nil {
 			return nil, fmt.Errorf("cimd: policy add on %q: %w", key, err)
 		}
@@ -162,8 +191,23 @@ func (e PolicyEntry) applyModifiers(key string, current json.RawMessage) (json.R
 	}
 
 	if e.Default != nil && current == nil {
-		// default: fill absent only (spec 6.1.3.1.3).
-		current = *e.Default
+		// default: fill absent only (spec 6.1.3.1.3). An operator MUST
+		// NOT output a null metadata parameter (spec line 2332): null is
+		// a legal value only for the value operator (6.1.3.1.1). The
+		// scope parameter's array form is assigned as the
+		// space-separated string (spec 6.1.3.1.8).
+		if isJSONNull(*e.Default) {
+			return nil, fmt.Errorf("cimd: policy default on %q: null is not a valid operator value", key)
+		}
+		if key == "scope" {
+			next, derr := scopeSpaceForm(*e.Default)
+			if derr != nil {
+				return nil, fmt.Errorf("cimd: policy default on %q: %w", key, derr)
+			}
+			current = next
+		} else {
+			current = *e.Default
+		}
 	}
 
 	return current, nil
@@ -184,7 +228,7 @@ func (e PolicyEntry) applyCheckers(key string, current json.RawMessage) (json.Ra
 	}
 
 	if e.SubsetOf != nil {
-		next, err := opSubsetOf(current, *e.SubsetOf)
+		next, err := opSubsetOf(key, current, *e.SubsetOf)
 		if err != nil {
 			return nil, fmt.Errorf("cimd: policy subset_of on %q: %w", key, err)
 		}
@@ -192,7 +236,7 @@ func (e PolicyEntry) applyCheckers(key string, current json.RawMessage) (json.Ra
 	}
 
 	if e.SupersetOf != nil {
-		if err := opSupersetOf(current, *e.SupersetOf); err != nil {
+		if err := opSupersetOf(key, current, *e.SupersetOf); err != nil {
 			return nil, fmt.Errorf("cimd: policy superset_of on %q: %w", key, err)
 		}
 	}
@@ -213,6 +257,17 @@ func (p Policy) Apply(doc map[string]json.RawMessage) (map[string]json.RawMessag
 	if doc == nil {
 		doc = map[string]json.RawMessage{}
 	}
+	// Fold-variant member smuggling: the typed Document decode matches
+	// struct fields case-insensitively (Go's Unicode simple-fold, last
+	// occurrence wins), so a hostile document carrying a fold-variant of
+	// a parameter name (e.g. U+017F long-s for "s", U+212A Kelvin sign
+	// for "k") could sort after the exact key and silently overwrite the
+	// policy-applied value at the typed decode. Reject any two member
+	// names that fold-match while differing byte-wise; the raw-key seam
+	// is the only place both spellings are visible.
+	if err := rejectFoldVariantMembers(doc); err != nil {
+		return nil, err
+	}
 	out := make(map[string]json.RawMessage, len(doc)+len(p))
 	for k, v := range doc {
 		out[k] = v
@@ -222,7 +277,7 @@ func (p Policy) Apply(doc map[string]json.RawMessage) (map[string]json.RawMessag
 		if entry.empty() {
 			continue
 		}
-		if key == "client_id" {
+		if strings.EqualFold(key, "client_id") {
 			return nil, fmt.Errorf("cimd: policy on %q is forbidden: it would rewrite the client identifier match", key)
 		}
 
@@ -272,7 +327,7 @@ func applyPolicyToDocument(raw []byte, p Policy) (*Document, error) {
 
 // isJSONNull reports whether a raw JSON value is null.
 func isJSONNull(v json.RawMessage) bool {
-	return string(v) == "null"
+	return string(v) == jsonNull
 }
 
 // asStringArray decodes a raw value that must be a JSON array of
@@ -288,6 +343,9 @@ func asStringArray(v json.RawMessage) ([]string, error) {
 
 // jsonType names the JSON type of a raw value for error messages.
 func jsonType(v json.RawMessage) string {
+	if len(v) == 0 {
+		return "empty"
+	}
 	switch v[0] {
 	case '{':
 		return "object"
@@ -305,14 +363,21 @@ func jsonType(v json.RawMessage) string {
 }
 
 // opAdd implements the add operator (spec 6.1.3.1.2): union into an
-// array, dedup, initialize when absent.
-func opAdd(current, add json.RawMessage) (json.RawMessage, error) {
+// array, dedup, initialize when absent. The scope parameter's
+// space-separated string form is processed as a string array per spec
+// 6.1.3.1.8 — and only scope: other scalar-string values are a type
+// error, not a token list.
+func opAdd(key string, current, add json.RawMessage) (json.RawMessage, error) {
 	addVals, err := asStringArray(add)
 	if err != nil {
 		return nil, fmt.Errorf("operator value: %w", err)
 	}
 	if current == nil {
 		return json.Marshal(addVals)
+	}
+
+	if key == scopeParameter && isStringCurrent(current) {
+		return addSpaceList(current, addVals)
 	}
 
 	curVals, err := asStringArray(current)
@@ -335,6 +400,42 @@ func opAdd(current, add json.RawMessage) (json.RawMessage, error) {
 		}
 	}
 	return json.Marshal(merged)
+}
+
+// scopeSpaceForm serializes an array operator value into the
+// space-separated string form the scope parameter carries (spec
+// 6.1.3.1.8); a non-array value is a type error.
+func scopeSpaceForm(v json.RawMessage) (json.RawMessage, error) {
+	vals, err := asStringArray(v)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(strings.Join(vals, " "))
+}
+
+// addSpaceList unions addVals into a space-separated string value (the
+// scope special case of spec 6.1.3.1.8): tokens deduped, order
+// preserved, output re-joined as a space-separated string.
+func addSpaceList(current json.RawMessage, addVals []string) (json.RawMessage, error) {
+	var s string
+	if err := json.Unmarshal(current, &s); err != nil {
+		return nil, err
+	}
+	seen := make(map[string]struct{}, len(s)+len(addVals))
+	out := make([]string, 0, len(s)+len(addVals))
+	for _, tok := range strings.Fields(s) {
+		if _, ok := seen[tok]; !ok {
+			seen[tok] = struct{}{}
+			out = append(out, tok)
+		}
+	}
+	for _, tok := range addVals {
+		if _, ok := seen[tok]; !ok {
+			seen[tok] = struct{}{}
+			out = append(out, tok)
+		}
+	}
+	return json.Marshal(strings.Join(out, " "))
 }
 
 // opOneOf implements the one_of operator (spec 6.1.3.1.4): the present
@@ -362,15 +463,21 @@ func opOneOf(current, oneOf json.RawMessage) error {
 // Table 1): assign the intersection; the result may be empty. The
 // absent+voluntary case is handled by the caller (apply skips absent
 // parameters); absent+essential errors in apply's essential step.
-func opSubsetOf(current, subset json.RawMessage) (json.RawMessage, error) {
+func opSubsetOf(key string, current, subset json.RawMessage) (json.RawMessage, error) {
 	subVals, err := asStringArray(subset)
 	if err != nil {
 		return nil, fmt.Errorf("operator value: %w", err)
 	}
 
-	// scope is a space-separated string processed as an array of values
-	// by policy operators (spec 6.1.3.1.8).
+	// The scope parameter's space-separated string form is processed as
+	// a string array by policy operators (spec 6.1.3.1.8 — scope
+	// specifically). Any other scalar string is a type error: silently
+	// token-splitting it (and blanking the value on empty intersection)
+	// would corrupt e.g. token_endpoint_auth_method.
 	if isStringCurrent(current) {
+		if key != scopeParameter {
+			return nil, fmt.Errorf("metadata value is a string; only the scope parameter is processed as a space-separated list")
+		}
 		return applySubsetToSpaceList(current, subVals)
 	}
 
@@ -430,13 +537,16 @@ func applySubsetToSpaceList(current json.RawMessage, subVals []string) (json.Raw
 
 // opSupersetOf implements the superset_of operator (spec 6.1.3.1.6):
 // the present values MUST contain the listed values (equality included).
-func opSupersetOf(current, superset json.RawMessage) error {
+func opSupersetOf(key string, current, superset json.RawMessage) error {
 	supVals, err := asStringArray(superset)
 	if err != nil {
 		return fmt.Errorf("operator value: %w", err)
 	}
 
 	if isStringCurrent(current) {
+		if key != scopeParameter {
+			return fmt.Errorf("metadata value is a string; only the scope parameter is processed as a space-separated list")
+		}
 		var s string
 		if uerr := json.Unmarshal(current, &s); uerr != nil {
 			return uerr
@@ -466,5 +576,246 @@ func opSupersetOf(current, superset json.RawMessage) error {
 			return fmt.Errorf("array value is missing %q", want)
 		}
 	}
+	return nil
+}
+
+// rejectFoldVariantMembers fails when the raw document carries two
+// member names that are Unicode simple-fold equal but byte-different.
+// The typed Document decode (and the clientregistration path) matches
+// JSON member names case-insensitively under last-occurrence-wins, so
+// a fold variant of a parameter name could silently overwrite the
+// policy-applied value at the typed decode. The raw-key seam is the
+// only place both spellings are visible at once.
+func rejectFoldVariantMembers(doc map[string]json.RawMessage) error {
+	if len(doc) < 2 {
+		return nil
+	}
+	folded := make(map[string]string, len(doc))
+	for k := range doc {
+		// Canonical fold is ToUpper-then-ToLower: a plain ToLower misses
+		// the U+017F long-s (already lowercase; folds to "s" only via
+		// its uppercase S). strings.EqualFold would also work pairwise
+		// but the canonical map is O(n).
+		f := strings.ToLower(strings.ToUpper(k))
+		if first, ok := folded[f]; ok {
+			return fmt.Errorf("cimd: document carries fold-variant duplicate members %q and %q", first, k)
+		}
+		folded[f] = k
+	}
+	return nil
+}
+
+// Validate enforces the spec's operator-combination rules (section
+// 6.1.3: "Combinations that are not allowed MUST produce a policy
+// error") and the JSON value-type rules of each operator definition
+// (lines 2305-2310). It runs from DecodePolicy so an invalid policy
+// fails at configuration load, not at first use.
+//
+// Rules (spec section references in parentheses):
+//   - value+add:      the values of add MUST be a subset of value (2371)
+//   - value+default:  allowed only if value is not null (2374)
+//   - value+one_of:   the value of value MUST be among one_of (2376)
+//   - value+subset_of: values of value MUST be a subset of subset_of (2379)
+//   - value+superset_of: values of value MUST be a superset (2382)
+//   - value+essential: allowed unless value is null AND essential true (2385)
+//   - add+subset_of:  values of add MUST be a subset of subset_of (2428)
+//   - one_of:         combines only with value/default/essential (2501-2508)
+//   - subset_of+superset_of: subset_of MUST be a superset of superset_of (2557)
+//   - default/add/superset_of operator values MUST NOT be null
+//     (operators MUST NOT output null parameters, line 2332; null is a
+//     legal operator value only for value, line 2367).
+func (p Policy) Validate() error {
+	for key, e := range p {
+		// The client identifier match (draft section 4) is an invariant a
+		// policy must not rewrite — rejected at configuration load, and
+		// re-checked fold-insensitively (the typed decode is
+		// case-insensitive, so a "client_iD" entry is the same attack).
+		if strings.EqualFold(key, "client_id") {
+			return fmt.Errorf("cimd: policy on %q is forbidden: it would rewrite the client identifier match", key)
+		}
+		if err := e.validate(key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// validate runs the null-value and combination checks for one entry
+// (both phases per spec section 6.1.3).
+func (e PolicyEntry) validate(key string) error {
+	if err := e.validateNulls(key); err != nil {
+		return err
+	}
+	return e.validateCombinations(key)
+}
+
+// validateNulls rejects null operator values: null is a legal operator
+// value only for value (spec line 2367; operators MUST NOT output null
+// metadata parameters, line 2332).
+func (e PolicyEntry) validateNulls(key string) error {
+	if isJSONNull(e.Value) {
+		if e.Default != nil {
+			return fmt.Errorf("cimd: policy on %q: value null combines with default only when value is not null", key)
+		}
+		if e.Essential != nil && *e.Essential {
+			return fmt.Errorf("cimd: policy on %q: value null cannot combine with essential true", key)
+		}
+	}
+	if e.Default != nil && isJSONNull(*e.Default) {
+		return fmt.Errorf("cimd: policy on %q: default must not be null", key)
+	}
+	if e.Add != nil && isJSONNull(*e.Add) {
+		return fmt.Errorf("cimd: policy on %q: add must not be null", key)
+	}
+	if e.SupersetOf != nil && isJSONNull(*e.SupersetOf) {
+		return fmt.Errorf("cimd: policy on %q: superset_of must not be null", key)
+	}
+	if e.OneOf != nil && isJSONNull(*e.OneOf) {
+		return fmt.Errorf("cimd: policy on %q: one_of must not be null", key)
+	}
+	if e.SubsetOf != nil && isJSONNull(*e.SubsetOf) {
+		return fmt.Errorf("cimd: policy on %q: subset_of must not be null", key)
+	}
+	return nil
+}
+
+// validateCombinations enforces the allowed-operator-combination rules
+// of spec section 6.1.3 (each operator section's "Combination with
+// other operators" clauses; line citations in each check).
+func (e PolicyEntry) validateCombinations(key string) error {
+	// one_of combines only with value, default, essential (spec 2501-2508).
+	if e.OneOf != nil && (e.Add != nil || e.SubsetOf != nil || e.SupersetOf != nil) {
+		return fmt.Errorf("cimd: policy on %q: one_of combines only with value, default and essential", key)
+	}
+	// value+one_of: the value must be among the one_of values (2376).
+	if len(e.Value) > 0 && !isJSONNull(e.Value) && e.OneOf != nil {
+		var val string
+		if err := json.Unmarshal(e.Value, &val); err == nil {
+			allowed, aerr := asStringArray(*e.OneOf)
+			if aerr == nil && !containsString(allowed, val) {
+				return fmt.Errorf("cimd: policy on %q: value %q is not among the one_of values", key, val)
+			}
+		}
+	}
+	// add ⊆ value (2371) and add ⊆ subset_of (2428): array-membership.
+	if e.Add != nil {
+		if err := e.validateAddSubset(key); err != nil {
+			return err
+		}
+	}
+	// value ⊆ subset_of (2379), value ⊇ superset_of (2382), and
+	// subset_of ⊇ superset_of (2557): the array-containment matrix.
+	return e.validateContainment(key)
+}
+
+// validateAddSubset enforces add ⊆ value (spec 2371) and add ⊆
+// subset_of (spec 2428).
+func (e PolicyEntry) validateAddSubset(key string) error {
+	addVals, err := asStringArray(*e.Add)
+	if err != nil {
+		return fmt.Errorf("cimd: policy on %q: add %w", key, err)
+	}
+	if len(e.Value) > 0 && !isJSONNull(e.Value) {
+		if valVals, verr := asStringArray(e.Value); verr == nil && !allContained(valVals, addVals) {
+			return fmt.Errorf("cimd: policy on %q: add values must be a subset of the value values", key)
+		}
+	}
+	if e.SubsetOf != nil {
+		if subVals, serr := asStringArray(*e.SubsetOf); serr == nil && !allContained(subVals, addVals) {
+			return fmt.Errorf("cimd: policy on %q: add values must be a subset of the subset_of values", key)
+		}
+	}
+	return nil
+}
+
+// validateContainment enforces the array-containment combination
+// rules: value ⊆ subset_of (2379), value ⊇ superset_of (2382), and
+// subset_of ⊇ superset_of (2557).
+func (e PolicyEntry) validateContainment(key string) error {
+	if len(e.Value) > 0 && !isJSONNull(e.Value) {
+		valVals, verr := asStringArray(e.Value)
+		if verr == nil {
+			if e.SubsetOf != nil {
+				if subVals, serr := asStringArray(*e.SubsetOf); serr == nil && !allContained(subVals, valVals) {
+					return fmt.Errorf("cimd: policy on %q: value values must be a subset of the subset_of values", key)
+				}
+			}
+			if e.SupersetOf != nil {
+				if supVals, serr := asStringArray(*e.SupersetOf); serr == nil && !allContained(valVals, supVals) {
+					return fmt.Errorf("cimd: policy on %q: value values must be a superset of the superset_of values", key)
+				}
+			}
+		}
+	}
+	if e.SubsetOf != nil && e.SupersetOf != nil {
+		if subVals, serr := asStringArray(*e.SubsetOf); serr == nil {
+			if supVals, uerr := asStringArray(*e.SupersetOf); uerr == nil && !allContained(subVals, supVals) {
+				return fmt.Errorf("cimd: policy on %q: subset_of values must be a superset of the superset_of values", key)
+			}
+		}
+	}
+	return nil
+}
+
+// containsString reports whether the list contains the value.
+func containsString(list []string, v string) bool {
+	for _, s := range list {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
+// allContained reports whether every element of subset appears in
+// superset (array membership for the combination rules).
+func allContained(superset, subset []string) bool {
+	set := make(map[string]struct{}, len(superset))
+	for _, s := range superset {
+		set[s] = struct{}{}
+	}
+	for _, s := range subset {
+		if _, ok := set[s]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// UnmarshalJSON decodes a policy entry, rejecting explicit JSON null
+// operator values for the pointer-typed operators: encoding/json
+// decodes null into a nil pointer, making `{"default": null}`
+// indistinguishable from an absent default — and the spec forbids null
+// operator values for everything except value (line 2367; operators
+// MUST NOT output null parameters, line 2332). value is exempt: null
+// is its documented removal semantic (6.1.3.1.1).
+func (e *PolicyEntry) UnmarshalJSON(b []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+	for op, v := range raw {
+		switch op {
+		case "value", "essential":
+			// value: null is the documented removal operator; essential
+			// decodes null as the zero false — both handled elsewhere.
+		case "add", "default", "one_of", "subset_of", "superset_of":
+			if string(v) == jsonNull {
+				return fmt.Errorf("cimd: policy operator %q must not be null", op)
+			}
+		default:
+			// Unknown operator member: the policy is operator-authored
+			// security configuration, not a third-party federation chain
+			// — a typo must fail loud (the spec's ignore-unknown-operators
+			// allowance fits remote policies, not local config).
+			return fmt.Errorf("cimd: unknown policy operator %q", op)
+		}
+	}
+	type plain PolicyEntry
+	var p plain
+	if err := json.Unmarshal(b, &p); err != nil {
+		return err
+	}
+	*e = PolicyEntry(p)
 	return nil
 }

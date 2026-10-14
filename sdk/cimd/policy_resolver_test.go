@@ -104,13 +104,11 @@ func TestPolicyResolverEssentialAbsentRejectsClient(t *testing.T) {
 func TestPolicyResolverClientIDRewriteRejected(t *testing.T) {
 	// A policy entry on client_id could rewrite the identifier the
 	// document was fetched from, breaking the draft section 4 match —
-	// forbidden outright.
-	p := mustPolicy(t, `{"client_id": {"value": "https://attacker.example.com/doc"}}`)
-	r := NewPolicyResolver(&staticFetcher{body: []byte(policyExampleDoc)}, p)
-
-	_, err := r.Resolve(context.Background(), "https://example.com/client.json")
+	// forbidden outright, at policy decode time (the resolver is then
+	// unconstructible with such a policy).
+	_, err := DecodePolicy([]byte(`{"client_id": {"value": "https://attacker.example.com/doc"}}`))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client_id")
+	assert.Contains(t, err.Error(), "client identifier match")
 }
 
 func TestPolicyResolverAddedRedirectURIGate(t *testing.T) {
@@ -191,4 +189,37 @@ func TestPolicyResolverAIAgentExamplesDpopBound(t *testing.T) {
 	// value. The essential+absent error path is covered by
 	// TestPolicyResolverEssentialAbsentRejectsClient for fields without
 	// a default.
+}
+
+func TestPolicyResolverPinsDpopPostureAgainstHostileDocument(t *testing.T) {
+	// The example AS's policy pins dpop_bound_access_tokens with `value`
+	// (not default+essential): a hostile allow-listed document that
+	// explicitly opts out ("dpop_bound_access_tokens": false) is
+	// overwritten — the posture is operator-controlled, not
+	// document-controlled.
+	p := mustPolicy(t, `{"dpop_bound_access_tokens": {"value": true}}`)
+	hostile := `{
+	  "client_id": "https://agent.example.org/ai-agent",
+	  "token_endpoint_auth_method": "private_key_jwt",
+	  "dpop_bound_access_tokens": false,
+	  "grant_types": ["client_credentials"]
+	}`
+	r := NewPolicyResolver(&staticFetcher{body: []byte(hostile)}, p)
+	c, err := r.Resolve(context.Background(), "https://agent.example.org/ai-agent")
+	require.NoError(t, err)
+	assert.True(t, c.DpopBoundAccessTokens, "the value operator must override the hostile document's opt-out")
+}
+
+func TestPolicyResolverSectorDefaultAvoidsPairwise500(t *testing.T) {
+	// The example policy defaults subject_type pairwise AND sector_identifier:
+	// a pairwise client without a sector would fail at the authorization
+	// endpoint (blank-sector rejection in sdk/pairwise). The default keeps
+	// resolution total.
+	p := mustPolicy(t, `{"subject_type": {"value": "pairwise"}, "sector_identifier": {"default": "https://cimd.example.org"}}`)
+	doc := `{"client_id": "https://c.example.org/x", "token_endpoint_auth_method": "private_key_jwt", "grant_types": ["client_credentials"]}`
+	r := NewPolicyResolver(&staticFetcher{body: []byte(doc)}, p)
+	c, err := r.Resolve(context.Background(), "https://c.example.org/x")
+	require.NoError(t, err)
+	assert.Equal(t, "pairwise", c.SubjectType)
+	assert.Equal(t, "https://cimd.example.org", c.SectorIdentifier)
 }

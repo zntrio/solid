@@ -222,7 +222,7 @@ func rejectPrivateJWKMaterial(jwks []byte) error {
 // on the server layer.
 func validRedirectURI(raw string) bool {
 	u, err := url.Parse(raw)
-	if err != nil || u.Fragment != "" || u.Host == "" {
+	if err != nil || u.Fragment != "" || u.Host == "" || u.User != nil {
 		return false
 	}
 	if u.Scheme == "https" {

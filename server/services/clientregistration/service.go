@@ -400,12 +400,14 @@ func clientTypeFor(authMethod string) clientv1.ClientType {
 	return clientv1.ClientType_CLIENT_TYPE_CONFIDENTIAL
 }
 
-// validRedirectURI enforces https redirect URIs, with the RFC 8252 section
-// 7.3 loopback exception (http allowed on localhost, 127.0.0.1, ::1) and no
-// fragment components.
+// validRedirectURI enforces https redirect URIs (no userinfo — the
+// user:password@host form changes the effective host and is a
+// phishing-display confusion), with the RFC 8252 section 7.3 loopback
+// exception (http allowed on localhost, 127.0.0.1, ::1) and no fragment
+// components.
 func validRedirectURI(raw string) bool {
 	u, err := url.Parse(raw)
-	if err != nil || u.Fragment != "" || u.Host == "" {
+	if err != nil || u.Fragment != "" || u.Host == "" || u.User != nil {
 		return false
 	}
 	if u.Scheme == "https" {

@@ -113,9 +113,10 @@ func main() {
 	// hardened httpfetch (SSRF pre-flight, https-only), itself still
 	// behind the allow-list.
 	cimdPolicy, err := cimd.DecodePolicy([]byte(`{
-		"subject_type": {"default": "pairwise"},
-		"dpop_bound_access_tokens": {"default": true, "essential": true},
-		"token_endpoint_auth_method": {"one_of": ["none", "private_key_jwt", "attest_jwt_client_auth", "spiffe_jwt", "spiffe_wit", "spiffe_x509", "tls_client_auth", "self_signed_tls_client_auth"]},
+		"subject_type": {"value": "pairwise"},
+		"sector_identifier": {"default": "https://cimd.example.org"},
+		"dpop_bound_access_tokens": {"value": true},
+		"token_endpoint_auth_method": {"one_of": ["private_key_jwt", "attest_jwt_client_auth", "spiffe_jwt", "spiffe_wit", "spiffe_x509", "tls_client_auth", "self_signed_tls_client_auth"]},
 		"grant_types": {"subset_of": ["authorization_code", "refresh_token", "client_credentials", "urn:ietf:params:oauth:grant-type:token-exchange", "urn:ietf:params:oauth:grant-type:jwt-bearer", "urn:ietf:params:oauth:grant-type:device_code", "urn:openid:params:grant-type:ciba"]}
 	}`))
 	if err != nil {

@@ -185,20 +185,25 @@ func TestPolicyScopeSpaceSeparatedList(t *testing.T) {
 }
 
 func TestPolicyOrderValueShortCircuitsCheckersViaApplication(t *testing.T) {
-	// value applies First; one_of then validates the ASSIGNED value
-	// (spec 6.1.3.1.4 combination: "the value of value MUST be among the
-	// one_of values" — the operator application enforces it on the wire).
-	p := mustPolicy(t, `{"token_endpoint_auth_method": {"value": "client_secret_basic", "one_of": ["private_key_jwt"]}}`)
-	_, err := applyTo(t, p, `{}`)
+	// value+one_of combination (spec 6.1.3.1.4: "the value of value MUST
+	// be among the one_of values") is enforced at policy validation
+	// (decode) time — an invalid policy fails loud before it is ever
+	// applied.
+	_, err := DecodePolicy([]byte(`{"token_endpoint_auth_method": {"value": "client_secret_basic", "one_of": ["private_key_jwt"]}}`))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "one_of")
+
+	// The same combination with a conforming value decodes and applies.
+	p := mustPolicy(t, `{"token_endpoint_auth_method": {"value": "private_key_jwt", "one_of": ["private_key_jwt", "none"]}}`)
+	out := mustApply(t, p, `{}`)
+	assert.Contains(t, out, `"private_key_jwt"`)
 }
 
 func TestPolicyClientIDEntryForbidden(t *testing.T) {
-	p := mustPolicy(t, `{"client_id": {"value": "https://attacker.example.com/doc"}}`)
-	_, err := applyTo(t, p, `{"client_id": "https://example.com/client.json"}`)
+	// Rejected at policy decode (configuration load), not first use.
+	_, err := DecodePolicy([]byte(`{"client_id": {"value": "https://attacker.example.com/doc"}}`))
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client_id")
+	assert.Contains(t, err.Error(), "client identifier match")
 }
 
 func TestPolicyUnknownParametersPassThrough(t *testing.T) {
@@ -212,4 +217,94 @@ func TestPolicyEmptyEntryNoOp(t *testing.T) {
 	p := mustPolicy(t, `{"scope": {}}`)
 	out := mustApply(t, p, `{"scope": "openid"}`)
 	assert.Contains(t, out, `"scope":"openid"`)
+}
+
+func TestPolicyFoldVariantMemberSmugglingRejected(t *testing.T) {
+	// Unicode fold-orbit duplicate member names (e.g. U+017F long-s for
+	// "s") decode case-insensitively with last-occurrence-wins into the
+	// typed Document, silently overwriting the policy-applied value.
+	// The raw-key seam rejects them before application.
+	p := mustPolicy(t, `{"grant_types": {"subset_of": ["client_credentials"]}}`)
+	_, err := applyTo(t, p, `{
+	  "client_id": "https://c.example.org/x",
+	  "grant_types": ["client_credentials"],
+	  "grant_typeſ": ["urn:ietf:params:oauth:grant-type:device_code"]
+	}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "fold-variant")
+}
+
+func TestPolicyClientIDGuardFoldInsensitive(t *testing.T) {
+	_, err := DecodePolicy([]byte(`{"client_iD": {"value": "https://evil.example.com/x"}}`))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "client identifier match")
+}
+
+func TestPolicyCombinationValidation(t *testing.T) {
+	// Spec 6.1.3: "Combinations that are not allowed MUST produce a
+	// policy error" — enforced at decode time.
+	for name, policy := range map[string]string{
+		"add not subset of value":               `{"x": {"value": ["a"], "add": ["b"]}}`,
+		"add not subset of subset_of":           `{"x": {"add": ["z"], "subset_of": ["a"]}}`,
+		"value not subset of subset_of":         `{"x": {"value": ["z"], "subset_of": ["a"]}}`,
+		"value not superset of superset_of":     `{"x": {"value": ["a"], "superset_of": ["a", "b"]}}`,
+		"value not in one_of":                   `{"x": {"value": "z", "one_of": ["a", "b"]}}`,
+		"value null + essential true":           `{"x": {"value": null, "essential": true}}`,
+		"value null + default":                  `{"x": {"value": null, "default": "a"}}`,
+		"one_of + subset_of":                    `{"x": {"one_of": ["a"], "subset_of": ["a"]}}`,
+		"default null":                          `{"x": {"default": null}}`,
+		"subset_of not superset of superset_of": `{"x": {"subset_of": ["a"], "superset_of": ["a", "b"]}}`,
+	} {
+		_, err := DecodePolicy([]byte(policy))
+		require.Error(t, err, "%s must be rejected", name)
+	}
+
+	// Conforming combinations decode.
+	mustPolicy(t, `{"x": {"value": ["a"], "add": ["a"], "essential": true}}`)
+	mustPolicy(t, `{"x": {"value": "a", "one_of": ["a", "b"], "essential": true}}`)
+	mustPolicy(t, `{"x": {"add": ["a"], "subset_of": ["a", "b"], "superset_of": ["b"]}}`)
+}
+
+func TestPolicyDecodeRejectsNullAndEmptyBody(t *testing.T) {
+	// A malformed policy must fail loud, not silently resolve into a
+	// pass-through: the policy is the deployment's security control.
+	for name, body := range map[string]string{
+		"null body":  `null`,
+		"empty body": ``,
+		"  body":     `   `,
+	} {
+		_, err := DecodePolicy([]byte(body))
+		require.Error(t, err, "%s must be rejected", name)
+	}
+}
+
+func TestPolicySubsetOfScalarNonScopeIsTypeError(t *testing.T) {
+	// Only scope is processed as a space-separated list (spec
+	// 6.1.3.1.8); a scalar string under any other parameter is a type
+	// error — never silently blanked into a weaker-but-valid value.
+	p := mustPolicy(t, `{"token_endpoint_auth_method": {"subset_of": ["private_key_jwt"]}}`)
+	_, err := applyTo(t, p, `{"token_endpoint_auth_method": "none"}`)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "space-separated")
+
+	p2 := mustPolicy(t, `{"client_name": {"superset_of": ["Evil"]}}`)
+	_, err = applyTo(t, p2, `{"client_name": "Evil Ltd"}`)
+	require.Error(t, err)
+}
+
+func TestPolicyScopeAddStringForm(t *testing.T) {
+	// Spec 6.1.3.1.8: scope is processed as a string array by policy
+	// operators — add unions tokens and re-emits the space-separated
+	// string.
+	p := mustPolicy(t, `{"scope": {"add": ["email"]}}`)
+	out := mustApply(t, p, `{"scope": "openid profile"}`)
+	assert.Contains(t, out, `"scope":"openid profile email"`)
+}
+
+func TestPolicyValueArrayForScope(t *testing.T) {
+	// Array-valued value/default on scope must round-trip as the
+	// space-separated string the Document expects.
+	p := mustPolicy(t, `{"scope": {"value": ["openid", "email"]}}`)
+	out := mustApply(t, p, `{"scope": "openid"}`)
+	assert.Contains(t, out, `"scope":"openid email"`)
 }

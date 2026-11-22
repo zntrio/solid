@@ -92,11 +92,15 @@ func (s *service) generateAccessToken(ctx context.Context, client *clientv1.Clie
 	return at, nil
 }
 
-func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Client, meta *tokenv1.TokenMeta, cnf *tokenv1.TokenConfirmation) (*tokenv1.Token, error) {
+func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Client, meta *tokenv1.TokenMeta, cnf *tokenv1.TokenConfirmation, expiresBy uint64) (*tokenv1.Token, error) {
 	var err error
 
 	// Create access token spec
 	now := timeFunc()
+	expires := uint64(now.AddDate(0, 0, 7).Unix()) //nolint:gosec // unix time is non-negative
+	if expiresBy != 0 {
+		expires = min(expires, expiresBy)
+	}
 	at := &tokenv1.Token{
 		TokenType: tokenv1.TokenType_TOKEN_TYPE_REFRESH_TOKEN,
 		TokenId:   random.String(jtiLength),
@@ -104,9 +108,9 @@ func (s *service) generateRefreshToken(ctx context.Context, client *clientv1.Cli
 			Issuer:    meta.Issuer,
 			Subject:   meta.Subject,
 			ClientId:  client.ClientId,
-			IssuedAt:  uint64(now.Unix()),                  //nolint:gosec // unix time is non-negative
-			NotBefore: uint64(now.Unix() + 1),              //nolint:gosec // unix time is non-negative
-			ExpiresAt: uint64(now.AddDate(0, 0, 7).Unix()), //nolint:gosec // unix time is non-negative
+			IssuedAt:  uint64(now.Unix()),     //nolint:gosec // unix time is non-negative
+			NotBefore: uint64(now.Unix() + 1), //nolint:gosec // unix time is non-negative
+			ExpiresAt: expires,
 			Scope:     meta.Scope,
 			Audience:  meta.Audience,
 			GrantId:   meta.GrantId,

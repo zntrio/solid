@@ -325,8 +325,8 @@ func (p *clientAttestationAuthentication) validateClientAttestation(ctx context.
 	// Required claims (draft section 4; section 7.1, rule 4): sub is the
 	// client_id, exp bounds freshness, cnf.jwk binds the PoP key; iss locates
 	// the Client Attester (local trust model per draft section 10.8).
-	if claims.Issuer == "" || claims.Subject == "" || claims.Expires == 0 || claims.Confirmation == nil || len(claims.Confirmation.JWK) == 0 {
-		return nil, "", fmt.Errorf("iss, sub, exp, cnf are mandatory and not empty")
+	if claims.Issuer == "" || claims.Subject == "" || claims.Expires == 0 || claims.IssuedAt == 0 || claims.Confirmation == nil || len(claims.Confirmation.JWK) == 0 {
+		return nil, "", fmt.Errorf("iss, sub, exp, iat, cnf are mandatory and not empty")
 	}
 
 	// Freshness (draft section 7.1, rule 6): an expired attestation is the

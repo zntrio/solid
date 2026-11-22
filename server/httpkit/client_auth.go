@@ -21,6 +21,7 @@ import (
 	"encoding/pem"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	clientv1 "zntr.io/solid/api/oidc/client/v1"
@@ -30,6 +31,21 @@ import (
 	"zntr.io/solid/server/profile"
 	"zntr.io/solid/server/storage"
 )
+
+// Compact JWTs are a subset of RFC 9651 Token values.
+var compactAttestationJWT = regexp.MustCompile(`^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$`)
+
+func attestationHeader(headers http.Header, name string) (string, bool) {
+	values := headers.Values(name)
+	if len(values) == 0 {
+		return "", true
+	}
+	if len(values) != 1 {
+		return "", false
+	}
+	value := strings.Trim(values[0], " ")
+	return value, compactAttestationJWT.MatchString(value)
+}
 
 // ClientAuthentication is a middleware to handle client authentication. The
 // spiffeBundles source provides the trust-domain signing keys for the
@@ -64,8 +80,8 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				if formParseErr == nil &&
 					r.PostFormValue("client_assertion") == "" &&
 					r.PostFormValue("client_assertion_type") == "" &&
-					r.Header.Get("OAuth-Client-Attestation") == "" &&
-					r.Header.Get("OAuth-Client-Attestation-PoP") == "" &&
+					len(r.Header.Values("OAuth-Client-Attestation")) == 0 &&
+					len(r.Header.Values("OAuth-Client-Attestation-PoP")) == 0 &&
 					r.TLS == nil {
 					clientIDRaw = r.PostFormValue("client_id")
 				}
@@ -106,11 +122,13 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 				var (
 					authMethod = r.PostFormValue("client_assertion_type")
 					assertion  = r.PostFormValue("client_assertion")
-					// draft-ietf-oauth-spiffe-client-auth-02 section 3.3:
-					// WIT-SVID carriage via the attestation headers.
-					attestation    = r.Header.Get("OAuth-Client-Attestation")
-					attestationPop = r.Header.Get("OAuth-Client-Attestation-PoP")
 				)
+				attestation, attestationOK := attestationHeader(r.Header, "OAuth-Client-Attestation")
+				attestationPop, popOK := attestationHeader(r.Header, "OAuth-Client-Attestation-PoP")
+				if !attestationOK || !popOK {
+					WithError(w, r, http.StatusBadRequest, rfcerrors.InvalidRequest().Build())
+					return
+				}
 
 				// SPIFFE methods with dedicated inputs (draft-ietf-oauth-
 				// spiffe-client-auth-02 sections 3.2, 3.3): dispatch on the
@@ -139,15 +157,6 @@ func ClientAuthentication(clients storage.ClientReader, issuer string, supported
 
 				if tlsClientCertPEM != "" {
 					req.TlsClientCert = new(tlsClientCertPEM)
-					// draft section 3.2: when the x509 leaf SAN carries the
-					// SPIFFE ID and no client_id parameter was given, the
-					// middleware resolves it for the client binding.
-					if authenticator == procs.SPIFFEX509 && clientIDParam == "" {
-						leaf := r.TLS.PeerCertificates[0]
-						if spiffeID, ok := spiffe.TrustDomainFromX509SVID(leaf); ok {
-							req.ClientId = new(spiffeID)
-						}
-					}
 				}
 
 				// draft-ietf-oauth-spiffe-client-auth-02 section 3.3 and

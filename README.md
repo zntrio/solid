@@ -80,13 +80,13 @@ Syntactic request validation is expressed as protovalidate annotations on the pr
 
 ### Framework
 
-Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md`](docs/COMPLIANCE_REPORT.md). Every RFC and draft below is vendored under `docs/rfcs/` — see `docs/rfcs/index.jsonl` for the checksummed list.
+Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md`](docs/COMPLIANCE_REPORT.md). Every RFC and draft below is vendored under `docs/rfcs/` — see `docs/rfcs/index.jsonl` for the checksummed list. The draft links point to the latest vendored revisions. Alignment with the six updated revisions is in progress, and the compliance report records the revisions covered by its tests.
 
 #### Core and security
 
 | Standard | Notes |
 |---|---|
-| [draft-ietf-oauth-v2-1-16](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1) — OAuth 2.1 | Core requirements enforced, adversarially tested |
+| [draft-ietf-oauth-v2-1-17](docs/rfcs/draft-ietf-oauth-v2-1-17.txt) — OAuth 2.1 | Core requirements enforced, adversarially tested |
 | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700.html) — Security BCP | Adversarially tested (`integration/`) |
 | [draft-ietf-oauth-security-topics-update-03](https://www.ietf.org/archive/id/draft-ietf-oauth-security-topics-update-03.txt) | AS-side audience hardening (§2.1), issuer-identifier audience (§2.1.2.1) |
 
@@ -98,7 +98,7 @@ Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md
 | [RFC 9207](https://tools.ietf.org/html/rfc9207.html) — Issuer Identification | `iss` in every response mode |
 | [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) — Protected Resource Metadata | |
 | [RFC 9470](https://tools.ietf.org/html/rfc9470) — Step-Up Authentication | `acr_values`/`max_age`, `unmet_authentication_requirements` error |
-| [draft-ietf-oauth-client-id-metadata-document](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-client-id-metadata-document) | Client ID Metadata Documents resolved at the AS behind the operator allow-list; [OpenID Federation 1.0](https://openid.net/specs/openid-federation-1_0.html) §6.1.3.1 metadata-policy operators (`value`, `add`, `default`, `one_of`, `subset_of`, `superset_of`, `essential`) applied between the identifier match and the credential enforcement (`cimd.NewPolicyResolver`); redirect URIs validated on the final document — the AI-agent examples run policy-governed |
+| [draft-ietf-oauth-client-id-metadata-document-03](docs/rfcs/draft-ietf-oauth-client-id-metadata-document-03.txt) | Client ID Metadata Documents resolved at the AS behind the operator allow-list; [OpenID Federation 1.0](https://openid.net/specs/openid-federation-1_0.html) §6.1.3.1 metadata-policy operators (`value`, `add`, `default`, `one_of`, `subset_of`, `superset_of`, `essential`) applied between the identifier match and the credential enforcement (`cimd.NewPolicyResolver`); redirect URIs validated on the final document — the AI-agent examples run policy-governed |
 
 #### Authorization requests and responses
 
@@ -122,7 +122,7 @@ Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md
 | [CIBA Core](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) | Poll mode, `binding_message` required, no refresh tokens (RFC 9700 §4.12.2) |
 | [RFC 8693](https://tools.ietf.org/html/rfc8693) — Token Exchange | `may_act` gating, `act` chain depth cap 3 (fail-closed), `cnf` carried over |
 | [draft-ietf-oauth-identity-chaining-17](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-chaining) | Identity-chained tokens via token exchange, pairwise subjects |
-| [draft-ietf-oauth-identity-assertion-authz-grant-04](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant) — ID-JAG | Issuance at the IdP AS, redemption at the Resource AS (`sdk/idjag`) |
+| [draft-ietf-oauth-identity-assertion-authz-grant-06](docs/rfcs/draft-ietf-oauth-identity-assertion-authz-grant-06.txt) — ID-JAG | Issuance at the IdP AS, redemption at the Resource AS (`sdk/idjag`) |
 | [RFC 7523 §4](https://tools.ietf.org/html/rfc7523#section-4) — JWT Bearer grant | Redeems ID-JAG assertions at the Resource AS |
 
 #### Client authentication and registration
@@ -131,8 +131,8 @@ Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md
 |---|---|
 | [RFC 7521](https://tools.ietf.org/html/rfc7521.html) / [RFC 7523](https://tools.ietf.org/html/rfc7523) — Assertion framework | |
 | `private_key_jwt` | Algorithm allowlist checked before claims |
-| [draft-ietf-oauth-attestation-based-client-auth-11](https://datatracker.ietf.org/doc/draft-ietf-oauth-attestation-based-client-auth/) — `attest_jwt_client_auth` | Header transport, registry-pinned attesters, jti-burn replay protection |
-| [draft-ietf-oauth-spiffe-client-auth-02](https://datatracker.ietf.org/doc/draft-ietf-oauth-spiffe-client-auth/) — `spiffe_jwt` / `spiffe_wit` / `spiffe_x509` | All three SVID types, bundle-sourced trust only |
+| [draft-ietf-oauth-attestation-based-client-auth-12](docs/rfcs/draft-ietf-oauth-attestation-based-client-auth-12.txt) — `attest_jwt_client_auth` | Header transport, registry-pinned attesters, jti-burn replay protection |
+| [draft-ietf-oauth-spiffe-client-auth-03](docs/rfcs/draft-ietf-oauth-spiffe-client-auth-03.txt) — `spiffe_jwt` / `spiffe_wit` / `spiffe_x509` | All three SVID types, bundle-sourced trust only |
 | [RFC 8705 §2.1](https://tools.ietf.org/html/rfc8705) — `tls_client_auth` | Exact-one registered subject binding, fail-closed |
 | [RFC 8705 §2.2](https://tools.ietf.org/html/rfc8705) — `self_signed_tls_client_auth` | Registered JWKS `x5c` match, method-confusion guard |
 | [RFC 7591](https://tools.ietf.org/html/rfc7591) — Dynamic Client Registration | No client secrets issued, `code` only, operator-gated |
@@ -163,7 +163,7 @@ Conformance detail with executed test proof lives in [`docs/COMPLIANCE_REPORT.md
 |---|---|
 | [Pairwise subject identifiers](https://openid.net/specs/openid-connect-core-1_0.html#PairwiseAlg) | Per-sector, salted |
 | [RFC 9901](https://www.rfc-editor.org/rfc/rfc9901.txt) — SD-JWT | Recursive disclosures, decoy digests, key binding mandatory |
-| [draft-ietf-spice-sd-cwt-08](https://www.ietf.org/archive/id/draft-ietf-spice-sd-cwt-08.txt) — SD-CWT | COSE_Sign1 SD-CWT/KBT, definite-length and duplicate-key enforcement |
+| [draft-ietf-spice-sd-cwt-09](docs/rfcs/draft-ietf-spice-sd-cwt-09.txt) — SD-CWT | COSE_Sign1 SD-CWT/KBT, definite-length and duplicate-key enforcement |
 
 #### Token lifecycle
 

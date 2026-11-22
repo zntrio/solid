@@ -418,3 +418,29 @@ func newPublicJWKJSON(t *testing.T, key jwxjwk.Key) []byte {
 
 	return pubJSON
 }
+
+func TestAttestationHeader(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		values []string
+		valid  bool
+	}{
+		{name: "absent", valid: true},
+		{name: "compact token", values: []string{"abc.def.ghi"}, valid: true},
+		{name: "empty", values: []string{""}},
+		{name: "repeated", values: []string{"abc.def.ghi", "abc.def.ghi"}},
+		{name: "list", values: []string{"abc.def.ghi, abc.def.ghi"}},
+		{name: "quoted", values: []string{`"abc.def.ghi"`}},
+		{name: "parameters", values: []string{"abc.def.ghi;proof"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			header := make(http.Header)
+			for _, value := range tt.values {
+				header.Add("OAuth-Client-Attestation", value)
+			}
+			if _, valid := attestationHeader(header, "OAuth-Client-Attestation"); valid != tt.valid {
+				t.Errorf("valid = %v, want %v", valid, tt.valid)
+			}
+		})
+	}
+}

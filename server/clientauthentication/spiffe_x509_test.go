@@ -196,10 +196,11 @@ func (f *x509Fixture) caPEM(t *testing.T) string {
 
 func Test_spiffeX509Authentication_Authenticate(t *testing.T) {
 	tests := []struct {
-		name    string
-		tlsCert func(f *x509Fixture) string
-		prepare func(clients *storagemock.MockClientReader, bundles *spiffemock.MockBundleSource, f *x509Fixture)
-		wantErr bool
+		name     string
+		clientID *string
+		tlsCert  func(f *x509Fixture) string
+		prepare  func(clients *storagemock.MockClientReader, bundles *spiffemock.MockBundleSource, f *x509Fixture)
+		wantErr  bool
 	}{
 		{
 			name:    "valid",
@@ -284,11 +285,11 @@ func Test_spiffeX509Authentication_Authenticate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "client_id fallback resolves registered client",
-			tlsCert: func(f *x509Fixture) string { return f.leafPEM },
+			name:     "explicit client_id resolves registered client",
+			clientID: new("registered-client-id"),
+			tlsCert:  func(f *x509Fixture) string { return f.leafPEM },
 			prepare: func(clients *storagemock.MockClientReader, bundles *spiffemock.MockBundleSource, f *x509Fixture) {
 				bundles.EXPECT().Get(gomock.Any(), "example.org").Return(f.bundleSet, nil)
-				clients.EXPECT().Get(gomock.Any(), spiffeX509Subject).Return(nil, errClientNotFound)
 				clients.EXPECT().Get(gomock.Any(), "registered-client-id").Return(&clientv1.Client{
 					ClientId:                "registered-client-id",
 					SpiffeId:                spiffeX509Subject,
@@ -315,7 +316,7 @@ func Test_spiffeX509Authentication_Authenticate(t *testing.T) {
 
 			req := &clientv1.AuthenticateRequest{
 				TlsClientCert: new(tt.tlsCert(fixture)),
-				ClientId:      new("registered-client-id"),
+				ClientId:      tt.clientID,
 			}
 			got, err := underTest.Authenticate(context.Background(), req)
 			if (err != nil) != tt.wantErr {

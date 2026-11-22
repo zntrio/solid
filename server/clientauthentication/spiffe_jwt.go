@@ -186,21 +186,19 @@ func (p *spiffeJWTAuthentication) Authenticate(ctx context.Context, req *clientv
 		return res, fmt.Errorf("jwt-svid signature is invalid: %w", err)
 	}
 
-	// Client association (draft section 3.1, rule 5): resolve the client by
-	// the SPIFFE ID first, then by the request client_id.
-	client, err := p.clients.Get(ctx, claims.Subject)
+	// An explicit client_id selects the registration (draft -03 section 3.1).
+	clientID := req.GetClientId()
+	if clientID == "" {
+		clientID = claims.Subject
+	}
+	client, err := p.clients.Get(ctx, clientID)
 	if err != nil {
-		if req.ClientId != nil && *req.ClientId != "" {
-			client, err = p.clients.Get(ctx, *req.ClientId)
+		if !errors.Is(err, storage.ErrNotFound) {
+			res.Error = rfcerrors.ServerError().Build()
+			return res, fmt.Errorf("error during client retrieval: %w", err)
 		}
-		if err != nil {
-			if !errors.Is(err, storage.ErrNotFound) {
-				res.Error = rfcerrors.ServerError().Build()
-				return res, fmt.Errorf("error during client retrieval: %w", err)
-			}
-			res.Error = rfcerrors.InvalidClient().Build()
-			return res, fmt.Errorf("client not found")
-		}
+		res.Error = rfcerrors.InvalidClient().Build()
+		return res, fmt.Errorf("client not found")
 	}
 
 	// Enforce the SPIFFE ID binding (draft section 5.1): a client

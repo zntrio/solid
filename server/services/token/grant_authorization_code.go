@@ -317,7 +317,7 @@ func (s *service) mintAuthorizationCodeTokens(ctx context.Context, client *clien
 			// at code issuance.
 			Acr:      loginACR,
 			AuthTime: loginAuthTime,
-		}, at.Confirmation)
+		}, at.Confirmation, 0)
 		if err != nil {
 			return fmt.Errorf("unable to generate refresh token: %w", err)
 		}

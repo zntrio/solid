@@ -219,7 +219,7 @@ func (s *service) refreshToken(ctx context.Context, client *clientv1.Client, req
 
 	// Always rotate the refresh token on use: mint a new one and revoke the
 	// presented one (RFC 9700 section 4.14.2 refresh token rotation).
-	newRt, errRt := s.generateRefreshToken(ctx, client, narrowedMeta, at.Confirmation)
+	newRt, errRt := s.generateRefreshToken(ctx, client, narrowedMeta, at.Confirmation, rt.Metadata.ExpiresAt)
 	if errRt != nil {
 		res.Error = rfcerrors.ServerError().Build()
 		return res, fmt.Errorf("unable to generate refresh token: %w", errRt)
